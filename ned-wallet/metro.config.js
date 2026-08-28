@@ -3,19 +3,32 @@ const { getDefaultConfig } = require('expo/metro-config');
 const config = getDefaultConfig(__dirname);
 
 config.resolver.extraNodeModules = {
-  ...config.resolver.extraNodeModules,
   stream: require.resolve('stream-browserify'),
   crypto: require.resolve('crypto-browserify'),
   events: require.resolve('events'),
   process: require.resolve('process/browser'),
+  buffer: require.resolve('buffer'),
+  zlib: require.resolve('browserify-zlib'),
+  util: require.resolve('util/'),
   http: require.resolve('stream-http'),
   https: require.resolve('https-browserify'),
-  zlib: require.resolve('browserify-zlib'),
-  path: require.resolve('path-browserify'),
-  buffer: require.resolve('buffer'),
-  util: require.resolve('util'),
-  assert: require.resolve('assert'),
-  url: require.resolve('url'),
+  url: require.resolve('url/'),
+  os: require.resolve('os-browserify/browser'),
+};
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'jose' || moduleName.startsWith('jose/')) {
+    return context.resolveRequest(
+      {
+        ...context,
+        unstable_conditionNames: ['browser', 'require', 'react-native'],
+      },
+      moduleName,
+      platform
+    );
+  }
+
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = config;

@@ -98,6 +98,12 @@ importers:
       https-browserify:
         specifier: ^1.0.0
         version: 1.0.0
+      jose:
+        specifier: ^4.15.9
+        version: 4.15.9
+      os-browserify:
+        specifier: ^0.3.0
+        version: 0.3.0
       path-browserify:
         specifier: ^1.0.1
         version: 1.0.1
@@ -3814,6 +3820,9 @@ packages:
   ora@3.4.0:
     resolution: {integrity: sha512-eNwHudNbO1folBP3JsZ19v9azXWtQZjICdr3Q0TDPIaeBQ3mXLrh54wM+er0+hSp+dWKf+Z8KM58CYzEyIYxYg==}
     engines: {node: '>=6'}
+
+  os-browserify@0.3.0:
+    resolution: {integrity: sha512-gjcpUc3clBf9+210TRaDWbf+rZZZEshZ+DlXMRCeAjp0xhTrnQsKHypIy1J3d5hKdUzj69t708EHtU8P6bUn0A==}
 
   own-keys@1.0.2:
     resolution: {integrity: sha512-19YVAg7T+WTrxggPukVq7DjTv6+PJ867TmhCvBsYwmbFCsZd344rq2Ld1p0wo8f8Qrrhgp82c6FJRqdXWtSEhg==}
@@ -9512,6 +9521,8 @@ snapshots:
       log-symbols: 2.2.0
       strip-ansi: 5.2.0
       wcwidth: 1.0.1
+
+  os-browserify@0.3.0: {}
 
   own-keys@1.0.2:
     dependencies:
