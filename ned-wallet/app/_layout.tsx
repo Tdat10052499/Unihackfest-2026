@@ -5,7 +5,10 @@ import { PrivyProvider } from '@privy-io/expo';
 
 export default function RootLayout() {
   return (
-    <PrivyProvider appId="ned-placeholder-app-id-123">
+    <PrivyProvider
+      appId="cmtd0fy9n00x20bjsrwz1bxh9"
+      clientId="client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR"
+    >
       <Slot />
     </PrivyProvider>
   );
