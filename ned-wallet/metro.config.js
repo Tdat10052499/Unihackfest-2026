@@ -14,6 +14,7 @@ config.resolver.extraNodeModules = {
   https: require.resolve('https-browserify'),
   url: require.resolve('url/'),
   os: require.resolve('os-browserify/browser'),
+  path: require.resolve('path-browserify'),
 };
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {

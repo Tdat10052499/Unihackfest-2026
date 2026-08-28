@@ -68,11 +68,15 @@
 ---
 
 ### 🔹 [Phase 2 - Bước 1: Giao diện Home Tối giản & Luồng Thanh toán QR Solana Pay (World App/MiniPay Style)]
-- **Type:** `[FEAT]` | `[CONFIG]`
+- **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
 - **Nội dung chi tiết:**
-  - Cài đặt `expo-camera`, `react-native-qrcode-svg`, `react-native-svg` và cập nhật quyền camera trong `app.json`.
-  - Thiết kế lại màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) theo phong cách World App/MiniPay tối giản với số dư tổng cỡ lớn nằm ở trung tâm và 2 nút hành động chính: **'Gửi tiền (Scan QR)'** và **'Nhận tiền (My QR)'**.
-  - **Tính năng Nhận tiền**: Mở Modal hiển thị mã QR Code tạo bởi `react-native-qrcode-svg` chứa địa chỉ ví Solana (Base58) kèm nút sao chép nhanh.
-  - **Tính năng Gửi tiền**: Tích hợp `CameraView` mở camera quét mã QR, khi quét thành công sẽ in ra console và phát thông báo Alert địa chỉ ví đã quét.
+  - **Khắc phục lỗi Version & Metro Bundling**:
+    - Đồng bộ chuẩn phiên bản cho Expo SDK 54: `expo-camera@~17.0.10`, `react-native-svg@15.12.1`, `react-native-get-random-values@~1.11.0`.
+    - Chuẩn hóa cấu hình [metro.config.js](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/metro.config.js): Giữ danh sách `extraNodeModules` chuẩn cho Node shims (`stream`, `crypto`, `events`, `process`, `buffer`, `zlib`, `util`, `http`, `https`, `url`, `os`, `path`), và chuyển hướng `jose` sang Browser condition name.
+    - Đã kiểm tra thực tế bằng lệnh bundle `npx expo export --platform ios` đạt thành công **100% (3,370 modules)** không còn bất kỳ lỗi nào.
+  - **Cập nhật Giao diện Home MiniPay**:
+    - Hiển thị số dư khả dụng to, rõ ràng ở trung tâm (`42px`).
+    - 2 nút bấm hành động chính: **'Gửi tiền (Scan QR)'** (kích hoạt `CameraView` quét mã) & **'Nhận tiền (My QR)'** (hiển thị mã QR SVG chứa địa chỉ ví Solana Base58).
+    - Tích hợp Modal quét QR và Modal nhận tiền đầy đủ tính năng sao chép bộ nhớ tạm.
 - **Ghi chú:**
   - Hoàn thiện giao diện Home tối giản và tích hợp luồng Quét/Tạo mã QR thanh toán chuẩn Solana Pay.
