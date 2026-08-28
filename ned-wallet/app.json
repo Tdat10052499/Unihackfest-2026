@@ -40,7 +40,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép ứng dụng truy cập camera để quét mã QR thanh toán."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

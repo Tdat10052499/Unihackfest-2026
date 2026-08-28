@@ -49,7 +49,6 @@
 - **Type:** `[FEAT]` | `[DEBUG / FIX]`
 - **Nội dung chi tiết:**
   - Chia luồng đăng nhập Email thành 2 bước: Nhập email lấy mã và Nhập mã OTP xác thực.
-  - Sử dụng các State `email`, `otpCode`, và `step` (`'EMAIL_INPUT' | 'OTP_INPUT'`) để điều hướng giao diện.
 
 ---
 
@@ -64,11 +63,16 @@
 ### 🔹 [Phase 1 - Bước 6: Hoàn Thiện Luồng Ký & Broadcast Giao Dịch Solana Devnet On-chain]
 - **Type:** `[DEBUG / FIX]` | `[FEAT]`
 - **Nội dung chi tiết:**
-  - **Khắc phục lỗi treo ký**: Đảm bảo giao dịch luôn được gán `recentBlockhash` tươi mới trực tiếp từ `solanaConnection.getLatestBlockhash('confirmed')`.
-  - **Hoàn chỉnh luồng Ký & Gửi (Sign & Send)**:
-    1. Tạo đối tượng `Transaction` với chỉ thị `SystemProgram.transfer`.
-    2. Ký giao dịch thông qua Privy Embedded Solana Wallet Provider (`provider.request({ method: 'signTransaction', params: { transaction } })`).
-    3. Broadcast dữ liệu đã ký trực tiếp lên Solana Devnet bằng `solanaConnection.sendRawTransaction(signedTx.serialize())`.
-  - **Trạng thái trực quan**: Thêm `ActivityIndicator` và thông báo trực quan trong quá trình xử lý, đồng thời tự động làm mới số dư sau khi giao dịch thành công.
+  - Khắc phục lỗi treo ký và hoàn thiện luồng Sign and Send Broadcast trực tiếp lên Solana Devnet.
+
+---
+
+### 🔹 [Phase 2 - Bước 1: Giao diện Home Tối giản & Luồng Thanh toán QR Solana Pay (World App/MiniPay Style)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Cài đặt `expo-camera`, `react-native-qrcode-svg`, `react-native-svg` và cập nhật quyền camera trong `app.json`.
+  - Thiết kế lại màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) theo phong cách World App/MiniPay tối giản với số dư tổng cỡ lớn nằm ở trung tâm và 2 nút hành động chính: **'Gửi tiền (Scan QR)'** và **'Nhận tiền (My QR)'**.
+  - **Tính năng Nhận tiền**: Mở Modal hiển thị mã QR Code tạo bởi `react-native-qrcode-svg` chứa địa chỉ ví Solana (Base58) kèm nút sao chép nhanh.
+  - **Tính năng Gửi tiền**: Tích hợp `CameraView` mở camera quét mã QR, khi quét thành công sẽ in ra console và phát thông báo Alert địa chỉ ví đã quét.
 - **Ghi chú:**
-  - Sửa lỗi luồng ký và gửi giao dịch on-chain, đảm bảo broadcast thành công lên Solana Devnet thay vì chỉ dừng ở bước tạo hash.
+  - Hoàn thiện giao diện Home tối giản và tích hợp luồng Quét/Tạo mã QR thanh toán chuẩn Solana Pay.
