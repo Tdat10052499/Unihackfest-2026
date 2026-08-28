@@ -34,17 +34,30 @@
 ### 🔹 [Phase 1 - Bước 2: Khởi tạo Giao diện Đăng nhập Cơ bản]
 - **Type:** `[FEAT]`
 - **Nội dung chi tiết:**
-  - Khởi tạo màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) tích hợp hook `usePrivy` (`login`, `logout`, trạng thái `isReady`) với UI placeholder để kiểm thử luồng đăng nhập và sinh ví ngầm.
-  - Xử lý trạng thái hiển thị thông tin User ID, địa chỉ ví ngầm (Embedded Wallet) khi đăng nhập thành công và nút Đăng xuất.
-  - Tuyệt đối không sử dụng thư viện UI bên ngoài, sử dụng hoàn toàn React Native core components (`View`, `Text`, `Button`, `ActivityIndicator`, `StyleSheet`).
+  - Khởi tạo màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) tích hợp hook `usePrivy` và xử lý trạng thái hiển thị thông tin User ID, địa chỉ ví ngầm.
 
 ---
 
 ### 🔹 [Phase 1 - Bước 3: Cấu hình Thông tin Xác thực Thực tế (Privy App ID & Client ID)]
 - **Type:** `[CONFIG]`
 - **Nội dung chi tiết:**
-  - Cập nhật file [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx) với thông số xác thực thực tế:
-    - `appId`: `"cmtd0fy9n00x20bjsrwz1bxh9"`
-    - `clientId`: `"client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR"`
+  - Cập nhật file [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx) với thông số xác thực thực tế (`appId="cmtd0fy9n00x20bjsrwz1bxh9"`, `clientId="client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR"`).
+
+---
+
+### 🔹 [Phase 1 - Bước 4: Hoàn thiện Luồng Đăng nhập Email OTP 2 Bước]
+- **Type:** `[FEAT]` | `[DEBUG / FIX]`
+- **Nội dung chi tiết:**
+  - Chia luồng đăng nhập Email thành 2 bước: Nhập email lấy mã và Nhập mã OTP xác thực.
+  - Sử dụng các State `email`, `otpCode`, và `step` (`'EMAIL_INPUT' | 'OTP_INPUT'`) để điều hướng giao diện.
+
+---
+
+### 🔹 [Phase 1 - Bước 5: Tích hợp và Hiển thị Địa chỉ Ví Ngầm (Embedded Wallet)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Cấu hình `embedded.ethereum.createOnLogin: 'users-without-wallets'` và `embedded.solana.createOnLogin: 'users-without-wallets'` trong [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx) để tự động sinh ví ngầm khi đăng nhập.
+  - Tích hợp hook `useEmbeddedEthereumWallet` cùng hàm trích xuất đa nguồn (`user.wallet`, `ethWallets`, `user.linked_accounts`).
+  - Hiển thị đầy đủ User ID, địa chỉ ví ngầm (Embedded Wallet) và bổ sung nút khởi tạo thủ công nếu tài khoản chưa có ví.
 - **Ghi chú:**
-  - Đã cấu hình App ID và Client ID thật cho PrivyProvider để kích hoạt luồng xác thực.
+  - Bổ sung logic hiển thị và kiểm tra địa chỉ ví ngầm (Embedded Wallet) sau khi đăng nhập thành công.
