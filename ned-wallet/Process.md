@@ -53,11 +53,22 @@
 
 ---
 
-### 🔹 [Phase 1 - Bước 5: Tích hợp và Hiển thị Địa chỉ Ví Ngầm (Embedded Wallet)]
+### 🔹 [Phase 1 - Bước 5: Cấu hình Sinh Ví Ngầm Chuyên Biệt Mạng Lưới Solana]
 - **Type:** `[FEAT]` | `[CONFIG]`
 - **Nội dung chi tiết:**
-  - Cấu hình `embedded.ethereum.createOnLogin: 'users-without-wallets'` và `embedded.solana.createOnLogin: 'users-without-wallets'` trong [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx) để tự động sinh ví ngầm khi đăng nhập.
-  - Tích hợp hook `useEmbeddedEthereumWallet` cùng hàm trích xuất đa nguồn (`user.wallet`, `ethWallets`, `user.linked_accounts`).
-  - Hiển thị đầy đủ User ID, địa chỉ ví ngầm (Embedded Wallet) và bổ sung nút khởi tạo thủ công nếu tài khoản chưa có ví.
+  - Cấu hình thuộc tính `embedded.solana.createOnLogin: 'users-without-wallets'` trong [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx).
+  - Tích hợp hook `useEmbeddedSolanaWallet` và hàm trích xuất địa chỉ ví Solana dạng Base58 trong [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx).
+
+---
+
+### 🔹 [Phase 1 - Bước 6: Hoàn Thiện Luồng Ký & Broadcast Giao Dịch Solana Devnet On-chain]
+- **Type:** `[DEBUG / FIX]` | `[FEAT]`
+- **Nội dung chi tiết:**
+  - **Khắc phục lỗi treo ký**: Đảm bảo giao dịch luôn được gán `recentBlockhash` tươi mới trực tiếp từ `solanaConnection.getLatestBlockhash('confirmed')`.
+  - **Hoàn chỉnh luồng Ký & Gửi (Sign & Send)**:
+    1. Tạo đối tượng `Transaction` với chỉ thị `SystemProgram.transfer`.
+    2. Ký giao dịch thông qua Privy Embedded Solana Wallet Provider (`provider.request({ method: 'signTransaction', params: { transaction } })`).
+    3. Broadcast dữ liệu đã ký trực tiếp lên Solana Devnet bằng `solanaConnection.sendRawTransaction(signedTx.serialize())`.
+  - **Trạng thái trực quan**: Thêm `ActivityIndicator` và thông báo trực quan trong quá trình xử lý, đồng thời tự động làm mới số dư sau khi giao dịch thành công.
 - **Ghi chú:**
-  - Bổ sung logic hiển thị và kiểm tra địa chỉ ví ngầm (Embedded Wallet) sau khi đăng nhập thành công.
+  - Sửa lỗi luồng ký và gửi giao dịch on-chain, đảm bảo broadcast thành công lên Solana Devnet thay vì chỉ dừng ở bước tạo hash.

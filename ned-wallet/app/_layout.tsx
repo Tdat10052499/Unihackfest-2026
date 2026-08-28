@@ -10,11 +10,11 @@ export default function RootLayout() {
       clientId="client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR"
       config={{
         embedded: {
-          ethereum: {
-            createOnLogin: 'users-without-wallets',
-          },
           solana: {
             createOnLogin: 'users-without-wallets',
+          },
+          ethereum: {
+            createOnLogin: 'off',
           },
         },
       }}
