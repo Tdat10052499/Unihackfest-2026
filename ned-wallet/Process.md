@@ -98,11 +98,16 @@
 ### 🔹 [Phase 2 - Bước 4: Tích Hợp WebSocket Listener & Tối Ưu Hóa Chống Nghẽn 429 Khi Chuyển Tiền Liên Tiếp]
 - **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
 - **Nội dung chi tiết:**
-  - **Nguyên nhân lỗi 429**: Khi gửi tiền liên tiếp, việc đồng thời phát sóng giao dịch và kích hoạt WebSocket `onAccountChange` làm dồn dập hàng loạt request `fetchActivities` và `getParsedTransaction` lên RPC Solana Devnet.
-  - **Giải pháp xử lý triệt để**:
-    1. **Synchronous Scanner Lock**: Sử dụng `useRef` cho luồng quét mã QR, ngăn chặn camera kích hoạt lặp 15 lần trong 1 frame.
-    2. **WebSocket Debouncing**: Debounce 2 giây trước khi kéo lại danh sách lịch sử khi có biến động tài khoản từ WebSocket.
-    3. **Optimistic UI Update**: Cập nhật số dư và lịch sử giao dịch ngay tức thì trên UI khi ký thành công mà không cần chờ gọi mạng đồng thời.
-    4. **RPC Request Throttling**: Áp dụng cơ chế đệm 2.5 giây trong [services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts), loại bỏ hoàn toàn lỗi `Server responded with 429`.
+  - **Nguyên nhân lỗi 429**: Đồng thời broadcast tx và WebSocket callback làm spam RPC.
+  - **Giải pháp**: Synchronous lock cho Camera Scanner, WebSocket Debounce 2s, Optimistic UI update, và Throttling 2.5s trong `services/solana.ts`.
+
+---
+
+### 🔹 [Phase 2 - Bước 5: Hoàn Thiện Ráp Nối Dữ Liệu UI, Pull-to-Refresh & Tối Ưu Trải Nghiệm Render (Anti-Flicker)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Khớp nối State vào UI**: Gắn kết chính xác số dư `solBalance` (kèm quy đổi USD / VND linh hoạt) tại trung tâm Balance Card và ánh xạ mảng `activities` vào khối Recent Activity, bổ sung empty state khi chưa có giao dịch.
+  - **Bổ sung Pull-to-Refresh**: Tích hợp component `RefreshControl` màu xanh lá `#00A859` cho `ScrollView`. Khi vuốt xuống sẽ kích hoạt làm mới toàn bộ số dư và lịch sử giao dịch on-chain tức thì.
+  - **Tối ưu Render (Chống chớp giật màn hình)**: Kiểm tra so sánh sâu mảng dữ liệu mạng mới với mảng cache hiện tại qua `useRef`, loại bỏ hoàn toàn các lần re-render thừa khi dữ liệu không đổi.
 - **Ghi chú:**
-  - Hoàn thành Bước 3: Tích hợp WebSocket Listener theo dõi biến động số dư on-chain thời gian thực và xử lý triệt để lỗi nghẽn RPC 429.
+  - Hoàn thành Bước 4: Ráp nối luồng dữ liệu đồng bộ vào UI, thêm tính năng Pull-to-Refresh và tối ưu trải nghiệm hiển thị.

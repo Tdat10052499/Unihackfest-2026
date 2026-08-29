@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
   Modal,
   TouchableOpacity,
   Alert,
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [activeTab, setActiveTab] = useState<'home' | 'card' | 'send' | 'hub'>('home');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // State Modals & Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -96,6 +98,12 @@ export default function HomeScreen() {
     },
   ]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  // Ref theo dõi activities hiện tại để so sánh chống chớp màn hình (Anti-flicker)
+  const activitiesRef = useRef<ActivityItem[]>(activities);
+  useEffect(() => {
+    activitiesRef.current = activities;
+  }, [activities]);
 
   // Trích xuất địa chỉ ví Solana dạng Base58
   const getSolanaWalletAddress = (): string | null => {
@@ -177,8 +185,14 @@ export default function HomeScreen() {
         (accountInfo) => {
           const newBalance = accountInfo.lamports / LAMPORTS_PER_SOL;
           console.log('⚡ [WebSocket] Biến động số dư tài khoản thời gian thực:', newBalance, 'SOL');
-          setSolBalance(newBalance);
-          cacheBalance(newBalance);
+
+          setSolBalance((prev) => {
+            if (prev !== newBalance) {
+              cacheBalance(newBalance);
+              return newBalance;
+            }
+            return prev;
+          });
 
           // Debounce gọi fetchActivities sau 2s để tránh spam RPC
           if (debounceTimer) clearTimeout(debounceTimer);
@@ -203,25 +217,38 @@ export default function HomeScreen() {
     };
   }, [solanaAddress]);
 
-  // Lấy số dư On-chain
+  // Lấy số dư On-chain (Có kiểm tra thay đổi chống re-render thừa)
   const fetchBalance = async (address: string) => {
     try {
       const balance = await getSolanaBalance(address);
-      setSolBalance(balance);
-      cacheBalance(balance);
+      setSolBalance((prev) => {
+        if (prev !== balance) {
+          cacheBalance(balance);
+          return balance;
+        }
+        return prev;
+      });
     } catch (err: any) {
       console.log('Error fetching Devnet balance:', err);
     }
   };
 
-  // Lấy lịch sử giao dịch On-chain
+  // Lấy lịch sử giao dịch On-chain (Tối ưu Anti-Flicker)
   const fetchActivities = async (address: string, force: boolean = false) => {
     setIsLoadingActivities(true);
     try {
       const onChainList = await fetchOnChainHistory(address, force);
       if (onChainList && onChainList.length > 0) {
-        setActivities(onChainList);
-        cacheActivities(onChainList);
+        // So sánh nội dung mới với state hiện tại để tránh re-render chớp nháy
+        const currentList = activitiesRef.current;
+        const isSame =
+          currentList.length === onChainList.length &&
+          currentList.every((item, idx) => item.id === onChainList[idx]?.id && item.amount === onChainList[idx]?.amount);
+
+        if (!isSame) {
+          setActivities(onChainList);
+          cacheActivities(onChainList);
+        }
       }
     } catch (err: any) {
       console.log('Error fetching on-chain history:', err);
@@ -229,6 +256,22 @@ export default function HomeScreen() {
       setIsLoadingActivities(false);
     }
   };
+
+  // Hàm xử lý Vuốt để làm mới (Pull-to-Refresh)
+  const handlePullToRefresh = useCallback(async () => {
+    if (!solanaAddress) return;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchBalance(solanaAddress),
+        fetchActivities(solanaAddress, true), // force refresh bỏ qua throttle
+      ]);
+    } catch (err) {
+      console.log('Error refreshing data:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [solanaAddress]);
 
   // Mở màn hình Camera quét mã QR
   const handleOpenScanner = async () => {
@@ -414,7 +457,7 @@ export default function HomeScreen() {
   // Tính toán hiển thị số dư định dạng theo tiền tệ
   const getFormattedBalance = () => {
     if (solBalance === null) return currency === 'USD' ? '$0,10' : '2.540 ₫';
-    const usdVal = (solBalance * 150) + 0.10;
+    const usdVal = solBalance * 150 + 0.1;
     if (currency === 'USD') {
       return `$${usdVal.toFixed(2).replace('.', ',')}`;
     } else {
@@ -525,6 +568,14 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handlePullToRefresh}
+            colors={['#00A859']}
+            tintColor="#00A859"
+          />
+        }
       >
         {/* 1. Header Component */}
         <View style={styles.header}>
@@ -591,7 +642,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Số dư Lớn Nổi Bật */}
+            {/* Số dư Lớn Nổi Bật Trung Tâm */}
             <View style={styles.balanceDisplayRow}>
               <Text style={styles.mainBalanceText}>{getFormattedBalance()}</Text>
             </View>
@@ -749,7 +800,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 4. Recent Activity Component (On-chain Integrated) */}
+        {/* 4. Recent Activity Component (Khớp nối State & Anti-Flicker) */}
         <View style={styles.activityCard}>
           <View style={styles.activityHeaderRow}>
             <Text style={styles.activityTitle}>Recent activity</Text>
@@ -765,34 +816,41 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Transaction List */}
-          <View style={styles.activityList}>
-            {activities.map((item) => (
-              <View key={item.id} style={styles.activityItem}>
-                <View style={[styles.activityIconCircle, { backgroundColor: item.iconBg }]}>
-                  {item.type === 'reward' ? (
-                    <MaterialCommunityIcons name="gift-outline" size={20} color="#FFFFFF" />
-                  ) : item.type === 'received' ? (
-                    <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
-                  ) : (
-                    <Feather name="arrow-up-right" size={18} color="#FFFFFF" />
-                  )}
+          {/* Danh sách Giao dịch */}
+          {activities.length === 0 ? (
+            <View style={styles.emptyActivityBox}>
+              <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
+              <Text style={styles.emptyActivityText}>Chưa có giao dịch gần đây</Text>
+            </View>
+          ) : (
+            <View style={styles.activityList}>
+              {activities.map((item) => (
+                <View key={item.id} style={styles.activityItem}>
+                  <View style={[styles.activityIconCircle, { backgroundColor: item.iconBg }]}>
+                    {item.type === 'reward' ? (
+                      <MaterialCommunityIcons name="gift-outline" size={20} color="#FFFFFF" />
+                    ) : item.type === 'received' ? (
+                      <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
+                    ) : (
+                      <Feather name="arrow-up-right" size={18} color="#FFFFFF" />
+                    )}
+                  </View>
+                  <View style={styles.activityDetailCol}>
+                    <Text style={styles.activityItemTitle}>{item.title}</Text>
+                    <Text style={styles.activityItemTime}>{item.time}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.activityItemAmount,
+                      item.isPositive ? styles.amountPositive : styles.amountNegative,
+                    ]}
+                  >
+                    {item.amount}
+                  </Text>
                 </View>
-                <View style={styles.activityDetailCol}>
-                  <Text style={styles.activityItemTitle}>{item.title}</Text>
-                  <Text style={styles.activityItemTime}>{item.time}</Text>
-                </View>
-                <Text
-                  style={[
-                    styles.activityItemAmount,
-                    item.isPositive ? styles.amountPositive : styles.amountNegative,
-                  ]}
-                >
-                  {item.amount}
-                </Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Khoảng trống đệm cuộn phía dưới */}
@@ -1414,6 +1472,16 @@ const styles = StyleSheet.create({
   },
   activityList: {
     gap: 16,
+  },
+  emptyActivityBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  emptyActivityText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 8,
   },
   activityItem: {
     flexDirection: 'row',
