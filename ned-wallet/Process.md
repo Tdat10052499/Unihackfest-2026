@@ -31,28 +31,7 @@
 
 ---
 
-### 🔹 [Phase 1 - Bước 2: Khởi tạo Giao diện Đăng nhập Cơ bản]
-- **Type:** `[FEAT]`
-- **Nội dung chi tiết:**
-  - Khởi tạo màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) tích hợp hook `usePrivy` và xử lý trạng thái hiển thị thông tin User ID, địa chỉ ví ngầm.
-
----
-
-### 🔹 [Phase 1 - Bước 3: Cấu hình Thông tin Xác thực Thực tế (Privy App ID & Client ID)]
-- **Type:** `[CONFIG]`
-- **Nội dung chi tiết:**
-  - Cập nhật file [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx) với thông số xác thực thực tế (`appId="cmtd0fy9n00x20bjsrwz1bxh9"`, `clientId="client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR"`).
-
----
-
-### 🔹 [Phase 1 - Bước 4: Hoàn thiện Luồng Đăng nhập Email OTP 2 Bước]
-- **Type:** `[FEAT]` | `[DEBUG / FIX]`
-- **Nội dung chi tiết:**
-  - Chia luồng đăng nhập Email thành 2 bước: Nhập email lấy mã và Nhập mã OTP xác thực.
-
----
-
-### 🔹 [Phase 1 - Bước 5: Cấu hình Sinh Ví Ngầm Chuyên Biệt Mạng Lưới Solana]
+### 🔹 [Phase 1 - Bước 2: Cấu hình Sinh Ví Ngầm Chuyên Biệt Mạng Lưới Solana]
 - **Type:** `[FEAT]` | `[CONFIG]`
 - **Nội dung chi tiết:**
   - Cấu hình thuộc tính `embedded.solana.createOnLogin: 'users-without-wallets'` trong [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx).
@@ -60,7 +39,7 @@
 
 ---
 
-### 🔹 [Phase 1 - Bước 6: Hoàn Thiện Luồng Ký & Broadcast Giao Dịch Solana Devnet On-chain]
+### 🔹 [Phase 1 - Bước 3: Hoàn Thiện Luồng Ký & Broadcast Giao Dịch Solana Devnet On-chain]
 - **Type:** `[DEBUG / FIX]` | `[FEAT]`
 - **Nội dung chi tiết:**
   - Khắc phục lỗi treo ký và hoàn thiện luồng Sign and Send Broadcast trực tiếp lên Solana Devnet.
@@ -103,11 +82,104 @@
 
 ---
 
-### 🔹 [Phase 2 - Bước 5: Hoàn Thiện Ráp Nối Dữ Liệu UI, Pull-to-Refresh & Tối Ưu Trải Nghiệm Render (Anti-Flicker)]
+### 🔹 [Phase 2 - Bước 5: Ráp Nối Dữ Liệu UI, Pull-to-Refresh & Tối Ưu Trải Nghiệm Render (Anti-Flicker)]
 - **Type:** `[FEAT]` | `[CONFIG]`
 - **Nội dung chi tiết:**
-  - **Khớp nối State vào UI**: Gắn kết chính xác số dư `solBalance` (kèm quy đổi USD / VND linh hoạt) tại trung tâm Balance Card và ánh xạ mảng `activities` vào khối Recent Activity, bổ sung empty state khi chưa có giao dịch.
-  - **Bổ sung Pull-to-Refresh**: Tích hợp component `RefreshControl` màu xanh lá `#00A859` cho `ScrollView`. Khi vuốt xuống sẽ kích hoạt làm mới toàn bộ số dư và lịch sử giao dịch on-chain tức thì.
-  - **Tối ưu Render (Chống chớp giật màn hình)**: Kiểm tra so sánh sâu mảng dữ liệu mạng mới với mảng cache hiện tại qua `useRef`, loại bỏ hoàn toàn các lần re-render thừa khi dữ liệu không đổi.
+  - **Khớp nối State vào UI**: Gắn kết chính xác số dư `solBalance` (kèm quy đổi USD / VND linh hoạt) tại trung tâm Balance Card và ánh xạ mảng `activities` vào khối Recent Activity.
+  - **Bổ sung Pull-to-Refresh**: Tích hợp component `RefreshControl` màu xanh lá `#00A859` cho `ScrollView`.
+  - **Tối ưu Render (Chống chớp giật)**: So sánh sâu mảng dữ liệu mạng mới với mảng cache qua `useRef`, loại bỏ re-render thừa.
+
+---
+
+### 🔹 [Phase 2 - Bước 6: Tối Giản Bottom Sheet Deposit với 2 Luồng Nạp Chính]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Tái cấu trúc Bottom Sheet nạp tiền [components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx), loại bỏ tùy chọn thẻ tín dụng/Stripe để giao diện tối giản và tập trung vào 2 khối chính (VNPAY và Solana Network QR).
+
+---
+
+### 🔹 [Phase 2 - Bước 7: Màn Hình Authentication Đa Phương Thức (Email OTP 2 Bước & Google OAuth)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Tích hợp hook `useLoginWithEmail` (`sendCode`, `loginWithCode`) và `useLoginWithOAuth` (`login({ provider: 'google' })`) từ `@privy-io/expo` trong [app/login.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/login.tsx).
+  - Quản lý trạng thái 2 bước mượt mà:
+    - **Bước 1 (Initial)**: Nhập Email với ô `TextInput` bo góc kèm icon hòm thư, nút 'Tiếp tục với Email', đường phân cách 'Hoặc' và nút 'Tiếp tục với Google'.
+    - **Bước 2 (OTP Verification)**: Hiển thị thông báo email đích, ô nhập mã xác nhận 6 chữ số, nút 'Xác nhận & Đăng nhập' và nút Text 'Quay lại nhập email khác'.
+  - Bọc form trong `KeyboardAvoidingView` và `ScrollView` giúp tương tác nhập liệu trơn tru trên mọi thiết bị di động.
+  - Tự động điều hướng / chuyển đổi liền mạch sang màn hình chính [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) ngay khi xác thực thành công.
+
+---
+
+### 🔹 [Phase 2 - Bước 8: Thanh Tìm Kiếm Thông Minh (Debounce Lookup) Tra Cứu Ví Qua Supabase]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Cài đặt `@supabase/supabase-js` và cấu hình client Supabase trong [services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts).
+  - Viết hàm `lookupWalletByPhone(phone)` chuẩn hóa định dạng số điện thoại (E.164 / `+84` / `0...`) và tra cứu địa chỉ ví Solana liên kết.
+  - Xây dựng component [components/SendModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/SendModal.tsx) và màn hình [app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx):
+    - **Cơ chế Debounce (500ms)**: Hoãn gọi API đến khi người dùng ngưng gõ, dọn dẹp timer qua `clearTimeout`.
+    - **Phân loại định dạng**: Tự động nhận diện chuỗi Solana Base58 (32-44 ký tự) hoặc số điện thoại để kích hoạt tra cứu.
+    - **UI phản hồi thông minh**: Hiển thị `ActivityIndicator` xoay nhẹ khi tra cứu, thẻ xanh nhạt 'Đã tìm thấy ví N.E.D' kèm địa chỉ rút gọn khi thành công, hoặc thông báo đỏ 'Số điện thoại này chưa liên kết ví N.E.D' khi không tìm thấy.
+  - Tích hợp trực tiếp `SendModal` vào [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) phục vụ nút Withdraw, Tab Send và luồng quét mã QR Camera.
+
+---
+
+### 🔹 [Phase 2 - Bước 9: Module Liên Kết Số Điện Thoại (Phone Linking) với Mock OTP]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Xây dựng component [components/PhoneLinkingModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/PhoneLinkingModal.tsx) dạng Bottom Sheet hiện đại.
+  - **Kiểm tra trạng thái hiển thị**: Tự động kiểm tra `getLinkedPhone()` và `getHasSkippedPhoneLink()` trong `AsyncStorage` khi render Home ([app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx)), chỉ hiển thị khi người dùng chưa từng liên kết và chưa từng bấm 'Bỏ qua'.
+  - **Bước 1 (Nhập SĐT)**: Ô nhập SĐT với cờ Việt Nam `🇻🇳 +84` và nút 'Nhận mã OTP'.
+  - **Bước 2 (Mock OTP)**: Ô nhập mã 6 số, logic hardcode chấp thuận mã `123456` và cảnh báo lỗi khi nhập sai.
+  - **Lưu trữ dữ liệu**: Gọi `linkPhoneNumber(userId, walletAddress, phone)` lưu vào bảng `phone_wallets` trên Supabase, đồng thời lưu `setLinkedPhone()` vào `AsyncStorage`.
+  - **Tính năng Bỏ qua (Skip)**: Nút 'Bỏ qua' lưu cờ `setHasSkippedPhoneLink()` vào `AsyncStorage` để không hiển thị lại ở các phiên sau.
+
+---
+
+### 🔹 [Phase 2 - Bước 10: Quản Lý Số Điện Thoại (Cập Nhật & Hủy Liên Kết) Chuẩn Bảo Mật]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Xây dựng component [components/PhoneManagementModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/PhoneManagementModal.tsx) và tích hợp vào thẻ Cài đặt / Next Steps trong [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx).
+  - **Giao diện Masked**: Hiển thị số điện thoại bị che một phần an toàn (VD: `+84 9xx xxx x78`) kèm badge "Đã xác minh".
+  - **Luồng Thay đổi (Update)**: Mở luồng 2 bước (Nhập SĐT mới $\rightarrow$ Mock OTP `123456`), gọi `updatePhoneNumber()` trên Supabase và cập nhật `setLinkedPhone()` trong `AsyncStorage`.
+  - **Luồng Hủy (Delete)**: Modal cảnh báo an ninh, yêu cầu người dùng gõ **chính xác 100% số điện thoại đầy đủ đang liên kết** để kích hoạt nút 'Hủy liên kết'. Gọi `unlinkPhoneNumber()` trên Supabase và `removeLinkedPhone()` khỏi `AsyncStorage`.
+  - **Xử lý State UI**: Cập nhật trạng thái tức thì mà không cần tải lại ứng dụng.
+
+---
+
+### 🔹 [Phase 2 - Bước 11: Màn Hình Cài Đặt / Profile (Dark Theme & Quản Lý Tài Khoản)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Tạo mới file [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx) với giao diện Dark Theme cao cấp (`#1E1F2E` / `#2A2C3E`):
+    - **Header Cá nhân**: Avatar tròn gradient chữ 'Đ', trích xuất tên tài khoản Google/Email từ Privy, hiển thị số điện thoại liên kết kèm icon cây bút (chạm để mở `PhoneManagementModal`), badge `🟢 Google Backed up >`.
+    - **Nhóm 1 (Tài chính & Lịch sử)**: Tùy chọn 'Local currency' (VND) và 'Transaction history' dẫn đến trang lịch sử.
+    - **Nhóm 2 (Hiển thị)**: Hai switch 'Stealth mode' và 'Show empty pockets'.
+    - **Nhóm 3 (Hỗ trợ & Tài khoản)**: Các mục Invite friends, FAQ, Contact support, About và Sign out (gọi hook `logout()` từ Privy và chuyển hướng về `/login`).
+  - Cập nhật điều hướng tại Home ([app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx)) cho phép chạm vào Badge chào mừng hoặc avatar để chuyển sang màn hình Cài đặt mượt mà.
+  - **Cấu hình Tab MiniApps**: Icon 4 ô vuông (`grid-outline`) ở vị trí Tab thứ 4 được dành riêng làm điểm chờ (Placeholder) cho trung tâm MiniApps Hub và sẽ được kích hoạt ở giai đoạn sau.
+
+---
+
+### 🔹 [Phase 2 - Bước 12: Tinh Chỉnh UI/UX Home & Di Chuyển Ví Solana Sang Settings]
+- **Type:** `[DEBUG / FIX]` | `[FEAT]`
+- **Nội dung chi tiết:**
+  - **Dọn dẹp Home ([app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx))**: Xóa bỏ hoàn toàn Drawer menu 'Solana Devnet & Settings', nút chevron, và các biến state không cần thiết (`showDevnetDrawer`, `isCreatingWallet`, `signatureResult`), giúp giao diện Home tối giản và tập trung đúng chuẩn MiniPay.
+  - **Cập nhật Settings ([app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx))**:
+    - Trích xuất địa chỉ ví Solana ngầm Base58 của người dùng.
+    - Hiển thị địa chỉ ví rút gọn (VD: `9hdn...Xw5p`) ngay bên dưới số điện thoại tại khu vực Header.
+    - Tích hợp icon sao chép (`Feather name="copy"`), sử dụng `expo-clipboard` để sao chép ví và thông báo 'Đã sao chép địa chỉ ví Solana!'.
+
+---
+
+### 🔹 [Phase 2 - Bước 13: Xây Dựng Trang Lịch Sử Giao Dịch Toàn Diện (app/history.tsx)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Tạo mới màn hình [app/history.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/history.tsx) chứa toàn bộ các hoạt động giao dịch on-chain:
+    - **Header Bar**: Nút quay lại (`<`), Tiêu đề và nút Làm mới dữ liệu.
+    - **Thanh Tìm Kiếm (Search)**: Tra cứu nhanh theo số tiền, chữ ký tx hoặc nội dung.
+    - **Bộ Lọc Danh Mục (Filter Pills)**: Lọc theo Tất cả, Nhận tiền, Chuyển tiền, Phần thưởng.
+    - **Chi Tiết Giao Dịch**: Hiển thị biến động số dư, thời gian, sao chép nhanh Signature và liên kết mở trực tiếp trên Solana Explorer Devnet.
+    - **Pull-to-Refresh**: Vuốt để tải lại lịch sử on-chain trực tiếp.
+  - Cập nhật [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx): Giới hạn hiển thị **tối đa 4 mục gần nhất** tại Recent Activity ở Home, nút 'View more' và chạm vào giao dịch chuyển hướng trực tiếp sang `/history`.
+  - Cập nhật [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx): Thêm mục 'Transaction history' trong menu Cài đặt để chuyển đến màn hình History.
 - **Ghi chú:**
-  - Hoàn thành Bước 4: Ráp nối luồng dữ liệu đồng bộ vào UI, thêm tính năng Pull-to-Refresh và tối ưu trải nghiệm hiển thị.
+  - Thêm phần history vào trong menu, phần recent activity chỉ hiện tối đa 4 hoạt động và liên kết đến trang History toàn diện.

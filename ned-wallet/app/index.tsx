@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
@@ -13,9 +12,9 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   usePrivy,
-  useLoginWithEmail,
   useEmbeddedSolanaWallet,
 } from '@privy-io/expo';
 import {
@@ -24,8 +23,6 @@ import {
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import * as Clipboard from 'expo-clipboard';
-import QRCode from 'react-native-qrcode-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import {
@@ -39,20 +36,20 @@ import {
   getCachedBalance,
   cacheActivities,
   getCachedActivities,
+  getHasSkippedPhoneLink,
+  getLinkedPhone,
 } from '../services/storage';
+import { DepositModal } from '../components/DepositModal';
+import { SendModal } from '../components/SendModal';
+import { PhoneLinkingModal } from '../components/PhoneLinkingModal';
+import { PhoneManagementModal } from '../components/PhoneManagementModal';
+import LoginScreen from './login';
 
 export default function HomeScreen() {
-  const { isReady, user, logout } = usePrivy();
-  const { sendCode, loginWithCode, state: loginState } = useLoginWithEmail();
+  const router = useRouter();
+  const { isReady, user } = usePrivy();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const [permission, requestPermission] = useCameraPermissions();
-
-  // State luồng đăng nhập
-  const [email, setEmail] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [step, setStep] = useState<'EMAIL_INPUT' | 'OTP_INPUT'>('EMAIL_INPUT');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
   // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
@@ -64,17 +61,15 @@ export default function HomeScreen() {
   const [showScanner, setShowScanner] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showDevnetDrawer, setShowDevnetDrawer] = useState(false);
+  const [showPhoneLinkingModal, setShowPhoneLinkingModal] = useState(false);
+  const [showPhoneManagementModal, setShowPhoneManagementModal] = useState(false);
+  const [linkedPhoneState, setLinkedPhoneState] = useState<string | null>(null);
   const [hasScanned, setHasScanned] = useState(false);
   const isScanningLocked = useRef(false);
 
-  // State Withdraw Form
+  // State Withdraw / Send Recipient & Broadcast Loading
   const [withdrawAddress, setWithdrawAddress] = useState('');
-  const [withdrawAmount, setWithdrawAmount] = useState('0.001');
-
-  // State Devnet Test & Signature
-  const [signatureResult, setSignatureResult] = useState('');
-  const [isTestingSignature, setIsTestingSignature] = useState(false);
+  const [isSendingTx, setIsSendingTx] = useState(false);
 
   // State danh sách lịch sử giao dịch & loading
   const [activities, setActivities] = useState<ActivityItem[]>([
@@ -143,15 +138,19 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadCachedData = async () => {
       try {
-        const [cachedBal, cachedActs] = await Promise.all([
+        const [cachedBal, cachedActs, linkedPhone] = await Promise.all([
           getCachedBalance(),
           getCachedActivities(),
+          getLinkedPhone(),
         ]);
         if (cachedBal !== null) {
           setSolBalance(cachedBal);
         }
         if (cachedActs !== null && cachedActs.length > 0) {
           setActivities(cachedActs);
+        }
+        if (linkedPhone) {
+          setLinkedPhoneState(linkedPhone);
         }
       } catch (err) {
         console.error('Error loading initial cached data:', err);
@@ -161,7 +160,33 @@ export default function HomeScreen() {
     loadCachedData();
   }, []);
 
-  // 2. Luồng Cache-then-Network: Kéo dữ liệu on-chain chạy nền khi có địa chỉ ví
+  // 2. Kiểm tra trạng thái liên kết SĐT (Phone Linking Prompt)
+  useEffect(() => {
+    const checkPhoneLinkingPrompt = async () => {
+      if (!user) return;
+      try {
+        const [skipped, linked] = await Promise.all([
+          getHasSkippedPhoneLink(),
+          getLinkedPhone(),
+        ]);
+        if (linked) {
+          setLinkedPhoneState(linked);
+        }
+        if (!linked && !skipped) {
+          // Trì hoãn 800ms để trải nghiệm khởi động app mượt mà
+          setTimeout(() => {
+            setShowPhoneLinkingModal(true);
+          }, 800);
+        }
+      } catch (err) {
+        console.error('Error checking phone link prompt:', err);
+      }
+    };
+
+    checkPhoneLinkingPrompt();
+  }, [user]);
+
+  // 3. Luồng Cache-then-Network: Kéo dữ liệu on-chain chạy nền khi có địa chỉ ví
   useEffect(() => {
     if (solanaAddress) {
       fetchBalance(solanaAddress);
@@ -169,7 +194,7 @@ export default function HomeScreen() {
     }
   }, [solanaAddress]);
 
-  // 3. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
+  // 4. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
   useEffect(() => {
     if (!solanaAddress) return;
 
@@ -179,7 +204,6 @@ export default function HomeScreen() {
     try {
       const pubKey = new PublicKey(solanaAddress);
 
-      // Đăng ký lắng nghe sự kiện thay đổi của tài khoản từ Solana WebSocket RPC
       subscriptionId = solanaConnection.onAccountChange(
         pubKey,
         (accountInfo) => {
@@ -206,7 +230,6 @@ export default function HomeScreen() {
       console.error('Error setting up onAccountChange WebSocket listener:', err);
     }
 
-    // Dọn dẹp bộ nhớ (Cleanup): Hủy đăng ký listener khi component unmount
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       if (subscriptionId !== null) {
@@ -217,7 +240,7 @@ export default function HomeScreen() {
     };
   }, [solanaAddress]);
 
-  // Lấy số dư On-chain (Có kiểm tra thay đổi chống re-render thừa)
+  // Lấy số dư On-chain
   const fetchBalance = async (address: string) => {
     try {
       const balance = await getSolanaBalance(address);
@@ -239,11 +262,14 @@ export default function HomeScreen() {
     try {
       const onChainList = await fetchOnChainHistory(address, force);
       if (onChainList && onChainList.length > 0) {
-        // So sánh nội dung mới với state hiện tại để tránh re-render chớp nháy
         const currentList = activitiesRef.current;
         const isSame =
           currentList.length === onChainList.length &&
-          currentList.every((item, idx) => item.id === onChainList[idx]?.id && item.amount === onChainList[idx]?.amount);
+          currentList.every(
+            (item, idx) =>
+              item.id === onChainList[idx]?.id &&
+              item.amount === onChainList[idx]?.amount
+          );
 
         if (!isSame) {
           setActivities(onChainList);
@@ -264,7 +290,7 @@ export default function HomeScreen() {
     try {
       await Promise.all([
         fetchBalance(solanaAddress),
-        fetchActivities(solanaAddress, true), // force refresh bỏ qua throttle
+        fetchActivities(solanaAddress, true),
       ]);
     } catch (err) {
       console.log('Error refreshing data:', err);
@@ -290,7 +316,7 @@ export default function HomeScreen() {
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện quét QR thành công (Chống lặp với ref synchronous lock)
+  // Xử lý sự kiện quét QR thành công
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (isScanningLocked.current) return;
     isScanningLocked.current = true;
@@ -298,41 +324,19 @@ export default function HomeScreen() {
     setShowScanner(false);
     console.log('Đã quét địa chỉ:', data);
     setWithdrawAddress(data);
-    Alert.alert(
-      'Quét Thành Công',
-      `Đã nhận diện địa chỉ:\n${data}`,
-      [
-        { text: 'Đóng', style: 'cancel' },
-        { text: 'Chuyển Tiền Ngay', onPress: () => setShowWithdrawModal(true) },
-      ]
-    );
-  };
-
-  // Khởi tạo ví Solana ngầm thủ công
-  const handleCreateSolanaWallet = async () => {
-    setIsCreatingWallet(true);
-    setErrorMessage('');
-    try {
-      if (solanaWalletState?.create) {
-        await solanaWalletState.create();
-      }
-    } catch (err: any) {
-      console.log('Error creating Solana embedded wallet:', err);
-      setErrorMessage(err?.message || 'Không thể khởi tạo ví ngầm Solana.');
-    } finally {
-      setIsCreatingWallet(false);
-    }
+    setShowWithdrawModal(true);
   };
 
   // Ký và gửi giao dịch chuyển tiền On-chain lên Solana Devnet
-  const handleSendTransaction = async (targetAddress?: string, amountSol?: number) => {
+  const handleSendTransaction = async (
+    targetAddress?: string,
+    amountSol?: number
+  ) => {
     if (!solanaAddress) return;
     const recipient = targetAddress || withdrawAddress.trim() || solanaAddress;
-    const sendLamports = Math.floor((amountSol || parseFloat(withdrawAmount) || 0.001) * 1e9);
+    const sendLamports = Math.floor((amountSol || 0.001) * 1e9);
 
-    setIsTestingSignature(true);
-    setSignatureResult('');
-    setErrorMessage('');
+    setIsSendingTx(true);
 
     try {
       if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
@@ -372,7 +376,6 @@ export default function HomeScreen() {
       });
 
       if (txSignature) {
-        setSignatureResult(txSignature);
         setShowWithdrawModal(false);
 
         // Optimistic UI: Cập nhật hoạt động mới vào danh sách & lưu cache tức thì
@@ -398,59 +401,19 @@ export default function HomeScreen() {
           prev !== null ? Math.max(0, prev - sendLamports / 1e9 - 0.000005) : prev
         );
 
-        Alert.alert('Giao Dịch Thành Công! ⚡', `Mã chữ ký (Signature):\n${txSignature.slice(0, 20)}...`);
+        Alert.alert(
+          'Giao Dịch Thành Công! ⚡',
+          `Mã chữ ký (Signature):\n${txSignature.slice(0, 20)}...`
+        );
       }
     } catch (err: any) {
       console.error('Solana Transaction Error:', err);
-      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể broadcast giao dịch lên Devnet.');
-      setSignatureResult('Lỗi: ' + (err?.message || 'Giao dịch thất bại.'));
+      Alert.alert(
+        'Lỗi Giao Dịch',
+        err?.message || 'Không thể broadcast giao dịch lên Devnet.'
+      );
     } finally {
-      setIsTestingSignature(false);
-    }
-  };
-
-  // Sao chép chuỗi vào Clipboard
-  const copyToClipboard = async (text?: string | null, msg: string = 'Đã sao chép vào bộ nhớ tạm!') => {
-    if (!text) return;
-    try {
-      await Clipboard.setStringAsync(text);
-      Alert.alert('Thông Báo', msg);
-    } catch (err) {
-      console.log('Copy error:', err);
-    }
-  };
-
-  // Xử lý gửi OTP email
-  const handleSendCode = async () => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setErrorMessage('Vui lòng nhập địa chỉ email.');
-      return;
-    }
-    setErrorMessage('');
-    try {
-      await sendCode({ email: trimmedEmail });
-      setStep('OTP_INPUT');
-    } catch (err: any) {
-      console.log('Error sending OTP:', err);
-      setErrorMessage(err?.message || 'Không thể gửi mã xác thực. Vui lòng thử lại.');
-    }
-  };
-
-  // Xử lý xác thực mã OTP
-  const handleVerifyCode = async () => {
-    const trimmedCode = otpCode.trim();
-    const trimmedEmail = email.trim();
-    if (!trimmedCode) {
-      setErrorMessage('Vui lòng nhập mã OTP.');
-      return;
-    }
-    setErrorMessage('');
-    try {
-      await loginWithCode({ code: trimmedCode, email: trimmedEmail });
-    } catch (err: any) {
-      console.log('Error verifying OTP:', err);
-      setErrorMessage(err?.message || 'Mã xác thực không hợp lệ hoặc đã hết hạn.');
+      setIsSendingTx(false);
     }
   };
 
@@ -466,6 +429,17 @@ export default function HomeScreen() {
     }
   };
 
+  const getMaskedPhone = (rawPhone: string | null): string => {
+    if (!rawPhone) return 'Chưa liên kết';
+    const cleaned = rawPhone.trim();
+    if (cleaned.length < 8) return cleaned;
+    const prefix = cleaned.slice(0, 5);
+    const suffix = cleaned.slice(-2);
+    const middleCount = Math.max(3, cleaned.length - 7);
+    const masked = 'x'.repeat(middleCount);
+    return `${prefix} ${masked} ${suffix}`;
+  };
+
   if (!isReady) {
     return (
       <View style={styles.loadingContainer}>
@@ -475,94 +449,12 @@ export default function HomeScreen() {
     );
   }
 
-  // Giao diện Đăng nhập Email nếu chưa xác thực
+  // Nếu chưa xác thực, hiển thị màn hình Login
   if (!user) {
-    return (
-      <SafeAreaView style={styles.authContainer}>
-        <View style={styles.authCard}>
-          <View style={styles.authLogoContainer}>
-            <View style={styles.authLogoCircle}>
-              <Text style={styles.authLogoText}>Đ</Text>
-            </View>
-          </View>
-          <Text style={styles.authTitle}>NorthAxis E-Wallet</Text>
-          <Text style={styles.authSubtitle}>Thanh toán vi mô Solana Pay / MiniPay</Text>
-
-          {step === 'EMAIL_INPUT' ? (
-            <View style={{ width: '100%', marginTop: 20 }}>
-              <Text style={styles.inputLabel}>Email của bạn</Text>
-              <TextInput
-                style={styles.authInput}
-                placeholder="vidu@domain.com"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={(t) => {
-                  setEmail(t);
-                  if (errorMessage) setErrorMessage('');
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                style={[styles.mainGreenBtn, loginState.status === 'sending-code' && { opacity: 0.7 }]}
-                onPress={handleSendCode}
-                disabled={loginState.status === 'sending-code' || !email.trim()}
-              >
-                {loginState.status === 'sending-code' ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.mainGreenBtnText}>Tiếp tục</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={{ width: '100%', marginTop: 20 }}>
-              <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
-              <Text style={styles.otpSentText}>
-                Đã gửi mã đến: <Text style={{ fontWeight: 'bold' }}>{email}</Text>
-              </Text>
-              <TextInput
-                style={styles.authInput}
-                placeholder="Nhập 6 chữ số OTP"
-                placeholderTextColor="#9CA3AF"
-                value={otpCode}
-                onChangeText={(t) => {
-                  setOtpCode(t);
-                  if (errorMessage) setErrorMessage('');
-                }}
-                keyboardType="number-pad"
-              />
-              <TouchableOpacity
-                style={[styles.mainGreenBtn, loginState.status === 'submitting-code' && { opacity: 0.7 }]}
-                onPress={handleVerifyCode}
-                disabled={loginState.status === 'submitting-code' || !otpCode.trim()}
-              >
-                {loginState.status === 'submitting-code' ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.mainGreenBtnText}>Xác thực & Đăng nhập</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={() => {
-                  setStep('EMAIL_INPUT');
-                  setOtpCode('');
-                }}
-              >
-                <Text style={styles.backBtnText}>Quay lại nhập email</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-        </View>
-      </SafeAreaView>
-    );
+    return <LoginScreen />;
   }
 
-  // Giao diện Chính Home Screen theo phong cách MiniPay
+  // Giao diện Chính Home Screen theo phong cách MiniPay (Khi đã đăng nhập)
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -579,13 +471,17 @@ export default function HomeScreen() {
       >
         {/* 1. Header Component */}
         <View style={styles.header}>
-          {/* Badge Chào Mừng Bên Trái */}
-          <View style={styles.welcomeBadge}>
+          {/* Badge Chào Mừng Bên Trái -> Chạm để mở Cài đặt / Profile */}
+          <TouchableOpacity
+            style={styles.welcomeBadge}
+            onPress={() => router.push('/settings')}
+            activeOpacity={0.8}
+          >
             <View style={styles.welcomeLogoCircle}>
               <Text style={styles.welcomeLogoText}>Đ</Text>
             </View>
             <Text style={styles.welcomeText}>Welcome to N.E.D! 👋</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Nút Quét QR Code Scanner Bên Phải */}
           <TouchableOpacity
@@ -611,7 +507,9 @@ export default function HomeScreen() {
                 <Text
                   style={[
                     styles.toggleOptionText,
-                    currency === 'USD' ? styles.toggleOptionActive : styles.toggleOptionInactive,
+                    currency === 'USD'
+                      ? styles.toggleOptionActive
+                      : styles.toggleOptionInactive,
                   ]}
                 >
                   USD
@@ -619,22 +517,30 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   style={[
                     styles.customSwitch,
-                    currency === 'VND' ? styles.customSwitchActive : styles.customSwitchInactive,
+                    currency === 'VND'
+                      ? styles.customSwitchActive
+                      : styles.customSwitchInactive,
                   ]}
-                  onPress={() => setCurrency(currency === 'USD' ? 'VND' : 'USD')}
+                  onPress={() =>
+                    setCurrency(currency === 'USD' ? 'VND' : 'USD')
+                  }
                   activeOpacity={0.8}
                 >
                   <View
                     style={[
                       styles.switchThumb,
-                      currency === 'VND' ? styles.switchThumbRight : styles.switchThumbLeft,
+                      currency === 'VND'
+                        ? styles.switchThumbRight
+                        : styles.switchThumbLeft,
                     ]}
                   />
                 </TouchableOpacity>
                 <Text
                   style={[
                     styles.toggleOptionText,
-                    currency === 'VND' ? styles.toggleOptionActive : styles.toggleOptionInactive,
+                    currency === 'VND'
+                      ? styles.toggleOptionActive
+                      : styles.toggleOptionInactive,
                   ]}
                 >
                   VND
@@ -672,92 +578,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Nút Chevron Mở Rộng Tiện Ích On-chain ở Viền Dưới */}
-          <TouchableOpacity
-            style={styles.chevronPillBtn}
-            onPress={() => setShowDevnetDrawer(!showDevnetDrawer)}
-            activeOpacity={0.8}
-          >
-            <Feather
-              name={showDevnetDrawer ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color="#059669"
-            />
-          </TouchableOpacity>
         </View>
-
-        {/* Ngăn Tiện Ích Mở Rộng (Devnet / Solana Tools) */}
-        {showDevnetDrawer && (
-          <View style={styles.devnetDrawerCard}>
-            <View style={styles.devnetHeaderRow}>
-              <Text style={styles.devnetTitle}>⚡ Solana Devnet Tools</Text>
-              <TouchableOpacity
-                style={styles.logoutTextBtn}
-                onPress={() => {
-                  logout();
-                  setStep('EMAIL_INPUT');
-                }}
-              >
-                <Text style={styles.logoutText}>Đăng xuất</Text>
-              </TouchableOpacity>
-            </View>
-
-            {solanaAddress ? (
-              <View style={styles.addressBox}>
-                <Text style={styles.addressBoxLabel}>Ví Solana Base58:</Text>
-                <Text style={styles.addressBoxValue} numberOfLines={1} ellipsizeMode="middle">
-                  {solanaAddress}
-                </Text>
-                <TouchableOpacity
-                  style={styles.copyTinyBtn}
-                  onPress={() => copyToClipboard(solanaAddress, 'Đã sao chép địa chỉ ví Solana!')}
-                >
-                  <Text style={styles.copyTinyBtnText}>Sao chép</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.createWalletBtn}
-                onPress={handleCreateSolanaWallet}
-                disabled={isCreatingWallet}
-              >
-                <Text style={styles.createWalletBtnText}>
-                  {isCreatingWallet ? 'Đang tạo ví...' : 'Khởi tạo ví Solana ngầm'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            <View style={{ marginTop: 10 }}>
-              <TouchableOpacity
-                style={styles.testTxBtn}
-                onPress={() => handleSendTransaction(solanaAddress || undefined, 0.0001)}
-                disabled={isTestingSignature}
-              >
-                {isTestingSignature ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.testTxBtnText}>⚡ Ký & Gửi Giao Dịch Thử (0.0001 SOL)</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {signatureResult ? (
-              <View style={styles.signatureBox}>
-                <Text style={styles.signatureBoxLabel}>Tx Signature:</Text>
-                <Text style={styles.signatureBoxValue} numberOfLines={2}>
-                  {signatureResult}
-                </Text>
-                <TouchableOpacity
-                  style={styles.copyTinyBtn}
-                  onPress={() => copyToClipboard(signatureResult, 'Đã sao chép Transaction Signature!')}
-                >
-                  <Text style={styles.copyTinyBtnText}>Sao chép Signature</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        )}
 
         {/* 3. Next Steps (Onboarding Component) */}
         <View style={styles.nextStepsCard}>
@@ -778,10 +599,26 @@ export default function HomeScreen() {
             <View style={styles.taskIconSuccess}>
               <Ionicons name="checkmark-sharp" size={14} color="#FFFFFF" />
             </View>
-            <View style={styles.taskTextCol}>
-              <Text style={styles.taskTitleCompleted}>Connect phone number</Text>
-              <Text style={styles.taskSubCompleted}>Receive from anyone</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.taskTextCol}
+              onPress={() => {
+                if (linkedPhoneState) {
+                  setShowPhoneManagementModal(true);
+                } else {
+                  setShowPhoneLinkingModal(true);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.taskTitleCompleted}>
+                Connect Account
+              </Text>
+              <Text style={styles.taskSubCompleted}>
+                {linkedPhoneState
+                  ? `Linked: ${getMaskedPhone(linkedPhoneState)} (Chạm để quản lý)`
+                  : 'Signed in securely (Chạm để thêm SĐT)'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.taskItemRow, { marginTop: 14 }]}>
@@ -800,35 +637,49 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 4. Recent Activity Component (Khớp nối State & Anti-Flicker) */}
+        {/* 4. Recent Activity Component (Tối đa 4 hoạt động & Điều hướng sang History) */}
         <View style={styles.activityCard}>
           <View style={styles.activityHeaderRow}>
             <Text style={styles.activityTitle}>Recent activity</Text>
             <TouchableOpacity
               style={styles.viewMorePillBtn}
-              onPress={() => solanaAddress && fetchActivities(solanaAddress, true)}
+              onPress={() => router.push('/history')}
+              activeOpacity={0.75}
             >
-              {isLoadingActivities ? (
-                <ActivityIndicator size="small" color="#00A859" />
-              ) : (
-                <Text style={styles.viewMoreText}>View more</Text>
-              )}
+              <Text style={styles.viewMoreText}>View more</Text>
+              <Feather name="chevron-right" size={12} color="#374151" style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           </View>
 
-          {/* Danh sách Giao dịch */}
+          {/* Danh sách Giao dịch (Tối đa 4 mục gần nhất) */}
           {activities.length === 0 ? (
             <View style={styles.emptyActivityBox}>
               <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
-              <Text style={styles.emptyActivityText}>Chưa có giao dịch gần đây</Text>
+              <Text style={styles.emptyActivityText}>
+                Chưa có giao dịch gần đây
+              </Text>
             </View>
           ) : (
             <View style={styles.activityList}>
-              {activities.map((item) => (
-                <View key={item.id} style={styles.activityItem}>
-                  <View style={[styles.activityIconCircle, { backgroundColor: item.iconBg }]}>
+              {activities.slice(0, 4).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.activityItem}
+                  onPress={() => router.push('/history')}
+                  activeOpacity={0.75}
+                >
+                  <View
+                    style={[
+                      styles.activityIconCircle,
+                      { backgroundColor: item.iconBg },
+                    ]}
+                  >
                     {item.type === 'reward' ? (
-                      <MaterialCommunityIcons name="gift-outline" size={20} color="#FFFFFF" />
+                      <MaterialCommunityIcons
+                        name="gift-outline"
+                        size={20}
+                        color="#FFFFFF"
+                      />
                     ) : item.type === 'received' ? (
                       <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
                     ) : (
@@ -842,12 +693,14 @@ export default function HomeScreen() {
                   <Text
                     style={[
                       styles.activityItemAmount,
-                      item.isPositive ? styles.amountPositive : styles.amountNegative,
+                      item.isPositive
+                        ? styles.amountPositive
+                        : styles.amountNegative,
                     ]}
                   >
                     {item.amount}
                   </Text>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -873,7 +726,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => setActiveTab('card')}
+          onPress={() => {
+            setActiveTab('card');
+            router.push('/settings');
+          }}
           activeOpacity={0.7}
         >
           <Ionicons
@@ -902,7 +758,10 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => {
             setActiveTab('hub');
-            Alert.alert('N.E.D MiniApp Hub', 'Trung tâm ứng dụng MiniApp Web3 sẽ sớm ra mắt! 🚀');
+            Alert.alert(
+              'N.E.D MiniApps 🚀',
+              'Trung tâm MiniApps Web3 đang được hoàn thiện và sẽ sớm ra mắt trong các bản cập nhật tiếp theo!'
+            );
           }}
           activeOpacity={0.7}
         >
@@ -914,99 +773,43 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal Nhận Tiền (Deposit / My QR) */}
-      <Modal visible={showDepositModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Nhận Tiền (Deposit)</Text>
-              <TouchableOpacity onPress={() => setShowDepositModal(false)}>
-                <Ionicons name="close" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>Quét mã QR để nhận thanh toán Solana Pay</Text>
+      {/* Bottom Sheet Modal Nạp Tiền (Deposit) */}
+      <DepositModal
+        visible={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        solanaAddress={solanaAddress}
+      />
 
-            {solanaAddress ? (
-              <View style={styles.qrContainer}>
-                <QRCode
-                  value={solanaAddress}
-                  size={190}
-                  color="#111827"
-                  backgroundColor="#FFFFFF"
-                />
-                <Text style={styles.qrAddressText} numberOfLines={2}>
-                  {solanaAddress}
-                </Text>
-              </View>
-            ) : (
-              <Text style={{ marginVertical: 20, color: '#6B7280' }}>
-                Chưa phát hiện địa chỉ ví Solana.
-              </Text>
-            )}
+      {/* Bottom Sheet Modal Chuyển Tiền (Send) - Thanh tìm kiếm thông minh Debounce */}
+      <SendModal
+        visible={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        solanaAddress={solanaAddress}
+        solBalance={solBalance}
+        initialRecipient={withdrawAddress}
+        onOpenScanner={handleOpenScanner}
+        onConfirmSend={async (target, amt) => handleSendTransaction(target, amt)}
+        isSending={isSendingTx}
+      />
 
-            <TouchableOpacity
-              style={styles.modalPrimaryBtn}
-              onPress={() => solanaAddress && copyToClipboard(solanaAddress, 'Đã sao chép địa chỉ ví!')}
-            >
-              <Text style={styles.modalPrimaryBtnText}>Sao chép Địa chỉ Ví</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Bottom Sheet Modal Liên Kết Số Điện Thoại (Phone Linking Prompt) */}
+      <PhoneLinkingModal
+        visible={showPhoneLinkingModal}
+        onClose={() => setShowPhoneLinkingModal(false)}
+        userId={user?.id || ''}
+        walletAddress={solanaAddress || ''}
+        onLinkSuccess={(phone) => setLinkedPhoneState(phone)}
+      />
 
-      {/* Modal Rút / Chuyển Tiền (Withdraw) */}
-      <Modal visible={showWithdrawModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Rút Tiền (Withdraw)</Text>
-              <TouchableOpacity onPress={() => setShowWithdrawModal(false)}>
-                <Ionicons name="close" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>Chuyển SOL trên mạng lưới Solana Devnet</Text>
-
-            <View style={{ width: '100%', marginTop: 12 }}>
-              <Text style={styles.inputLabel}>Địa chỉ ví nhận:</Text>
-              <View style={styles.inputWithAction}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder="Nhập địa chỉ Solana Base58"
-                  placeholderTextColor="#9CA3AF"
-                  value={withdrawAddress}
-                  onChangeText={setWithdrawAddress}
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity onPress={handleOpenScanner} style={styles.scanTinyBtn}>
-                  <Ionicons name="qr-code-outline" size={20} color="#00A859" />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Số lượng (SOL):</Text>
-              <TextInput
-                style={styles.authInput}
-                placeholder="0.001"
-                placeholderTextColor="#9CA3AF"
-                value={withdrawAmount}
-                onChangeText={setWithdrawAmount}
-                keyboardType="numeric"
-              />
-
-              <TouchableOpacity
-                style={[styles.modalPrimaryBtn, { marginTop: 16 }]}
-                onPress={() => handleSendTransaction()}
-                disabled={isTestingSignature || !withdrawAddress.trim()}
-              >
-                {isTestingSignature ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalPrimaryBtnText}>Xác nhận Chuyển tiền</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Bottom Sheet Modal Quản Lý Số Điện Thoại (Thay Đổi & Hủy Liên Kết) */}
+      <PhoneManagementModal
+        visible={showPhoneManagementModal}
+        onClose={() => setShowPhoneManagementModal(false)}
+        userId={user?.id || ''}
+        walletAddress={solanaAddress || ''}
+        currentPhone={linkedPhoneState}
+        onPhoneUpdated={(newPhone) => setLinkedPhoneState(newPhone)}
+      />
 
       {/* Modal Camera Scanner */}
       <Modal visible={showScanner} animationType="slide">
@@ -1016,10 +819,11 @@ export default function HomeScreen() {
             facing="back"
             onBarcodeScanned={hasScanned ? undefined : handleBarCodeScanned}
           />
-          {/* Overlay render song song với CameraView */}
           <View style={styles.cameraOverlay}>
             <View style={styles.scanBoundingBox} />
-            <Text style={styles.scanHintText}>Hướng camera vào mã QR thanh toán</Text>
+            <Text style={styles.scanHintText}>
+              Hướng camera vào mã QR thanh toán
+            </Text>
             <TouchableOpacity
               style={styles.cancelCameraBtn}
               onPress={() => setShowScanner(false)}
@@ -1207,123 +1011,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
-  },
-  chevronPillBtn: {
-    marginTop: -14,
-    width: 38,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#D1F4E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-
-  // Devnet Drawer
-  devnetDrawerCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  devnetHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  devnetTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  logoutTextBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  logoutText: {
-    fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '600',
-  },
-  addressBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  addressBoxLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  addressBoxValue: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#0F172A',
-    fontWeight: '600',
-  },
-  copyTinyBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#D1F4E0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 6,
-  },
-  copyTinyBtnText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#065F46',
-  },
-  createWalletBtn: {
-    backgroundColor: '#00A859',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  createWalletBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  testTxBtn: {
-    backgroundColor: '#059669',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  testTxBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  signatureBox: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 10,
-  },
-  signatureBoxLabel: {
-    fontSize: 11,
-    color: '#92400E',
-    fontWeight: '700',
-  },
-  signatureBoxValue: {
-    fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#78350F',
-    marginTop: 2,
   },
 
   // 3. Next Steps (Onboarding)
@@ -1538,187 +1225,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
-  },
-
-  // Modals Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 22,
-    alignItems: 'center',
-  },
-  modalHeaderRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  qrContainer: {
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginVertical: 10,
-  },
-  qrAddressText: {
-    marginTop: 12,
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#374151',
-    textAlign: 'center',
-    paddingHorizontal: 6,
-  },
-  modalPrimaryBtn: {
-    width: '100%',
-    backgroundColor: '#00A859',
-    paddingVertical: 13,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: 14,
-  },
-  modalPrimaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  inputWithAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-  },
-  flexInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 13,
-    color: '#111827',
-  },
-  scanTinyBtn: {
-    padding: 6,
-  },
-
-  // Auth Styles
-  authContainer: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  authCard: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 26,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  authLogoContainer: {
-    marginBottom: 14,
-  },
-  authLogoCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#00A859',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  authLogoText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  authTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  authSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  authInput: {
-    width: '100%',
-    height: 48,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: '#111827',
-    marginBottom: 14,
-  },
-  otpSentText: {
-    fontSize: 12,
-    color: '#4B5563',
-    marginBottom: 10,
-  },
-  mainGreenBtn: {
-    width: '100%',
-    backgroundColor: '#00A859',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  mainGreenBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  backBtn: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  backBtnText: {
-    color: '#6B7280',
-    fontSize: 13,
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 12,
-    marginTop: 12,
-    textAlign: 'center',
   },
 
   // Camera Overlay
