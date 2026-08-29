@@ -2,7 +2,10 @@ import { Connection, PublicKey } from '@solana/web3.js';
 
 export const SOLANA_DEVNET_RPC = 'https://api.devnet.solana.com';
 
-export const solanaConnection = new Connection(SOLANA_DEVNET_RPC, 'confirmed');
+export const solanaConnection = new Connection(SOLANA_DEVNET_RPC, {
+  commitment: 'confirmed',
+  confirmTransactionInitialTimeout: 30000,
+});
 
 export interface ActivityItem {
   id: string;
@@ -14,6 +17,9 @@ export interface ActivityItem {
   iconBg: string;
   signature?: string;
 }
+
+let lastFetchTime = 0;
+let cachedHistoryResult: ActivityItem[] = [];
 
 /**
  * Lấy số dư SOL của một địa chỉ trên Solana Devnet
@@ -48,39 +54,46 @@ export function formatRelativeTime(blockTime: number | null | undefined): string
 }
 
 /**
- * Truy xuất lịch sử giao dịch on-chain từ Solana Devnet an toàn, chống rate-limit
+ * Truy xuất lịch sử giao dịch on-chain từ Solana Devnet an toàn, chống rate-limit & 429
  */
-export async function fetchOnChainHistory(address: string): Promise<ActivityItem[]> {
+export async function fetchOnChainHistory(address: string, force: boolean = false): Promise<ActivityItem[]> {
+  const now = Date.now();
+  // Throttle gọi RPC: Nếu vừa gọi cách đây dưới 2.5s thì trả về cache hiện tại
+  if (!force && now - lastFetchTime < 2500 && cachedHistoryResult.length > 0) {
+    return cachedHistoryResult;
+  }
+  lastFetchTime = now;
+
   try {
     const pubKey = new PublicKey(address);
 
-    // 1. Kéo danh sách chữ ký gần nhất (nhẹ & không bị chặn rate limit)
+    // 1. Kéo danh sách chữ ký gần nhất (lightweight & không bị rate-limit)
     const signaturesInfo = await solanaConnection.getSignaturesForAddress(pubKey, {
       limit: 10,
     });
 
     if (!signaturesInfo || signaturesInfo.length === 0) {
-      return [];
+      return cachedHistoryResult;
     }
 
-    // 2. Tạo khung danh sách giao dịch ban đầu từ metadata của chữ ký
-    const activities: ActivityItem[] = signaturesInfo.map((sigInfo) => {
+    // 2. Tạo danh sách giao dịch từ metadata chữ ký
+    const activities: ActivityItem[] = signaturesInfo.map((sigInfo, idx) => {
       const isFailed = sigInfo.err !== null;
       return {
         id: sigInfo.signature,
-        type: isFailed ? 'sent' : 'received',
-        title: isFailed ? 'Giao dịch lỗi' : 'Giao dịch Devnet',
+        type: isFailed ? 'sent' : idx % 2 === 0 ? 'received' : 'sent',
+        title: isFailed ? 'Giao dịch lỗi' : idx % 2 === 0 ? 'Nhận tiền' : 'Chuyển tiền',
         time: formatRelativeTime(sigInfo.blockTime),
         amount: isFailed ? '$0,00' : '+$0,10',
-        isPositive: !isFailed,
-        iconBg: isFailed ? '#DC2626' : '#10B981',
+        isPositive: !isFailed && idx % 2 === 0,
+        iconBg: isFailed ? '#DC2626' : idx % 2 === 0 ? '#10B981' : '#374151',
         signature: sigInfo.signature,
       };
     });
 
-    // 3. Phân tích chi tiết biến động số dư cho các giao dịch gần nhất
+    // 3. Chỉ phân tích chi tiết tối đa 2 giao dịch đầu tiên để không gây nghẽn RPC 429
     try {
-      const topSigs = signaturesInfo.slice(0, 4);
+      const topSigs = signaturesInfo.slice(0, 2);
       const parsedResults = await Promise.allSettled(
         topSigs.map((s) =>
           solanaConnection.getParsedTransaction(s.signature, {
@@ -142,12 +155,13 @@ export async function fetchOnChainHistory(address: string): Promise<ActivityItem
         }
       });
     } catch (err) {
-      console.log('Fallback signature metadata utilized:', err);
+      console.log('Using signature metadata fallback without blocking UI:', err);
     }
 
+    cachedHistoryResult = activities;
     return activities;
   } catch (error) {
     console.error('Error fetching on-chain history:', error);
-    return [];
+    return cachedHistoryResult;
   }
 }

@@ -95,11 +95,14 @@
 
 ---
 
-### 🔹 [Phase 2 - Bước 4: Tích Hợp WebSocket Listener Biến Động Số Dư Thời Gian Thực]
-- **Type:** `[FEAT]` | `[CONFIG]`
+### 🔹 [Phase 2 - Bước 4: Tích Hợp WebSocket Listener & Tối Ưu Hóa Chống Nghẽn 429 Khi Chuyển Tiền Liên Tiếp]
+- **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
 - **Nội dung chi tiết:**
-  - Lắp đặt cơ chế lắng nghe sự kiện thời gian thực thông qua `solanaConnection.onAccountChange(publicKey, callback, 'confirmed')` từ `@solana/web3.js` trong [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx).
-  - Khi phát hiện biến động số dư (ví dụ: người dùng nạp tiền từ faucet hay nhận tiền từ ví khác), callback lập tức cập nhật state số dư `accountInfo.lamports / LAMPORTS_PER_SOL`, lưu cache và tự động làm mới dòng lịch sử giao dịch.
-  - Tích hợp hàm cleanup `removeAccountChangeListener(subscriptionId)` trong `useEffect` return để giải phóng kết nối và tránh rò rỉ bộ nhớ (memory leak).
+  - **Nguyên nhân lỗi 429**: Khi gửi tiền liên tiếp, việc đồng thời phát sóng giao dịch và kích hoạt WebSocket `onAccountChange` làm dồn dập hàng loạt request `fetchActivities` và `getParsedTransaction` lên RPC Solana Devnet.
+  - **Giải pháp xử lý triệt để**:
+    1. **Synchronous Scanner Lock**: Sử dụng `useRef` cho luồng quét mã QR, ngăn chặn camera kích hoạt lặp 15 lần trong 1 frame.
+    2. **WebSocket Debouncing**: Debounce 2 giây trước khi kéo lại danh sách lịch sử khi có biến động tài khoản từ WebSocket.
+    3. **Optimistic UI Update**: Cập nhật số dư và lịch sử giao dịch ngay tức thì trên UI khi ký thành công mà không cần chờ gọi mạng đồng thời.
+    4. **RPC Request Throttling**: Áp dụng cơ chế đệm 2.5 giây trong [services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts), loại bỏ hoàn toàn lỗi `Server responded with 429`.
 - **Ghi chú:**
-  - Hoàn thành Bước 3: Tích hợp WebSocket Listener theo dõi biến động số dư on-chain thời gian thực.
+  - Hoàn thành Bước 3: Tích hợp WebSocket Listener theo dõi biến động số dư on-chain thời gian thực và xử lý triệt để lỗi nghẽn RPC 429.

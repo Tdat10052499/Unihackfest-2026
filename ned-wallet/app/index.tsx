@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -55,7 +55,6 @@ export default function HomeScreen() {
 
   // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [activeTab, setActiveTab] = useState<'home' | 'card' | 'send' | 'hub'>('home');
 
@@ -65,6 +64,7 @@ export default function HomeScreen() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showDevnetDrawer, setShowDevnetDrawer] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
+  const isScanningLocked = useRef(false);
 
   // State Withdraw Form
   const [withdrawAddress, setWithdrawAddress] = useState('');
@@ -166,6 +166,7 @@ export default function HomeScreen() {
     if (!solanaAddress) return;
 
     let subscriptionId: number | null = null;
+    let debounceTimer: any = null;
 
     try {
       const pubKey = new PublicKey(solanaAddress);
@@ -179,8 +180,11 @@ export default function HomeScreen() {
           setSolBalance(newBalance);
           cacheBalance(newBalance);
 
-          // Cập nhật lại danh sách lịch sử giao dịch mới nhất
-          fetchActivities(solanaAddress);
+          // Debounce gọi fetchActivities sau 2s để tránh spam RPC
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchActivities(solanaAddress);
+          }, 2000);
         },
         'confirmed'
       );
@@ -188,8 +192,9 @@ export default function HomeScreen() {
       console.error('Error setting up onAccountChange WebSocket listener:', err);
     }
 
-    // Dọn dẹp bộ nhớ (Cleanup): Hủy đăng ký listener khi component unmount hoặc địa chỉ ví thay đổi
+    // Dọn dẹp bộ nhớ (Cleanup): Hủy đăng ký listener khi component unmount
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       if (subscriptionId !== null) {
         solanaConnection.removeAccountChangeListener(subscriptionId).catch((e) => {
           console.log('Error removing account change listener:', e);
@@ -200,23 +205,20 @@ export default function HomeScreen() {
 
   // Lấy số dư On-chain
   const fetchBalance = async (address: string) => {
-    setIsLoadingBalance(true);
     try {
       const balance = await getSolanaBalance(address);
       setSolBalance(balance);
       cacheBalance(balance);
     } catch (err: any) {
       console.log('Error fetching Devnet balance:', err);
-    } finally {
-      setIsLoadingBalance(false);
     }
   };
 
   // Lấy lịch sử giao dịch On-chain
-  const fetchActivities = async (address: string) => {
+  const fetchActivities = async (address: string, force: boolean = false) => {
     setIsLoadingActivities(true);
     try {
-      const onChainList = await fetchOnChainHistory(address);
+      const onChainList = await fetchOnChainHistory(address, force);
       if (onChainList && onChainList.length > 0) {
         setActivities(onChainList);
         cacheActivities(onChainList);
@@ -240,13 +242,15 @@ export default function HomeScreen() {
         return;
       }
     }
+    isScanningLocked.current = false;
     setHasScanned(false);
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện quét QR thành công
+  // Xử lý sự kiện quét QR thành công (Chống lặp với ref synchronous lock)
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (hasScanned) return;
+    if (isScanningLocked.current) return;
+    isScanningLocked.current = true;
     setHasScanned(true);
     setShowScanner(false);
     console.log('Đã quét địa chỉ:', data);
@@ -328,7 +332,7 @@ export default function HomeScreen() {
         setSignatureResult(txSignature);
         setShowWithdrawModal(false);
 
-        // Bổ sung hoạt động mới vào danh sách & lưu cache ngay lập tức
+        // Optimistic UI: Cập nhật hoạt động mới vào danh sách & lưu cache tức thì
         const newAct: ActivityItem = {
           id: txSignature,
           type: 'sent',
@@ -339,13 +343,17 @@ export default function HomeScreen() {
           iconBg: '#374151',
           signature: txSignature,
         };
-        const updatedActivities = [newAct, ...activities];
-        setActivities(updatedActivities);
-        cacheActivities(updatedActivities);
 
-        // Đồng bộ lại dữ liệu chuỗi sau 1.5s
-        fetchBalance(solanaAddress);
-        setTimeout(() => fetchActivities(solanaAddress), 1500);
+        setActivities((prev) => {
+          const updated = [newAct, ...prev.filter((a) => a.id !== txSignature)];
+          cacheActivities(updated);
+          return updated;
+        });
+
+        // Tự động trừ số dư trên UI (Optimistic Balance)
+        setSolBalance((prev) =>
+          prev !== null ? Math.max(0, prev - sendLamports / 1e9 - 0.000005) : prev
+        );
 
         Alert.alert('Giao Dịch Thành Công! ⚡', `Mã chữ ký (Signature):\n${txSignature.slice(0, 20)}...`);
       }
@@ -747,7 +755,7 @@ export default function HomeScreen() {
             <Text style={styles.activityTitle}>Recent activity</Text>
             <TouchableOpacity
               style={styles.viewMorePillBtn}
-              onPress={() => solanaAddress && fetchActivities(solanaAddress)}
+              onPress={() => solanaAddress && fetchActivities(solanaAddress, true)}
             >
               {isLoadingActivities ? (
                 <ActivityIndicator size="small" color="#00A859" />
