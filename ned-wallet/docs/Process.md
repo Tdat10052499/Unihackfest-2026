@@ -155,6 +155,7 @@
     - **Nhóm 2 (Hiển thị)**: Hai switch 'Stealth mode' và 'Show empty pockets'.
     - **Nhóm 3 (Hỗ trợ & Tài khoản)**: Các mục Invite friends, FAQ, Contact support, About và Sign out (gọi hook `logout()` từ Privy và chuyển hướng về `/login`).
   - Cập nhật điều hướng tại Home ([app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx)) cho phép chạm vào Badge chào mừng hoặc avatar để chuyển sang màn hình Cài đặt mượt mà.
+  - **Cấu hình Tab MiniApps**: Icon 4 ô vuông (`grid-outline`) ở vị trí Tab thứ 4 được dành riêng làm điểm chờ (Placeholder) cho trung tâm MiniApps Hub và sẽ được kích hoạt ở giai đoạn sau.
 
 ---
 
@@ -216,5 +217,61 @@
   - **Kích hoạt thông báo**: Hiển thị hộp thoại `Alert.alert('Đang phát triển', 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!')`.
   - **Gợi ý trực quan (Visual Hint)**: Đặt độ mờ `opacity: 0.45` cho icon thẻ của tab Card để báo hiệu tính năng đang khóa tạm thời.
   - **Điều hướng Cài đặt**: Cập nhật Welcome Badge trên Header của [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/index.tsx) điều hướng chuẩn xác sang màn hình Quản lý tài khoản [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx).
+
+---
+
+### 🔹 [Phase 2 - Bước 17: Thiết Lập Định Vị & Hiện Diện Toàn Cục (Global Presence Provider cho Shake to Split)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Cài đặt `expo-location`**: Tích hợp thư viện định vị GPS phần cứng chính thức của Expo.
+  - **Global Presence Provider ([contexts/GlobalPresenceContext.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/contexts/GlobalPresenceContext.tsx))**:
+    - Tự động xin quyền `Location.requestForegroundPermissionsAsync()`, xử lý an toàn không block luồng nếu người dùng từ chối.
+    - Lắng nghe tọa độ liên tục qua `Location.watchPositionAsync` (khoảng cách 5 mét, thời gian 8 giây).
+    - Tự động kết nối Supabase Presence Channel `global_radar` và đẩy dữ liệu định danh (`user_id`, `name`, `avatar`, `lat`, `lng`, `wallet_address`).
+    - Tính toán khoảng cách (Haversine formula) và đồng bộ danh sách thiết bị xung quanh (`nearbyUsers`).
+    - Quản lý bộ nhớ nghiêm ngặt: Hủy watcher và channel Supabase khi unmount hoặc đăng xuất.
+  - **Bọc Root Layout ([app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx))**: Bọc `<GlobalPresenceProvider>` bên trong `<PrivyProvider>` ở cấp cao nhất của ứng dụng.
+
+---
+
+### 🔹 [Phase 2 - Bước 18: Sửa Lỗi Tương Thích Phiên Bản `expo-location` & Khắc Phục Lỗi Module RootLayout]
+- **Type:** `[DEBUG / FIX]`
+- **Nội dung chi tiết:**
+  - **Nguyên nhân**: `expo-location` bị cài nhầm phiên bản `57.0.14` (dành cho SDK 57) trong khi dự án đang chạy Expo SDK 54, dẫn đến lỗi `TypeError: 0, _expo.createPermissionHook is not a function` khi bundle `app/_layout.tsx`.
+  - **Giải pháp**:
+    1. Chạy `npx expo install expo-location` hạ phiên bản về đúng chuẩn `19.0.8` tương thích hoàn hảo với Expo SDK 54.
+    2. Cập nhật `app/_layout.tsx` chuẩn hóa cấu trúc `<Stack>` bọc `<GlobalPresenceProvider>` và `<PrivyProvider>`.
+    3. Thêm cơ chế phòng thủ an toàn `try / catch` cho các hook Privy trên toàn bộ component.
+
+---
+
+### 🔹 [Phase 2 - Bước 19: Giai Đoạn 2 - Hoàn Thiện Shake to Split (Accelerometer, Lọc Bán Kính 20m & Mở Phòng Giao Dịch)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Cài đặt & Lắng nghe Gia Tốc (`expo-sensors`)**: Cài đặt `expo-sensors@15.0.8`. Sử dụng `Accelerometer` theo dõi tổng gia tốc 3 chiều với ngưỡng $1.75$ và debounce 3 giây chống spam.
+  - **Lọc Người Dùng Lân Cận (< 20m)**: Lọc danh sách thiết bị từ `nearbyUsers` của kênh `global_radar` theo khoảng cách Haversine $\le 20\text{m}$ (kèm demo peers fallback thông minh khi chạy môi trường dev).
+  - **Host Bottom Sheet Modal ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/transfer-hub.tsx))**:
+    - Trượt Bottom Sheet mượt mà khi người dùng lắc thiết bị (hoặc chạm trực tiếp vào thẻ Shake to Split).
+    - Hiệu ứng Radar quét sóng, hiển thị danh sách Avatar, Tên và khoảng cách từng bạn bè kèm bộ chọn checkbox.
+  - **Phát Sóng Lời Mời Broadcast (`room_invite`)**: Sinh `room_id` ngẫu nhiên và dùng Supabase Realtime Broadcast `room_invite` gửi payload (`room_id`, `host_name`, `host_avatar`, `target_user_ids`).
+  - **Điều Hướng & Xây Dựng Màn Hình Phòng Giao Dịch ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - Tự động điều hướng Host sang `app/shake-room.tsx?roomId=[room_id]`.
+    - Kết nối kênh Realtime `shake_room_[roomId]`, hiển thị danh sách thành viên trong phòng, tính toán chia đều hóa đơn (`amountPerPerson`), đẩy yêu cầu `bill_updated` và xác nhận thanh toán `member_paid`.
+
+---
+
+### 🔹 [Phase 2 - Bước 20: Xây Dựng Phase 3: Guest Bắt Sự Kiện `room_invite` & Tạo Khung Màn Hình Shake Room]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Lắng nghe Broadcast (Guest) ([contexts/GlobalPresenceContext.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/contexts/GlobalPresenceContext.tsx))**:
+    - Bổ sung listener cho sự kiện broadcast `room_invite` trên Supabase Channel `global_radar`.
+    - Kiểm tra danh tính: Bắt sự kiện khi `user.id` có mặt trong `payload.target_user_ids` và `payload.host_id !== user.id`.
+  - **Popup Thông Báo Mời Chia Tiền**:
+    - Kích hoạt `Alert.alert('🔔 Lời mời chia tiền', '[host_name] muốn chia hóa đơn chung với bạn')`.
+    - Nút 'Từ chối': Đóng popup, không chuyển màn hình.
+    - Nút 'Tham gia': Kích hoạt `router.push('/shake-room?roomId=' + payload.room_id)` đưa Guest gia nhập phòng tức thì.
+  - **Khung Màn Hình Shake Room ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - Thiết kế chuẩn Dark Theme cao cấp (`#0F172A`, `#1E293B`).
+    - Hiển thị tiêu đề **'Phòng giao dịch ảo'** kèm mã phòng `roomId` trích xuất từ URL parameters và nút sao chép nhanh.
 - **Ghi chú:**
-  - Đánh chặn điều hướng tab Card và hiển thị thông báo Đang phát triển.
+  - Xây dựng Phase 3: Guest bắt sự kiện room_invite và tạo khung màn hình Shake Room.

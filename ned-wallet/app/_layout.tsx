@@ -1,7 +1,8 @@
 import '../polyfill';
 import React from 'react';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
+import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 
 export default function RootLayout() {
   return (
@@ -19,7 +20,15 @@ export default function RootLayout() {
         },
       }}
     >
-      <Slot />
+      <GlobalPresenceProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="history" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="shake-room" options={{ headerShown: false }} />
+        </Stack>
+      </GlobalPresenceProvider>
     </PrivyProvider>
   );
 }

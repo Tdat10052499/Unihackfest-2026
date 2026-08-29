@@ -31,8 +31,21 @@ type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const { user } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
+
+  let privy: any = null;
+  try {
+    privy = usePrivy();
+  } catch (e) {
+    // safely ignore
+  }
+  const user = privy?.user || null;
+
+  let solanaWalletState: any = null;
+  try {
+    solanaWalletState = useEmbeddedSolanaWallet();
+  } catch (e) {
+    // safely ignore
+  }
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');

@@ -20,8 +20,22 @@ import { PhoneManagementModal } from '../components/PhoneManagementModal';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
+
+  let privy: any = null;
+  try {
+    privy = usePrivy();
+  } catch (e) {
+    // safely ignore
+  }
+  const user = privy?.user || null;
+  const logout = privy?.logout || (async () => {});
+
+  let solanaWalletState: any = null;
+  try {
+    solanaWalletState = useEmbeddedSolanaWallet();
+  } catch (e) {
+    // safely ignore
+  }
 
   // State thông tin người dùng & SĐT
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);

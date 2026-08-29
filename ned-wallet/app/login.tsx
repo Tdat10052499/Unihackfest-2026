@@ -23,7 +23,15 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { isReady, user } = usePrivy();
+
+  let privy: any = null;
+  try {
+    privy = usePrivy();
+  } catch (e) {
+    // safely ignore
+  }
+  const isReady = privy?.isReady ?? false;
+  const user = privy?.user ?? null;
 
   // State quản lý email OTP & các bước
   const [email, setEmail] = useState('');

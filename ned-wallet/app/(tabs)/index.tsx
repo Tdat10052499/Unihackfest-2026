@@ -46,8 +46,23 @@ import LoginScreen from '../login';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { isReady, user } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
+  
+  let privy: any = null;
+  try {
+    privy = usePrivy();
+  } catch (e) {
+    // safely ignore
+  }
+  const isReady = privy?.isReady ?? false;
+  const user = privy?.user ?? null;
+
+  let solanaWalletState: any = null;
+  try {
+    solanaWalletState = useEmbeddedSolanaWallet();
+  } catch (e) {
+    // safely ignore
+  }
+
   const [permission, requestPermission] = useCameraPermissions();
 
   // State số dư & tiền tệ (USD / VND)
