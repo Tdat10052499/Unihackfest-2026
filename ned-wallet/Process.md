@@ -302,7 +302,7 @@
     - **Lắc thiết bị (Shake Trigger)**: Tích hợp `Accelerometer` (với debounce và auto-remove watcher sau khi lắc). Khi Host nhập tiền và lắc điện thoại (hoặc nhấn nút chốt), tính toán chia đều và phát sóng event `trigger_split` vào channel `room_[roomId]`, đồng thời chuyển Host sang giao diện quản lý 'Waiting...'.
   - **Kiến Trúc Guest Workspace**:
     - Khi vừa vào phòng: Hiển thị giao diện chờ 'Đang chờ Host chốt hóa đơn và lắc thiết bị... ⏳' cùng animation radar.
-    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập trạng thái Host từ Pending sang Paid.
+    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập nhật trạng thái Host từ Pending sang Paid.
   - **Quản lý bộ nhớ**: Hủy sạch các subscriptions `Accelerometer` và Realtime channels khi component unmount.
 
 ---
@@ -380,3 +380,41 @@
     - `processGuestPaymentDB`: Trừ tiền Guest và insert log `activities` (`type: 'send'`, title: 'Chuyển tiền Shake to Split', status: 'completed').
     - `processHostClaimDB`: Cộng tổng tiền đã thu vào ví Host và insert log `activities` (`type: 'receive'`, title: 'Nhận tiền Shake to Split', status: 'completed').
   - **Giải tán phòng an toàn**: Host sau khi nhận tiền sẽ phát sóng broadcast `room_closed` để tự động điều hướng tất cả thành viên về màn hình chính.
+
+---
+
+### 🔹 [Phase 2 - Bước 28: Tái Cấu Trúc Khớp Nối Ví Tổng (Main Wallet), Dọn Dẹp Schema & Chuẩn Hóa Dollar (USD)]
+- **Type:** `[DEBUG / FIX]` | `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Dọn dẹp triệt để**: Xóa file `supabase_schema.sql`, gỡ bỏ toàn bộ code gọi đến các bảng và RPC giả lập (`wallets`, `activities`, `guest_pay_split`, `host_claim_split`).
+  - **Cấu trúc Dữ liệu & Ví Tổng Thực Tế**:
+    - Số dư ví tổng: Quản lý dựa trên **Solana Web3 Balance** (`getSolanaBalance`) và cache `AsyncStorage` (`cacheBalance`, `getCachedBalance`).
+    - Lịch sử giao dịch ví tổng: Quản lý qua `fetchOnChainHistory` và cache `AsyncStorage` (`cacheActivities`, `getCachedActivities`).
+    - Cơ sở dữ liệu Supabase: Chuyên biệt quản lý Identity/Phone linking (`phone_wallets`, `users`) và Realtime channels (`global_radar`, `room_[roomId]`).
+  - **Khắc phục tiền tệ Dollar (USD)**:
+    - Xóa bỏ 100% các ký hiệu 'VNĐ', 'VND', 'đ' trong `app/shake-room.tsx`.
+    - Chuẩn hóa toàn bộ thành **Dollar ($ USD)** (Preset: `$5`, `$10`, `$20`, `$50`, `$100`; hiển thị `$XX.XX USD`).
+  - **Khớp nối Trừ/Cộng tiền vào Ví Tổng**:
+    - Khi Guest thanh toán: Kiểm tra số dư USD khả dụng trong ví tổng. Trừ trực tiếp số dư SOL/USD tương ứng qua `cacheBalance` và ghi log `ActivityItem` (`type: 'sent'`, amount: `-$XX.XX`) vào `cacheActivities`.
+    - Khi Host nhận tiền: Cộng trực tiếp số dư SOL/USD đã thu vào ví tổng qua `cacheBalance` và ghi log `ActivityItem` (`type: 'received'`, amount: `+$XX.XX`) vào `cacheActivities`.
+    - Khi quay về màn hình chính (`HomeScreen`), số dư và lịch sử giao dịch tức thì cập nhật đồng bộ và chính xác.
+
+---
+
+### 🔹 [Phase 2 - Bước 29: Thực Thi Giao Dịch Web3 On-Chain Solana Devnet Thực Tế Cho Shake to Split]
+- **Type:** `[FEAT]` | `[DEBUG / FIX]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Truyền Địa Chỉ Ví On-Chain**:
+    - Host truyền `host_wallet` (Solana Base58 address) trong payload `room_invite` ([contexts/GlobalPresenceContext.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/contexts/GlobalPresenceContext.tsx)) và trong sự kiện broadcast `trigger_split` ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx)).
+    - Mọi thành viên tự động đồng bộ địa chỉ ví on-chain thông qua Supabase Presence `wallet_address`.
+  - **Ký & Thực Thi Giao Dịch Chuỗi On-Chain (Guest Payment)**:
+    - Chuyển đổi số tiền Dollar sang SOL lamports theo tỷ giá hệ thống `1 SOL = $150 USD`: `solAmount = paymentAmountUSD / 150`, `lamports = Math.floor(solAmount * 1e9)`.
+    - Kiểm tra số dư SOL on-chain trên mạng lưới Solana Devnet qua `solanaConnection.getBalance()`.
+    - Tạo giao dịch `SystemProgram.transfer({ fromPubkey: guestPubkey, toPubkey: hostPubkey, lamports })`.
+    - Lấy recent blockhash và gọi Provider của Privy `useEmbeddedSolanaWallet().wallets[0].getProvider()` để ký số giao dịch `signTransaction`.
+  - **Chờ Xác Nhận Mạng Lưới (Await Confirmation Receipt)**:
+    - Broadcast transaction qua `solanaConnection.sendRawTransaction(rawBytes)`.
+    - Sử dụng `solanaConnection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')` chờ biên lai xác nhận on-chain được đưa vào block.
+  - **Xác Nhận Realtime & Ghi Lịch Sử**:
+    - **Chỉ khi giao dịch on-chain thành công và có chữ ký `txSignature` hợp lệ**, Guest mới bắn broadcast `payment_update` (kèm `tx_signature`) lên channel `room_[roomId]`.
+    - Ghi nhận lịch sử hoạt động vào ví đính kèm `signature: txSignature` để đối soát minh bạch trên Solana Explorer.

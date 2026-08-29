@@ -228,9 +228,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       })
       .on('broadcast', { event: 'room_invite' }, ({ payload }) => {
         console.log('📥 [Supabase Broadcast] Nhận sự kiện room_invite:', payload);
-        const hostName = payload?.host_name || 'Một người bạn';
+        const hostName = payload?.host_name || 'A friend';
         const splitAmountStr = payload?.split_amount
-          ? ` (${payload.split_amount.toLocaleString()} đ/người)`
+          ? ` ($${payload.split_amount} USD)`
           : '';
         if (
           user &&
@@ -238,23 +238,25 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           payload?.host_id !== user.id
         ) {
           Alert.alert(
-            '🔔 Lời mời chia tiền',
-            `${hostName} muốn chia hóa đơn chung với bạn${splitAmountStr}`,
+            '🔔 Room Invite',
+            `${hostName} wants to split a bill with you${splitAmountStr}`,
             [
               {
-                text: 'Từ chối',
+                text: 'Decline',
                 style: 'cancel',
                 onPress: () => {
                   console.log('❌ [Guest] Đã từ chối lời mời phòng:', payload.room_id);
                 },
               },
               {
-                text: 'Tham gia',
+                text: 'Join',
                 onPress: () => {
                   console.log('🚀 [Guest] Chấp nhận lời mời, chuyển sang phòng:', payload.room_id);
                   router.push(
                     `/shake-room?roomId=${payload.room_id}&hostId=${payload.host_id}&hostName=${encodeURIComponent(
                       payload.host_name || ''
+                    )}&hostWallet=${encodeURIComponent(
+                      payload.host_wallet || ''
                     )}&totalBill=${payload.total_bill || 0}&splitAmount=${payload.split_amount || 0}&note=${encodeURIComponent(
                       payload.note || ''
                     )}`
@@ -401,11 +403,14 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
 
     const { name, avatar } = getUserProfile();
 
+    const solanaAddress = getSolanaAddress();
+
     console.log('📡 [Supabase Broadcast] Bắn sự kiện room_invite:', {
       room_id: roomId,
       host_id: user.id,
       host_name: name,
       host_avatar: avatar,
+      host_wallet: solanaAddress,
       target_user_ids: targetUserIds,
       total_bill: options?.totalBill,
       split_amount: options?.splitAmount,
@@ -421,6 +426,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           host_id: user.id,
           host_name: name,
           host_avatar: avatar,
+          host_wallet: solanaAddress,
           target_user_ids: targetUserIds,
           total_bill: options?.totalBill,
           split_amount: options?.splitAmount,
