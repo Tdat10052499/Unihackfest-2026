@@ -17,6 +17,12 @@ export interface PresenceUser {
   distanceMeters?: number;
 }
 
+export interface BroadcastInviteOptions {
+  totalBill?: number;
+  splitAmount?: number;
+  note?: string;
+}
+
 interface GlobalPresenceContextType {
   location: { latitude: number; longitude: number } | null;
   hasLocationPermission: boolean;
@@ -24,7 +30,11 @@ interface GlobalPresenceContextType {
   nearbyUsers: PresenceUser[];
   currentUserProfile: { name: string; avatar: string };
   refreshLocation: () => Promise<void>;
-  broadcastInvite: (roomId: string, targetUserIds: string[]) => Promise<boolean>;
+  broadcastInvite: (
+    roomId: string,
+    targetUserIds: string[],
+    options?: BroadcastInviteOptions
+  ) => Promise<boolean>;
 }
 
 const GlobalPresenceContext = createContext<GlobalPresenceContextType>({
@@ -219,6 +229,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       .on('broadcast', { event: 'room_invite' }, ({ payload }) => {
         console.log('📥 [Supabase Broadcast] Nhận sự kiện room_invite:', payload);
         const hostName = payload?.host_name || 'Một người bạn';
+        const splitAmountStr = payload?.split_amount
+          ? ` (${payload.split_amount.toLocaleString()} đ/người)`
+          : '';
         if (
           user &&
           payload?.target_user_ids?.includes(user.id) &&
@@ -226,7 +239,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
         ) {
           Alert.alert(
             '🔔 Lời mời chia tiền',
-            `${hostName} muốn chia hóa đơn chung với bạn`,
+            `${hostName} muốn chia hóa đơn chung với bạn${splitAmountStr}`,
             [
               {
                 text: 'Từ chối',
@@ -239,7 +252,13 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
                 text: 'Tham gia',
                 onPress: () => {
                   console.log('🚀 [Guest] Chấp nhận lời mời, chuyển sang phòng:', payload.room_id);
-                  router.push(`/shake-room?roomId=${payload.room_id}`);
+                  router.push(
+                    `/shake-room?roomId=${payload.room_id}&hostId=${payload.host_id}&hostName=${encodeURIComponent(
+                      payload.host_name || ''
+                    )}&totalBill=${payload.total_bill || 0}&splitAmount=${payload.split_amount || 0}&note=${encodeURIComponent(
+                      payload.note || ''
+                    )}`
+                  );
                 },
               },
             ]
@@ -372,7 +391,8 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
   // Hàm phát sóng lời mời room_invite qua Supabase Realtime Broadcast
   const broadcastInvite = async (
     roomId: string,
-    targetUserIds: string[]
+    targetUserIds: string[],
+    options?: BroadcastInviteOptions
   ): Promise<boolean> => {
     if (!channelRef.current || !user) {
       console.warn('⚠️ [Supabase Broadcast] Channel chưa kết nối hoặc user chưa đăng nhập.');
@@ -387,6 +407,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       host_name: name,
       host_avatar: avatar,
       target_user_ids: targetUserIds,
+      total_bill: options?.totalBill,
+      split_amount: options?.splitAmount,
+      note: options?.note,
     });
 
     try {
@@ -399,6 +422,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           host_name: name,
           host_avatar: avatar,
           target_user_ids: targetUserIds,
+          total_bill: options?.totalBill,
+          split_amount: options?.splitAmount,
+          note: options?.note,
           created_at: new Date().toISOString(),
         },
       });

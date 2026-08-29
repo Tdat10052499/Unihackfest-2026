@@ -273,5 +273,36 @@
   - **Khung Màn Hình Shake Room ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
     - Thiết kế chuẩn Dark Theme cao cấp (`#0F172A`, `#1E293B`).
     - Hiển thị tiêu đề **'Phòng giao dịch ảo'** kèm mã phòng `roomId` trích xuất từ URL parameters và nút sao chép nhanh.
+
+---
+
+### 🔹 [Phase 2 - Bước 21: Giai Đoạn 4 - Nhập Tiền Trước Khi Lắc, Phân Quyền Host/Guest & Đồng Bộ `payment_update`]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Màn Hình Transfer Hub (Khởi Tạo & Nhập Tiền Trước Khi Lắc)**:
+    - Bổ sung ô `TextInput` nhập tổng hóa đơn kèm các nút preset nhanh (`100k`, `200k`, `500k`, `1M`) và ô ghi chú hóa đơn.
+    - **Logic `handleShake()`**: Kiểm tra tổng tiền $> 0$, tính toán mức chia đều `splitAmount = Math.round(totalBill / (guestCount + 1))`, đính kèm số tiền này vào payload `room_invite`.
+  - **Kiến Trúc Phân Quyền Shake Room ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - Khởi tạo kết nối vào channel cục bộ `room_[room_id]` qua Supabase Realtime.
+    - Phân chia 2 luồng giao diện rõ ràng dựa trên `isHost` (`user.id === hostId`):
+      - **Giao diện Host**: Thẻ Card lớn trung tâm **'Waiting...'** kèm thanh tiến độ thanh toán. Danh sách Guest hiển thị trạng thái mặc định **'Pending'** (màu vàng `#F59E0B`). Lắng nghe sự kiện `payment_update` để tự động chuyển sang **'Paid'** (màu xanh `#00A859`) trong thời gian thực.
+      - **Giao diện Guest**: Hiển thị chính xác số tiền cần chia, thông tin Host và nút **'Thanh toán'** nổi bật. Khi nhấn, hiển thị loading, bắn event `payment_update` lên channel `room_[room_id]` và chuyển nút sang trạng thái vô hiệu hóa **'Đã thanh toán'**.
+
+---
+
+### 🔹 [Phase 2 - Bước 22: Di Chuyển Logic Nhập Tiền & Lắc Điện Thoại Vào Bên Trong Host Workspace Của Shake Room]
+- **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
+- **Nội dung chi tiết:**
+  - **Dọn dẹp Transfer Hub ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/transfer-hub.tsx))**:
+    - Gỡ bỏ toàn bộ ô `TextInput` nhập tiền và listener `Accelerometer` khỏi màn hình Hub.
+    - Chuyển thẻ 'Shake to Split' về component sạch sẽ, khi bấm sẽ sinh ngẫu nhiên `roomId` và chuyển hướng thẳng sang `app/shake-room.tsx?roomId=[roomId]&isHost=true`.
+  - **Kiến Trúc Host Workspace ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - **Giai đoạn SETUP**: Ô `TextInput` to rõ ràng để Host nhập tổng tiền, kèm quét danh sách bạn bè xung quanh 20m từ `global_radar` và nút 'Mời tất cả'.
+    - **Gia nhập Realtime**: Khi Guest tham gia `room_[roomId]`, avatar của Guest hiển thị trực tiếp lên phòng chờ của Host.
+    - **Lắc thiết bị (Shake Trigger)**: Tích hợp `Accelerometer` (với debounce và auto-remove watcher sau khi lắc). Khi Host nhập tiền và lắc điện thoại (hoặc nhấn nút chốt), tính toán chia đều và phát sóng event `trigger_split` vào channel `room_[roomId]`, đồng thời chuyển Host sang giao diện quản lý 'Waiting...'.
+  - **Kiến Trúc Guest Workspace**:
+    - Khi vừa vào phòng: Hiển thị giao diện chờ 'Đang chờ Host chốt hóa đơn và lắc thiết bị... ⏳' cùng animation radar.
+    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập nhật trạng thái Host từ Pending sang Paid.
+  - **Quản lý bộ nhớ**: Hủy sạch các subscriptions `Accelerometer` và Realtime channels khi component unmount.
 - **Ghi chú:**
-  - Xây dựng Phase 3: Guest bắt sự kiện room_invite và tạo khung màn hình Shake Room.
+  - Di chuyển logic nhập tiền và lắc điện thoại vào bên trong Host Workspace của Shake Room.
