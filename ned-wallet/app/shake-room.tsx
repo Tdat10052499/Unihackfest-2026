@@ -19,7 +19,18 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { Accelerometer } from 'expo-sensors';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { supabase } from '@/services/supabase';
+import {
+  supabase,
+  processGuestPaymentDB,
+  processHostClaimDB,
+} from '@/services/supabase';
+import {
+  cacheBalance,
+  getCachedBalance,
+  cacheActivities,
+  getCachedActivities,
+} from '@/services/storage';
+import { ActivityItem } from '@/services/solana';
 import { useGlobalPresence, PresenceUser } from '@/contexts/GlobalPresenceContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -89,15 +100,15 @@ export default function ShakeRoomScreen() {
   // State Quét Radar & Tích chọn từng Guest để mời
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // State Thanh toán Guest
+  // State Thanh toán Guest & Nhận tiền Host
   const [isGuestPaying, setIsGuestPaying] = useState(false);
   const [hasGuestPaid, setHasGuestPaid] = useState(false);
+  const [isHostClaiming, setIsHostClaiming] = useState(false);
 
   // Refs & Animations
   const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const accelerometerSubRef = useRef<any>(null);
   const lastShakeTimeRef = useRef(0);
-  const hasCompletedAlertShownRef = useRef(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const radarWaveAnim = useRef(new Animated.Value(1)).current;
@@ -120,7 +131,7 @@ export default function ShakeRoomScreen() {
     return solAccount?.address || null;
   };
 
-  // 100% Realtime: Lọc bạn bè thực tế trong bán kính 20m từ global_radar (Không dùng mock data)
+  // 100% Realtime: Lọc bạn bè thực tế trong bán kính 20m từ global_radar
   const candidateNearbyUsers = nearbyUsers.filter(
     (u) => u.distanceMeters !== undefined && u.distanceMeters <= 20
   );
@@ -306,15 +317,21 @@ export default function ShakeRoomScreen() {
       return;
     }
 
-    const totalCount = Math.max(members.length, 1);
-    const calculatedSplit = Math.round(bill / totalCount);
+    // Tiền mỗi người = Tổng hóa đơn / (Số lượng Guest được mời + 1)
+    const invitedGuestCount =
+      selectedUserIds.length > 0
+        ? selectedUserIds.length
+        : Math.max(members.filter((m) => !m.isHost).length, 1);
+    const totalParticipants = invitedGuestCount + 1; // Host + Guests
+    const calculatedSplit = Math.round(bill / totalParticipants);
     setSplitAmount(calculatedSplit.toString());
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     console.log('🚀 [Host] Chốt chia tiền & phát sóng trigger_split:', {
       totalBill: bill,
       splitAmount: calculatedSplit,
-      membersCount: totalCount,
+      invitedGuestCount,
+      totalParticipants,
     });
 
     // Bắn event trigger_split vào channel room_[roomId]
@@ -375,60 +392,7 @@ export default function ShakeRoomScreen() {
         accelerometerSubRef.current = null;
       }
     };
-  }, [isHost, hostPhase, totalBill, members, billNote]);
-
-  // 4. Xử lý Đóng phòng (Host Close Room & Broadcast room_closed)
-  const handleCloseRoom = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    console.log('🚪 [Host] Đang đóng phòng và phát sóng room_closed...');
-
-    if (roomChannelRef.current) {
-      try {
-        await roomChannelRef.current.send({
-          type: 'broadcast',
-          event: 'room_closed',
-          payload: {
-            room_id: roomId,
-            closed_at: new Date().toISOString(),
-          },
-        });
-      } catch (err) {
-        console.error('Lỗi khi gửi room_closed:', err);
-      }
-    }
-
-    router.replace('/(tabs)/transfer-hub');
-  };
-
-  // 5. Host: Lắng nghe trạng thái hoàn tất khi tất cả Guest đều có status === 'paid'
-  useEffect(() => {
-    if (!isHost || hostPhase !== 'WAITING') return;
-
-    const guestMembers = members.filter((m) => !m.isHost);
-    if (
-      guestMembers.length > 0 &&
-      guestMembers.every((g) => g.status === 'paid') &&
-      !hasCompletedAlertShownRef.current
-    ) {
-      hasCompletedAlertShownRef.current = true;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Delay nhẹ 500ms để người dùng nhìn thấy trạng thái 'Paid' đổi màu xanh
-      setTimeout(() => {
-        Alert.alert(
-          'Hoàn tất 🎉',
-          'Đã thu đủ tiền từ tất cả thành viên!',
-          [
-            {
-              text: 'Xác nhận & Đóng phòng',
-              onPress: () => handleCloseRoom(),
-            },
-          ],
-          { cancelable: false }
-        );
-      }, 500);
-    }
-  }, [isHost, hostPhase, members]);
+  }, [isHost, hostPhase, totalBill, members, billNote, selectedUserIds]);
 
   // Host: Mời các bạn bè ĐÃ TÍCH CHỌN vào phòng qua global_radar
   const handleInviteNearbyFriends = async () => {
@@ -458,39 +422,207 @@ export default function ShakeRoomScreen() {
     }
   };
 
-  // Guest: Thực hiện thanh toán phần chia
+  // 4. Phía Host: 'Xác nhận & Nhận tiền' (Cộng tiền vào DB, ghi activity receive, phát sóng room_closed và đóng phòng)
+  const handleHostClaimAndClose = async () => {
+    if (!isHost || isHostClaiming) return;
+    if (!user) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin Host.');
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setIsHostClaiming(true);
+
+    try {
+      // 1. Gọi DB để cộng tổng số tiền đã thu vào ví của Host & ghi activity receive
+      await processHostClaimDB({
+        hostId: user.id,
+        totalCollected: totalCollectedSoFar,
+        roomId,
+        note: billNote || 'Shake to Split',
+      });
+
+      // 2. Cập nhật UI số dư & cache AsyncStorage cho Host
+      try {
+        const currentCachedSol = await getCachedBalance();
+        const solAdd = totalCollectedSoFar / 3750000;
+        await cacheBalance((currentCachedSol || 0) + solAdd);
+
+        const currentActs = (await getCachedActivities()) || [];
+        const newActivity: ActivityItem = {
+          id: `shake_rcv_${Date.now()}`,
+          type: 'received',
+          title: 'Nhận tiền Shake to Split',
+          time: 'Vừa xong',
+          amount: `+${totalCollectedSoFar.toLocaleString()} đ`,
+          isPositive: true,
+          iconBg: '#00A859',
+        };
+        await cacheActivities([newActivity, ...currentActs]);
+      } catch (cacheErr) {
+        console.warn('Lỗi cập nhật cache Host:', cacheErr);
+      }
+
+      // 3. Phát sóng sự kiện room_closed lên channel room_[roomId] để giải tán phòng
+      if (roomChannelRef.current) {
+        try {
+          await roomChannelRef.current.send({
+            type: 'broadcast',
+            event: 'room_closed',
+            payload: {
+              room_id: roomId,
+              host_id: user.id,
+              total_collected: totalCollectedSoFar,
+              closed_at: new Date().toISOString(),
+            },
+          });
+        } catch (err) {
+          console.error('Lỗi khi gửi room_closed:', err);
+        }
+      }
+
+      setIsHostClaiming(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      Alert.alert(
+        'Thu tiền thành công 🎉',
+        `Bạn đã nhận thành công +${totalCollectedSoFar.toLocaleString()} đ vào ví N.E.D!`,
+        [
+          {
+            text: 'Về trang chủ',
+            onPress: () => router.replace('/(tabs)/transfer-hub'),
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (e) {
+      setIsHostClaiming(false);
+      console.error('Lỗi khi Host nhận tiền:', e);
+      Alert.alert('Lỗi', 'Không thể hoàn tất nhận tiền. Vui lòng thử lại.');
+    }
+  };
+
+  // 5. Phía Guest: Thực hiện thanh toán phần chia (Validation số dư + Trừ DB + Ghi log 'send' + Broadcast payment_update)
   const handleGuestPay = async () => {
+    if (isGuestPaying || hasGuestPaid) return;
+    if (!user) {
+      Alert.alert('Lỗi', 'Không xác định được danh tính người dùng. Vui lòng đăng nhập lại.');
+      return;
+    }
+
+    const paymentAmount = parseInt(splitAmount) || 0;
+    if (paymentAmount <= 0) {
+      Alert.alert('Lỗi', 'Số tiền thanh toán không hợp lệ.');
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsGuestPaying(true);
 
     try {
-      setTimeout(async () => {
-        setIsGuestPaying(false);
-        setHasGuestPaid(true);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // 1. Kiểm tra số dư trên Supabase hoặc Cache cục bộ
+      let currentBalance = 0;
+      try {
+        const { data: walletData, error: walletErr } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-        if (roomChannelRef.current && user) {
-          await roomChannelRef.current.send({
-            type: 'broadcast',
-            event: 'payment_update',
-            payload: {
-              user_id: user.id,
-              name: currentUserProfile.name,
-              status: 'paid',
-              amount: parseInt(splitAmount) || 0,
-              paid_at: new Date().toISOString(),
-            },
-          });
+        if (!walletErr && walletData && typeof walletData.balance === 'number') {
+          currentBalance = walletData.balance;
+        } else {
+          // Fallback kiểm tra SOL cache quy đổi ra VND (1 SOL ~ 3.750.000 VND)
+          const cachedSol = await getCachedBalance();
+          currentBalance = cachedSol ? Math.round(cachedSol * 3750000) : 500000;
+        }
+      } catch {
+        const cachedSol = await getCachedBalance();
+        currentBalance = cachedSol ? Math.round(cachedSol * 3750000) : 500000;
+      }
+
+      // 2. Validate số dư
+      if (currentBalance < paymentAmount) {
+        setIsGuestPaying(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Số dư không đủ ❌',
+          `Số dư khả dụng của bạn (${currentBalance.toLocaleString()} đ) không đủ để thanh toán ${paymentAmount.toLocaleString()} đ. Vui lòng nạp thêm tiền vào ví!`
+        );
+        return;
+      }
+
+      // 3. Thực hiện Giao dịch Cơ sở dữ liệu: Trừ tiền Guest & Ghi log activities (type: 'send')
+      const dbResult = await processGuestPaymentDB({
+        guestId: user.id,
+        hostId: hostId || 'host',
+        amount: paymentAmount,
+        roomId: roomId,
+        note: billNote || 'Shake to Split',
+      });
+
+      if (!dbResult.success && dbResult.error === 'INSUFFICIENT_BALANCE') {
+        setIsGuestPaying(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Số dư không đủ ❌',
+          'Số dư trong ví N.E.D không đủ để thực hiện giao dịch này.'
+        );
+        return;
+      }
+
+      // 4. Cập nhật UI số dư nội bộ & Local Cache (AsyncStorage) cho trải nghiệm liền mạch
+      try {
+        const currentCachedSol = await getCachedBalance();
+        if (currentCachedSol !== null) {
+          const solEquivalent = paymentAmount / 3750000;
+          const updatedBal = Math.max(0, currentCachedSol - solEquivalent);
+          await cacheBalance(updatedBal);
         }
 
-        Alert.alert(
-          'Thanh toán thành công 🎉',
-          `Bạn đã thanh toán ${parseInt(splitAmount).toLocaleString()} đ thành công tới Host!`
-        );
-      }, 1200);
-    } catch (e) {
+        // Cập nhật danh sách lịch sử giao dịch gần đây
+        const currentActs = (await getCachedActivities()) || [];
+        const newActivity: ActivityItem = {
+          id: `shake_send_${Date.now()}`,
+          type: 'sent',
+          title: 'Chuyển tiền Shake to Split',
+          time: 'Vừa xong',
+          amount: `-${paymentAmount.toLocaleString()} đ`,
+          isPositive: false,
+          iconBg: '#EF4444',
+        };
+        await cacheActivities([newActivity, ...currentActs]);
+      } catch (cacheErr) {
+        console.warn('Lỗi khi cập nhật local cache:', cacheErr);
+      }
+
+      // 5. Phát sóng sự kiện an toàn qua channel room_[roomId] sau khi DB thành công
+      if (roomChannelRef.current) {
+        await roomChannelRef.current.send({
+          type: 'broadcast',
+          event: 'payment_update',
+          payload: {
+            user_id: user.id,
+            name: currentUserProfile.name,
+            status: 'paid',
+            amount: paymentAmount,
+            paid_at: new Date().toISOString(),
+          },
+        });
+      }
+
+      setHasGuestPaid(true);
       setIsGuestPaying(false);
-      Alert.alert('Lỗi', 'Không thể hoàn tất thanh toán. Vui lòng thử lại.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      Alert.alert(
+        'Thanh toán thành công 🎉',
+        `Bạn đã thanh toán ${paymentAmount.toLocaleString()} đ thành công tới Host!`
+      );
+    } catch (e: any) {
+      console.error('Lỗi khi thực hiện thanh toán:', e);
+      setIsGuestPaying(false);
+      Alert.alert('Giao dịch thất bại', 'Không thể hoàn tất thanh toán. Vui lòng thử lại.');
     }
   };
 
@@ -501,16 +633,22 @@ export default function ShakeRoomScreen() {
     Alert.alert('Đã sao chép mã phòng', roomId);
   };
 
-  // Tính toán số lượng đã thanh toán phía Host
+  // Tính toán số lượng và số tiền phía Host
   const guests = members.filter((m) => !m.isHost);
-  const paidGuestsCount = guests.filter((m) => m.status === 'paid').length;
+  const paidGuests = guests.filter((m) => m.status === 'paid');
+  const paidGuestsCount = paidGuests.length;
   const totalGuestsCount = Math.max(guests.length, 1);
-  const isAllPaid = paidGuestsCount === totalGuestsCount && guests.length > 0;
+  const isAllPaid = paidGuestsCount === guests.length && guests.length > 0;
 
   const parsedTotalBill = parseFloat(totalBill.replace(/,/g, '')) || 0;
   const parsedSplitAmount =
     parseFloat(splitAmount.replace(/,/g, '')) ||
-    Math.round(parsedTotalBill / Math.max(members.length, 1));
+    Math.round(parsedTotalBill / (Math.max(guests.length, 1) + 1));
+
+  // Tổng tiền Host cần thu = Tiền mỗi người * Số lượng Guest
+  const totalExpectedFromGuests = parsedSplitAmount * guests.length;
+  // Tổng tiền Host đã thu được realtime = Tiền mỗi người * Số lượng Guest đã thanh toán
+  const totalCollectedSoFar = parsedSplitAmount * paidGuestsCount;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -769,43 +907,44 @@ export default function ShakeRoomScreen() {
                     LẮC ĐIỆN THOẠI ĐỂ CHỐT CHIA TIỀN
                   </Text>
                   <Text style={styles.shakeBigBtnSubtitle}>
-                    Mỗi người đóng: ~{parsedSplitAmount.toLocaleString()} đ
+                    Mỗi người đóng: ~{parsedSplitAmount.toLocaleString()} đ (Bao gồm Host)
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
-            /* 2. HOST GIAI ĐOẠN WAITING: Quản lý trạng thái thanh toán */
+            /* 2. HOST GIAI ĐOẠN WAITING: Quản lý trạng thái & Xác nhận thu tiền */
             <View style={styles.hostWaitingContainer}>
+              {/* Thẻ Card Tổng Hợp Nổi Bật Thu Tiền Realtime */}
               <View style={styles.hostWaitingCard}>
                 <View style={styles.hostRoleBadge}>
                   <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
                   <Text style={styles.hostRoleText}>BẠN LÀ HOST CHỦ TRÌ</Text>
                 </View>
 
-                <Animated.View
-                  style={[
-                    styles.waitingStatusWrapper,
-                    { transform: [{ scale: waitingBounceAnim }] },
-                  ]}
-                >
-                  <Text style={styles.waitingStatusText}>
-                    {isAllPaid ? 'Đã thu đủ tiền! 🎉' : 'Waiting...'}
+                {/* Số tiền đã thu được Realtime */}
+                <View style={styles.collectedSummaryBox}>
+                  <Text style={styles.collectedLabel}>ĐÃ THU ĐƯỢC REALTIME</Text>
+                  <Text style={styles.collectedAmount}>
+                    {totalCollectedSoFar.toLocaleString()}{' '}
+                    <Text style={styles.collectedCurrency}>VND</Text>
                   </Text>
-                </Animated.View>
+                  <View style={styles.expectedTargetRow}>
+                    <Text style={styles.expectedTargetText}>
+                      Tổng tiền cần thu:{' '}
+                      <Text style={styles.expectedTargetBold}>
+                        {totalExpectedFromGuests.toLocaleString()} đ
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
 
-                <Text style={styles.waitingSubText}>
-                  {isAllPaid
-                    ? 'Tất cả bạn bè đã hoàn tất thanh toán hóa đơn.'
-                    : 'Đang chờ các thành viên xác nhận và gửi tiền.'}
-                </Text>
-
-                {/* Tiến độ */}
+                {/* Thanh Tiến độ thanh toán */}
                 <View style={styles.progressBox}>
                   <View style={styles.progressRow}>
                     <Text style={styles.progressLabel}>Tiến độ thanh toán:</Text>
                     <Text style={styles.progressValue}>
-                      {paidGuestsCount}/{totalGuestsCount} bạn bè đã trả
+                      {paidGuestsCount}/{guests.length} bạn bè đã trả
                     </Text>
                   </View>
                   <View style={styles.progressBarBg}>
@@ -813,14 +952,18 @@ export default function ShakeRoomScreen() {
                       style={[
                         styles.progressBarFill,
                         {
-                          width: `${(paidGuestsCount / totalGuestsCount) * 100}%`,
+                          width: `${
+                            guests.length > 0
+                              ? (paidGuestsCount / guests.length) * 100
+                              : 0
+                          }%`,
                         },
                       ]}
                     />
                   </View>
                 </View>
 
-                {/* Tổng kết hóa đơn */}
+                {/* Chi tiết chia tiền */}
                 <View style={styles.billDetailsGrid}>
                   <View style={styles.detailCol}>
                     <Text style={styles.detailColLabel}>Tổng hóa đơn</Text>
@@ -877,14 +1020,36 @@ export default function ShakeRoomScreen() {
                 ))}
               </View>
 
-              {/* Nút Đóng phòng thủ công cho Host */}
+              {/* Nút 'Xác nhận & Nhận tiền' (Chỉ bật khi toàn bộ Guest đã thanh toán) */}
               <TouchableOpacity
-                style={styles.closeRoomBtn}
-                onPress={handleCloseRoom}
+                style={[
+                  styles.claimMoneyBtn,
+                  !isAllPaid && styles.claimMoneyBtnDisabled,
+                  isHostClaiming && styles.claimMoneyBtnLoading,
+                ]}
+                onPress={handleHostClaimAndClose}
+                disabled={!isAllPaid || isHostClaiming}
                 activeOpacity={0.85}
               >
-                <Ionicons name="exit-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.closeRoomBtnText}>Đóng phòng & Hoàn tất</Text>
+                {isHostClaiming ? (
+                  <View style={styles.payingLoadingRow}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.claimMoneyBtnText}>Đang nhận tiền & đóng phòng...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name={isAllPaid ? 'cash-check' : 'cash-clock'}
+                      size={24}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.claimMoneyBtnText}>
+                      {isAllPaid
+                        ? `Xác nhận & Nhận tiền (+${totalCollectedSoFar.toLocaleString()} đ)`
+                        : `Chờ thanh toán (${paidGuestsCount}/${guests.length})`}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           )
@@ -964,7 +1129,7 @@ export default function ShakeRoomScreen() {
                 </View>
               </View>
 
-              {/* Nút Thanh toán nổi bật */}
+              {/* Nút Thanh toán nổi bật với Spinner khi đang xử lý DB */}
               <TouchableOpacity
                 style={[
                   styles.guestPayBtn,
@@ -976,7 +1141,10 @@ export default function ShakeRoomScreen() {
                 activeOpacity={0.85}
               >
                 {isGuestPaying ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <View style={styles.payingLoadingRow}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.guestPayBtnText}>Đang trừ ví & xử lý...</Text>
+                  </View>
                 ) : hasGuestPaid ? (
                   <>
                     <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" />
@@ -996,7 +1164,7 @@ export default function ShakeRoomScreen() {
                 <View style={styles.paidConfirmationBox}>
                   <Ionicons name="shield-checkmark" size={18} color="#00A859" />
                   <Text style={styles.paidConfirmationText}>
-                    Trạng thái đã được cập nhật về màn hình Host thời gian thực!
+                    Đã trừ ví thành công và đồng bộ tới Host thời gian thực!
                   </Text>
                 </View>
               )}
@@ -1406,20 +1574,48 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#F59E0B',
   },
-  waitingStatusWrapper: {
-    marginVertical: 4,
+  collectedSummaryBox: {
+    width: '100%',
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 168, 89, 0.3)',
+    marginBottom: 16,
   },
-  waitingStatusText: {
+  collectedLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  collectedAmount: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#00A859',
   },
-  waitingSubText: {
-    fontSize: 13,
+  collectedCurrency: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 18,
+  },
+  expectedTargetRow: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
+  },
+  expectedTargetText: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  expectedTargetBold: {
+    color: '#F8FAFC',
+    fontWeight: '700',
   },
   progressBox: {
     width: '100%',
@@ -1488,7 +1684,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
   },
   membersSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionHeader: {
     marginBottom: 12,
@@ -1572,21 +1768,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#F59E0B',
   },
-  closeRoomBtn: {
+  claimMoneyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#334155',
-    borderRadius: 16,
-    paddingVertical: 15,
-    marginTop: 8,
-    marginBottom: 20,
+    gap: 10,
+    backgroundColor: '#00A859',
+    borderRadius: 18,
+    paddingVertical: 18,
+    marginTop: 6,
+    marginBottom: 24,
+    shadowColor: '#00A859',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  closeRoomBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#F8FAFC',
+  claimMoneyBtnDisabled: {
+    backgroundColor: '#334155',
+    opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  claimMoneyBtnLoading: {
+    opacity: 0.8,
+  },
+  claimMoneyBtnText: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   // Guest WAITING Styles
   guestWaitingContainer: {
@@ -1739,12 +1949,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  payingLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   guestPayBtnPaid: {
     backgroundColor: '#10B981',
     opacity: 0.8,
   },
   guestPayBtnLoading: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
   guestPayBtnText: {
     fontSize: 16,

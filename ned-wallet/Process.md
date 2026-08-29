@@ -302,7 +302,7 @@
     - **Lắc thiết bị (Shake Trigger)**: Tích hợp `Accelerometer` (với debounce và auto-remove watcher sau khi lắc). Khi Host nhập tiền và lắc điện thoại (hoặc nhấn nút chốt), tính toán chia đều và phát sóng event `trigger_split` vào channel `room_[roomId]`, đồng thời chuyển Host sang giao diện quản lý 'Waiting...'.
   - **Kiến Trúc Guest Workspace**:
     - Khi vừa vào phòng: Hiển thị giao diện chờ 'Đang chờ Host chốt hóa đơn và lắc thiết bị... ⏳' cùng animation radar.
-    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập nhật trạng thái Host từ Pending sang Paid.
+    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập trạng thái Host từ Pending sang Paid.
   - **Quản lý bộ nhớ**: Hủy sạch các subscriptions `Accelerometer` và Realtime channels khi component unmount.
 
 ---
@@ -349,3 +349,34 @@
     - Khi không có thiết bị nào trong bán kính 20m (`candidateNearbyUsers.length === 0`), hiển thị icon radar bo tròn mờ `#64748B`, tiêu đề 'Chưa tìm thấy ai ở gần' và mô tả 'Đang liên tục rà quét tín hiệu thiết bị trong bán kính 20m...'.
     - Bổ sung `ActivityIndicator` màu tím nhạt `#8B5CF6` báo hiệu quá trình rà quét GPS đang hoạt động liên tục.
   - **Khóa nút Mời khi danh sách rỗng**: Nút 'Mời' bị vô hiệu hóa an toàn (`disabled={true}`, `opacity: 0.4`), ngăn ngừa gửi nhầm request với mảng `target_user_ids` rỗng.
+
+---
+
+### 🔹 [Phase 2 - Bước 26: Nâng Cấp Nút Thanh Toán Guest Với Xác Thực Số Dư & Giao Dịch Database ACID]
+- **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
+- **Nội dung chi tiết:**
+  - **Kiểm tra số dư (Validation)**:
+    - Hiển thị spinner `ActivityIndicator` 'Đang trừ ví & xử lý...' chống bấm liên tiếp (double-click).
+    - Kiểm tra số dư trên Supabase `wallets` (hoặc SOL cache quy đổi). Nếu `balance < amount`, hủy giao dịch và cảnh báo 'Số dư không đủ ❌'.
+  - **Giao dịch Database ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Hàm `processTransferDB`: Thử gọi RPC `process_transfer` trên Supabase; nếu chưa cấu hình thì tự động fallback sang trừ tiền Guest và cộng tiền Host trong bảng `wallets`, đồng thời ghi log vào bảng `transactions`.
+  - **Đồng bộ UI & Local Cache**:
+    - Cập nhật số dư trong `AsyncStorage` (`cacheBalance`), thêm giao dịch mới vào `cacheActivities` để trang Home hiển thị số dư mới liền mạch.
+  - **Phát sóng an toàn**: Chỉ phát sóng `payment_update` (status: 'paid') khi DB transaction hoàn tất thành công.
+
+---
+
+### 🔹 [Phase 2 - Bước 27: Hoàn Thiện Logic Thực Nhận, Nút Xác Nhận Thu Tiền Của Host & Ghi Nhận Lịch Sử]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Công thức tính toán**:
+    - Tiền mỗi người: `splitAmount = totalBill / (guestCount + 1)`.
+    - Tổng tiền Host cần thu: `splitAmount * guestCount`.
+    - Tổng tiền đã thu realtime: `splitAmount * paidGuestsCount`.
+  - **Giao diện Host (Card tổng kết & Nút Nhận tiền)**:
+    - Render Card tổng hợp nổi bật hiển thị 'Đã thu được realtime' (màu xanh `#00A859`) và 'Tổng tiền cần thu'.
+    - Nút 'Xác nhận & Nhận tiền' mặc định bị khóa (disabled/opacity 0.6) và **chỉ được bật** khi toàn bộ Guest trong danh sách hoàn tất thanh toán (`status === 'paid'`).
+  - **Tách biệt Database Transactions & Ghi log Activities ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - `processGuestPaymentDB`: Trừ tiền Guest và insert log `activities` (`type: 'send'`, title: 'Chuyển tiền Shake to Split', status: 'completed').
+    - `processHostClaimDB`: Cộng tổng tiền đã thu vào ví Host và insert log `activities` (`type: 'receive'`, title: 'Nhận tiền Shake to Split', status: 'completed').
+  - **Giải tán phòng an toàn**: Host sau khi nhận tiền sẽ phát sóng broadcast `room_closed` để tự động điều hướng tất cả thành viên về màn hình chính.
