@@ -94,6 +94,7 @@ export default function ShakeRoomScreen() {
   const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const accelerometerSubRef = useRef<any>(null);
   const lastShakeTimeRef = useRef(0);
+  const hasCompletedAlertShownRef = useRef(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const radarWaveAnim = useRef(new Animated.Value(1)).current;
@@ -221,6 +222,26 @@ export default function ShakeRoomScreen() {
           prev.map((m) => (m.user_id === payload.user_id ? { ...m, status: 'paid' } : m))
         );
       })
+      // D. Event room_closed: Guest nhận lệnh giải tán phòng khi Host đóng phòng
+      .on('broadcast', { event: 'room_closed' }, () => {
+        console.log('🚪 [Shake Room] Nhận sự kiện room_closed từ Host');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (!isHost) {
+          Alert.alert(
+            'Hoàn tất 🎉',
+            'Giao dịch hoàn tất, phòng đã đóng!',
+            [
+              {
+                text: 'Xác nhận',
+                onPress: () => {
+                  router.replace('/(tabs)');
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+      })
       .subscribe((status) => {
         console.log(`📡 [Shake Room] Channel ${channelName} status:`, status);
         if (status === 'SUBSCRIBED') {
@@ -233,8 +254,13 @@ export default function ShakeRoomScreen() {
     return () => {
       console.log(`🧹 [Shake Room] Dọn dẹp channel ${channelName}`);
       if (roomChannelRef.current) {
+        roomChannelRef.current.unsubscribe();
         supabase.removeChannel(roomChannelRef.current);
         roomChannelRef.current = null;
+      }
+      if (accelerometerSubRef.current) {
+        accelerometerSubRef.current.remove();
+        accelerometerSubRef.current = null;
       }
     };
   }, [roomId, user, isHost]);
@@ -347,6 +373,59 @@ export default function ShakeRoomScreen() {
       }
     };
   }, [isHost, hostPhase, totalBill, members, billNote]);
+
+  // 4. Xử lý Đóng phòng (Host Close Room & Broadcast room_closed)
+  const handleCloseRoom = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    console.log('🚪 [Host] Đang đóng phòng và phát sóng room_closed...');
+
+    if (roomChannelRef.current) {
+      try {
+        await roomChannelRef.current.send({
+          type: 'broadcast',
+          event: 'room_closed',
+          payload: {
+            room_id: roomId,
+            closed_at: new Date().toISOString(),
+          },
+        });
+      } catch (err) {
+        console.error('Lỗi khi gửi room_closed:', err);
+      }
+    }
+
+    router.replace('/(tabs)/transfer-hub');
+  };
+
+  // 5. Host: Lắng nghe trạng thái hoàn tất khi tất cả Guest đều có status === 'paid'
+  useEffect(() => {
+    if (!isHost || hostPhase !== 'WAITING') return;
+
+    const guestMembers = members.filter((m) => !m.isHost);
+    if (
+      guestMembers.length > 0 &&
+      guestMembers.every((g) => g.status === 'paid') &&
+      !hasCompletedAlertShownRef.current
+    ) {
+      hasCompletedAlertShownRef.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Delay nhẹ 500ms để người dùng nhìn thấy trạng thái 'Paid' đổi màu xanh
+      setTimeout(() => {
+        Alert.alert(
+          'Hoàn tất 🎉',
+          'Đã thu đủ tiền từ tất cả thành viên!',
+          [
+            {
+              text: 'Xác nhận & Đóng phòng',
+              onPress: () => handleCloseRoom(),
+            },
+          ],
+          { cancelable: false }
+        );
+      }, 500);
+    }
+  }, [isHost, hostPhase, members]);
 
   // Host: Mời bạn bè xung quanh vào phòng qua global_radar
   const handleInviteNearbyFriends = async () => {
@@ -733,6 +812,16 @@ export default function ShakeRoomScreen() {
                   </View>
                 ))}
               </View>
+
+              {/* Nút Đóng phòng thủ công cho Host */}
+              <TouchableOpacity
+                style={styles.closeRoomBtn}
+                onPress={handleCloseRoom}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="exit-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.closeRoomBtnText}>Đóng phòng & Hoàn tất</Text>
+              </TouchableOpacity>
             </View>
           )
         ) : (
@@ -1382,6 +1471,22 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: '#F59E0B',
+  },
+  closeRoomBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#334155',
+    borderRadius: 16,
+    paddingVertical: 15,
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  closeRoomBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F8FAFC',
   },
   // Guest WAITING Styles
   guestWaitingContainer: {

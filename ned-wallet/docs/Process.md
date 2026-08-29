@@ -304,5 +304,19 @@
     - Khi vừa vào phòng: Hiển thị giao diện chờ 'Đang chờ Host chốt hóa đơn và lắc thiết bị... ⏳' cùng animation radar.
     - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập nhật trạng thái Host từ Pending sang Paid.
   - **Quản lý bộ nhớ**: Hủy sạch các subscriptions `Accelerometer` và Realtime channels khi component unmount.
-- **Ghi chú:**
-  - Di chuyển logic nhập tiền và lắc điện thoại vào bên trong Host Workspace của Shake Room.
+
+---
+
+### 🔹 [Phase 2 - Bước 23: Tự Động Kết Thúc Phòng Khi Host Đã Thu Đủ Tiền & Phát Sóng `room_closed`]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Lắng nghe Hoàn tất Phía Host ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - Sử dụng `useEffect` theo dõi danh sách Guest. Khi `guests.length > 0` và tất cả Guest đều có `status === 'paid'`, tự động hiển thị popup: `Alert.alert('Hoàn tất 🎉', 'Đã thu đủ tiền từ tất cả thành viên!')`.
+  - **Xử lý Đóng phòng (`handleCloseRoom`)**:
+    - Host gửi broadcast event `room_closed` lên channel `room_[roomId]`.
+    - Điều hướng Host về `router.replace('/(tabs)/transfer-hub')`.
+  - **Xử lý Giải tán Phía Guest**:
+    - Guest lắng nghe sự kiện `room_closed` trên channel `room_[roomId]`.
+    - Khi bắt được sự kiện, hiển thị thông báo popup `'Giao dịch hoàn tất, phòng đã đóng!'` và tự động điều hướng `router.replace('/(tabs)')`.
+  - **Dọn dẹp Tài nguyên (Memory Cleanup)**:
+    - Trong hàm cleanup của `useEffect`, gọi `channel.unsubscribe()`, `supabase.removeChannel(channel)` và gỡ bỏ `accelerometerSubRef` an toàn.
