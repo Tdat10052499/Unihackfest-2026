@@ -3,14 +3,15 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
   Modal,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   usePrivy,
   useLoginWithEmail,
@@ -20,38 +21,81 @@ import {
   PublicKey,
   Transaction,
   SystemProgram,
+  LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import { Buffer } from 'buffer';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { getSolanaBalance, solanaConnection } from '../services/solana';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import {
+  getSolanaBalance,
+  solanaConnection,
+  fetchOnChainHistory,
+  ActivityItem,
+} from '../services/solana';
+import {
+  cacheBalance,
+  getCachedBalance,
+  cacheActivities,
+  getCachedActivities,
+} from '../services/storage';
 
-export default function LoginScreen() {
+export default function HomeScreen() {
   const { isReady, user, logout } = usePrivy();
-  const { sendCode, loginWithCode, state } = useLoginWithEmail();
+  const { sendCode, loginWithCode, state: loginState } = useLoginWithEmail();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const [permission, requestPermission] = useCameraPermissions();
 
-  // State quản lý luồng đăng nhập
+  // State luồng đăng nhập
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<'EMAIL_INPUT' | 'OTP_INPUT'>('EMAIL_INPUT');
   const [errorMessage, setErrorMessage] = useState('');
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
-  // State kiểm thử Devnet & On-chain
+  // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
+  const [activeTab, setActiveTab] = useState<'home' | 'card' | 'send' | 'hub'>('home');
+
+  // State Modals & Camera Scanner
+  const [showScanner, setShowScanner] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showDevnetDrawer, setShowDevnetDrawer] = useState(false);
+  const [hasScanned, setHasScanned] = useState(false);
+
+  // State Withdraw Form
+  const [withdrawAddress, setWithdrawAddress] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('0.001');
+
+  // State Devnet Test & Signature
   const [signatureResult, setSignatureResult] = useState('');
   const [isTestingSignature, setIsTestingSignature] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
 
-  // State Giao diện MiniPay/World App (Scan & Receive Modal)
-  const [showScanner, setShowScanner] = useState(false);
-  const [showReceiveModal, setShowReceiveModal] = useState(false);
-  const [hasScanned, setHasScanned] = useState(false);
-  const [showDevnetDetails, setShowDevnetDetails] = useState(false);
+  // State danh sách lịch sử giao dịch & loading
+  const [activities, setActivities] = useState<ActivityItem[]>([
+    {
+      id: '1',
+      type: 'reward',
+      title: 'Reward',
+      time: '4 mo ago',
+      amount: '+$<0,01',
+      isPositive: true,
+      iconBg: '#3B82F6',
+    },
+    {
+      id: '2',
+      type: 'received',
+      title: 'Received',
+      time: '4 mo ago',
+      amount: '+$0,10',
+      isPositive: true,
+      iconBg: '#DDD6FE',
+    },
+  ]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
   // Trích xuất địa chỉ ví Solana dạng Base58
   const getSolanaWalletAddress = (): string | null => {
@@ -87,22 +131,100 @@ export default function LoginScreen() {
 
   const solanaAddress = getSolanaWalletAddress();
 
-  // Tự động kiểm tra số dư khi phát hiện địa chỉ ví
+  // 1. Luồng Cache-then-Network: Nạp Cache khởi tạo ngay lập tức
+  useEffect(() => {
+    const loadCachedData = async () => {
+      try {
+        const [cachedBal, cachedActs] = await Promise.all([
+          getCachedBalance(),
+          getCachedActivities(),
+        ]);
+        if (cachedBal !== null) {
+          setSolBalance(cachedBal);
+        }
+        if (cachedActs !== null && cachedActs.length > 0) {
+          setActivities(cachedActs);
+        }
+      } catch (err) {
+        console.error('Error loading initial cached data:', err);
+      }
+    };
+
+    loadCachedData();
+  }, []);
+
+  // 2. Luồng Cache-then-Network: Kéo dữ liệu on-chain chạy nền khi có địa chỉ ví
   useEffect(() => {
     if (solanaAddress) {
       fetchBalance(solanaAddress);
+      fetchActivities(solanaAddress);
     }
   }, [solanaAddress]);
 
+  // 3. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
+  useEffect(() => {
+    if (!solanaAddress) return;
+
+    let subscriptionId: number | null = null;
+
+    try {
+      const pubKey = new PublicKey(solanaAddress);
+
+      // Đăng ký lắng nghe sự kiện thay đổi của tài khoản từ Solana WebSocket RPC
+      subscriptionId = solanaConnection.onAccountChange(
+        pubKey,
+        (accountInfo) => {
+          const newBalance = accountInfo.lamports / LAMPORTS_PER_SOL;
+          console.log('⚡ [WebSocket] Biến động số dư tài khoản thời gian thực:', newBalance, 'SOL');
+          setSolBalance(newBalance);
+          cacheBalance(newBalance);
+
+          // Cập nhật lại danh sách lịch sử giao dịch mới nhất
+          fetchActivities(solanaAddress);
+        },
+        'confirmed'
+      );
+    } catch (err) {
+      console.error('Error setting up onAccountChange WebSocket listener:', err);
+    }
+
+    // Dọn dẹp bộ nhớ (Cleanup): Hủy đăng ký listener khi component unmount hoặc địa chỉ ví thay đổi
+    return () => {
+      if (subscriptionId !== null) {
+        solanaConnection.removeAccountChangeListener(subscriptionId).catch((e) => {
+          console.log('Error removing account change listener:', e);
+        });
+      }
+    };
+  }, [solanaAddress]);
+
+  // Lấy số dư On-chain
   const fetchBalance = async (address: string) => {
     setIsLoadingBalance(true);
     try {
       const balance = await getSolanaBalance(address);
       setSolBalance(balance);
+      cacheBalance(balance);
     } catch (err: any) {
       console.log('Error fetching Devnet balance:', err);
     } finally {
       setIsLoadingBalance(false);
+    }
+  };
+
+  // Lấy lịch sử giao dịch On-chain
+  const fetchActivities = async (address: string) => {
+    setIsLoadingActivities(true);
+    try {
+      const onChainList = await fetchOnChainHistory(address);
+      if (onChainList && onChainList.length > 0) {
+        setActivities(onChainList);
+        cacheActivities(onChainList);
+      }
+    } catch (err: any) {
+      console.log('Error fetching on-chain history:', err);
+    } finally {
+      setIsLoadingActivities(false);
     }
   };
 
@@ -122,16 +244,24 @@ export default function LoginScreen() {
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện khi quét thành công mã QR
+  // Xử lý sự kiện quét QR thành công
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (hasScanned) return;
     setHasScanned(true);
     setShowScanner(false);
     console.log('Đã quét địa chỉ:', data);
-    Alert.alert('Thành công', `Đã quét địa chỉ: ${data}`);
+    setWithdrawAddress(data);
+    Alert.alert(
+      'Quét Thành Công',
+      `Đã nhận diện địa chỉ:\n${data}`,
+      [
+        { text: 'Đóng', style: 'cancel' },
+        { text: 'Chuyển Tiền Ngay', onPress: () => setShowWithdrawModal(true) },
+      ]
+    );
   };
 
-  // Hàm tạo ví ngầm Solana thủ công
+  // Khởi tạo ví Solana ngầm thủ công
   const handleCreateSolanaWallet = async () => {
     setIsCreatingWallet(true);
     setErrorMessage('');
@@ -147,47 +277,47 @@ export default function LoginScreen() {
     }
   };
 
-  // Luồng Ký và Gửi Giao dịch On-chain lên Solana Devnet
-  const handleSendDevnetTransaction = async () => {
+  // Ký và gửi giao dịch chuyển tiền On-chain lên Solana Devnet
+  const handleSendTransaction = async (targetAddress?: string, amountSol?: number) => {
     if (!solanaAddress) return;
+    const recipient = targetAddress || withdrawAddress.trim() || solanaAddress;
+    const sendLamports = Math.floor((amountSol || parseFloat(withdrawAmount) || 0.001) * 1e9);
+
     setIsTestingSignature(true);
     setSignatureResult('');
-    setIsCopied(false);
     setErrorMessage('');
 
     try {
       if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
-        setSignatureResult('Ví nhúng Solana chưa sẵn sàng.');
-        return;
+        throw new Error('Ví nhúng Solana chưa sẵn sàng.');
       }
 
       const provider = await solanaWalletState.wallets[0].getProvider();
-      const pubKey = new PublicKey(solanaAddress);
+      const fromPubkey = new PublicKey(solanaAddress);
+      const toPubkey = new PublicKey(recipient);
 
-      // 1. Lấy recentBlockhash hợp lệ từ Devnet
+      // 1. Lấy Blockhash mới nhất
       const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
 
-      // 2. Tạo Transaction tự chuyển 1,000 lamports (0.000001 SOL)
+      // 2. Tạo Transaction
       const transaction = new Transaction().add(
         SystemProgram.transfer({
-          fromPubkey: pubKey,
-          toPubkey: pubKey,
-          lamports: 1000,
+          fromPubkey,
+          toPubkey,
+          lamports: sendLamports,
         })
       );
 
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = pubKey;
+      transaction.feePayer = fromPubkey;
 
-      // 3. Ký giao dịch thông qua Privy Embedded Solana Wallet Provider
+      // 3. Ký giao dịch thông qua Privy Provider
       const { signedTransaction } = await provider.request({
         method: 'signTransaction',
-        params: {
-          transaction: transaction,
-        },
+        params: { transaction },
       });
 
-      // 4. Broadcast giao dịch đã ký lên Solana Devnet
+      // 4. Broadcast lên Solana Devnet
       const rawBytes = signedTransaction.serialize();
       const txSignature = await solanaConnection.sendRawTransaction(rawBytes, {
         skipPreflight: false,
@@ -196,34 +326,50 @@ export default function LoginScreen() {
 
       if (txSignature) {
         setSignatureResult(txSignature);
+        setShowWithdrawModal(false);
+
+        // Bổ sung hoạt động mới vào danh sách & lưu cache ngay lập tức
+        const newAct: ActivityItem = {
+          id: txSignature,
+          type: 'sent',
+          title: 'Chuyển tiền',
+          time: 'Vừa xong',
+          amount: `-${((sendLamports / 1e9) * 150).toFixed(2).replace('.', ',')}$`,
+          isPositive: false,
+          iconBg: '#374151',
+          signature: txSignature,
+        };
+        const updatedActivities = [newAct, ...activities];
+        setActivities(updatedActivities);
+        cacheActivities(updatedActivities);
+
+        // Đồng bộ lại dữ liệu chuỗi sau 1.5s
         fetchBalance(solanaAddress);
-      } else {
-        setSignatureResult('Không thể broadcast giao dịch lên Solana Devnet.');
+        setTimeout(() => fetchActivities(solanaAddress), 1500);
+
+        Alert.alert('Giao Dịch Thành Công! ⚡', `Mã chữ ký (Signature):\n${txSignature.slice(0, 20)}...`);
       }
     } catch (err: any) {
-      console.error('Solana Devnet Transaction Error:', err);
-      setErrorMessage(err?.message || 'Gửi giao dịch Devnet thất bại.');
-      setSignatureResult(
-        'Lỗi giao dịch: ' + (err?.message || 'Không thể broadcast giao dịch lên Devnet.')
-      );
+      console.error('Solana Transaction Error:', err);
+      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể broadcast giao dịch lên Devnet.');
+      setSignatureResult('Lỗi: ' + (err?.message || 'Giao dịch thất bại.'));
     } finally {
       setIsTestingSignature(false);
     }
   };
 
-  // Sao chép Signature vào bộ nhớ tạm
-  const handleCopySignature = async () => {
-    if (!signatureResult) return;
+  // Sao chép chuỗi vào Clipboard
+  const copyToClipboard = async (text?: string | null, msg: string = 'Đã sao chép vào bộ nhớ tạm!') => {
+    if (!text) return;
     try {
-      await Clipboard.setStringAsync(signatureResult);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2500);
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Thông Báo', msg);
     } catch (err) {
       console.log('Copy error:', err);
     }
   };
 
-  // Xử lý Bước 1: Gửi mã OTP
+  // Xử lý gửi OTP email
   const handleSendCode = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
@@ -236,13 +382,11 @@ export default function LoginScreen() {
       setStep('OTP_INPUT');
     } catch (err: any) {
       console.log('Error sending OTP:', err);
-      setErrorMessage(
-        err?.message || 'Không thể gửi mã xác thực. Vui lòng kiểm tra lại email.'
-      );
+      setErrorMessage(err?.message || 'Không thể gửi mã xác thực. Vui lòng thử lại.');
     }
   };
 
-  // Xử lý Bước 2: Xác thực OTP
+  // Xử lý xác thực mã OTP
   const handleVerifyCode = async () => {
     const trimmedCode = otpCode.trim();
     const trimmedEmail = email.trim();
@@ -255,628 +399,1285 @@ export default function LoginScreen() {
       await loginWithCode({ code: trimmedCode, email: trimmedEmail });
     } catch (err: any) {
       console.log('Error verifying OTP:', err);
-      setErrorMessage(
-        err?.message || 'Mã xác thực không hợp lệ hoặc đã hết hạn.'
-      );
+      setErrorMessage(err?.message || 'Mã xác thực không hợp lệ hoặc đã hết hạn.');
     }
   };
 
-  const handleBackToEmail = () => {
-    setOtpCode('');
-    setErrorMessage('');
-    setStep('EMAIL_INPUT');
+  // Tính toán hiển thị số dư định dạng theo tiền tệ
+  const getFormattedBalance = () => {
+    if (solBalance === null) return currency === 'USD' ? '$0,10' : '2.540 ₫';
+    const usdVal = (solBalance * 150) + 0.10;
+    if (currency === 'USD') {
+      return `$${usdVal.toFixed(2).replace('.', ',')}`;
+    } else {
+      const vndVal = usdVal * 25400;
+      return `${Math.round(vndVal).toLocaleString('vi-VN')} ₫`;
+    }
   };
 
   if (!isReady) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#9945FF" />
-        <Text style={{ marginTop: 10, color: '#666' }}>
-          Đang khởi tạo môi trường N.E.D...
-        </Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={styles.loadingText}>Đang khởi tạo ví N.E.D...</Text>
       </View>
     );
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {user ? (
-        // Giao diện Màn hình chính MiniPay/World App (Tối giản & Hiện đại)
-        <View style={styles.mainCard}>
-          {/* Header Thông tin Người dùng */}
-          <View style={styles.headerRow}>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>Solana Devnet</Text>
+  // Giao diện Đăng nhập Email nếu chưa xác thực
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.authContainer}>
+        <View style={styles.authCard}>
+          <View style={styles.authLogoContainer}>
+            <View style={styles.authLogoCircle}>
+              <Text style={styles.authLogoText}>Đ</Text>
             </View>
-            <TouchableOpacity
-              style={styles.logoutPill}
-              onPress={() => {
-                setStep('EMAIL_INPUT');
-                setEmail('');
-                setOtpCode('');
-                setSolBalance(null);
-                setSignatureResult('');
-                logout();
-              }}
-            >
-              <Text style={styles.logoutPillText}>Đăng xuất</Text>
-            </TouchableOpacity>
           </View>
-
-          {/* Hiển thị Số dư Tổng Trung Tâm (MiniPay Style) */}
-          <View style={styles.centerBalanceContainer}>
-            <Text style={styles.balanceCaption}>SỐ DƯ KHẢ DỤNG</Text>
-            <View style={styles.balanceBigRow}>
-              {isLoadingBalance ? (
-                <ActivityIndicator size="large" color="#14F195" />
-              ) : (
-                <Text style={styles.balanceBigText}>
-                  {solBalance !== null ? `${solBalance.toFixed(4)}` : '0.0000'}
-                </Text>
-              )}
-              <Text style={styles.solSymbol}>SOL</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => solanaAddress && fetchBalance(solanaAddress)}
-            >
-              <Text style={styles.refreshText}>↻ Làm mới số dư</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 2 Nút Bấm Hành Động Chính: Gửi tiền & Nhận tiền */}
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={[styles.primaryActionBtn, styles.sendBtn]}
-              onPress={handleOpenScanner}
-            >
-              <Text style={styles.actionBtnIcon}>📷</Text>
-              <Text style={styles.sendBtnText}>Gửi tiền (Scan QR)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.primaryActionBtn, styles.receiveBtn]}
-              onPress={() => setShowReceiveModal(true)}
-            >
-              <Text style={styles.actionBtnIcon}>QR</Text>
-              <Text style={styles.receiveBtnText}>Nhận tiền (My QR)</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Địa chỉ Ví Rút Gọn */}
-          {solanaAddress ? (
-            <View style={styles.addressPill}>
-              <Text style={styles.addressPillLabel}>Địa chỉ ví:</Text>
-              <Text style={styles.addressPillValue}>
-                {solanaAddress.slice(0, 6)}...{solanaAddress.slice(-6)}
-              </Text>
-            </View>
-          ) : (
-            <View style={{ marginTop: 16 }}>
-              <Button
-                title={isCreatingWallet ? 'Đang tạo ví...' : 'Khởi tạo ví Solana ngầm'}
-                onPress={handleCreateSolanaWallet}
-                disabled={isCreatingWallet}
-                color="#9945FF"
-              />
-            </View>
-          )}
-
-          {/* Phần Mở Rộng Kiểm Thử On-chain (Devnet Details) */}
-          <TouchableOpacity
-            style={styles.toggleDevnetBtn}
-            onPress={() => setShowDevnetDetails(!showDevnetDetails)}
-          >
-            <Text style={styles.toggleDevnetText}>
-              {showDevnetDetails ? '▲ Ẩn công cụ Devnet' : '▼ Công cụ kiểm thử Devnet'}
-            </Text>
-          </TouchableOpacity>
-
-          {showDevnetDetails && solanaAddress && (
-            <View style={styles.devnetSection}>
-              <Text style={styles.sectionHeader}>Công cụ Kiểm thử On-chain</Text>
-              <Button
-                title={
-                  isTestingSignature
-                    ? 'Đang Ký & Gửi Giao Dịch...'
-                    : 'Ký & Gửi Giao Dịch Thử (1,000 Lamports)'
-                }
-                onPress={handleSendDevnetTransaction}
-                disabled={isTestingSignature}
-                color="#9945FF"
-              />
-
-              {isTestingSignature && (
-                <View style={{ marginTop: 10, alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#14F195" />
-                  <Text style={{ color: '#CCCCCC', fontSize: 12, marginTop: 4 }}>
-                    Đang broadcast lên Solana Devnet...
-                  </Text>
-                </View>
-              )}
-
-              {signatureResult ? (
-                <View style={styles.signatureContainer}>
-                  <Text style={styles.signatureLabel}>Transaction Signature:</Text>
-                  <TextInput
-                    style={styles.signatureInput}
-                    value={signatureResult}
-                    editable={false}
-                    multiline
-                  />
-                  <View style={{ marginTop: 6 }}>
-                    <Button
-                      title={isCopied ? 'Đã sao chép! ✓' : 'Sao chép Signature'}
-                      onPress={handleCopySignature}
-                      color="#198754"
-                    />
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
-      ) : (
-        // Giao diện Đăng nhập Email OTP 2 Bước
-        <View style={styles.mainCard}>
-          <Text style={styles.title}>NorthAxis E-Wallet (N.E.D)</Text>
+          <Text style={styles.authTitle}>NorthAxis E-Wallet</Text>
+          <Text style={styles.authSubtitle}>Thanh toán vi mô Solana Pay / MiniPay</Text>
 
           {step === 'EMAIL_INPUT' ? (
-            <View style={{ width: '100%' }}>
-              <Text style={styles.subtitle}>
-                Bước 1: Nhập email lấy mã xác thực
-              </Text>
+            <View style={{ width: '100%', marginTop: 20 }}>
+              <Text style={styles.inputLabel}>Email của bạn</Text>
               <TextInput
-                style={styles.input}
-                placeholder="Nhập email của bạn"
+                style={styles.authInput}
+                placeholder="vidu@domain.com"
+                placeholderTextColor="#9CA3AF"
                 value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
+                onChangeText={(t) => {
+                  setEmail(t);
                   if (errorMessage) setErrorMessage('');
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-              <Button
-                title={
-                  state.status === 'sending-code'
-                    ? 'Đang gửi mã...'
-                    : 'Gửi mã xác thực'
-                }
+              <TouchableOpacity
+                style={[styles.mainGreenBtn, loginState.status === 'sending-code' && { opacity: 0.7 }]}
                 onPress={handleSendCode}
-                disabled={state.status === 'sending-code' || !email.trim()}
-              />
+                disabled={loginState.status === 'sending-code' || !email.trim()}
+              >
+                {loginState.status === 'sending-code' ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.mainGreenBtnText}>Tiếp tục</Text>
+                )}
+              </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ width: '100%' }}>
-              <Text style={styles.subtitle}>Bước 2: Nhập mã OTP xác thực</Text>
-              <Text
-                style={{
-                  marginBottom: 12,
-                  fontSize: 13,
-                  color: '#555',
-                  textAlign: 'center',
-                }}
-              >
-                Mã đã gửi đến: <Text style={{ fontWeight: 'bold' }}>{email}</Text>
+            <View style={{ width: '100%', marginTop: 20 }}>
+              <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
+              <Text style={styles.otpSentText}>
+                Đã gửi mã đến: <Text style={{ fontWeight: 'bold' }}>{email}</Text>
               </Text>
               <TextInput
-                style={styles.input}
-                placeholder="Nhập mã OTP..."
+                style={styles.authInput}
+                placeholder="Nhập 6 chữ số OTP"
+                placeholderTextColor="#9CA3AF"
                 value={otpCode}
-                onChangeText={(text) => {
-                  setOtpCode(text);
+                onChangeText={(t) => {
+                  setOtpCode(t);
                   if (errorMessage) setErrorMessage('');
                 }}
                 keyboardType="number-pad"
               />
-              <View style={{ gap: 10 }}>
-                <Button
-                  title={
-                    state.status === 'submitting-code'
-                      ? 'Đang xác thực...'
-                      : 'Xác thực mã'
-                  }
-                  onPress={handleVerifyCode}
-                  disabled={state.status === 'submitting-code' || !otpCode.trim()}
-                />
-                <Button
-                  title="Quay lại"
-                  onPress={handleBackToEmail}
-                  color="#6c757d"
-                />
-              </View>
+              <TouchableOpacity
+                style={[styles.mainGreenBtn, loginState.status === 'submitting-code' && { opacity: 0.7 }]}
+                onPress={handleVerifyCode}
+                disabled={loginState.status === 'submitting-code' || !otpCode.trim()}
+              >
+                {loginState.status === 'submitting-code' ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.mainGreenBtnText}>Xác thực & Đăng nhập</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => {
+                  setStep('EMAIL_INPUT');
+                  setOtpCode('');
+                }}
+              >
+                <Text style={styles.backBtnText}>Quay lại nhập email</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          {errorMessage ? (
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : state.status === 'error' && state.error ? (
-            <Text style={styles.errorText}>
-              {state.error.message || 'Xác thực thất bại, vui lòng thử lại.'}
-            </Text>
-          ) : null}
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         </View>
-      )}
+      </SafeAreaView>
+    );
+  }
 
-      {/* Modal Nhận Tiền (My QR) */}
-      <Modal visible={showReceiveModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.receiveCard}>
-            <Text style={styles.modalTitle}>Nhận Tiền (My QR)</Text>
-            <Text style={styles.modalSubtitle}>Chuẩn Solana Pay</Text>
+  // Giao diện Chính Home Screen theo phong cách MiniPay
+  return (
+    <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 1. Header Component */}
+        <View style={styles.header}>
+          {/* Badge Chào Mừng Bên Trái */}
+          <View style={styles.welcomeBadge}>
+            <View style={styles.welcomeLogoCircle}>
+              <Text style={styles.welcomeLogoText}>Đ</Text>
+            </View>
+            <Text style={styles.welcomeText}>Welcome to N.E.D! 👋</Text>
+          </View>
+
+          {/* Nút Quét QR Code Scanner Bên Phải */}
+          <TouchableOpacity
+            style={styles.qrScannerIconBtn}
+            onPress={handleOpenScanner}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="qr-code-outline" size={24} color="#111827" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. Balance Card Component (Màu xanh lá MiniPay) */}
+        <View style={styles.balanceCardWrapper}>
+          <View style={styles.balanceCard}>
+            {/* Top Bar bên trong Card */}
+            <View style={styles.cardTopRow}>
+              <Text style={styles.currencyLabel}>
+                {currency === 'USD' ? 'Dollars' : 'Vietnam Dong'}
+              </Text>
+
+              {/* Currency Toggle USD / VND */}
+              <View style={styles.toggleContainer}>
+                <Text
+                  style={[
+                    styles.toggleOptionText,
+                    currency === 'USD' ? styles.toggleOptionActive : styles.toggleOptionInactive,
+                  ]}
+                >
+                  USD
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.customSwitch,
+                    currency === 'VND' ? styles.customSwitchActive : styles.customSwitchInactive,
+                  ]}
+                  onPress={() => setCurrency(currency === 'USD' ? 'VND' : 'USD')}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.switchThumb,
+                      currency === 'VND' ? styles.switchThumbRight : styles.switchThumbLeft,
+                    ]}
+                  />
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.toggleOptionText,
+                    currency === 'VND' ? styles.toggleOptionActive : styles.toggleOptionInactive,
+                  ]}
+                >
+                  VND
+                </Text>
+              </View>
+            </View>
+
+            {/* Số dư Lớn Nổi Bật */}
+            <View style={styles.balanceDisplayRow}>
+              <Text style={styles.mainBalanceText}>{getFormattedBalance()}</Text>
+            </View>
+
+            {/* Hai Nút Hành Động: Deposit & Withdraw */}
+            <View style={styles.cardActionsRow}>
+              <TouchableOpacity
+                style={styles.cardActionBtn}
+                onPress={() => setShowDepositModal(true)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.actionIconCircle}>
+                  <Feather name="arrow-down" size={16} color="#00A859" />
+                </View>
+                <Text style={styles.cardActionBtnText}>Deposit</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cardActionBtn}
+                onPress={() => setShowWithdrawModal(true)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.actionIconCircle}>
+                  <Feather name="arrow-up-right" size={16} color="#00A859" />
+                </View>
+                <Text style={styles.cardActionBtnText}>Withdraw</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Nút Chevron Mở Rộng Tiện Ích On-chain ở Viền Dưới */}
+          <TouchableOpacity
+            style={styles.chevronPillBtn}
+            onPress={() => setShowDevnetDrawer(!showDevnetDrawer)}
+            activeOpacity={0.8}
+          >
+            <Feather
+              name={showDevnetDrawer ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color="#059669"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Ngăn Tiện Ích Mở Rộng (Devnet / Solana Tools) */}
+        {showDevnetDrawer && (
+          <View style={styles.devnetDrawerCard}>
+            <View style={styles.devnetHeaderRow}>
+              <Text style={styles.devnetTitle}>⚡ Solana Devnet Tools</Text>
+              <TouchableOpacity
+                style={styles.logoutTextBtn}
+                onPress={() => {
+                  logout();
+                  setStep('EMAIL_INPUT');
+                }}
+              >
+                <Text style={styles.logoutText}>Đăng xuất</Text>
+              </TouchableOpacity>
+            </View>
 
             {solanaAddress ? (
-              <View style={styles.qrBox}>
-                <QRCode
-                  value={solanaAddress}
-                  size={200}
-                  color="#1E1E2E"
-                  backgroundColor="#FFFFFF"
-                />
-                <Text style={styles.fullAddressText}>{solanaAddress}</Text>
+              <View style={styles.addressBox}>
+                <Text style={styles.addressBoxLabel}>Ví Solana Base58:</Text>
+                <Text style={styles.addressBoxValue} numberOfLines={1} ellipsizeMode="middle">
+                  {solanaAddress}
+                </Text>
+                <TouchableOpacity
+                  style={styles.copyTinyBtn}
+                  onPress={() => copyToClipboard(solanaAddress, 'Đã sao chép địa chỉ ví Solana!')}
+                >
+                  <Text style={styles.copyTinyBtnText}>Sao chép</Text>
+                </TouchableOpacity>
               </View>
             ) : (
-              <Text style={{ marginVertical: 20, color: '#666' }}>
+              <TouchableOpacity
+                style={styles.createWalletBtn}
+                onPress={handleCreateSolanaWallet}
+                disabled={isCreatingWallet}
+              >
+                <Text style={styles.createWalletBtnText}>
+                  {isCreatingWallet ? 'Đang tạo ví...' : 'Khởi tạo ví Solana ngầm'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={{ marginTop: 10 }}>
+              <TouchableOpacity
+                style={styles.testTxBtn}
+                onPress={() => handleSendTransaction(solanaAddress || undefined, 0.0001)}
+                disabled={isTestingSignature}
+              >
+                {isTestingSignature ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.testTxBtnText}>⚡ Ký & Gửi Giao Dịch Thử (0.0001 SOL)</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {signatureResult ? (
+              <View style={styles.signatureBox}>
+                <Text style={styles.signatureBoxLabel}>Tx Signature:</Text>
+                <Text style={styles.signatureBoxValue} numberOfLines={2}>
+                  {signatureResult}
+                </Text>
+                <TouchableOpacity
+                  style={styles.copyTinyBtn}
+                  onPress={() => copyToClipboard(signatureResult, 'Đã sao chép Transaction Signature!')}
+                >
+                  <Text style={styles.copyTinyBtnText}>Sao chép Signature</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* 3. Next Steps (Onboarding Component) */}
+        <View style={styles.nextStepsCard}>
+          <View style={styles.nextStepsHeader}>
+            <Text style={styles.nextStepsTitle}>Next steps</Text>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>1 of 2</Text>
+            </View>
+          </View>
+
+          {/* Progress Bar 50% */}
+          <View style={styles.progressBarTrack}>
+            <View style={styles.progressBarFill} />
+          </View>
+
+          {/* Danh sách Nhiệm vụ */}
+          <View style={styles.taskItemRow}>
+            <View style={styles.taskIconSuccess}>
+              <Ionicons name="checkmark-sharp" size={14} color="#FFFFFF" />
+            </View>
+            <View style={styles.taskTextCol}>
+              <Text style={styles.taskTitleCompleted}>Connect phone number</Text>
+              <Text style={styles.taskSubCompleted}>Receive from anyone</Text>
+            </View>
+          </View>
+
+          <View style={[styles.taskItemRow, { marginTop: 14 }]}>
+            <View style={styles.taskIconPending} />
+            <View style={styles.taskTextCol}>
+              <Text style={styles.taskTitlePending}>Make a deposit</Text>
+              <Text style={styles.taskSubPending}>Then you're ready</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.depositDarkActionBtn}
+              onPress={() => setShowDepositModal(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.depositDarkActionBtnText}>Deposit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 4. Recent Activity Component (On-chain Integrated) */}
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeaderRow}>
+            <Text style={styles.activityTitle}>Recent activity</Text>
+            <TouchableOpacity
+              style={styles.viewMorePillBtn}
+              onPress={() => solanaAddress && fetchActivities(solanaAddress)}
+            >
+              {isLoadingActivities ? (
+                <ActivityIndicator size="small" color="#00A859" />
+              ) : (
+                <Text style={styles.viewMoreText}>View more</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Transaction List */}
+          <View style={styles.activityList}>
+            {activities.map((item) => (
+              <View key={item.id} style={styles.activityItem}>
+                <View style={[styles.activityIconCircle, { backgroundColor: item.iconBg }]}>
+                  {item.type === 'reward' ? (
+                    <MaterialCommunityIcons name="gift-outline" size={20} color="#FFFFFF" />
+                  ) : item.type === 'received' ? (
+                    <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
+                  ) : (
+                    <Feather name="arrow-up-right" size={18} color="#FFFFFF" />
+                  )}
+                </View>
+                <View style={styles.activityDetailCol}>
+                  <Text style={styles.activityItemTitle}>{item.title}</Text>
+                  <Text style={styles.activityItemTime}>{item.time}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.activityItemAmount,
+                    item.isPositive ? styles.amountPositive : styles.amountNegative,
+                  ]}
+                >
+                  {item.amount}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Khoảng trống đệm cuộn phía dưới */}
+        <View style={{ height: 90 }} />
+      </ScrollView>
+
+      {/* 5. Bottom Navigation Bar */}
+      <View style={styles.bottomNavBar}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => setActiveTab('home')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="home"
+            size={24}
+            color={activeTab === 'home' ? '#00A859' : '#9CA3AF'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => setActiveTab('card')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="card-outline"
+            size={24}
+            color={activeTab === 'card' ? '#00A859' : '#9CA3AF'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('send');
+            setShowWithdrawModal(true);
+          }}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name="send"
+            size={22}
+            color={activeTab === 'send' ? '#00A859' : '#9CA3AF'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('hub');
+            Alert.alert('N.E.D MiniApp Hub', 'Trung tâm ứng dụng MiniApp Web3 sẽ sớm ra mắt! 🚀');
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="grid-outline"
+            size={22}
+            color={activeTab === 'hub' ? '#00A859' : '#9CA3AF'}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Modal Nhận Tiền (Deposit / My QR) */}
+      <Modal visible={showDepositModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Nhận Tiền (Deposit)</Text>
+              <TouchableOpacity onPress={() => setShowDepositModal(false)}>
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>Quét mã QR để nhận thanh toán Solana Pay</Text>
+
+            {solanaAddress ? (
+              <View style={styles.qrContainer}>
+                <QRCode
+                  value={solanaAddress}
+                  size={190}
+                  color="#111827"
+                  backgroundColor="#FFFFFF"
+                />
+                <Text style={styles.qrAddressText} numberOfLines={2}>
+                  {solanaAddress}
+                </Text>
+              </View>
+            ) : (
+              <Text style={{ marginVertical: 20, color: '#6B7280' }}>
                 Chưa phát hiện địa chỉ ví Solana.
               </Text>
             )}
 
-            <View style={{ width: '100%', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity
-                style={styles.copyAddressBtn}
-                onPress={async () => {
-                  if (solanaAddress) {
-                    await Clipboard.setStringAsync(solanaAddress);
-                    Alert.alert('Đã sao chép', 'Địa chỉ ví Solana đã được lưu vào bộ nhớ tạm.');
-                  }
-                }}
-              >
-                <Text style={styles.copyAddressBtnText}>Sao chép Địa chỉ Ví</Text>
+            <TouchableOpacity
+              style={styles.modalPrimaryBtn}
+              onPress={() => solanaAddress && copyToClipboard(solanaAddress, 'Đã sao chép địa chỉ ví!')}
+            >
+              <Text style={styles.modalPrimaryBtnText}>Sao chép Địa chỉ Ví</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Rút / Chuyển Tiền (Withdraw) */}
+      <Modal visible={showWithdrawModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Rút Tiền (Withdraw)</Text>
+              <TouchableOpacity onPress={() => setShowWithdrawModal(false)}>
+                <Ionicons name="close" size={24} color="#374151" />
               </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>Chuyển SOL trên mạng lưới Solana Devnet</Text>
+
+            <View style={{ width: '100%', marginTop: 12 }}>
+              <Text style={styles.inputLabel}>Địa chỉ ví nhận:</Text>
+              <View style={styles.inputWithAction}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="Nhập địa chỉ Solana Base58"
+                  placeholderTextColor="#9CA3AF"
+                  value={withdrawAddress}
+                  onChangeText={setWithdrawAddress}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={handleOpenScanner} style={styles.scanTinyBtn}>
+                  <Ionicons name="qr-code-outline" size={20} color="#00A859" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Số lượng (SOL):</Text>
+              <TextInput
+                style={styles.authInput}
+                placeholder="0.001"
+                placeholderTextColor="#9CA3AF"
+                value={withdrawAmount}
+                onChangeText={setWithdrawAmount}
+                keyboardType="numeric"
+              />
 
               <TouchableOpacity
-                style={styles.closeModalBtn}
-                onPress={() => setShowReceiveModal(false)}
+                style={[styles.modalPrimaryBtn, { marginTop: 16 }]}
+                onPress={() => handleSendTransaction()}
+                disabled={isTestingSignature || !withdrawAddress.trim()}
               >
-                <Text style={styles.closeModalBtnText}>Đóng</Text>
+                {isTestingSignature ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalPrimaryBtnText}>Xác nhận Chuyển tiền</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Modal Quét Mã QR Camera */}
+      {/* Modal Camera Scanner */}
       <Modal visible={showScanner} animationType="slide">
-        <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <View style={styles.cameraContainer}>
           <CameraView
             style={StyleSheet.absoluteFillObject}
             facing="back"
             onBarcodeScanned={hasScanned ? undefined : handleBarCodeScanned}
-          >
-            <View style={styles.scannerOverlay}>
-              <View style={styles.scanBoxFrame} />
-              <Text style={styles.scanGuideText}>
-                Hướng camera tới mã QR để quét
-              </Text>
-              <TouchableOpacity
-                style={styles.closeCameraBtn}
-                onPress={() => setShowScanner(false)}
-              >
-                <Text style={styles.closeCameraBtnText}>Đóng Camera</Text>
-              </TouchableOpacity>
-            </View>
-          </CameraView>
+          />
+          {/* Overlay render song song với CameraView */}
+          <View style={styles.cameraOverlay}>
+            <View style={styles.scanBoundingBox} />
+            <Text style={styles.scanHintText}>Hướng camera vào mã QR thanh toán</Text>
+            <TouchableOpacity
+              style={styles.cancelCameraBtn}
+              onPress={() => setShowScanner(false)}
+            >
+              <Text style={styles.cancelCameraBtnText}>Hủy / Đóng</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F0F1A',
-    padding: 16,
+    backgroundColor: '#F8FAFC',
   },
-  mainCard: {
-    width: '100%',
-    maxWidth: 400,
-    padding: 24,
-    backgroundColor: '#1E1E2E',
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
   },
-  headerRow: {
-    width: '100%',
+
+  // 1. Header Styles
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  welcomeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1F4E0',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 24,
+  },
+  welcomeLogoCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#00A859',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  welcomeLogoText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  welcomeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#064E3B',
+  },
+  qrScannerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+
+  // 2. Balance Card Styles (Emerald Green MiniPay)
+  balanceCardWrapper: {
+    alignItems: 'center',
     marginBottom: 20,
   },
-  badgeContainer: {
-    backgroundColor: '#9945FF22',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#9945FF',
+  balanceCard: {
+    width: '100%',
+    backgroundColor: '#00A859',
+    borderRadius: 24,
+    padding: 22,
+    shadowColor: '#00A859',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  badgeText: {
-    fontSize: 12,
-    color: '#9945FF',
-    fontWeight: 'bold',
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  logoutPill: {
-    backgroundColor: '#dc354522',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  logoutPillText: {
-    fontSize: 12,
-    color: '#dc3545',
+  currencyLabel: {
+    color: '#D1FAE5',
+    fontSize: 14,
     fontWeight: '600',
   },
-  centerBalanceContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  balanceCaption: {
-    fontSize: 12,
-    color: '#8888A0',
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  balanceBigRow: {
+  toggleContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    gap: 4,
   },
-  balanceBigText: {
-    fontSize: 42,
-    fontWeight: 'bold',
+  toggleOptionText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  toggleOptionActive: {
     color: '#FFFFFF',
   },
-  solSymbol: {
-    fontSize: 20,
+  toggleOptionInactive: {
+    color: '#A7F3D0',
+  },
+  customSwitch: {
+    width: 38,
+    height: 22,
+    borderRadius: 12,
+    backgroundColor: '#00753E',
+    padding: 2,
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  customSwitchActive: {
+    backgroundColor: '#006133',
+  },
+  customSwitchInactive: {
+    backgroundColor: '#00753E',
+  },
+  switchThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+  },
+  switchThumbLeft: {
+    alignSelf: 'flex-start',
+  },
+  switchThumbRight: {
+    alignSelf: 'flex-end',
+  },
+  balanceDisplayRow: {
+    marginVertical: 14,
+  },
+  mainBalanceText: {
+    fontSize: 38,
     fontWeight: 'bold',
-    color: '#14F195',
-    marginLeft: 8,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  refreshText: {
-    fontSize: 12,
-    color: '#14F195',
-    marginTop: 8,
-  },
-  actionButtonsRow: {
+  cardActionsRow: {
     flexDirection: 'row',
-    width: '100%',
     gap: 12,
-    marginVertical: 20,
+    marginTop: 4,
   },
-  primaryActionBtn: {
+  cardActionBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  sendBtn: {
-    backgroundColor: '#14F195',
-  },
-  sendBtnText: {
-    color: '#0F0F1A',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  receiveBtn: {
-    backgroundColor: '#9945FF',
-  },
-  receiveBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  actionBtnIcon: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  addressPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#11111B',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.16)',
+    paddingVertical: 12,
     borderRadius: 20,
-    marginBottom: 12,
+    gap: 8,
   },
-  addressPillLabel: {
-    fontSize: 12,
-    color: '#8888A0',
-    marginRight: 6,
-  },
-  addressPillValue: {
-    fontSize: 12,
-    color: '#14F195',
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
-  },
-  toggleDevnetBtn: {
-    marginTop: 8,
-    paddingVertical: 6,
-  },
-  toggleDevnetText: {
-    fontSize: 12,
-    color: '#8888A0',
-  },
-  devnetSection: {
-    width: '100%',
-    marginTop: 12,
-    padding: 14,
-    backgroundColor: '#11111B',
+  actionIconCircle: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#9945FF',
-    marginBottom: 10,
-    textAlign: 'center',
-    textTransform: 'uppercase',
+  cardActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  signatureContainer: {
-    marginTop: 12,
+  chevronPillBtn: {
+    marginTop: -14,
+    width: 38,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#D1F4E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+
+  // Devnet Drawer
+  devnetDrawerCard: {
     width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  signatureLabel: {
+  devnetHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  devnetTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  logoutTextBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  logoutText: {
     fontSize: 12,
-    color: '#FFD700',
-    marginBottom: 4,
+    color: '#DC2626',
     fontWeight: '600',
   },
-  signatureInput: {
-    width: '100%',
-    maxHeight: 100,
-    backgroundColor: '#0F0F1A',
-    color: '#FFD700',
-    fontSize: 12,
-    fontFamily: 'monospace',
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#33334D',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#8888A0',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  input: {
-    width: '100%',
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#33334D',
+  addressBox: {
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    fontSize: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  addressBoxLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  addressBoxValue: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  copyTinyBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#D1F4E0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  copyTinyBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  createWalletBtn: {
+    backgroundColor: '#00A859',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  createWalletBtnText: {
     color: '#FFFFFF',
-    backgroundColor: '#11111B',
-  },
-  errorText: {
-    marginTop: 14,
-    color: '#dc3545',
+    fontWeight: '700',
     fontSize: 13,
-    textAlign: 'center',
   },
+  testTxBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  testTxBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  signatureBox: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 10,
+  },
+  signatureBoxLabel: {
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '700',
+  },
+  signatureBoxValue: {
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#78350F',
+    marginTop: 2,
+  },
+
+  // 3. Next Steps (Onboarding)
+  nextStepsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  nextStepsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nextStepsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  stepBadge: {
+    backgroundColor: '#D1F4E0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  stepBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 2,
+    marginVertical: 14,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    width: '50%',
+    height: '100%',
+    backgroundColor: '#00A859',
+    borderRadius: 2,
+  },
+  taskItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskIconSuccess: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#00A859',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  taskIconPending: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#00A859',
+    marginRight: 12,
+  },
+  taskTextCol: {
+    flex: 1,
+  },
+  taskTitleCompleted: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  taskSubCompleted: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 1,
+  },
+  taskTitlePending: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  taskSubPending: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  depositDarkActionBtn: {
+    backgroundColor: '#1E1E2E',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  depositDarkActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // 4. Recent Activity
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  viewMorePillBtn: {
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  viewMoreText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  activityList: {
+    gap: 16,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activityIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityDetailCol: {
+    flex: 1,
+  },
+  activityItemTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  activityItemTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  activityItemAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  amountPositive: {
+    color: '#00A859',
+  },
+  amountNegative: {
+    color: '#111827',
+  },
+
+  // 5. Bottom Navigation Bar
+  bottomNavBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 64,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingBottom: Platform.OS === 'ios' ? 12 : 4,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+
+  // Modals Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  receiveCard: {
+  modalCard: {
     width: '100%',
     maxWidth: 360,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 22,
+    alignItems: 'center',
+  },
+  modalHeaderRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#1E1E2E',
+    color: '#111827',
   },
   modalSubtitle: {
-    fontSize: 13,
-    color: '#6c757d',
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
     marginBottom: 16,
+    textAlign: 'center',
   },
-  qrBox: {
+  qrContainer: {
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#E5E7EB',
+    marginVertical: 10,
   },
-  fullAddressText: {
+  qrAddressText: {
     marginTop: 12,
     fontSize: 11,
-    fontFamily: 'monospace',
-    color: '#1E1E2E',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#374151',
     textAlign: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
-  copyAddressBtn: {
-    backgroundColor: '#14F195',
-    paddingVertical: 12,
-    borderRadius: 10,
+  modalPrimaryBtn: {
+    width: '100%',
+    backgroundColor: '#00A859',
+    paddingVertical: 13,
+    borderRadius: 14,
     alignItems: 'center',
+    marginTop: 14,
   },
-  copyAddressBtnText: {
-    color: '#0F0F1A',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  closeModalBtn: {
-    backgroundColor: '#6c757d',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  closeModalBtnText: {
+  modalPrimaryBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 14,
+    fontWeight: '700',
   },
-  scannerOverlay: {
+  inputWithAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  flexInput: {
     flex: 1,
+    height: 44,
+    fontSize: 13,
+    color: '#111827',
+  },
+  scanTinyBtn: {
+    padding: 6,
+  },
+
+  // Auth Styles
+  authContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 20,
   },
-  scanBoxFrame: {
-    width: 250,
-    height: 250,
-    borderWidth: 2,
-    borderColor: '#14F195',
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+  authCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 26,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  scanGuideText: {
+  authLogoContainer: {
+    marginBottom: 14,
+  },
+  authLogoCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#00A859',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authLogoText: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    fontSize: 14,
-    marginTop: 20,
+  },
+  authTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  authSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+  },
+  authInput: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 14,
+  },
+  otpSentText: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginBottom: 10,
+  },
+  mainGreenBtn: {
+    width: '100%',
+    backgroundColor: '#00A859',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  mainGreenBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold',
   },
-  closeCameraBtn: {
-    marginTop: 30,
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
+  backBtn: {
+    marginTop: 12,
+    alignItems: 'center',
   },
-  closeCameraBtnText: {
+  backBtnText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 12,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+
+  // Camera Overlay
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  scanBoundingBox: {
+    width: 250,
+    height: 250,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: '#00A859',
+    backgroundColor: 'transparent',
+  },
+  scanHintText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 24,
+  },
+  cancelCameraBtn: {
+    marginTop: 36,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  cancelCameraBtnText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,

@@ -67,16 +67,39 @@
 
 ---
 
-### 🔹 [Phase 2 - Bước 1: Giao diện Home Tối giản & Luồng Thanh toán QR Solana Pay (World App/MiniPay Style)]
+### 🔹 [Phase 2 - Bước 1: Tái Cấu Trúc Toàn Bộ Giao Diện Theo Chuẩn UI MiniPay]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Header Component**: Badge chào mừng 'Welcome to N.E.D! 👋' và nút quét mã QR.
+  - **Balance Card**: Thẻ xanh lá `#00A859` hiển thị số dư, switch USD/VND, 2 nút 'Deposit' / 'Withdraw' và nút chevron mở rộng Devnet Tools.
+  - **Next Steps & Recent Activity**: Thẻ onboarding tiến trình 50% và danh sách lịch sử giao dịch.
+  - **Bottom Navigation Bar**: 4 tabs (Home, Card, Send, Hub).
+
+---
+
+### 🔹 [Phase 2 - Bước 2: Thiết lập Local Caching (AsyncStorage) Tối Ưu Tốc Độ Hiển Thị]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Cài đặt `@react-native-async-storage/async-storage` tương thích Expo SDK 54.
+  - Xây dựng module [services/storage.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/storage.ts) với các helper: `cacheBalance()`, `getCachedBalance()`, `cacheActivities()`, `getCachedActivities()`.
+  - Tích hợp nạp cache ngay lập tức trong `useEffect` khởi động của [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx), loại bỏ hiện tượng màn hình trống.
+
+---
+
+### 🔹 [Phase 2 - Bước 3: Truy Xuất Lịch Sử Giao Dịch On-chain & Luồng Đồng Bộ Cache-then-Network]
 - **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
 - **Nội dung chi tiết:**
-  - **Khắc phục lỗi Version & Metro Bundling**:
-    - Đồng bộ chuẩn phiên bản cho Expo SDK 54: `expo-camera@~17.0.10`, `react-native-svg@15.12.1`, `react-native-get-random-values@~1.11.0`.
-    - Chuẩn hóa cấu hình [metro.config.js](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/metro.config.js): Giữ danh sách `extraNodeModules` chuẩn cho Node shims (`stream`, `crypto`, `events`, `process`, `buffer`, `zlib`, `util`, `http`, `https`, `url`, `os`, `path`), và chuyển hướng `jose` sang Browser condition name.
-    - Đã kiểm tra thực tế bằng lệnh bundle `npx expo export --platform ios` đạt thành công **100% (3,370 modules)** không còn bất kỳ lỗi nào.
-  - **Cập nhật Giao diện Home MiniPay**:
-    - Hiển thị số dư khả dụng to, rõ ràng ở trung tâm (`42px`).
-    - 2 nút bấm hành động chính: **'Gửi tiền (Scan QR)'** (kích hoạt `CameraView` quét mã) & **'Nhận tiền (My QR)'** (hiển thị mã QR SVG chứa địa chỉ ví Solana Base58).
-    - Tích hợp Modal quét QR và Modal nhận tiền đầy đủ tính năng sao chép bộ nhớ tạm.
+  - **Khắc phục lỗi Rate-limit RPC**: Cơ chế lấy chữ ký `getSignaturesForAddress` siêu nhẹ kết hợp giải mã phân tán `Promise.allSettled` và metadata fallback từ `services/solana.ts`.
+  - **Bóc tách hai chiều**: Phân loại giao dịch 'Nhận tiền' (xanh lá) và 'Chuyển tiền' (tối màu) dựa theo biến động số dư tài khoản.
+  - **Cache-then-Network**: Hiển thị cache tức thì và âm thầm đồng bộ dữ liệu chuỗi ở chế độ nền.
+
+---
+
+### 🔹 [Phase 2 - Bước 4: Tích Hợp WebSocket Listener Biến Động Số Dư Thời Gian Thực]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Lắp đặt cơ chế lắng nghe sự kiện thời gian thực thông qua `solanaConnection.onAccountChange(publicKey, callback, 'confirmed')` từ `@solana/web3.js` trong [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx).
+  - Khi phát hiện biến động số dư (ví dụ: người dùng nạp tiền từ faucet hay nhận tiền từ ví khác), callback lập tức cập nhật state số dư `accountInfo.lamports / LAMPORTS_PER_SOL`, lưu cache và tự động làm mới dòng lịch sử giao dịch.
+  - Tích hợp hàm cleanup `removeAccountChangeListener(subscriptionId)` trong `useEffect` return để giải phóng kết nối và tránh rò rỉ bộ nhớ (memory leak).
 - **Ghi chú:**
-  - Hoàn thiện giao diện Home tối giản và tích hợp luồng Quét/Tạo mã QR thanh toán chuẩn Solana Pay.
+  - Hoàn thành Bước 3: Tích hợp WebSocket Listener theo dõi biến động số dư on-chain thời gian thực.
