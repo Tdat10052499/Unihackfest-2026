@@ -86,6 +86,9 @@ export default function ShakeRoomScreen() {
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [isInvitingNearby, setIsInvitingNearby] = useState(false);
 
+  // State Quét Radar & Tích chọn từng Guest để mời
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
   // State Thanh toán Guest
   const [isGuestPaying, setIsGuestPaying] = useState(false);
   const [hasGuestPaid, setHasGuestPaid] = useState(false);
@@ -117,17 +120,31 @@ export default function ShakeRoomScreen() {
     return solAccount?.address || null;
   };
 
-  // Lọc bạn bè trong bán kính 20m từ global_radar
-  const liveNearbyIn20m = nearbyUsers.filter(
+  // 100% Realtime: Lọc bạn bè thực tế trong bán kính 20m từ global_radar (Không dùng mock data)
+  const candidateNearbyUsers = nearbyUsers.filter(
     (u) => u.distanceMeters !== undefined && u.distanceMeters <= 20
   );
-  const demoFallbackPeers: PresenceUser[] = [
-    { user_id: 'demo_peer_1', name: 'Nguyễn Văn Nam', avatar: 'N', lat: 0, lng: 0, distanceMeters: 3 },
-    { user_id: 'demo_peer_2', name: 'Lê Thị Mai', avatar: 'M', lat: 0, lng: 0, distanceMeters: 8 },
-    { user_id: 'demo_peer_3', name: 'Trần Hoàng', avatar: 'H', lat: 0, lng: 0, distanceMeters: 14 },
-  ];
-  const candidateNearbyUsers =
-    liveNearbyIn20m.length > 0 ? liveNearbyIn20m : demoFallbackPeers;
+
+  // Đồng bộ selectedUserIds khi có thiết bị mới xuất hiện
+  useEffect(() => {
+    if (candidateNearbyUsers.length > 0) {
+      const validIds = candidateNearbyUsers.map((u) => u.user_id);
+      setSelectedUserIds((prev) => {
+        const filtered = prev.filter((id) => validIds.includes(id));
+        return filtered.length > 0 ? filtered : validIds;
+      });
+    } else {
+      setSelectedUserIds([]);
+    }
+  }, [candidateNearbyUsers.length]);
+
+  // Toggle chọn từng người dùng
+  const toggleUserSelection = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
 
   // Animations loop
   useEffect(() => {
@@ -265,34 +282,20 @@ export default function ShakeRoomScreen() {
     };
   }, [roomId, user, isHost]);
 
-  // Host: Thêm các mock guest ban đầu nếu phòng chưa có realtime peer (để trải nghiệm)
+  // Khởi tạo thành viên cơ bản là chính bản thân người tạo phòng
   useEffect(() => {
-    if (isHost && members.length === 0) {
+    if (user && members.length === 0) {
       setMembers([
         {
-          user_id: user?.id || 'host',
-          name: currentUserProfile.name || 'Tôi (Host)',
+          user_id: user.id,
+          name: currentUserProfile.name || (isHost ? 'Tôi (Host)' : 'Tôi'),
           avatar: currentUserProfile.avatar || 'Đ',
-          isHost: true,
-          status: 'paid',
-        },
-        {
-          user_id: 'demo_peer_1',
-          name: 'Nguyễn Văn Nam',
-          avatar: 'N',
-          isHost: false,
-          status: 'pending',
-        },
-        {
-          user_id: 'demo_peer_2',
-          name: 'Lê Thị Mai',
-          avatar: 'M',
-          isHost: false,
-          status: 'pending',
+          isHost,
+          status: isHost ? 'paid' : 'pending',
         },
       ]);
     }
-  }, [isHost]);
+  }, [user, isHost]);
 
   // 2. Logic Lắc thiết bị (Shake Trigger) cho Host trong Phase SETUP
   const handleHostTriggerSplit = async () => {
@@ -303,7 +306,7 @@ export default function ShakeRoomScreen() {
       return;
     }
 
-    const totalCount = Math.max(members.length, 2);
+    const totalCount = Math.max(members.length, 1);
     const calculatedSplit = Math.round(bill / totalCount);
     setSplitAmount(calculatedSplit.toString());
 
@@ -427,23 +430,27 @@ export default function ShakeRoomScreen() {
     }
   }, [isHost, hostPhase, members]);
 
-  // Host: Mời bạn bè xung quanh vào phòng qua global_radar
+  // Host: Mời các bạn bè ĐÃ TÍCH CHỌN vào phòng qua global_radar
   const handleInviteNearbyFriends = async () => {
+    if (selectedUserIds.length === 0) {
+      Alert.alert('Chưa chọn bạn bè', 'Vui lòng tích chọn ít nhất một người bạn để gửi lời mời.');
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsInvitingNearby(true);
 
-    const targetIds = candidateNearbyUsers.map((u) => u.user_id);
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
 
     try {
-      await broadcastInvite(roomId, targetIds, {
+      await broadcastInvite(roomId, selectedUserIds, {
         totalBill: bill,
         note: billNote,
       });
       setIsInvitingNearby(false);
       Alert.alert(
         'Đã phát lời mời 🎉',
-        `Đã gửi lời mời tới ${targetIds.length} bạn bè xung quanh trong bán kính 20m!`
+        `Đã gửi lời mời tới ${selectedUserIds.length} bạn bè được chọn!`
       );
     } catch (e) {
       setIsInvitingNearby(false);
@@ -503,7 +510,7 @@ export default function ShakeRoomScreen() {
   const parsedTotalBill = parseFloat(totalBill.replace(/,/g, '')) || 0;
   const parsedSplitAmount =
     parseFloat(splitAmount.replace(/,/g, '')) ||
-    Math.round(parsedTotalBill / Math.max(members.length, 2));
+    Math.round(parsedTotalBill / Math.max(members.length, 1));
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -549,7 +556,7 @@ export default function ShakeRoomScreen() {
         {/* ================================================================= */}
         {isHost ? (
           hostPhase === 'SETUP' ? (
-            /* 1. HOST GIAI ĐOẠN SETUP: Nhập tiền, Mời bạn bè & Lắc */
+            /* 1. HOST GIAI ĐOẠN SETUP: Nhập tiền, Tích chọn bạn bè & Lắc */
             <View style={styles.hostSetupContainer}>
               {/* Thẻ Nhập Tiền Hóa Đơn */}
               <View style={styles.billInputCard}>
@@ -613,7 +620,7 @@ export default function ShakeRoomScreen() {
                 </View>
               </View>
 
-              {/* Thẻ Quét & Mời Bạn Bè Xung Quanh (20m) */}
+              {/* Thẻ Quét & TÍCH CHỌN Bạn Bè Xung Quanh (20m) */}
               <View style={styles.nearbySectionCard}>
                 <View style={styles.sectionHeaderBetween}>
                   <View>
@@ -621,14 +628,20 @@ export default function ShakeRoomScreen() {
                       Bạn bè xung quanh (20m)
                     </Text>
                     <Text style={styles.nearbySubtitle}>
-                      Tìm thấy {candidateNearbyUsers.length} thiết bị
+                      {candidateNearbyUsers.length > 0
+                        ? `Đã chọn ${selectedUserIds.length}/${candidateNearbyUsers.length} người`
+                        : 'Quét tự động qua GPS'}
                     </Text>
                   </View>
 
                   <TouchableOpacity
-                    style={styles.inviteAllBtn}
+                    style={[
+                      styles.inviteActionBtn,
+                      (selectedUserIds.length === 0 || isInvitingNearby) &&
+                        styles.inviteActionBtnDisabled,
+                    ]}
                     onPress={handleInviteNearbyFriends}
-                    disabled={isInvitingNearby}
+                    disabled={isInvitingNearby || selectedUserIds.length === 0}
                     activeOpacity={0.8}
                   >
                     {isInvitingNearby ? (
@@ -636,31 +649,82 @@ export default function ShakeRoomScreen() {
                     ) : (
                       <>
                         <Ionicons name="paper-plane" size={14} color="#FFFFFF" />
-                        <Text style={styles.inviteAllBtnText}>Mời tất cả</Text>
+                        <Text style={styles.inviteActionBtnText}>
+                          {selectedUserIds.length > 0
+                            ? `Mời (${selectedUserIds.length}) người`
+                            : 'Mời'}
+                        </Text>
                       </>
                     )}
                   </TouchableOpacity>
                 </View>
 
-                {/* Danh sách người dùng lân cận */}
-                <View style={styles.nearbyList}>
-                  {candidateNearbyUsers.map((u) => (
-                    <View key={u.user_id} style={styles.nearbyItem}>
-                      <View style={styles.nearbyAvatar}>
-                        <Text style={styles.nearbyAvatarText}>{u.avatar}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.nearbyName}>{u.name}</Text>
-                        <Text style={styles.nearbyDist}>
-                          Cách bạn ~{u.distanceMeters ?? 5}m
-                        </Text>
-                      </View>
-                      <View style={styles.nearbyStatusPill}>
-                        <Text style={styles.nearbyStatusText}>Lân cận</Text>
-                      </View>
+                {/* Danh sách người dùng lân cận hoặc EMPTY STATE */}
+                {candidateNearbyUsers.length === 0 ? (
+                  <View style={styles.emptyRadarContainer}>
+                    <View style={styles.emptyRadarIconCircle}>
+                      <MaterialCommunityIcons name="radar" size={36} color="#64748B" />
                     </View>
-                  ))}
-                </View>
+                    <Text style={styles.emptyRadarTitle}>Chưa tìm thấy ai ở gần</Text>
+                    <Text style={styles.emptyRadarSubtitle}>
+                      Đang liên tục rà quét tín hiệu thiết bị trong bán kính 20m...
+                    </Text>
+                    <ActivityIndicator
+                      size="small"
+                      color="#8B5CF6"
+                      style={{ marginTop: 12 }}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.nearbyList}>
+                    {candidateNearbyUsers.map((u) => {
+                      const isSelected = selectedUserIds.includes(u.user_id);
+                      return (
+                        <TouchableOpacity
+                          key={u.user_id}
+                          style={[
+                            styles.nearbyItem,
+                            isSelected && styles.nearbyItemSelected,
+                          ]}
+                          onPress={() => toggleUserSelection(u.user_id)}
+                          activeOpacity={0.75}
+                        >
+                          <View
+                            style={[
+                              styles.nearbyAvatar,
+                              isSelected && styles.nearbyAvatarSelected,
+                            ]}
+                          >
+                            <Text style={styles.nearbyAvatarText}>{u.avatar}</Text>
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text
+                              style={[
+                                styles.nearbyName,
+                                isSelected && styles.nearbyNameSelected,
+                              ]}
+                            >
+                              {u.name}
+                            </Text>
+                            <Text style={styles.nearbyDist}>
+                              Cách bạn ~{u.distanceMeters ?? 5}m
+                            </Text>
+                          </View>
+
+                          {/* Checkbox Icon */}
+                          <View style={styles.checkboxWrapper}>
+                            <Ionicons
+                              name={isSelected ? 'checkbox' : 'square-outline'}
+                              size={22}
+                              color={isSelected ? '#00A859' : '#64748B'}
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
 
               {/* Danh sách thành viên đã vào phòng chờ */}
@@ -1134,19 +1198,52 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 1,
   },
-  inviteAllBtn: {
+  inviteActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#8B5CF6',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 12,
   },
-  inviteAllBtnText: {
+  inviteActionBtnDisabled: {
+    opacity: 0.4,
+    backgroundColor: '#475569',
+  },
+  inviteActionBtnText: {
     fontSize: 12.5,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  emptyRadarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  emptyRadarIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  emptyRadarTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#F8FAFC',
+    marginBottom: 4,
+  },
+  emptyRadarSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   nearbyList: {
     gap: 8,
@@ -1155,45 +1252,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0F172A',
-    padding: 10,
+    padding: 12,
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#334155',
   },
+  nearbyItemSelected: {
+    borderColor: '#00A859',
+    backgroundColor: 'rgba(0, 168, 89, 0.08)',
+  },
   nearbyAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#8B5CF6',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#475569',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
+  nearbyAvatarSelected: {
+    backgroundColor: '#00A859',
+  },
   nearbyAvatarText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   nearbyName: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '600',
+    color: '#94A3B8',
+  },
+  nearbyNameSelected: {
     color: '#F8FAFC',
+    fontWeight: '700',
   },
   nearbyDist: {
     fontSize: 11.5,
     color: '#00A859',
-    marginTop: 1,
+    marginTop: 2,
   },
-  nearbyStatusPill: {
-    backgroundColor: 'rgba(0, 168, 89, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  nearbyStatusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#00A859',
+  checkboxWrapper: {
+    paddingLeft: 8,
   },
   roomMembersCard: {
     backgroundColor: '#1E293B',

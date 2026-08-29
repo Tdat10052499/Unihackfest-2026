@@ -320,3 +320,32 @@
     - Khi bắt được sự kiện, hiển thị thông báo popup `'Giao dịch hoàn tất, phòng đã đóng!'` và tự động điều hướng `router.replace('/(tabs)')`.
   - **Dọn dẹp Tài nguyên (Memory Cleanup)**:
     - Trong hàm cleanup của `useEffect`, gọi `channel.unsubscribe()`, `supabase.removeChannel(channel)` và gỡ bỏ `accelerometerSubRef` an toàn.
+
+---
+
+### 🔹 [Phase 2 - Bước 24: Nâng Cấp Giao Diện Quét Radar & Tích Chọn Từng Người (Checkbox)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Quản lý State `selectedUserIds` ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**:
+    - Thêm state `selectedUserIds: string[]` lưu danh sách ID người dùng được chọn.
+    - Thêm hàm `toggleUserSelection(userId)` với phản hồi rung xúc giác `Haptics.impactAsync`.
+  - **Giao diện Danh sách Bạn bè & Checkbox**:
+    - Bọc từng item bạn bè trong `TouchableOpacity`.
+    - Thêm icon `Ionicons` Checkbox (`checkbox` màu xanh `#00A859` khi chọn, `square-outline` màu `#64748B` khi chưa chọn).
+    - Làm nổi bật viền và avatar xanh khi người dùng được tích chọn.
+  - **Cập nhật Nút Hành động**:
+    - Đổi nút thành `'Mời (X) người'` với `X = selectedUserIds.length`.
+    - Tự động vô hiệu hóa (disabled & opacity 0.5) khi `selectedUserIds.length === 0`.
+  - **Tối ưu Broadcast Payload**:
+    - Gửi chính xác mảng `selectedUserIds` vào trường `target_user_ids` trong payload `room_invite` lên Supabase Realtime `global_radar`.
+
+---
+
+### 🔹 [Phase 2 - Bước 25: Gỡ Bỏ Mock Data & Hoàn Thiện Empty State Quét Radar Thời Gian Thực]
+- **Type:** `[FEAT]` | `[CONFIG]` | `[DEBUG / FIX]`
+- **Nội dung chi tiết:**
+  - **Loại bỏ Mock Data**: Xóa bỏ hoàn toàn mảng `demoFallbackPeers` và danh sách thành viên giả lập. Hệ thống chỉ lấy danh sách thiết bị thực tế đang phát sóng tọa độ trên Supabase Presence `global_radar`.
+  - **Giao diện Empty State Quét Radar**:
+    - Khi không có thiết bị nào trong bán kính 20m (`candidateNearbyUsers.length === 0`), hiển thị icon radar bo tròn mờ `#64748B`, tiêu đề 'Chưa tìm thấy ai ở gần' và mô tả 'Đang liên tục rà quét tín hiệu thiết bị trong bán kính 20m...'.
+    - Bổ sung `ActivityIndicator` màu tím nhạt `#8B5CF6` báo hiệu quá trình rà quét GPS đang hoạt động liên tục.
+  - **Khóa nút Mời khi danh sách rỗng**: Nút 'Mời' bị vô hiệu hóa an toàn (`disabled={true}`, `opacity: 0.4`), ngăn ngừa gửi nhầm request với mảng `target_user_ids` rỗng.
