@@ -181,5 +181,29 @@
     - **Pull-to-Refresh**: Vuốt để tải lại lịch sử on-chain trực tiếp.
   - Cập nhật [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx): Giới hạn hiển thị **tối đa 4 mục gần nhất** tại Recent Activity ở Home, nút 'View more' và chạm vào giao dịch chuyển hướng trực tiếp sang `/history`.
   - Cập nhật [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx): Thêm mục 'Transaction history' trong menu Cài đặt để chuyển đến màn hình History.
-- **Ghi chú:**
-  - Thêm phần history vào trong menu, phần recent activity chỉ hiện tối đa 4 hoạt động và liên kết đến trang History toàn diện.
+
+---
+
+### 🔹 [Phase 2 - Bước 14: Xây Dựng N.E.D Transfer Hub (app/transfer-hub.tsx)]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - Tạo mới màn hình [app/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/transfer-hub.tsx) đóng vai trò trung tâm phương thức chuyển tiền Web3 thế hệ mới:
+    - **Thẻ cốt lõi (Sẵn sàng)**: Chuyển tiền P2P & Số điện thoại (tích hợp `SendModal`).
+    - **Thẻ 1 (In Development)**: Shake to Split (Lắc chia tiền qua Geolocation).
+    - **Thẻ 2 (In Development)**: AirDrop Radar (Chuyển không chạm tầm gần).
+    - **Thẻ 3 (In Development)**: Geo-Red Packet (Lì xì không gian bán kính 10m).
+    - **Hiệu ứng Animation**: Tích hợp animation đàn hồi `Animated.spring` mượt mà khi nhấn vào từng thẻ.
+
+---
+
+### 🔹 [Phase 2 - Bước 15: Sửa Lỗi Mất Bottom Navigation & Xóa Bỏ Tab Explore Dư Thừa]
+- **Type:** `[DEBUG / FIX]` | `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Cấu trúc Tab Router Chuẩn**: Di chuyển các màn hình chính vào `app/(tabs)/` bao gồm `app/(tabs)/index.tsx`, `app/(tabs)/card.tsx`, `app/(tabs)/transfer-hub.tsx`, `app/(tabs)/miniapps.tsx`.
+  - **Xóa bỏ tab Explore**: Xóa file `app/(tabs)/explore.tsx` và gỡ bỏ route `explore` khỏi `app/(tabs)/_layout.tsx`, chuẩn hóa đúng 4 tab chính thức.
+  - **Custom Tab Bar & Animated Sliding Indicator ([app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/_layout.tsx))**:
+    - Xây dựng component `CustomTabBar` với thanh ngang trượt (Sliding Indicator) màu xanh `#00A859` chạy mượt mà theo vị trí tab được chọn qua `Animated.spring`.
+    - Tích hợp phản hồi xúc giác `Haptics.impactAsync` khi chuyển tab.
+    - Cấu hình hiệu ứng chuyển cảnh `animation: 'shift'` trong `<Tabs>`.
+  - **Dọn dẹp Header**: Loại bỏ nút Back trong `app/(tabs)/transfer-hub.tsx` và xóa bỏ bottom nav tĩnh trong `index.tsx`, đảm bảo trải nghiệm đồng nhất 100% qua Bottom Navigation.
+  - **Định tuyến Root**: Cấu hình [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) tự động điều hướng `<Redirect href="/(tabs)" />`.
