@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Animated,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -34,7 +35,7 @@ import {
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// Tỷ giá quy đổi cố định trong hệ thống: 1 SOL = $150 USD
+// Tỷ giá quy đổi ngầm: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
 
 interface RoomMember {
@@ -110,10 +111,8 @@ export default function ShakeRoomScreen() {
   // State Quét Radar & Tích chọn từng Guest để mời
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // State Thanh toán On-chain của Guest & Nhận tiền Host
+  // State Thanh toán của Guest & Nhận tiền Host
   const [isGuestPaying, setIsGuestPaying] = useState(false);
-  const [payingStatusText, setPayingStatusText] = useState('Đang xử lý giao dịch...');
-  const [guestTxSignature, setGuestTxSignature] = useState<string | null>(null);
   const [hasGuestPaid, setHasGuestPaid] = useState(false);
   const [isHostClaiming, setIsHostClaiming] = useState(false);
 
@@ -245,7 +244,7 @@ export default function ShakeRoomScreen() {
           }));
         });
       })
-      // B. Event trigger_split: Guest nhận lệnh chia tiền và địa chỉ ví của Host
+      // B. Event trigger_split: Guest nhận lệnh chia tiền
       .on('broadcast', { event: 'trigger_split' }, ({ payload }) => {
         console.log('⚡ [Shake Room] Nhận sự kiện trigger_split:', payload);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -260,9 +259,9 @@ export default function ShakeRoomScreen() {
           setGuestPhase('READY_TO_PAY');
         }
       })
-      // C. Event payment_update: Host nhận xác nhận giao dịch On-chain từ Guest
+      // C. Event payment_update: Host nhận xác nhận giao dịch từ Guest
       .on('broadcast', { event: 'payment_update' }, ({ payload }) => {
-        console.log('💰 [Shake Room] Nhận sự kiện payment_update On-chain:', payload);
+        console.log('💰 [Shake Room] Nhận sự kiện payment_update:', payload);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setMembers((prev) =>
           prev.map((m) =>
@@ -278,11 +277,11 @@ export default function ShakeRoomScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         if (!isHost) {
           Alert.alert(
-            'Completed 🎉',
-            'Transaction completed on Solana Devnet! Room has been closed.',
+            'Hoàn tất 🎉',
+            'Giao dịch đã được hoàn tất!',
             [
               {
-                text: 'Confirm',
+                text: 'Xác nhận',
                 onPress: () => {
                   router.replace('/(tabs)');
                 },
@@ -321,7 +320,7 @@ export default function ShakeRoomScreen() {
       setMembers([
         {
           user_id: user.id,
-          name: currentUserProfile.name || (isHost ? 'Host (Me)' : 'Me'),
+          name: currentUserProfile.name || (isHost ? 'Host' : 'Me'),
           avatar: currentUserProfile.avatar || 'U',
           wallet_address: mySolanaAddress || undefined,
           isHost,
@@ -336,11 +335,10 @@ export default function ShakeRoomScreen() {
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
     if (bill <= 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert('Invalid Amount', 'Please enter a valid bill amount before shaking.');
+      Alert.alert('Số tiền chưa hợp lệ', 'Vui lòng nhập số tiền hóa đơn trước khi chia.');
       return;
     }
 
-    // Tiền mỗi người (USD) = Tổng hóa đơn / (Số lượng Guest được mời + 1)
     const invitedGuestCount =
       selectedUserIds.length > 0
         ? selectedUserIds.length
@@ -350,15 +348,13 @@ export default function ShakeRoomScreen() {
     setSplitAmount(calculatedSplit.toString());
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    console.log('🚀 [Host] Chốt chia tiền (On-chain):', {
+    console.log('🚀 [Host] Chốt chia tiền:', {
       totalBill: bill,
       splitAmount: calculatedSplit,
-      hostWallet: mySolanaAddress,
       invitedGuestCount,
       totalParticipants,
     });
 
-    // Bắn event trigger_split kèm địa chỉ ví Solana của Host vào channel room_[roomId]
     if (roomChannelRef.current) {
       try {
         await roomChannelRef.current.send({
@@ -421,7 +417,7 @@ export default function ShakeRoomScreen() {
   // Host: Mời các bạn bè ĐÃ TÍCH CHỌN vào phòng qua global_radar
   const handleInviteNearbyFriends = async () => {
     if (selectedUserIds.length === 0) {
-      Alert.alert('No friends selected', 'Please select at least one friend to send invite.');
+      Alert.alert('Chưa chọn bạn bè', 'Vui lòng tích chọn ít nhất 1 người bạn để gửi lời mời.');
       return;
     }
 
@@ -437,12 +433,12 @@ export default function ShakeRoomScreen() {
       });
       setIsInvitingNearby(false);
       Alert.alert(
-        'Invites Sent 🎉',
-        `Successfully sent room invite to ${selectedUserIds.length} nearby friends!`
+        'Đã gửi lời mời 🎉',
+        `Đã gửi lời mời tham gia phòng đến ${selectedUserIds.length} người bạn gần bạn!`
       );
     } catch (e) {
       setIsInvitingNearby(false);
-      Alert.alert('Error', 'Unable to send invite. Please try again.');
+      Alert.alert('Thông báo', 'Không thể gửi lời mời lúc này. Vui lòng thử lại.');
     }
   };
 
@@ -450,7 +446,7 @@ export default function ShakeRoomScreen() {
   const handleHostClaimAndClose = async () => {
     if (!isHost || isHostClaiming) return;
     if (!user) {
-      Alert.alert('Error', 'Host identity not found.');
+      Alert.alert('Thông báo', 'Không tìm thấy thông tin tài khoản.');
       return;
     }
 
@@ -463,9 +459,9 @@ export default function ShakeRoomScreen() {
       const newActivity: ActivityItem = {
         id: `shake_rcv_${Date.now()}`,
         type: 'received',
-        title: `Shake to Split (${paidGuestsCount} members)`,
-        time: 'Just now',
-        amount: `+$${totalCollectedSoFar.toFixed(2).replace('.', ',')}`,
+        title: `Chia tiền nhóm (${paidGuestsCount} người)`,
+        time: 'Vừa xong',
+        amount: `+$${totalCollectedSoFar.toFixed(2)}`,
         isPositive: true,
         iconBg: '#00A859',
       };
@@ -493,11 +489,11 @@ export default function ShakeRoomScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       Alert.alert(
-        'Payment Collected 🎉',
-        `All members have completed payments on Solana Devnet!`,
+        'Thu tiền hoàn tất 🎉',
+        `Đã thu đủ $${totalCollectedSoFar.toFixed(2)} từ các thành viên!`,
         [
           {
-            text: 'Back to Hub',
+            text: 'Hoàn tất',
             onPress: () => router.replace('/(tabs)/transfer-hub'),
           },
         ],
@@ -506,7 +502,7 @@ export default function ShakeRoomScreen() {
     } catch (e) {
       setIsHostClaiming(false);
       console.error('Lỗi khi Host nhận tiền:', e);
-      Alert.alert('Error', 'Unable to claim payment. Please try again.');
+      Alert.alert('Thông báo', 'Không thể hoàn tất lúc này. Vui lòng thử lại.');
     }
   };
 
@@ -514,25 +510,25 @@ export default function ShakeRoomScreen() {
   const handleGuestPay = async () => {
     if (isGuestPaying || hasGuestPaid) return;
     if (!user) {
-      Alert.alert('Error', 'User not authenticated. Please log in.');
+      Alert.alert('Thông báo', 'Vui lòng đăng nhập để tiếp tục.');
       return;
     }
 
     const guestSolAddress = mySolanaAddress;
     if (!guestSolAddress) {
-      Alert.alert('Error', 'Guest Solana wallet address not found.');
+      Alert.alert('Thông báo', 'Không tìm thấy thông tin ví tài khoản.');
       return;
     }
 
     const recipientAddress = hostWalletAddress || searchParams.hostWallet;
     if (!recipientAddress) {
-      Alert.alert('Error', 'Host wallet address is missing. Please wait for Host to sync.');
+      Alert.alert('Thông báo', 'Đang kết nối với người chủ trì, vui lòng thử lại sau giây lát.');
       return;
     }
 
     const paymentAmountUSD = parseFloat(splitAmount) || 0;
     if (paymentAmountUSD <= 0) {
-      Alert.alert('Error', 'Invalid payment amount.');
+      Alert.alert('Thông báo', 'Số tiền thanh toán chưa hợp lệ.');
       return;
     }
 
@@ -542,36 +538,33 @@ export default function ShakeRoomScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsGuestPaying(true);
-    setPayingStatusText('Checking on-chain SOL balance...');
 
     try {
-      // 1. Kiểm tra số dư SOL trên mạng lưới Solana Devnet
+      // 1. Kiểm tra số dư khả dụng
       let currentLamports = 0;
       try {
         currentLamports = await solanaConnection.getBalance(new PublicKey(guestSolAddress));
       } catch (err) {
-        console.warn('Cannot fetch balance directly, trying fallback:', err);
         const cachedSol = await getCachedBalance();
         currentLamports = Math.floor((cachedSol ?? 0.1) * 1e9);
       }
 
-      const requiredLamports = sendLamports + 5000; // Bao gồm gas fee 0.000005 SOL
+      const requiredLamports = sendLamports + 5000;
       if (currentLamports < requiredLamports) {
         setIsGuestPaying(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert(
-          'Insufficient SOL Balance ❌',
-          `Your Solana Devnet balance (${(currentLamports / 1e9).toFixed(4)} SOL) is insufficient to send ${solAmount.toFixed(4)} SOL (~$${paymentAmountUSD.toFixed(2)}) with gas fee. Please request Devnet faucet or deposit SOL!`
+          'Số dư không đủ',
+          `Số dư trong ví không đủ để thực hiện thanh toán $${paymentAmountUSD.toFixed(2)}. Vui lòng nạp thêm tiền!`
         );
         return;
       }
 
-      // 2. Ký & Gửi Giao Dịch On-Chain qua Privy Embedded Solana Wallet
+      // 2. Ký & Gửi Giao Dịch
       if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
-        throw new Error('Privy embedded Solana wallet is not ready.');
+        throw new Error('Ví tài khoản chưa sẵn sàng.');
       }
 
-      setPayingStatusText('Signing on-chain transaction...');
       const provider = await solanaWalletState.wallets[0].getProvider();
       const fromPubkey = new PublicKey(guestSolAddress);
       const toPubkey = new PublicKey(recipientAddress);
@@ -595,17 +588,13 @@ export default function ShakeRoomScreen() {
         params: { transaction },
       });
 
-      // 3. Broadcast và chờ Mạng lưới Solana Xác nhận (Await Transaction Receipt)
-      setPayingStatusText('Broadcasting & confirming on Solana Devnet...');
+      // 3. Broadcast và chờ Xác nhận
       const rawBytes = signedTransaction.serialize();
       const txSignature = await solanaConnection.sendRawTransaction(rawBytes, {
         skipPreflight: false,
         preflightCommitment: 'confirmed',
       });
 
-      console.log('⚡ [On-chain Tx Broadcasted] txSignature:', txSignature);
-
-      // Chờ transaction được đưa vào block và confirmed
       const confirmation = await solanaConnection.confirmTransaction(
         {
           signature: txSignature,
@@ -616,29 +605,24 @@ export default function ShakeRoomScreen() {
       );
 
       if (confirmation.value.err) {
-        throw new Error(
-          `On-chain execution failed: ${JSON.stringify(confirmation.value.err)}`
-        );
+        throw new Error('Giao dịch chưa được xác nhận thành công');
       }
 
-      console.log('✅ [On-chain Tx Confirmed] Transaction receipt confirmed on-chain!');
-      setGuestTxSignature(txSignature);
-
-      // 4. Ghi Log Lịch Sử Hoạt Động (Recent Activity) đính kèm txSignature
+      // 4. Ghi Log Lịch Sử Hoạt Động (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
       const newActivity: ActivityItem = {
         id: txSignature,
         type: 'sent',
-        title: 'Shake to Split',
-        time: 'Just now',
-        amount: `-$${paymentAmountUSD.toFixed(2).replace('.', ',')}`,
+        title: 'Chia tiền hóa đơn',
+        time: 'Vừa xong',
+        amount: `-$${paymentAmountUSD.toFixed(2)}`,
         isPositive: false,
         iconBg: '#EF4444',
         signature: txSignature,
       };
       await cacheActivities([newActivity, ...currentActs]);
 
-      // 5. CHỈ BẮN EVENT Realtime payment_update KHI GIAO DỊCH ON-CHAIN ĐÃ CONFIRMED
+      // 5. Phát sóng sự kiện Realtime cập nhật trạng thái
       if (roomChannelRef.current) {
         await roomChannelRef.current.send({
           type: 'broadcast',
@@ -658,16 +642,13 @@ export default function ShakeRoomScreen() {
       setIsGuestPaying(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      Alert.alert(
-        'Transaction Confirmed! ⚡',
-        `Transferred ${solAmount.toFixed(4)} SOL ($${paymentAmountUSD.toFixed(2)}) to Host!\n\nSignature:\n${txSignature.slice(0, 20)}...`
-      );
+      Alert.alert('Thành công! 🎉', 'Thanh toán thành công!');
     } catch (e: any) {
-      console.error('Lỗi khi thực hiện giao dịch On-chain:', e);
+      console.error('Lỗi khi thực hiện giao dịch:', e);
       setIsGuestPaying(false);
       Alert.alert(
-        'On-chain Transaction Failed',
-        e?.message || 'Unable to execute on-chain transaction on Solana Devnet.'
+        'Giao dịch thất bại',
+        'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
       );
     }
   };
@@ -676,7 +657,7 @@ export default function ShakeRoomScreen() {
     if (!roomId) return;
     await Clipboard.setStringAsync(roomId);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Room ID Copied', roomId);
+    Alert.alert('Đã sao chép mã phòng', roomId);
   };
 
   // Tính toán số lượng và số tiền phía Host (USD)
@@ -695,9 +676,24 @@ export default function ShakeRoomScreen() {
   // Tổng tiền Host đã thu được realtime = Tiền mỗi người * Số lượng Guest đã thanh toán
   const totalCollectedSoFar = Number((parsedSplitAmount * paidGuestsCount).toFixed(2));
 
+  const displayRoomCode = roomId ? roomId.slice(0, 8).toUpperCase() : 'LOBBY';
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+
+      {/* Loading Overlay Toàn Màn Hình Khi Thanh Toán */}
+      <Modal visible={isGuestPaying} transparent animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#00A859" />
+            <Text style={styles.loadingCardTitle}>Đang xử lý thanh toán...</Text>
+            <Text style={styles.loadingCardSubtitle}>
+              Vui lòng giữ ứng dụng và chờ trong giây lát
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       {/* Header Bar */}
       <View style={styles.header}>
@@ -710,13 +706,13 @@ export default function ShakeRoomScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Shake Room (On-Chain)</Text>
+          <Text style={styles.headerTitle}>Shake to Split</Text>
           <TouchableOpacity
             style={styles.roomIdBadge}
             onPress={copyRoomId}
             activeOpacity={0.7}
           >
-            <Text style={styles.roomIdText}>ROOM: #{roomId || 'RADAR'}</Text>
+            <Text style={styles.roomIdText}>MÃ PHÒNG: #{displayRoomCode}</Text>
             <Feather name="copy" size={12} color="#94A3B8" />
           </TouchableOpacity>
         </View>
@@ -725,7 +721,7 @@ export default function ShakeRoomScreen() {
           <Animated.View
             style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]}
           />
-          <Text style={styles.liveText}>LIVE</Text>
+          <Text style={styles.liveText}>TRỰC TIẾP</Text>
         </View>
       </View>
 
@@ -745,7 +741,7 @@ export default function ShakeRoomScreen() {
               <View style={styles.billInputCard}>
                 <View style={styles.cardHeaderRow}>
                   <MaterialCommunityIcons name="receipt" size={22} color="#8B5CF6" />
-                  <Text style={styles.cardHeaderTitle}>Total Bill Amount (USD)</Text>
+                  <Text style={styles.cardHeaderTitle}>Tổng tiền hóa đơn</Text>
                 </View>
 
                 <View style={styles.amountInputRow}>
@@ -795,7 +791,7 @@ export default function ShakeRoomScreen() {
                     style={styles.noteInput}
                     value={billNote}
                     onChangeText={setBillNote}
-                    placeholder="Note (e.g. Dinner with team)"
+                    placeholder="Ghi chú (ví dụ: Ăn trưa cùng nhóm)"
                     placeholderTextColor="#64748B"
                   />
                 </View>
@@ -806,12 +802,12 @@ export default function ShakeRoomScreen() {
                 <View style={styles.sectionHeaderBetween}>
                   <View>
                     <Text style={styles.nearbyTitle}>
-                      Nearby Friends (20m)
+                      Bạn bè ở gần (20m)
                     </Text>
                     <Text style={styles.nearbySubtitle}>
                       {candidateNearbyUsers.length > 0
-                        ? `Selected ${selectedUserIds.length}/${candidateNearbyUsers.length} friends`
-                        : 'Auto-scanning via GPS'}
+                        ? `Đã chọn ${selectedUserIds.length}/${candidateNearbyUsers.length} người`
+                        : 'Đang quét tự động xung quanh'}
                     </Text>
                   </View>
 
@@ -832,8 +828,8 @@ export default function ShakeRoomScreen() {
                         <Ionicons name="paper-plane" size={14} color="#FFFFFF" />
                         <Text style={styles.inviteActionBtnText}>
                           {selectedUserIds.length > 0
-                            ? `Invite (${selectedUserIds.length})`
-                            : 'Invite'}
+                            ? `Mời (${selectedUserIds.length})`
+                            : 'Mời'}
                         </Text>
                       </>
                     )}
@@ -846,9 +842,9 @@ export default function ShakeRoomScreen() {
                     <View style={styles.emptyRadarIconCircle}>
                       <MaterialCommunityIcons name="radar" size={36} color="#64748B" />
                     </View>
-                    <Text style={styles.emptyRadarTitle}>No nearby devices found</Text>
+                    <Text style={styles.emptyRadarTitle}>Chưa tìm thấy ai ở gần</Text>
                     <Text style={styles.emptyRadarSubtitle}>
-                      Scanning for active N.E.D peers within 20m...
+                      Đang liên tục rà quét thiết bị trong bán kính 20m...
                     </Text>
                     <ActivityIndicator
                       size="small"
@@ -889,7 +885,7 @@ export default function ShakeRoomScreen() {
                               {u.name}
                             </Text>
                             <Text style={styles.nearbyDist}>
-                              ~{u.distanceMeters ?? 5}m away
+                              Cách ~{u.distanceMeters ?? 5}m
                             </Text>
                           </View>
 
@@ -911,7 +907,7 @@ export default function ShakeRoomScreen() {
               {/* Danh sách thành viên đã vào phòng chờ */}
               <View style={styles.roomMembersCard}>
                 <Text style={styles.roomMembersTitle}>
-                  Room Members ({members.length})
+                  Thành viên trong phòng ({members.length})
                 </Text>
                 <View style={styles.avatarRow}>
                   {members.map((m) => (
@@ -925,7 +921,7 @@ export default function ShakeRoomScreen() {
                         <Text style={styles.memberAvatarText}>{m.avatar}</Text>
                       </View>
                       <Text style={styles.memberAvatarName} numberOfLines={1}>
-                        {m.isHost ? 'Host' : m.name.split(' ').pop()}
+                        {m.isHost ? 'Chủ phòng' : m.name.split(' ').pop()}
                       </Text>
                     </View>
                   ))}
@@ -947,10 +943,10 @@ export default function ShakeRoomScreen() {
                 >
                   <MaterialCommunityIcons name="vibrate" size={26} color="#FFFFFF" />
                   <Text style={styles.shakeBigBtnTitle}>
-                    SHAKE PHONE TO SPLIT BILL
+                    LẮC ĐIỆN THOẠI ĐỂ CHIA TIỀN
                   </Text>
                   <Text style={styles.shakeBigBtnSubtitle}>
-                    Each pays: ~${parsedSplitAmount.toFixed(2)} (On-chain Solana)
+                    Mỗi người thanh toán: ~${parsedSplitAmount.toFixed(2)}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -962,19 +958,19 @@ export default function ShakeRoomScreen() {
               <View style={styles.hostWaitingCard}>
                 <View style={styles.hostRoleBadge}>
                   <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
-                  <Text style={styles.hostRoleText}>HOST DASHBOARD (SOLANA ON-CHAIN)</Text>
+                  <Text style={styles.hostRoleText}>BẢNG QUẢN LÝ CHỦ PHÒNG</Text>
                 </View>
 
                 {/* Số tiền đã thu được Realtime (USD) */}
                 <View style={styles.collectedSummaryBox}>
-                  <Text style={styles.collectedLabel}>COLLECTED ON-CHAIN</Text>
+                  <Text style={styles.collectedLabel}>ĐÃ THU ĐƯỢC</Text>
                   <Text style={styles.collectedAmount}>
                     ${totalCollectedSoFar.toFixed(2)}{' '}
                     <Text style={styles.collectedCurrency}>USD</Text>
                   </Text>
                   <View style={styles.expectedTargetRow}>
                     <Text style={styles.expectedTargetText}>
-                      Total to collect:{' '}
+                      Tổng cần thu:{' '}
                       <Text style={styles.expectedTargetBold}>
                         ${totalExpectedFromGuests.toFixed(2)}
                       </Text>
@@ -985,9 +981,9 @@ export default function ShakeRoomScreen() {
                 {/* Thanh Tiến độ thanh toán */}
                 <View style={styles.progressBox}>
                   <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Payment Progress:</Text>
+                    <Text style={styles.progressLabel}>Tiến độ thanh toán:</Text>
                     <Text style={styles.progressValue}>
-                      {paidGuestsCount}/{guests.length} members paid
+                      {paidGuestsCount}/{guests.length} người đã trả
                     </Text>
                   </View>
                   <View style={styles.progressBarBg}>
@@ -1009,14 +1005,14 @@ export default function ShakeRoomScreen() {
                 {/* Chi tiết chia tiền */}
                 <View style={styles.billDetailsGrid}>
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailColLabel}>Total Bill</Text>
+                    <Text style={styles.detailColLabel}>Tổng hóa đơn</Text>
                     <Text style={styles.detailColValue}>
                       ${parsedTotalBill.toFixed(2)}
                     </Text>
                   </View>
                   <View style={styles.detailDivider} />
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailColLabel}>Each Share</Text>
+                    <Text style={styles.detailColLabel}>Phần mỗi người</Text>
                     <Text style={styles.detailColValueGreen}>
                       ${parsedSplitAmount.toFixed(2)}
                     </Text>
@@ -1028,10 +1024,10 @@ export default function ShakeRoomScreen() {
               <View style={styles.membersSection}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>
-                    Room Members ({guests.length})
+                    Danh sách thành viên ({guests.length})
                   </Text>
                   <Text style={styles.sectionSubtitle}>
-                    Realtime on-chain confirmation
+                    Đồng bộ trạng thái trực tiếp
                   </Text>
                 </View>
 
@@ -1044,24 +1040,19 @@ export default function ShakeRoomScreen() {
                     <View style={styles.guestInfo}>
                       <Text style={styles.guestName}>{g.name}</Text>
                       <Text style={styles.guestShare}>
-                        Share: ${parsedSplitAmount.toFixed(2)}
+                        Số tiền: ${parsedSplitAmount.toFixed(2)}
                       </Text>
-                      {g.tx_signature && (
-                        <Text style={styles.guestTx} numberOfLines={1}>
-                          Tx: {g.tx_signature.slice(0, 16)}...
-                        </Text>
-                      )}
                     </View>
 
                     {g.status === 'paid' ? (
                       <View style={styles.paidBadge}>
                         <Ionicons name="checkmark-circle" size={16} color="#00A859" />
-                        <Text style={styles.paidText}>Paid</Text>
+                        <Text style={styles.paidText}>Đã trả</Text>
                       </View>
                     ) : (
                       <View style={styles.pendingBadge}>
                         <Ionicons name="time-outline" size={15} color="#F59E0B" />
-                        <Text style={styles.pendingText}>Pending</Text>
+                        <Text style={styles.pendingText}>Đang chờ</Text>
                       </View>
                     )}
                   </View>
@@ -1082,7 +1073,7 @@ export default function ShakeRoomScreen() {
                 {isHostClaiming ? (
                   <View style={styles.payingLoadingRow}>
                     <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.claimMoneyBtnText}>Closing Room...</Text>
+                    <Text style={styles.claimMoneyBtnText}>Đang hoàn tất...</Text>
                   </View>
                 ) : (
                   <>
@@ -1093,8 +1084,8 @@ export default function ShakeRoomScreen() {
                     />
                     <Text style={styles.claimMoneyBtnText}>
                       {isAllPaid
-                        ? `Claim & Finish (+$${totalCollectedSoFar.toFixed(2)})`
-                        : `Waiting for on-chain payments (${paidGuestsCount}/${guests.length})`}
+                        ? `Xác nhận & Hoàn tất (+$${totalCollectedSoFar.toFixed(2)})`
+                        : `Đang chờ thanh toán (${paidGuestsCount}/${guests.length})`}
                     </Text>
                   </>
                 )}
@@ -1121,25 +1112,25 @@ export default function ShakeRoomScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.guestWaitingTitle}>Shake to Split Lounge</Text>
+                <Text style={styles.guestWaitingTitle}>Phòng chờ chia tiền</Text>
                 <Text style={styles.guestWaitingDesc}>
-                  Waiting for Host{' '}
+                  Đang chờ người chủ trì{' '}
                   <Text style={styles.hostHighlightName}>
-                    {hostName ? decodeURIComponent(hostName) : 'organizer'}
+                    {hostName ? decodeURIComponent(hostName) : ''}
                   </Text>{' '}
-                  to set the bill and shake device... ⏳
+                  chốt hóa đơn và lắc thiết bị... ⏳
                 </Text>
 
                 <View style={styles.guestNoteBox}>
                   <Ionicons name="information-circle-outline" size={18} color="#8B5CF6" />
                   <Text style={styles.guestNoteText}>
-                    Once Host shakes their phone, you can pay directly to Host's Solana address on-chain.
+                    Khi người chủ trì lắc điện thoại, số tiền chia đều của bạn sẽ xuất hiện tại đây.
                   </Text>
                 </View>
               </View>
             </View>
           ) : (
-            /* 2. GUEST: Đã nhận trigger_split -> Hiển thị số tiền & Nút Thanh Toán On-Chain */
+            /* 2. GUEST: Đã nhận trigger_split -> Hiển thị số tiền & Nút Thanh Toán */
             <View style={styles.guestPayContainer}>
               <View style={styles.guestBillCard}>
                 <View style={styles.guestCardHeader}>
@@ -1148,40 +1139,37 @@ export default function ShakeRoomScreen() {
                     size={28}
                     color="#8B5CF6"
                   />
-                  <Text style={styles.guestCardTitle}>On-Chain Bill Share</Text>
+                  <Text style={styles.guestCardTitle}>Chi tiết hóa đơn</Text>
                 </View>
 
                 <Text style={styles.guestInvitedBy}>
-                  Host{' '}
+                  Người chủ trì{' '}
                   <Text style={styles.hostHighlightName}>
-                    {hostName ? decodeURIComponent(hostName) : 'Organizer'}
+                    {hostName ? decodeURIComponent(hostName) : ''}
                   </Text>{' '}
-                  has locked the bill
+                  đã chốt số tiền
                 </Text>
 
                 {/* Số tiền chính xác (USD) */}
                 <View style={styles.exactAmountBox}>
-                  <Text style={styles.exactAmountLabel}>Your share to pay:</Text>
+                  <Text style={styles.exactAmountLabel}>Số tiền bạn cần thanh toán:</Text>
                   <Text style={styles.exactAmountValue}>
                     ${parsedSplitAmount.toFixed(2)}{' '}
                     <Text style={styles.exactCurrency}>USD</Text>
                   </Text>
-                  <Text style={styles.solEquivText}>
-                    ≈ {(parsedSplitAmount / SOL_USD_RATE).toFixed(4)} SOL (Solana Devnet)
-                  </Text>
                   <Text style={styles.noteDesc}>
-                    Note: {billNote || 'Group Lunch'}
+                    Ghi chú: {billNote || 'Ăn uống nhóm'}
                   </Text>
                 </View>
 
                 <View style={styles.totalContextBox}>
                   <Text style={styles.totalContextText}>
-                    Total Room Bill: ${parsedTotalBill.toFixed(2)} USD
+                    Tổng hóa đơn phòng: ${parsedTotalBill.toFixed(2)} USD
                   </Text>
                 </View>
               </View>
 
-              {/* Nút Thanh toán On-chain nổi bật */}
+              {/* Nút Thanh toán nổi bật */}
               <TouchableOpacity
                 style={[
                   styles.guestPayBtn,
@@ -1192,21 +1180,16 @@ export default function ShakeRoomScreen() {
                 disabled={isGuestPaying || hasGuestPaid}
                 activeOpacity={0.85}
               >
-                {isGuestPaying ? (
-                  <View style={styles.payingLoadingRow}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.guestPayBtnText}>{payingStatusText}</Text>
-                  </View>
-                ) : hasGuestPaid ? (
+                {hasGuestPaid ? (
                   <>
                     <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" />
-                    <Text style={styles.guestPayBtnText}>Paid On-Chain</Text>
+                    <Text style={styles.guestPayBtnText}>Đã thanh toán thành công</Text>
                   </>
                 ) : (
                   <>
                     <MaterialCommunityIcons name="lightning-bolt" size={22} color="#FFFFFF" />
                     <Text style={styles.guestPayBtnText}>
-                      Pay ${parsedSplitAmount.toFixed(2)} USD (On-chain)
+                      Thanh toán ${parsedSplitAmount.toFixed(2)}
                     </Text>
                   </>
                 )}
@@ -1215,16 +1198,9 @@ export default function ShakeRoomScreen() {
               {hasGuestPaid && (
                 <View style={styles.paidConfirmationBox}>
                   <Ionicons name="shield-checkmark" size={18} color="#00A859" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.paidConfirmationText}>
-                      Transaction confirmed on Solana Devnet!
-                    </Text>
-                    {guestTxSignature && (
-                      <Text style={styles.txSigSmall} numberOfLines={1}>
-                        Tx: {guestTxSignature}
-                      </Text>
-                    )}
-                  </View>
+                  <Text style={styles.paidConfirmationText}>
+                    Đã hoàn tất thanh toán và đồng bộ đến người chủ trì!
+                  </Text>
                 </View>
               )}
             </View>
@@ -1239,6 +1215,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  loadingCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#334155',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  loadingCardTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginTop: 18,
+    textAlign: 'center',
+  },
+  loadingCardSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 19,
   },
   header: {
     flexDirection: 'row',
@@ -1726,7 +1738,6 @@ const styles = StyleSheet.create({
   detailColLabel: {
     fontSize: 12,
     color: '#94A3B8',
-    marginBottom: 4,
   },
   detailColValue: {
     fontSize: 18,
@@ -1793,12 +1804,6 @@ const styles = StyleSheet.create({
   guestShare: {
     fontSize: 12.5,
     color: '#94A3B8',
-    marginTop: 2,
-  },
-  guestTx: {
-    fontSize: 11,
-    color: '#8B5CF6',
-    fontFamily: 'monospace',
     marginTop: 2,
   },
   paidBadge: {
@@ -1990,12 +1995,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#94A3B8',
   },
-  solEquivText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#00A859',
-    marginTop: 4,
-  },
   noteDesc: {
     fontSize: 13,
     color: '#CBD5E1',
@@ -2033,13 +2032,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   guestPayBtnText: {
-    fontSize: 15.5,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   paidConfirmationBox: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: 'rgba(0, 168, 89, 0.12)',
     padding: 14,
@@ -2050,11 +2050,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#00A859',
     fontWeight: '700',
-  },
-  txSigSmall: {
-    fontSize: 11,
-    color: '#64748B',
-    fontFamily: 'monospace',
-    marginTop: 2,
+    textAlign: 'center',
   },
 });

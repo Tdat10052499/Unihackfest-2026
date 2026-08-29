@@ -302,7 +302,7 @@
     - **Lắc thiết bị (Shake Trigger)**: Tích hợp `Accelerometer` (với debounce và auto-remove watcher sau khi lắc). Khi Host nhập tiền và lắc điện thoại (hoặc nhấn nút chốt), tính toán chia đều và phát sóng event `trigger_split` vào channel `room_[roomId]`, đồng thời chuyển Host sang giao diện quản lý 'Waiting...'.
   - **Kiến Trúc Guest Workspace**:
     - Khi vừa vào phòng: Hiển thị giao diện chờ 'Đang chờ Host chốt hóa đơn và lắc thiết bị... ⏳' cùng animation radar.
-    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập nhật trạng thái Host từ Pending sang Paid.
+    - Khi nhận `trigger_split`: Tự động chuyển sang giao diện thanh toán số tiền chính xác, nút 'Thanh toán' bắn event `payment_update` cập trạng thái Host từ Pending sang Paid.
   - **Quản lý bộ nhớ**: Hủy sạch các subscriptions `Accelerometer` và Realtime channels khi component unmount.
 
 ---
@@ -418,3 +418,20 @@
   - **Xác Nhận Realtime & Ghi Lịch Sử**:
     - **Chỉ khi giao dịch on-chain thành công và có chữ ký `txSignature` hợp lệ**, Guest mới bắn broadcast `payment_update` (kèm `tx_signature`) lên channel `room_[roomId]`.
     - Ghi nhận lịch sử hoạt động vào ví đính kèm `signature: txSignature` để đối soát minh bạch trên Solana Explorer.
+
+---
+
+### 🔹 [Phase 2 - Bước 30: Tinh Chỉnh UI/UX Chuẩn FinTech Quốc Tế, Ẩn Thuật Ngữ Kỹ Thuật & Tối Ưu Loading Modal]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Ẩn hoàn toàn thuật ngữ Blockchain**:
+    - Xóa bỏ tất cả các chuỗi mã băm `Tx: ...`, chữ ký số `Signature`, địa chỉ ví raw, hay các từ khóa kỹ thuật `(On-Chain)`, `(SOLANA ON-CHAIN)`, `(Solana Devnet)` khỏi toàn bộ giao diện và thông báo.
+    - Rút gọn mã phòng thành mã ngắn thanh lịch (VD: `MÃ PHÒNG: #8A4F1E9C`).
+  - **Chuẩn hóa Hiển thị Tiền Tệ**:
+    - Gỡ bỏ chữ `SOL` và các phép quy đổi token kỹ thuật trên UI; chỉ hiển thị định dạng Dollar (`$5.00`, `$20.00`, `$50.00`).
+    - Logic ký và gửi SOL on-chain vẫn vận hành 100% ngầm bên dưới an toàn và chuẩn xác.
+  - **Loading Overlay Toàn Màn Hình Thân Thiện**:
+    - Thiết kế `Modal` Loading toàn màn hình với hiệu ứng mờ nền tối sang trọng, spinner xoay mượt mà cùng thông điệp: *'Đang xử lý thanh toán... Vui lòng giữ ứng dụng và chờ trong giây lát'*.
+  - **Thông Báo Tối Giản (Minimalist Alerts)**:
+    - Khi thanh toán thành công: Hiển thị thông báo ngắn gọn *'Thành công! 🎉 - Thanh toán thành công!'*.
+    - Khi Host thu đủ tiền: Hiển thị *'Thu tiền hoàn tất 🎉 - Đã thu đủ $X.XX từ các thành viên!'*.
