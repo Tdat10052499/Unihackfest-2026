@@ -460,7 +460,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.welcomeBadge}
-            onPress={() => router.push('/(tabs)/card')}
+            onPress={() => router.push('/settings')}
             activeOpacity={0.8}
           >
             <View style={styles.welcomeLogoCircle}>

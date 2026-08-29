@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,6 +85,15 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
 
+            // Đánh chặn sự kiện tab Card: Không chuyển trang, hiển thị thông báo chờ
+            if (route.name === 'card') {
+              Alert.alert(
+                'Đang phát triển',
+                'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!'
+              );
+              return;
+            }
+
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -114,12 +124,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               );
             }
             if (route.name === 'card') {
+              // Visual Hint: Icon mờ biểu thị tính năng đang khóa tạm thời
               return (
-                <Ionicons
-                  name={focused ? 'card' : 'card-outline'}
-                  size={24}
-                  color={color}
-                />
+                <View style={{ opacity: 0.45 }}>
+                  <Ionicons name="card-outline" size={24} color="#94A3B8" />
+                </View>
               );
             }
             if (route.name === 'transfer-hub') {
@@ -147,11 +156,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               onPress={onPress}
               onLongPress={onLongPress}
               style={styles.tabItem}
-              activeOpacity={0.75}
+              activeOpacity={route.name === 'card' ? 0.6 : 0.75}
             >
               <View style={styles.iconContainer}>
                 {renderIcon(isFocused)}
-                {isFocused && <View style={styles.activeGlowDot} />}
+                {isFocused && route.name !== 'card' && (
+                  <View style={styles.activeGlowDot} />
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -180,6 +191,23 @@ export default function TabLayout() {
         name="card"
         options={{
           title: 'Card',
+          tabBarIcon: ({ color }) => (
+            <Ionicons
+              name="card-outline"
+              size={24}
+              color={color}
+              style={{ opacity: 0.5 }}
+            />
+          ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            Alert.alert(
+              'Đang phát triển',
+              'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!'
+            );
+          },
         }}
       />
       <Tabs.Screen

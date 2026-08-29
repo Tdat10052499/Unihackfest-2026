@@ -155,7 +155,6 @@
     - **Nhóm 2 (Hiển thị)**: Hai switch 'Stealth mode' và 'Show empty pockets'.
     - **Nhóm 3 (Hỗ trợ & Tài khoản)**: Các mục Invite friends, FAQ, Contact support, About và Sign out (gọi hook `logout()` từ Privy và chuyển hướng về `/login`).
   - Cập nhật điều hướng tại Home ([app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx)) cho phép chạm vào Badge chào mừng hoặc avatar để chuyển sang màn hình Cài đặt mượt mà.
-  - **Cấu hình Tab MiniApps**: Icon 4 ô vuông (`grid-outline`) ở vị trí Tab thứ 4 được dành riêng làm điểm chờ (Placeholder) cho trung tâm MiniApps Hub và sẽ được kích hoạt ở giai đoạn sau.
 
 ---
 
@@ -207,3 +206,15 @@
     - Cấu hình hiệu ứng chuyển cảnh `animation: 'shift'` trong `<Tabs>`.
   - **Dọn dẹp Header**: Loại bỏ nút Back trong `app/(tabs)/transfer-hub.tsx` và xóa bỏ bottom nav tĩnh trong `index.tsx`, đảm bảo trải nghiệm đồng nhất 100% qua Bottom Navigation.
   - **Định tuyến Root**: Cấu hình [app/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/index.tsx) tự động điều hướng `<Redirect href="/(tabs)" />`.
+
+---
+
+### 🔹 [Phase 2 - Bước 16: Đánh Chặn Điều Hướng Tab Card & Hiển Thị Thông Báo Đang Phát Triển]
+- **Type:** `[FEAT]` | `[CONFIG]`
+- **Nội dung chi tiết:**
+  - **Đánh chặn sự kiện (Event Interception)**: Tại `CustomTabBar` và `listeners.tabPress` của `<Tabs.Screen name="card" />` trong [app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/_layout.tsx), gọi `e.preventDefault()` để chặn chuyển trang khi người dùng chạm vào tab Card.
+  - **Kích hoạt thông báo**: Hiển thị hộp thoại `Alert.alert('Đang phát triển', 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!')`.
+  - **Gợi ý trực quan (Visual Hint)**: Đặt độ mờ `opacity: 0.45` cho icon thẻ của tab Card để báo hiệu tính năng đang khóa tạm thời.
+  - **Điều hướng Cài đặt**: Cập nhật Welcome Badge trên Header của [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/(tabs)/index.tsx) điều hướng chuẩn xác sang màn hình Quản lý tài khoản [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx).
+- **Ghi chú:**
+  - Đánh chặn điều hướng tab Card và hiển thị thông báo Đang phát triển.
