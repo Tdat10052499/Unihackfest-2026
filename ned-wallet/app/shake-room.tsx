@@ -34,7 +34,7 @@ import {
   executeSolanaTransfer,
 } from '@/services/solana';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
-import { useTransferToken } from '@/hooks/useTransferToken';
+import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Tỷ giá quy đổi ngầm: 1 SOL = $150 USD
@@ -74,10 +74,8 @@ export default function ShakeRoomScreen() {
     statusMessage: transferStatusMessage,
     isWalletReady,
     needsRecovery,
-    recoverWallet,
-    isRecovering: isWalletRecovering,
     walletStatus,
-  } = useTransferToken();
+  } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
@@ -527,7 +525,7 @@ export default function ShakeRoomScreen() {
     }
   };
 
-  // 5. Phía Guest: THỰC THI GIAO DỊCH ON-CHAIN TRÊN SOLANA DEVNET (Sign & Send Transaction)
+  // 5. Phía Guest: THỰC THI GIAO DỊCH ON-CHAIN 100% TRÊN SOLANA DEVNET
   const handleGuestPay = async () => {
     if (isGuestPaying || isExecutingTransfer || hasGuestPaid) return;
     if (!user) {
@@ -535,16 +533,10 @@ export default function ShakeRoomScreen() {
       return;
     }
 
-    // Nếu ví đang cần khôi phục khóa bảo mật (sau factory reset)
-    if (needsRecovery) {
-      setShowRecoveryModal(true);
-      return;
-    }
-
     if (!isWalletReady) {
       Alert.alert(
         'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất rồi thử lại!`
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất rồi thử lại!`
       );
       return;
     }
@@ -580,9 +572,9 @@ export default function ShakeRoomScreen() {
         amountSol: solAmount,
       });
 
-      if (!result.success || !result.txSignature) {
+      if (!result.success || !result.transactionHash) {
         setIsGuestPaying(false);
-        const errorMsg = result.error || '';
+        const errorMsg = result.error || 'Giao dịch on-chain không thành công.';
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -607,13 +599,27 @@ export default function ShakeRoomScreen() {
           return;
         }
 
-        Alert.alert('Thanh toán chưa hoàn tất ❌', errorMsg || 'Giao dịch on-chain không thành công.');
+        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
+          Alert.alert(
+            'Phiên hết hạn ⚠️',
+            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
+            [
+              {
+                text: 'Đăng nhập lại',
+                onPress: () => router.replace('/login'),
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Thanh toán chưa hoàn tất ❌', errorMsg);
         return;
       }
 
-      const txSignature = result.txSignature;
+      const txSignature = result.transactionHash;
 
-      // 4. Ghi Log Lịch Sử Hoạt Động (Recent Activity)
+      // 4. Ghi Log Lịch Sử Hoạt Động On-Chain (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
       const newActivity: ActivityItem = {
         id: txSignature,
@@ -658,37 +664,13 @@ export default function ShakeRoomScreen() {
       setIsGuestPaying(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      Alert.alert('Thành công! 🎉', 'Thanh toán thành công!');
+      Alert.alert('Thành công! 🎉', `Thanh toán on-chain thành công!\nChữ ký: ${txSignature.slice(0, 16)}...`);
     } catch (e: any) {
       console.error('Lỗi khi thực hiện giao dịch:', e);
       setIsGuestPaying(false);
-      const errStr = e?.message || '';
-      if (
-        errStr.includes('timeout') ||
-        errStr.includes('user-signer') ||
-        errStr.includes('WebView')
-      ) {
-        Alert.alert(
-          'Phiên làm việc bị gián đoạn ⚠️',
-          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
-          [
-            { text: 'Đóng', style: 'cancel' },
-            {
-              text: 'Làm mới ngay',
-              style: 'destructive',
-              onPress: async () => {
-                const { executeHardReset } = await import('@/services/storage');
-                await executeHardReset(logout);
-                router.replace('/login');
-              },
-            },
-          ]
-        );
-        return;
-      }
       Alert.alert(
         'Giao dịch thất bại',
-        errStr || 'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
+        e?.message || 'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
       );
     }
   };
@@ -1239,17 +1221,12 @@ export default function ShakeRoomScreen() {
                 style={[
                   styles.guestPayBtn,
                   hasGuestPaid && styles.guestPayBtnPaid,
-                  needsRecovery && styles.guestPayBtnRecovery,
-                  ((!isWalletReady && !needsRecovery) || isGuestPaying) && styles.guestPayBtnLoading,
+                  ((!isWalletReady && !hasGuestPaid) || isGuestPaying || !isReady || !user) && styles.guestPayBtnLoading,
                 ]}
                 onPress={() => {
-                  if (needsRecovery) {
-                    setShowRecoveryModal(true);
-                    return;
-                  }
                   handleGuestPay();
                 }}
-                disabled={(isGuestPaying || hasGuestPaid || (!isWalletReady && !needsRecovery))}
+                disabled={!isReady || !user || isGuestPaying || hasGuestPaid || !isWalletReady}
                 activeOpacity={0.85}
               >
                 {hasGuestPaid ? (
@@ -1257,12 +1234,7 @@ export default function ShakeRoomScreen() {
                     <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" />
                     <Text style={styles.guestPayBtnText}>Đã thanh toán thành công</Text>
                   </>
-                ) : needsRecovery ? (
-                  <>
-                    <MaterialCommunityIcons name="shield-key" size={22} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.guestPayBtnText}>Khôi phục ví bảo mật</Text>
-                  </>
-                ) : !isWalletReady ? (
+                ) : (!isWalletReady || !isReady || !user) ? (
                   <>
                     <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
                     <Text style={styles.guestPayBtnText}>Đang kết nối ví...</Text>

@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "node ./scripts/patch-privy.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -70,7 +71,7 @@
     "text-encoding": "^0.7.0",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "viem": "^2.56.0"
+    "viem": "2.55.15"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

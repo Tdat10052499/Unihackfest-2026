@@ -185,13 +185,10 @@ export const SendModal: React.FC<SendModalProps> = ({
     return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <View style={styles.overlayWrapper} pointerEvents="box-none">
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={styles.backdropDismissArea}
@@ -399,11 +396,16 @@ export const SendModal: React.FC<SendModalProps> = ({
           </View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',

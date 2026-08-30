@@ -151,13 +151,10 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
     }
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <View style={styles.overlayWrapper} pointerEvents="box-none">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}
@@ -272,11 +269,16 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',

@@ -616,3 +616,74 @@
     - Đặt chốt chặn guard `if (!isReady || !user)` tại tất cả các màn hình chức năng giao dịch, chuyển tiền và phòng chia tiền Shake to Split.
     - Khi phát hiện người dùng mất session hoặc chưa đăng nhập, lập tức khóa render giao diện giao dịch và chuyển hướng an toàn về `/login`.
 
+---
+
+### 🔹 [Phase 2 - Bước 43: Tái Cấu Trúc Core: Dọn Dẹp Code Cũ & Tái Thiết Lập Luồng Định Danh Supabase]
+- **Type:** `[REFACTOR]` | `[FEAT]` | `[CLEANUP]`
+- **Nội dung chi tiết:**
+  - **Bước 1 - Dọn Dẹp Code Cũ**:
+    - Xóa bỏ toàn bộ logic gọi chuyển tiền cũ và các API phụ trợ tạm thời trong [app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx), [app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx), [app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx) và [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx).
+    - Đưa toàn bộ các hàm handler và nút 'Thanh toán' / 'Xác nhận' về trạng thái rỗng an toàn, sẵn sàng tích hợp Custom Hook `useOnchainTransfer` ở Bước 3.
+  - **Bước 2 - Tái Thiết Lập Luồng Định Danh (Supabase Identity Service)**:
+    - Làm sạch và chuẩn hóa API định danh trong [services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts) với `linkPhoneNumber(userId, walletAddress, phoneNumber)`, `getUserPhoneNumberFromDB(userId)` và `lookupWalletByPhone(phone)`.
+    - Khi người dùng đăng nhập Privy thành công, hệ thống truy vấn Supabase bảng `phone_wallets`. Với cơ sở dữ liệu trắng, ứng dụng tự động mở [components/PhoneLinkingModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/PhoneLinkingModal.tsx) yêu cầu người dùng nhập Số điện thoại và thực hiện `INSERT` bản ghi mới gồm `user_id`, `phone_number` và `wallet_address` vào Supabase.
+
+---
+
+### 🔹 [Phase 2 - Bước 44: Xây Dựng Hook Core `useOnchainTransfer` & Tích Hợp Giao Dịch 100% On-Chain Vào UI]
+- **Type:** `[FEAT]` | `[REFACTOR]` | `[CORE]` | `[STABILITY]`
+- **Nội dung chi tiết:**
+  - **Bước 3 - Xây Dựng Hook Giao Dịch Core ([hooks/useOnchainTransfer.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainTransfer.ts))**:
+    - Tạo hook quản lý giao dịch 100% on-chain với các state: `isTransferring`, `error`, `transactionHash`, `statusMessage`, `isWalletReady`, `needsRecovery`, `walletStatus`, `senderAddress`, `transfer`.
+    - **Kiểm Tra Access Token & Sẵn Sàng**: Trước khi ký giao dịch, kiểm tra `getAccessToken()`. Nếu token không hợp lệ hoặc đã hết hạn, lập tức gọi `logout()` và trả về lỗi rõ ràng.
+    - **Phân Giải SĐT Tự Động**: Tự động nhận diện chuỗi SĐT đầu vào và tra cứu ví Solana từ Supabase qua `lookupWalletByPhone(input)`.
+    - **Quy Tắc Sinh Tử Cho Android**: Bọc quá trình gọi `provider.request({ method: 'signTransaction' })` trong `InteractionManager.runAfterInteractions` kèm delay 1000ms, giải phóng hoàn toàn Main Thread và ngăn chặn crash/unmount WebView. Kèm cơ chế retry ký tự động nếu gặp lỗi timeout.
+    - **Broadcast & Confirm Devnet**: Phát sóng giao dịch trực tiếp lên mạng Solana Devnet qua `solanaConnection.sendRawTransaction()` và xác nhận bằng `solanaConnection.confirmTransaction()`.
+  - **Bước 4 - Tích Hợp Lại Vào Toàn Bộ UI Ứng Dụng**:
+    - **Guest Payment trong Shake to Split ([app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx))**: Tích hợp `useOnchainTransfer` vào `handleGuestPay`. Khóa hoàn toàn nút thanh toán (`disabled = !isReady || !user || !isWalletReady || isGuestPaying || hasGuestPaid`) để đảm bảo trải nghiệm ổn định.
+    - **Màn Hình Chuyển Tiền Chuẩn ([app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx))**: Tích hợp `useOnchainTransfer` vào `handleSendTransaction`. Tra cứu ví từ SĐT/Base58 và cập nhật cache lịch sử on-chain ngay sau khi giao dịch thành công.
+    - **Transfer Hub ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx))**: Kết nối `useOnchainTransfer` vào luồng chuyển nhanh.
+    - **Trang Chủ ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**: Kết nối `useOnchainTransfer` vào modal chuyển tiền và luồng sau khi quét mã QR.
+
+---
+
+### 🔹 [Phase 2 - Bước 45: Khắc Phục Triệt Để Lỗi `timeout: user-signer:sign` & `WebView failed to become ready` trên Android]
+- **Type:** `[DEBUG / FIX]` | `[CORE]` | `[STABILITY]` | `[ARCHITECTURE]`
+- **Nguyên nhân gốc rễ (Root Cause Analysis)**:
+  1. **Nghẽn Window Focus do React Native `<Modal>`**: Trên Android, việc sử dụng thẻ `<Modal>` gốc tạo ra một cửa sổ native `android.app.Dialog` độc lập. Khi Dialog này hiển thị (như modal quét QR hoặc modal xác nhận chuyển tiền `SendModal`), WindowManager của Android coi cửa sổ Activity chính của ứng dụng là đang ở background/mất focus, khiến Chrome WebView chạy ngầm của Privy bị hệ điều hành đóng băng timer (throttling JS loop) và làm trễ/treo tiến trình nhận tin nhắn `postMessage` (`privy:user-signer:sign`), dẫn đến vượt quá giới hạn timeout 15s (`Operation reached timeout: user-signer:sign`) và kéo theo lỗi `Embedded wallet WebView failed to become ready`.
+  2. **Xung đột Chuỗi Modal Camera $\rightarrow$ Send**: Khi quét QR hoàn tất, việc chuyển tiếp giữa 2 `<Modal>` liên tiếp trên Android làm bão hòa Main Thread và giữ Activity chính liên tục trong trạng thái unfocused.
+- **Giải pháp Kiến Trúc & Triển khai chi tiết**:
+  - **1. Chuyển Đổi Toàn Bộ Modal Sang In-Tree Overlays ([components/SendModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/SendModal.tsx), [components/WalletRecoveryModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/WalletRecoveryModal.tsx), [components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx), [components/PhoneLinkingModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/PhoneLinkingModal.tsx), [components/PhoneManagementModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/PhoneManagementModal.tsx))**:
+    - Thay thế hoàn toàn thẻ `<Modal>` gốc bằng cơ chế In-Tree Overlay (`if (!visible) return null; return <View style={styles.overlayWrapper}>...`).
+    - Giữ trọn vẹn 100% giao diện, hiệu ứng animation mượt mà của bottom sheet, nhưng chạy hoàn toàn trong cùng một Activity Window, đảm bảo WebView ngầm của Privy luôn giữ vững Window Focus và hoạt động ở tốc độ xử lý tối đa (Full Priority).
+  - **2. In-Tree Camera Scanner & Điều Hướng Trực Tiếp ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Chuyển `CameraView` scanner sang in-tree overlay `{showScanner && <View style={styles.cameraContainer}>...}`.
+    - Trong `handleBarCodeScanned`, sau khi quét thành công, lập tức đóng camera và sử dụng `router.push({ pathname: '/send', params: { recipient: data } })` để điều hướng trực tiếp sang màn hình chuyên dụng [app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx).
+    - Cập nhật nút "Withdraw" trên trang chủ và nút "Chuyển tiền P2P" trong [app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx) chuyển hướng mượt mà sang `/send`.
+  - **3. Tối Ưu Provider Resolution & Retry trong `useOnchainTransfer` ([hooks/useOnchainTransfer.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainTransfer.ts))**:
+    - Hỗ trợ fallback linh hoạt giữa `solanaWalletState.getProvider()` và `wallets[0].getProvider()`.
+    - Khi gặp lỗi ký tạm thời hoặc timeout, hệ thống tự động chờ 1200ms, lấy lại `recentBlockhash` tươi mới từ Solana Devnet RPC và kích hoạt cơ chế retry ký an toàn.
+  - **4. Đăng Ký Đầy Đủ Navigation Stack ([app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx))**:
+    - Khai báo tường minh màn hình `<Stack.Screen name="send" />` bên trong cây Navigation Root.
+
+---
+
+### 🔹 [Phase 2 - Bước 46: Vá Trực Tiếp SDK Privy (Patch Engine) - Giải Phóng Viewport 0x0 & Nâng Timeout Ký 60s]
+- **Type:** `[CORE]` | `[PATCH]` | `[STABILITY]` | `[PERFORMANCE]`
+- **Nguyên nhân cốt lõi trong SDK nội tại**:
+  1. **Throttling kích thước 0x0 trong `@privy-io/expo`**: Trong file phân phối gốc `chunk-77II74GH.js`, component WebView `_t` bị bọc cứng trong `style: { width: 0, height: 0, overflow: 'hidden' }`. Nhân Chromium trên Android tự động bóp nghẹt hoặc tạm dừng Event Loop/WebCrypto của các WebView có diện tích bằng 0 để tiết kiệm pin.
+  2. **Thiếu tham số Timeout trong `signWithUserSigner` của `@privy-io/js-sdk-core`**: Trong khi các phương thức khác (`createWallet`, `recover`, `createSolana`) đều có `timeoutMs: 6e4` (60 giây), thì `signWithUserSigner` bị bỏ quên và nhận giá trị mặc định chỉ 15 giây (`15000ms`), dẫn tới lỗi `Operation reached timeout: user-signer:sign` ngay khi tiến trình xử lý on-chain kéo dài trên thiết bị di động.
+- **Giải pháp triển khai tự động hóa**:
+  - **1. Xây dựng Script Vá Tự Động ([scripts/patch-privy.js](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/scripts/patch-privy.js))**:
+    - Duyệt đệ quy toàn bộ `node_modules` và `.pnpm` store.
+    - Vá Viewport của WebView từ `{width:0,height:0,overflow:"hidden"}` sang `{position:"absolute",top:-9999,left:-9999,width:50,height:50,opacity:0.01}`.
+    - Bổ sung `timeoutMs: 6e4` (60s) cho `signWithUserSigner` và `ms: 3e4` cho `clearMfa`.
+  - **2. Tích hợp Hook `postinstall` ([package.json](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/package.json))**:
+    - Đăng ký `"postinstall": "node ./scripts/patch-privy.js"` để tự động chạy và vá mã nguồn mỗi khi cài đặt hoặc cập nhật thư viện.
+  - **3. Tối ưu Điều Hướng Khi Hết Hạn Token ([app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx), [app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx), [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Tự động bắt lỗi `'hết hạn'` hoặc `'Missing access token'` và điều hướng người dùng quay lại `/login` để nhận token mới mà không bị kẹt ở màn hình cũ.
+
+
+
+
+

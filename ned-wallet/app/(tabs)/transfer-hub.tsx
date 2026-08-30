@@ -15,7 +15,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { useTransferToken } from '@/hooks/useTransferToken';
+import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { getSolanaBalance, ActivityItem } from '@/services/solana';
 import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { SendModal } from '@/components/SendModal';
@@ -142,16 +142,13 @@ export default function TransferHubScreen() {
     needsRecovery,
     walletStatus,
     senderAddress: solanaAddress,
-  } = useTransferToken();
+  } = useOnchainTransfer();
 
   const [showSendModal, setShowSendModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
+  // THỰC THI CHUYỂN TIỀN 100% ON-CHAIN TỪ TRANSFER HUB
   const handleConfirmSend = async (recipient: string, amount: number) => {
-    if (needsRecovery) {
-      setShowRecoveryModal(true);
-      return;
-    }
     if (!solanaAddress) {
       Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nguồn.');
       return;
@@ -159,7 +156,7 @@ export default function TransferHubScreen() {
     if (!isWalletReady) {
       Alert.alert(
         'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất!`
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
       );
       return;
     }
@@ -171,12 +168,12 @@ export default function TransferHubScreen() {
         amountSol: amount,
       });
 
-      if (!result.success || !result.txSignature) {
+      if (!result.success || !result.transactionHash) {
         Alert.alert('Giao dịch chưa hoàn tất ❌', result.error || 'Không thể thực hiện giao dịch.');
         return;
       }
 
-      const txSignature = result.txSignature;
+      const txSignature = result.transactionHash;
       const finalRecipient = result.recipientAddress || recipient;
 
       setShowSendModal(false);
@@ -295,7 +292,7 @@ export default function TransferHubScreen() {
           iconNode={<Feather name="send" size={24} color="#00A859" />}
           iconBgColor="#D1F4E0"
           borderColor="#A7F3D0"
-          onPress={() => setShowSendModal(true)}
+          onPress={() => router.push('/send')}
         />
 
         {/* 3. THẺ: AirDrop Radar (Chuyển không chạm) */}

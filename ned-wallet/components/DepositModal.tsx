@@ -67,13 +67,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     }, 800);
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
+    <View style={styles.overlayWrapper} pointerEvents="box-none">
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={styles.backdropDismissArea}
@@ -255,11 +252,16 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           )}
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.52)',

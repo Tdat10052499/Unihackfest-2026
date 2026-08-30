@@ -112,13 +112,10 @@ export const PhoneLinkingModal: React.FC<PhoneLinkingModalProps> = ({
     onClose();
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleSkip}
-    >
+    <View style={styles.overlayWrapper} pointerEvents="box-none">
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={styles.backdropDismissArea}
@@ -281,11 +278,16 @@ export const PhoneLinkingModal: React.FC<PhoneLinkingModalProps> = ({
           </View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',

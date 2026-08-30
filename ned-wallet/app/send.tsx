@@ -25,13 +25,13 @@ import {
 import { lookupWalletByPhone } from '../services/supabase';
 import { getSolanaBalance, ActivityItem } from '../services/solana';
 import { cacheActivities, getCachedActivities } from '../services/storage';
-import { useTransferToken } from '../hooks/useTransferToken';
+import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 
 export default function SendScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user, logout } = usePrivy();
+  const { user, isReady, logout } = usePrivy();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const {
     transfer,
@@ -40,7 +40,7 @@ export default function SendScreen() {
     needsRecovery,
     walletStatus,
     statusMessage,
-  } = useTransferToken();
+  } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
@@ -158,6 +158,7 @@ export default function SendScreen() {
     }
   };
 
+  // THỰC THI GIAO DỊCH ON-CHAIN 100% TRÊN SOLANA DEVNET
   const handleSendTransaction = async () => {
     if (!myAddress) {
       Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví người gửi.');
@@ -176,15 +177,10 @@ export default function SendScreen() {
       return;
     }
 
-    if (needsRecovery) {
-      setShowRecoveryModal(true);
-      return;
-    }
-
     if (!isWalletReady) {
       Alert.alert(
         'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ trong giây lát!`
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
       );
       return;
     }
@@ -196,8 +192,8 @@ export default function SendScreen() {
         amountSol: numAmount,
       });
 
-      if (!result.success || !result.txSignature) {
-        const errorMsg = result.error || '';
+      if (!result.success || !result.transactionHash) {
+        const errorMsg = result.error || 'Không thể thực hiện giao dịch.';
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -222,14 +218,28 @@ export default function SendScreen() {
           return;
         }
 
-        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg || 'Không thể thực hiện giao dịch.');
+        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
+          Alert.alert(
+            'Phiên hết hạn ⚠️',
+            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
+            [
+              {
+                text: 'Đăng nhập lại',
+                onPress: () => router.replace('/login'),
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg);
         return;
       }
 
-      const txSignature = result.txSignature;
+      const txSignature = result.transactionHash;
       const finalRecipient = result.recipientAddress || recipientInput;
 
-      // Lưu log lịch sử giao dịch vào cache sau khi giao dịch On-chain đã xác nhận
+      // Lưu log lịch sử giao dịch on-chain vào cache
       const currentActs = (await getCachedActivities()) || [];
       const newAct: ActivityItem = {
         id: txSignature,
@@ -245,36 +255,12 @@ export default function SendScreen() {
 
       Alert.alert(
         'Giao Dịch Thành Công! ⚡',
-        `Đã chuyển ${numAmount} SOL đến:\n${formatShortAddress(finalRecipient)}\nSignature: ${txSignature.slice(0, 16)}...`,
+        `Đã chuyển ${numAmount} SOL đến:\n${formatShortAddress(finalRecipient)}\nChữ ký: ${txSignature.slice(0, 16)}...`,
         [{ text: 'Về Trang Chủ', onPress: () => router.replace('/') }]
       );
     } catch (err: any) {
       console.error('Send Transaction Error:', err);
-      const errStr = err?.message || '';
-      if (
-        errStr.includes('timeout') ||
-        errStr.includes('user-signer') ||
-        errStr.includes('WebView')
-      ) {
-        Alert.alert(
-          'Phiên làm việc bị gián đoạn ⚠️',
-          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
-          [
-            { text: 'Đóng', style: 'cancel' },
-            {
-              text: 'Làm mới ngay',
-              style: 'destructive',
-              onPress: async () => {
-                const { executeHardReset } = await import('../services/storage');
-                await executeHardReset(logout);
-                router.replace('/login');
-              },
-            },
-          ]
-        );
-        return;
-      }
-      Alert.alert('Lỗi Giao Dịch', errStr || 'Không thể thực hiện chuyển tiền.');
+      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể thực hiện chuyển tiền.');
     }
   };
 
@@ -412,30 +398,25 @@ export default function SendScreen() {
             </View>
           </View>
 
-          {/* 5. Nút Xác Nhận Chuyển Tiền / Khôi phục ví */}
+          {/* 5. Nút Xác Nhận Chuyển Tiền */}
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              needsRecovery && styles.sendBtnRecovery,
-              (!resolvedAddress && !needsRecovery || isTransferring || isLoadingLookup) && styles.sendBtnDisabled,
+              (!resolvedAddress && !searchInput.trim() || isTransferring || isLoadingLookup || !isReady || !user || !isWalletReady) && styles.sendBtnDisabled,
             ]}
             onPress={() => {
-              if (needsRecovery) {
-                setShowRecoveryModal(true);
-                return;
-              }
               handleSendTransaction();
             }}
-            disabled={(!resolvedAddress && !needsRecovery) || isTransferring || isLoadingLookup}
+            disabled={!isReady || !user || (!resolvedAddress && !searchInput.trim()) || isTransferring || isLoadingLookup || !isWalletReady}
             activeOpacity={0.85}
           >
-            {needsRecovery ? (
-              <View style={styles.sendBtnInner}>
-                <MaterialCommunityIcons name="shield-key" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.sendBtnText}>Khôi phục ví bảo mật</Text>
-              </View>
-            ) : isTransferring ? (
+            {isTransferring ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (!isWalletReady || !isReady || !user) ? (
+              <View style={styles.sendBtnInner}>
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.sendBtnText}>Đang kết nối ví...</Text>
+              </View>
             ) : (
               <View style={styles.sendBtnInner}>
                 <Feather name="send" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />

@@ -44,7 +44,7 @@ import {
   setLinkedPhone,
 } from '@/services/storage';
 import { getUserPhoneNumberFromDB, lookupWalletByPhone } from '@/services/supabase';
-import { useTransferToken } from '@/hooks/useTransferToken';
+import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { DepositModal } from '@/components/DepositModal';
 import { SendModal } from '@/components/SendModal';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
@@ -62,15 +62,10 @@ export default function HomeScreen() {
     transfer: executeTokenTransfer,
     isTransferring: isExecutingTransfer,
     isWalletReady,
-    needsRecovery: hookNeedsRecovery,
+    needsRecovery: isNeedsRecovery,
     walletStatus,
-  } = useTransferToken();
-
-  const isNeedsRecovery = Boolean(
-    hookNeedsRecovery ||
-    solanaWalletState?.status === 'needs-recovery' ||
-    embeddedWalletState?.status === 'needs-recovery'
-  );
+    senderAddress: hookSenderAddress,
+  } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
@@ -184,7 +179,7 @@ export default function HomeScreen() {
     loadCachedData();
   }, []);
 
-  // 2. Kiểm tra trạng thái liên kết SĐT (Source of Truth từ Supabase)
+  // 2. Kiểm tra trạng thái định danh SĐT (Source of Truth từ Supabase)
   useEffect(() => {
     const checkPhoneLinkingPrompt = async () => {
       if (!user) return;
@@ -195,18 +190,14 @@ export default function HomeScreen() {
           console.log('✅ [Home] Đã tìm thấy SĐT trong Supabase DB:', dbPhone);
           setLinkedPhoneState(dbPhone);
           await setLinkedPhone(dbPhone);
-          // Đã có trong DB -> Tuyệt đối không hiển thị modal nhập lại SĐT
           return;
         }
 
-        // Nếu DB chưa có, kiểm tra xem người dùng có từng bấm Bỏ qua trong phiên này không
+        // Nếu DB chưa có bản ghi, lập tức kích hoạt luồng Form nhập SĐT -> INSERT bản ghi mới
         setLinkedPhoneState(null);
-        const skipped = await getHasSkippedPhoneLink();
-        if (!skipped) {
-          setTimeout(() => {
-            setShowPhoneLinkingModal(true);
-          }, 800);
-        }
+        setTimeout(() => {
+          setShowPhoneLinkingModal(true);
+        }, 600);
       } catch (err) {
         console.error('Error checking phone link prompt:', err);
       }
@@ -344,7 +335,7 @@ export default function HomeScreen() {
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện quét QR thành công (Tạo độ trễ an toàn cho Android Main Thread)
+  // Xử lý sự kiện quét QR thành công (Điều hướng trực tiếp sang màn hình Send chuyên dụng)
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (isScanningLocked.current) return;
     isScanningLocked.current = true;
@@ -352,16 +343,15 @@ export default function HomeScreen() {
     setShowScanner(false);
     console.log('Đã quét địa chỉ:', data);
 
-    // Chờ CameraView hoàn tất unmount và animation đóng hoàn toàn trước khi mở Modal
     InteractionManager.runAfterInteractions(() => {
       setTimeout(() => {
-        setWithdrawAddress(data);
-        setShowWithdrawModal(true);
-      }, 1000);
+        router.push({ pathname: '/send', params: { recipient: data } });
+      }, 350);
     });
   };
 
   // Ký và gửi giao dịch chuyển tiền On-chain lên Solana Devnet
+  // Ký và gửi giao dịch chuyển tiền 100% On-chain lên Solana Devnet
   const handleSendTransaction = async (
     targetAddress?: string,
     amountSol?: number
@@ -377,15 +367,10 @@ export default function HomeScreen() {
       return;
     }
 
-    if (isNeedsRecovery) {
-      setShowRecoveryModal(true);
-      return;
-    }
-
     if (!isWalletReady) {
       Alert.alert(
         'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất!`
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
       );
       return;
     }
@@ -400,9 +385,9 @@ export default function HomeScreen() {
         amountSol: numAmount,
       });
 
-      if (!result.success || !result.txSignature) {
+      if (!result.success || !result.transactionHash) {
         setIsSendingTx(false);
-        const errorMsg = result.error || '';
+        const errorMsg = result.error || 'Không thể thực hiện giao dịch.';
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -427,16 +412,30 @@ export default function HomeScreen() {
           return;
         }
 
-        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg || 'Không thể thực hiện giao dịch.');
+        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
+          Alert.alert(
+            'Phiên hết hạn ⚠️',
+            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
+            [
+              {
+                text: 'Đăng nhập lại',
+                onPress: () => router.replace('/login'),
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg);
         return;
       }
 
-      const txSignature = result.txSignature;
+      const txSignature = result.transactionHash;
       const finalRecipient = result.recipientAddress || recipientInput;
 
       setShowWithdrawModal(false);
 
-      // Chỉ ghi nhận vào Recent Activities sau khi giao dịch On-chain đã được xác nhận hoàn tất
+      // Ghi nhận vào Recent Activities sau khi giao dịch On-chain đã xác nhận
       const newAct: ActivityItem = {
         id: txSignature,
         type: 'sent',
@@ -467,33 +466,9 @@ export default function HomeScreen() {
     } catch (err: any) {
       setIsSendingTx(false);
       console.error('Solana Transaction Error:', err);
-      const errStr = err?.message || '';
-      if (
-        errStr.includes('timeout') ||
-        errStr.includes('user-signer') ||
-        errStr.includes('WebView')
-      ) {
-        Alert.alert(
-          'Phiên làm việc bị gián đoạn ⚠️',
-          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
-          [
-            { text: 'Đóng', style: 'cancel' },
-            {
-              text: 'Làm mới ngay',
-              style: 'destructive',
-              onPress: async () => {
-                const { executeHardReset } = await import('@/services/storage');
-                await executeHardReset(logout);
-                router.replace('/login');
-              },
-            },
-          ]
-        );
-        return;
-      }
       Alert.alert(
         'Lỗi Giao Dịch',
-        errStr || 'Không thể broadcast giao dịch lên Devnet.'
+        err?.message || 'Không thể broadcast giao dịch lên Devnet.'
       );
     }
   };
@@ -640,7 +615,7 @@ export default function HomeScreen() {
 
               <TouchableOpacity
                 style={styles.cardActionBtn}
-                onPress={() => setShowWithdrawModal(true)}
+                onPress={() => router.push('/send')}
                 activeOpacity={0.85}
               >
                 <View style={styles.actionIconCircle}>
@@ -840,7 +815,7 @@ export default function HomeScreen() {
         onPhoneUpdated={(newPhone) => setLinkedPhoneState(newPhone)}
       />
 
-      <Modal visible={showScanner} animationType="slide">
+      {showScanner && (
         <View style={styles.cameraContainer}>
           <CameraView
             style={StyleSheet.absoluteFillObject}
@@ -856,7 +831,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      )}
 
       <WalletRecoveryModal
         visible={showRecoveryModal || isNeedsRecovery}
@@ -1279,7 +1254,9 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   cameraContainer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
     backgroundColor: '#000000',
   },
   cameraOverlay: {
