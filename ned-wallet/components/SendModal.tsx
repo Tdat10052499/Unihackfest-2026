@@ -25,6 +25,8 @@ interface SendModalProps {
   onOpenScanner?: () => void;
   onConfirmSend: (recipientAddress: string, amountSol: number) => Promise<void>;
   isSending?: boolean;
+  needsRecovery?: boolean;
+  onTriggerRecovery?: () => void;
 }
 
 export const SendModal: React.FC<SendModalProps> = ({
@@ -35,6 +37,8 @@ export const SendModal: React.FC<SendModalProps> = ({
   onOpenScanner,
   onConfirmSend,
   isSending = false,
+  needsRecovery = false,
+  onTriggerRecovery,
 }) => {
   const [searchInput, setSearchInput] = useState(initialRecipient);
   const [debouncedInput, setDebouncedInput] = useState(initialRecipient);
@@ -135,8 +139,35 @@ export const SendModal: React.FC<SendModalProps> = ({
   };
 
   const handleSend = async () => {
-    if (!resolvedAddress) {
-      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ ví nhận hợp lệ.');
+    if (needsRecovery) {
+      onTriggerRecovery?.();
+      return;
+    }
+
+    let targetWallet = resolvedAddress;
+
+    if (!targetWallet) {
+      const input = searchInput.trim();
+      if (!input) {
+        Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại hoặc địa chỉ ví người nhận.');
+        return;
+      }
+
+      const isSolanaBase58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input);
+      if (isSolanaBase58) {
+        targetWallet = input;
+      } else {
+        setIsLoadingLookup(true);
+        targetWallet = await lookupWalletByPhone(input);
+        setIsLoadingLookup(false);
+      }
+    }
+
+    if (!targetWallet) {
+      Alert.alert(
+        'Không tìm thấy ví',
+        'Không tìm thấy ví liên kết với số điện thoại này. Vui lòng kiểm tra lại số điện thoại.'
+      );
       return;
     }
 
@@ -146,7 +177,7 @@ export const SendModal: React.FC<SendModalProps> = ({
       return;
     }
 
-    await onConfirmSend(resolvedAddress, numAmount);
+    await onConfirmSend(targetWallet, numAmount);
   };
 
   const formatShortAddress = (addr: string) => {
@@ -325,19 +356,33 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               </View>
 
-              {/* 5. Nút Xác Nhận Chuyển Tiền */}
+              {/* 5. Nút Xác Nhận Chuyển Tiền / Khôi phục ví */}
               <TouchableOpacity
                 style={[
                   styles.sendBtn,
-                  (!resolvedAddress || isSending || isLoadingLookup) &&
+                  needsRecovery && styles.sendBtnRecovery,
+                  (!resolvedAddress && !needsRecovery || isSending || isLoadingLookup) &&
                     styles.sendBtnDisabled,
                 ]}
                 onPress={handleSend}
-                disabled={!resolvedAddress || isSending || isLoadingLookup}
+                disabled={(!resolvedAddress && !needsRecovery) || isSending || isLoadingLookup}
                 activeOpacity={0.85}
               >
-                {isSending ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                {needsRecovery ? (
+                  <View style={styles.sendBtnInner}>
+                    <MaterialCommunityIcons
+                      name="shield-key"
+                      size={20}
+                      color="#FFFFFF"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.sendBtnText}>Khôi phục ví bảo mật</Text>
+                  </View>
+                ) : isSending ? (
+                  <View style={styles.sendBtnInner}>
+                    <ActivityIndicator color="#FFFFFF" size="small" style={{ marginRight: 8 }} />
+                    <Text style={styles.sendBtnText}>Đang chờ mạng lưới xác nhận...</Text>
+                  </View>
                 ) : (
                   <View style={styles.sendBtnInner}>
                     <Feather
@@ -592,6 +637,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 8,
     elevation: 3,
+  },
+  sendBtnRecovery: {
+    backgroundColor: '#F59E0B',
+    shadowColor: '#F59E0B',
   },
   sendBtnDisabled: {
     opacity: 0.6,

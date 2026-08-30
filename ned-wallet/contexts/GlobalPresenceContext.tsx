@@ -75,20 +75,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
 }) => {
   const router = useRouter();
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {
-    // Bỏ qua nếu context chưa sẵn sàng
-  }
-  const user = privy?.user || null;
-
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {
-    // Bỏ qua nếu context chưa sẵn sàng
-  }
+  const { user } = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const userId = user?.id || null;
 
   const [location, setLocation] = useState<{
     latitude: number;
@@ -101,6 +90,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
   const channelRef = useRef<RealtimeChannel | null>(null);
   const locationSubRef = useRef<Location.LocationSubscription | null>(null);
   const latestLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const lastTrackedRef = useRef<{ lat: number; lng: number; time: number } | null>(null);
 
   // Lấy địa chỉ ví Solana
   const getSolanaAddress = (): string | null => {
@@ -110,10 +100,10 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       if (solWallet?.address) return solWallet.address;
     }
     const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
+    const solanaAccount = linkedAccounts.find(
       (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
     );
-    return solAccount?.address || null;
+    return solanaAccount?.address || null;
   };
 
   // Lấy tên hiển thị & avatar người dùng
@@ -133,21 +123,37 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     return { name, avatar };
   };
 
-  // Hàm đẩy tọa độ và định danh lên Supabase Presence
-  const trackPresence = (lat: number, lng: number) => {
-    if (!channelRef.current || !user) return;
+  // Hàm đẩy tọa độ và định danh lên Supabase Presence với cơ chế Throttle chống spam
+  const trackPresence = (lat: number, lng: number, force: boolean = false) => {
+    if (!channelRef.current || !userId || !user) return;
+
+    const now = Date.now();
+    if (!force && lastTrackedRef.current) {
+      const dist = calculateDistanceMeters(
+        lastTrackedRef.current.lat,
+        lastTrackedRef.current.lng,
+        lat,
+        lng
+      );
+      const elapsed = now - lastTrackedRef.current.time;
+      // Chỉ gửi update nếu di chuyển > 10m HOẶC đã quá 45s kể từ lần gửi cuối
+      if (dist < 10 && elapsed < 45000) {
+        return;
+      }
+    }
+
+    lastTrackedRef.current = { lat, lng, time: now };
 
     const { name, avatar } = getUserProfile();
     const solanaAddress = getSolanaAddress();
 
     const payload: PresenceUser = {
-      user_id: user.id,
+      user_id: userId,
       name,
       avatar,
       lat,
       lng,
       wallet_address: solanaAddress || undefined,
-      updated_at: new Date().toISOString(),
     };
 
     channelRef.current
@@ -155,7 +161,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       .then((status) => {
         console.log('🛰️ [Supabase Realtime] Presence tracked:', {
           status,
-          user_id: user.id,
+          user_id: userId,
           name,
           lat: lat.toFixed(5),
           lng: lng.toFixed(5),
@@ -166,9 +172,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       });
   };
 
-  // 1. Khởi tạo kết nối Supabase Presence Channel 'global_radar'
+  // 1. Khởi tạo kết nối Supabase Presence Channel 'global_radar' (Chỉ khởi tạo 1 lần theo userId)
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -181,7 +187,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     const channel = supabase.channel('global_radar', {
       config: {
         presence: {
-          key: user.id,
+          key: userId,
         },
       },
     });
@@ -197,7 +203,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           if (presences && presences.length > 0) {
             const p = presences[presences.length - 1];
             // Bỏ qua chính bản thân
-            if (p.user_id !== user.id && p.lat && p.lng) {
+            if (p.user_id !== userId && p.lat && p.lng) {
               let distMeters: number | undefined;
               if (currentLoc) {
                 distMeters = calculateDistanceMeters(
@@ -215,16 +221,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           }
         });
 
-        console.log(
-          `👥 [Supabase Realtime] Presence Sync: ${usersList.length} thiết bị khác đang hiện diện xung quanh.`
-        );
         setNearbyUsers(usersList);
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('🟢 [Supabase Realtime] Thiết bị mới tham gia radar:', key, newPresences);
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('🔴 [Supabase Realtime] Thiết bị rời khỏi radar:', key, leftPresences);
       })
       .on('broadcast', { event: 'room_invite' }, ({ payload }) => {
         console.log('📥 [Supabase Broadcast] Nhận sự kiện room_invite:', payload);
@@ -233,9 +230,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           ? ` ($${payload.split_amount} USD)`
           : '';
         if (
-          user &&
-          payload?.target_user_ids?.includes(user.id) &&
-          payload?.host_id !== user.id
+          userId &&
+          payload?.target_user_ids?.includes(userId) &&
+          payload?.host_id !== userId
         ) {
           Alert.alert(
             '🔔 Room Invite',
@@ -272,7 +269,8 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
         if (status === 'SUBSCRIBED' && latestLocationRef.current) {
           trackPresence(
             latestLocationRef.current.latitude,
-            latestLocationRef.current.longitude
+            latestLocationRef.current.longitude,
+            true
           );
         }
       });
@@ -286,9 +284,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
         channelRef.current = null;
       }
     };
-  }, [user]);
+  }, [userId]);
 
-  // 2. Xin quyền và theo dõi tọa độ liên tục (watchPositionAsync)
+  // 2. Xin quyền và theo dõi tọa độ định kỳ (watchPositionAsync nhẹ nhàng)
   useEffect(() => {
     let isMounted = true;
 
@@ -298,7 +296,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== 'granted') {
-          console.log('⚠️ [Location] Người dùng đã từ chối cấp quyền vị trí. Không block luồng app.');
+          console.log('⚠️ [Location] Người dùng đã từ chối cấp quyền vị trí.');
           if (isMounted) setHasLocationPermission(false);
           return;
         }
@@ -320,21 +318,18 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           if (isMounted) {
             setLocation(initCoords);
             latestLocationRef.current = initCoords;
-            console.log(
-              `📍 [Location] Tọa độ khởi tạo: ${initCoords.latitude.toFixed(5)}, ${initCoords.longitude.toFixed(5)}`
-            );
-            trackPresence(initCoords.latitude, initCoords.longitude);
+            trackPresence(initCoords.latitude, initCoords.longitude, true);
           }
         } catch (initErr) {
           console.warn('⚠️ [Location] Không lấy được tọa độ tức thời ban đầu:', initErr);
         }
 
-        // Theo dõi liên tục với khoảng cách ~5m, thời gian ~5-10s
+        // Theo dõi với khoảng cách >= 10m, thời gian >= 15s để không gây nghẽn bridge
         const sub = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
-            distanceInterval: 5,
-            timeInterval: 8000,
+            distanceInterval: 10,
+            timeInterval: 15000,
           },
           (loc) => {
             if (!isMounted) return;
@@ -344,12 +339,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
             };
             setLocation(newCoords);
             latestLocationRef.current = newCoords;
-
-            console.log(
-              `📍 [Location] Tọa độ cập nhật: Lat ${newCoords.latitude.toFixed(5)}, Lng ${newCoords.longitude.toFixed(5)}`
-            );
-
-            trackPresence(newCoords.latitude, newCoords.longitude);
+            trackPresence(newCoords.latitude, newCoords.longitude, false);
           }
         );
 
@@ -359,18 +349,20 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       }
     };
 
-    startLocationTracking();
+    if (userId) {
+      startLocationTracking();
+    }
 
     return () => {
       isMounted = false;
       if (locationSubRef.current) {
-        console.log('🧹 [Location] Hủy theo dõi vị trí (location watcher removed)');
+        console.log('🧹 [Location] Hủy theo dõi vị trí');
         locationSubRef.current.remove();
         locationSubRef.current = null;
       }
       setIsTracking(false);
     };
-  }, [user]);
+  }, [userId]);
 
   const refreshLocation = async () => {
     try {
@@ -384,56 +376,47 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       };
       setLocation(coords);
       latestLocationRef.current = coords;
-      trackPresence(coords.latitude, coords.longitude);
+      trackPresence(coords.latitude, coords.longitude, true);
     } catch (e) {
-      console.warn('Refresh location error:', e);
+      console.warn('Không thể làm mới vị trí:', e);
     }
   };
 
-  // Hàm phát sóng lời mời room_invite qua Supabase Realtime Broadcast
+  // 3. Hàm phát sóng lời mời tham gia phòng giao dịch
   const broadcastInvite = async (
     roomId: string,
     targetUserIds: string[],
     options?: BroadcastInviteOptions
   ): Promise<boolean> => {
-    if (!channelRef.current || !user) {
-      console.warn('⚠️ [Supabase Broadcast] Channel chưa kết nối hoặc user chưa đăng nhập.');
+    if (!channelRef.current || !userId || !user) {
+      console.warn('⚠️ [Supabase Broadcast] Không có kết nối channel để gửi broadcast invite');
       return false;
     }
 
     const { name, avatar } = getUserProfile();
-
     const solanaAddress = getSolanaAddress();
 
-    console.log('📡 [Supabase Broadcast] Bắn sự kiện room_invite:', {
-      room_id: roomId,
-      host_id: user.id,
-      host_name: name,
-      host_avatar: avatar,
-      host_wallet: solanaAddress,
-      target_user_ids: targetUserIds,
-      total_bill: options?.totalBill,
-      split_amount: options?.splitAmount,
-      note: options?.note,
-    });
-
     try {
+      const payload = {
+        room_id: roomId,
+        host_id: userId,
+        host_name: name,
+        host_avatar: avatar,
+        host_wallet: solanaAddress || undefined,
+        target_user_ids: targetUserIds,
+        total_bill: options?.totalBill,
+        split_amount: options?.splitAmount,
+        note: options?.note,
+      };
+
+      console.log('📡 [Supabase Broadcast] Bắn sự kiện room_invite:', payload);
+
       await channelRef.current.send({
         type: 'broadcast',
         event: 'room_invite',
-        payload: {
-          room_id: roomId,
-          host_id: user.id,
-          host_name: name,
-          host_avatar: avatar,
-          host_wallet: solanaAddress,
-          target_user_ids: targetUserIds,
-          total_bill: options?.totalBill,
-          split_amount: options?.splitAmount,
-          note: options?.note,
-          created_at: new Date().toISOString(),
-        },
+        payload,
       });
+
       console.log('✅ [Supabase Broadcast] Phát sóng room_invite thành công!');
       return true;
     } catch (err) {
@@ -442,18 +425,21 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
+  const contextValue = React.useMemo(
+    () => ({
+      location,
+      hasLocationPermission,
+      isTracking,
+      nearbyUsers,
+      currentUserProfile: getUserProfile(),
+      refreshLocation,
+      broadcastInvite,
+    }),
+    [location, hasLocationPermission, isTracking, nearbyUsers, user]
+  );
+
   return (
-    <GlobalPresenceContext.Provider
-      value={{
-        location,
-        hasLocationPermission,
-        isTracking,
-        nearbyUsers,
-        currentUserProfile: getUserProfile(),
-        refreshLocation,
-        broadcastInvite,
-      }}
-    >
+    <GlobalPresenceContext.Provider value={contextValue}>
       {children}
     </GlobalPresenceContext.Provider>
   );

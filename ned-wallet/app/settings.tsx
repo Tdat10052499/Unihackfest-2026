@@ -13,9 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { getLinkedPhone } from '../services/storage';
+import { getLinkedPhone, setLinkedPhone as setLinkedPhoneStorage, executeHardReset } from '../services/storage';
+import { getUserPhoneNumberFromDB } from '../services/supabase';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 
 export default function SettingsScreen() {
@@ -61,10 +62,22 @@ export default function SettingsScreen() {
 
   const solanaAddress = getSolanaAddress();
 
-  // Nạp SĐT đã liên kết
+  // Nạp SĐT đã liên kết (Ưu tiên Source of Truth Supabase)
   useEffect(() => {
-    getLinkedPhone().then(setLinkedPhone).catch(console.log);
-  }, []);
+    const loadPhone = async () => {
+      if (user?.id) {
+        const dbPhone = await getUserPhoneNumberFromDB(user.id);
+        if (dbPhone) {
+          setLinkedPhone(dbPhone);
+          await setLinkedPhoneStorage(dbPhone);
+          return;
+        }
+      }
+      const cached = await getLinkedPhone();
+      setLinkedPhone(cached);
+    };
+    loadPhone();
+  }, [user]);
 
   // Trích xuất tên hiển thị từ tài khoản Google hoặc Email
   const getUserDisplayName = (): string => {
@@ -83,7 +96,7 @@ export default function SettingsScreen() {
 
   // Định dạng hiển thị số điện thoại
   const formatPhoneDisplay = (phone: string | null): string => {
-    if (!phone) return '+84 938 992 410';
+    if (!phone) return 'Chưa liên kết';
     return phone;
   };
 
@@ -114,7 +127,7 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await logout();
+            await executeHardReset(logout);
             router.replace('/login');
           } catch (e) {
             console.error('Logout error:', e);
@@ -123,6 +136,31 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  // Xử lý Hard Reset (Dọn dẹp sâu Corrupted State)
+  const handleHardReset = async () => {
+    Alert.alert(
+      'Khôi Phục & Dọn Dẹp Phiên ⚠️',
+      'Thao tác này sẽ dọn dẹp sạch sẽ toàn bộ phiên làm việc của ví, giải phóng tiến trình WebView bị treo và ép Privy cấp lại phiên kết nối mới.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await executeHardReset(logout);
+              Alert.alert('Đã Dọn Dẹp 🎉', 'Dữ liệu phiên đã được làm mới. Vui lòng đăng nhập lại.');
+              router.replace('/login');
+            } catch (err) {
+              console.error('Hard reset error:', err);
+              router.replace('/login');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -315,6 +353,25 @@ export default function SettingsScreen() {
             <View style={styles.menuItemLeft}>
               <Feather name="help-circle" size={20} color="#94A3B8" style={styles.itemIcon} />
               <Text style={styles.menuItemTitle}>About</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.dividerLine} />
+
+          {/* Hard Reset Session */}
+          <TouchableOpacity
+            style={styles.menuItemRow}
+            activeOpacity={0.7}
+            onPress={handleHardReset}
+          >
+            <View style={styles.menuItemLeft}>
+              <Feather name="refresh-cw" size={20} color="#F59E0B" style={styles.itemIcon} />
+              <View>
+                <Text style={[styles.menuItemTitle, { color: '#F59E0B' }]}>Reset phiên ví & Dọn dẹp</Text>
+                <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                  Giải phóng WebView và xóa session bị treo
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
 

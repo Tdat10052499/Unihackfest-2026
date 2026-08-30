@@ -8,13 +8,18 @@ import {
   Animated,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useTransferToken } from '@/hooks/useTransferToken';
+import { getSolanaBalance, ActivityItem } from '@/services/solana';
+import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { SendModal } from '@/components/SendModal';
+import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
 
 interface FeatureCardProps {
   title: string;
@@ -64,10 +69,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
           styles.cardContainer,
           { backgroundColor: cardBgColor, borderColor: borderColor },
         ]}
-        activeOpacity={0.9}
+        onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={onPress}
+        activeOpacity={0.9}
       >
         {/* Top Row: Icon & Status Badge */}
         <View style={styles.cardTopRow}>
@@ -128,37 +133,76 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 export default function TransferHubScreen() {
   const router = useRouter();
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {}
-  const user = privy?.user || null;
-
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {}
+  const { isReady, user } = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const {
+    transfer: executeTokenTransfer,
+    isTransferring: isSending,
+    isWalletReady,
+    needsRecovery,
+    walletStatus,
+    senderAddress: solanaAddress,
+  } = useTransferToken();
 
   const [showSendModal, setShowSendModal] = useState(false);
-
-  // Lấy địa chỉ ví Solana
-  const getSolanaAddress = (): string | null => {
-    if (!user) return null;
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
-    );
-    return solAccount?.address || null;
-  };
-
-  const solanaAddress = getSolanaAddress();
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const handleConfirmSend = async (recipient: string, amount: number) => {
-    Alert.alert('Chuyển tiền', `Giao dịch ${amount} SOL tới ${recipient.substring(0, 8)}...`);
+    if (needsRecovery) {
+      setShowRecoveryModal(true);
+      return;
+    }
+    if (!solanaAddress) {
+      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nguồn.');
+      return;
+    }
+    if (!isWalletReady) {
+      Alert.alert(
+        'Ví đang kết nối',
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất!`
+      );
+      return;
+    }
+
+    try {
+      const result = await executeTokenTransfer({
+        fromAddress: solanaAddress,
+        recipientAddressOrPhone: recipient,
+        amountSol: amount,
+      });
+
+      if (!result.success || !result.txSignature) {
+        Alert.alert('Giao dịch chưa hoàn tất ❌', result.error || 'Không thể thực hiện giao dịch.');
+        return;
+      }
+
+      const txSignature = result.txSignature;
+      const finalRecipient = result.recipientAddress || recipient;
+
+      setShowSendModal(false);
+
+      // Lưu log lịch sử giao dịch vào cache sau khi giao dịch On-chain đã xác nhận
+      const currentActs = (await getCachedActivities()) || [];
+      const newAct: ActivityItem = {
+        id: txSignature,
+        type: 'sent',
+        title: 'Chuyển tiền',
+        time: 'Vừa xong',
+        amount: `-$${(amount * 150).toFixed(2)}`,
+        isPositive: false,
+        iconBg: '#374151',
+        signature: txSignature,
+      };
+      await cacheActivities([newAct, ...currentActs]);
+
+      Alert.alert(
+        'Giao Dịch Thành Công! ⚡',
+        `Đã chuyển ${amount} SOL đến:\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\nChữ ký: ${txSignature.slice(0, 16)}...`
+      );
+    } catch (err: any) {
+      console.error('Transfer Hub Send Error:', err);
+      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể chuyển tiền lúc này.');
+    }
   };
 
   // Mở Shake to Split (Host Workspace)
@@ -174,6 +218,29 @@ export default function TransferHubScreen() {
       `${desc}\n\nTính năng này đang được đội ngũ kỹ sư N.E.D tích hợp smart contract và sẽ sẵn sàng trong bản cập nhật tới!`
     );
   };
+
+  // Bảo vệ State Giao diện: Chỉ hiển thị khi ví và tài khoản đã sẵn sàng
+  if (!isReady) {
+    return (
+      <SafeAreaView style={[styles.safeContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
+          Đang tải N.E.D Transfer Hub...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.safeContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
+          Phiên đăng nhập đã hết hạn. Đang chuyển hướng...
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
@@ -274,6 +341,19 @@ export default function TransferHubScreen() {
         solanaAddress={solanaAddress}
         solBalance={null}
         onConfirmSend={handleConfirmSend}
+        isSending={isSending}
+        needsRecovery={needsRecovery}
+        onTriggerRecovery={() => {
+          setShowSendModal(false);
+          setShowRecoveryModal(true);
+        }}
+      />
+
+      {/* Modal Khôi phục Ví Bảo Mật */}
+      <WalletRecoveryModal
+        visible={showRecoveryModal || needsRecovery}
+        onClose={() => setShowRecoveryModal(false)}
+        onSuccess={() => setShowRecoveryModal(false)}
       />
     </SafeAreaView>
   );

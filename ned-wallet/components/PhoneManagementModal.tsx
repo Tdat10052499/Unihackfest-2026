@@ -106,9 +106,15 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
 
     try {
       // Gọi API UPDATE / Upsert Supabase
-      await updatePhoneNumber(userId, walletAddress, newPhone);
+      const res = await updatePhoneNumber(userId, walletAddress, newPhone);
 
-      // Lưu AsyncStorage
+      if (!res.success) {
+        setIsLoading(false);
+        Alert.alert('Cập nhật thất bại ❌', res.error || 'Không thể cập nhật số điện thoại.');
+        return;
+      }
+
+      // Lưu AsyncStorage chỉ khi DB thành công
       await setLinkedPhone(newPhone.trim());
 
       setIsLoading(false);
@@ -121,9 +127,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
       );
     } catch (err: any) {
       setIsLoading(false);
-      Alert.alert('Thông báo', 'Đã cập nhật số điện thoại.');
-      onPhoneUpdated(newPhone.trim());
-      setMode('VIEW');
+      Alert.alert('Lỗi', err?.message || 'Không thể cập nhật số điện thoại lúc này.');
     }
   };
 
@@ -153,7 +157,13 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
 
     try {
       // Gọi API DELETE Supabase
-      await unlinkPhoneNumber(userId, currentPhone || undefined);
+      const res = await unlinkPhoneNumber(userId, currentPhone || undefined);
+
+      if (!res.success) {
+        setIsLoading(false);
+        Alert.alert('Hủy liên kết thất bại ❌', res.error || 'Không thể hủy liên kết.');
+        return;
+      }
 
       // Xóa khỏi AsyncStorage
       await removeLinkedPhone();
@@ -168,9 +178,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
       );
     } catch (err: any) {
       setIsLoading(false);
-      await removeLinkedPhone();
-      onPhoneUpdated(null);
-      onClose();
+      Alert.alert('Lỗi', err?.message || 'Không thể hủy liên kết lúc này.');
     }
   };
 

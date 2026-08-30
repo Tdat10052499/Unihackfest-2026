@@ -31,12 +31,16 @@ import {
   solanaConnection,
   getSolanaBalance,
   ActivityItem,
+  executeSolanaTransfer,
 } from '@/services/solana';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
+import { useTransferToken } from '@/hooks/useTransferToken';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Tỷ giá quy đổi ngầm: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
+
+import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 
 interface RoomMember {
   user_id: string;
@@ -62,25 +66,29 @@ export default function ShakeRoomScreen() {
   }>();
 
   const { roomId, hostId, hostName } = searchParams;
+  const { user, isReady, logout } = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const {
+    transfer: executeTokenTransfer,
+    isTransferring: isExecutingTransfer,
+    statusMessage: transferStatusMessage,
+    isWalletReady,
+    needsRecovery,
+    recoverWallet,
+    isRecovering: isWalletRecovering,
+    walletStatus,
+  } = useTransferToken();
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {}
-  const user = privy?.user || null;
-
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {}
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const { nearbyUsers, broadcastInvite, currentUserProfile } = useGlobalPresence();
 
   // Xác định người dùng là Host hay Guest
-  const isHost =
+  const isHost = Boolean(
     searchParams.isHost === 'true' ||
     !hostId ||
-    (user?.id && hostId && user.id === hostId);
+    (user?.id && hostId && user.id === hostId)
+  );
 
   // Lưu địa chỉ ví On-chain của Host
   const [hostWalletAddress, setHostWalletAddress] = useState<string>(
@@ -123,6 +131,19 @@ export default function ShakeRoomScreen() {
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const radarWaveAnim = useRef(new Animated.Value(1)).current;
+
+  // Debug State của Ví khi Mount theo yêu cầu
+  useEffect(() => {
+    console.log('🔍 [ShakeRoom Mount Check]', {
+      isReady,
+      authenticated: Boolean(user),
+      userId: user?.id,
+      walletsCount: solanaWalletState?.wallets?.length || 0,
+      walletStatus: solanaWalletState?.status,
+      firstWalletAddress: solanaWalletState?.wallets?.[0]?.address || 'none',
+      isWalletReady,
+    });
+  }, [isReady, user, solanaWalletState?.status, solanaWalletState?.wallets?.length, isWalletReady]);
 
   // Lấy địa chỉ ví Solana On-chain (Base58) của người dùng hiện tại
   const getSolanaAddress = (): string | null => {
@@ -362,7 +383,7 @@ export default function ShakeRoomScreen() {
           event: 'trigger_split',
           payload: {
             room_id: roomId,
-            host_id: user.id,
+            host_id: user?.id || '',
             host_wallet_address: mySolanaAddress,
             total_bill: bill,
             split_amount: calculatedSplit,
@@ -508,9 +529,23 @@ export default function ShakeRoomScreen() {
 
   // 5. Phía Guest: THỰC THI GIAO DỊCH ON-CHAIN TRÊN SOLANA DEVNET (Sign & Send Transaction)
   const handleGuestPay = async () => {
-    if (isGuestPaying || hasGuestPaid) return;
+    if (isGuestPaying || isExecutingTransfer || hasGuestPaid) return;
     if (!user) {
       Alert.alert('Thông báo', 'Vui lòng đăng nhập để tiếp tục.');
+      return;
+    }
+
+    // Nếu ví đang cần khôi phục khóa bảo mật (sau factory reset)
+    if (needsRecovery) {
+      setShowRecoveryModal(true);
+      return;
+    }
+
+    if (!isWalletReady) {
+      Alert.alert(
+        'Ví đang kết nối',
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất rồi thử lại!`
+      );
       return;
     }
 
@@ -534,79 +569,49 @@ export default function ShakeRoomScreen() {
 
     // Quy đổi Dollar sang SOL: 1 SOL = $150 USD
     const solAmount = Math.max(0.0001, Number((paymentAmountUSD / SOL_USD_RATE).toFixed(6)));
-    const sendLamports = Math.floor(solAmount * 1e9);
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsGuestPaying(true);
 
     try {
-      // 1. Kiểm tra số dư khả dụng
-      let currentLamports = 0;
-      try {
-        currentLamports = await solanaConnection.getBalance(new PublicKey(guestSolAddress));
-      } catch (err) {
-        const cachedSol = await getCachedBalance();
-        currentLamports = Math.floor((cachedSol ?? 0.1) * 1e9);
-      }
+      const result = await executeTokenTransfer({
+        fromAddress: guestSolAddress,
+        recipientAddressOrPhone: recipientAddress,
+        amountSol: solAmount,
+      });
 
-      const requiredLamports = sendLamports + 5000;
-      if (currentLamports < requiredLamports) {
+      if (!result.success || !result.txSignature) {
         setIsGuestPaying(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert(
-          'Số dư không đủ',
-          `Số dư trong ví không đủ để thực hiện thanh toán $${paymentAmountUSD.toFixed(2)}. Vui lòng nạp thêm tiền!`
-        );
+        const errorMsg = result.error || '';
+        if (
+          errorMsg.includes('timeout') ||
+          errorMsg.includes('user-signer') ||
+          errorMsg.includes('WebView')
+        ) {
+          Alert.alert(
+            'Phiên làm việc bị gián đoạn ⚠️',
+            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+            [
+              { text: 'Đóng', style: 'cancel' },
+              {
+                text: 'Làm mới ngay',
+                style: 'destructive',
+                onPress: async () => {
+                  const { executeHardReset } = await import('@/services/storage');
+                  await executeHardReset(logout);
+                  router.replace('/login');
+                },
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Thanh toán chưa hoàn tất ❌', errorMsg || 'Giao dịch on-chain không thành công.');
         return;
       }
 
-      // 2. Ký & Gửi Giao Dịch
-      if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
-        throw new Error('Ví tài khoản chưa sẵn sàng.');
-      }
-
-      const provider = await solanaWalletState.wallets[0].getProvider();
-      const fromPubkey = new PublicKey(guestSolAddress);
-      const toPubkey = new PublicKey(recipientAddress);
-
-      const { blockhash, lastValidBlockHeight } =
-        await solanaConnection.getLatestBlockhash('confirmed');
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: sendLamports,
-        })
-      );
-
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      const { signedTransaction } = await provider.request({
-        method: 'signTransaction',
-        params: { transaction },
-      });
-
-      // 3. Broadcast và chờ Xác nhận
-      const rawBytes = signedTransaction.serialize();
-      const txSignature = await solanaConnection.sendRawTransaction(rawBytes, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-
-      const confirmation = await solanaConnection.confirmTransaction(
-        {
-          signature: txSignature,
-          blockhash,
-          lastValidBlockHeight,
-        },
-        'confirmed'
-      );
-
-      if (confirmation.value.err) {
-        throw new Error('Giao dịch chưa được xác nhận thành công');
-      }
+      const txSignature = result.txSignature;
 
       // 4. Ghi Log Lịch Sử Hoạt Động (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
@@ -622,20 +627,31 @@ export default function ShakeRoomScreen() {
       };
       await cacheActivities([newActivity, ...currentActs]);
 
-      // 5. Phát sóng sự kiện Realtime cập nhật trạng thái
+      // 5. Cập nhật trạng thái thành viên cục bộ
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.user_id === user.id ? { ...m, status: 'paid', tx_signature: txSignature } : m
+        )
+      );
+
+      // 6. Phát sóng sự kiện Realtime cập nhật trạng thái cho Host
       if (roomChannelRef.current) {
-        await roomChannelRef.current.send({
-          type: 'broadcast',
-          event: 'payment_update',
-          payload: {
-            user_id: user.id,
-            name: currentUserProfile.name,
-            status: 'paid',
-            tx_signature: txSignature,
-            amount: paymentAmountUSD,
-            paid_at: new Date().toISOString(),
-          },
-        });
+        try {
+          await roomChannelRef.current.send({
+            type: 'broadcast',
+            event: 'payment_update',
+            payload: {
+              user_id: user.id,
+              name: currentUserProfile.name,
+              status: 'paid',
+              tx_signature: txSignature,
+              amount: paymentAmountUSD,
+              paid_at: new Date().toISOString(),
+            },
+          });
+        } catch (broadcastErr) {
+          console.error('Lỗi broadcast payment_update:', broadcastErr);
+        }
       }
 
       setHasGuestPaid(true);
@@ -646,9 +662,33 @@ export default function ShakeRoomScreen() {
     } catch (e: any) {
       console.error('Lỗi khi thực hiện giao dịch:', e);
       setIsGuestPaying(false);
+      const errStr = e?.message || '';
+      if (
+        errStr.includes('timeout') ||
+        errStr.includes('user-signer') ||
+        errStr.includes('WebView')
+      ) {
+        Alert.alert(
+          'Phiên làm việc bị gián đoạn ⚠️',
+          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+          [
+            { text: 'Đóng', style: 'cancel' },
+            {
+              text: 'Làm mới ngay',
+              style: 'destructive',
+              onPress: async () => {
+                const { executeHardReset } = await import('@/services/storage');
+                await executeHardReset(logout);
+                router.replace('/login');
+              },
+            },
+          ]
+        );
+        return;
+      }
       Alert.alert(
         'Giao dịch thất bại',
-        'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
+        errStr || 'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
       );
     }
   };
@@ -678,22 +718,47 @@ export default function ShakeRoomScreen() {
 
   const displayRoomCode = roomId ? roomId.slice(0, 8).toUpperCase() : 'LOBBY';
 
+  // Bảo vệ State Giao diện: Chỉ hiển thị khi ví và tài khoản đã sẵn sàng
+  if (!isReady) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={{ marginTop: 12, color: '#94A3B8', fontWeight: '600' }}>
+          Đang khởi tạo phòng giao dịch...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={{ marginTop: 12, color: '#94A3B8', fontWeight: '600' }}>
+          Phiên đăng nhập đã hết hạn. Đang chuyển hướng...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
-      {/* Loading Overlay Toàn Màn Hình Khi Thanh Toán */}
-      <Modal visible={isGuestPaying} transparent animationType="fade">
-        <View style={styles.loadingOverlay}>
+      {/* Loading Overlay Toàn Màn Hình Khi Thanh Toán (Dùng View Absolute để không tạo Window hierarchy mới làm pause WebView của Privy) */}
+      {(isGuestPaying || isExecutingTransfer) && (
+        <View style={[StyleSheet.absoluteFill, styles.loadingOverlay, { zIndex: 9999 }]}>
           <View style={styles.loadingCard}>
             <ActivityIndicator size="large" color="#00A859" />
-            <Text style={styles.loadingCardTitle}>Đang xử lý thanh toán...</Text>
+            <Text style={styles.loadingCardTitle}>
+              {transferStatusMessage || 'Đang xử lý thanh toán...'}
+            </Text>
             <Text style={styles.loadingCardSubtitle}>
               Vui lòng giữ ứng dụng và chờ trong giây lát
             </Text>
           </View>
         </View>
-      </Modal>
+      )}
 
       {/* Header Bar */}
       <View style={styles.header}>
@@ -1174,16 +1239,33 @@ export default function ShakeRoomScreen() {
                 style={[
                   styles.guestPayBtn,
                   hasGuestPaid && styles.guestPayBtnPaid,
-                  isGuestPaying && styles.guestPayBtnLoading,
+                  needsRecovery && styles.guestPayBtnRecovery,
+                  ((!isWalletReady && !needsRecovery) || isGuestPaying) && styles.guestPayBtnLoading,
                 ]}
-                onPress={handleGuestPay}
-                disabled={isGuestPaying || hasGuestPaid}
+                onPress={() => {
+                  if (needsRecovery) {
+                    setShowRecoveryModal(true);
+                    return;
+                  }
+                  handleGuestPay();
+                }}
+                disabled={(isGuestPaying || hasGuestPaid || (!isWalletReady && !needsRecovery))}
                 activeOpacity={0.85}
               >
                 {hasGuestPaid ? (
                   <>
                     <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" />
                     <Text style={styles.guestPayBtnText}>Đã thanh toán thành công</Text>
+                  </>
+                ) : needsRecovery ? (
+                  <>
+                    <MaterialCommunityIcons name="shield-key" size={22} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.guestPayBtnText}>Khôi phục ví bảo mật</Text>
+                  </>
+                ) : !isWalletReady ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.guestPayBtnText}>Đang kết nối ví...</Text>
                   </>
                 ) : (
                   <>
@@ -1207,6 +1289,13 @@ export default function ShakeRoomScreen() {
           )
         )}
       </ScrollView>
+
+      {/* Modal Khôi phục Ví Bảo Mật khi cần (Needs Recovery) */}
+      <WalletRecoveryModal
+        visible={showRecoveryModal || needsRecovery}
+        onClose={() => setShowRecoveryModal(false)}
+        onSuccess={() => setShowRecoveryModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -2027,6 +2116,10 @@ const styles = StyleSheet.create({
   guestPayBtnPaid: {
     backgroundColor: '#10B981',
     opacity: 0.8,
+  },
+  guestPayBtnRecovery: {
+    backgroundColor: '#F59E0B',
+    shadowColor: '#F59E0B',
   },
   guestPayBtnLoading: {
     opacity: 0.8,

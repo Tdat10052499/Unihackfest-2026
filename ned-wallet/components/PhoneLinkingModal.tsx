@@ -72,10 +72,16 @@ export const PhoneLinkingModal: React.FC<PhoneLinkingModalProps> = ({
     setIsLoading(true);
 
     try {
-      // 1. Ghi nhận lên Supabase bảng phone_wallets
-      await linkPhoneNumber(userId, walletAddress, phone);
+      // 1. Ghi nhận lên Supabase bảng phone_wallets (UPSERT)
+      const res = await linkPhoneNumber(userId, walletAddress, phone);
 
-      // 2. Lưu vào AsyncStorage local cache
+      if (!res.success) {
+        setIsLoading(false);
+        Alert.alert('Liên kết thất bại ❌', res.error || 'Không thể liên kết số điện thoại này vào hệ thống.');
+        return;
+      }
+
+      // 2. Chỉ khi thành công mới lưu vào AsyncStorage local cache và cập nhật UI
       await setLinkedPhone(phone.trim());
 
       setIsLoading(false);
@@ -92,8 +98,7 @@ export const PhoneLinkingModal: React.FC<PhoneLinkingModalProps> = ({
     } catch (err: any) {
       setIsLoading(false);
       console.error('Error in phone linking verify:', err);
-      Alert.alert('Thông báo', 'Đã lưu liên kết số điện thoại.');
-      onClose();
+      Alert.alert('Lỗi', err?.message || 'Không thể liên kết số điện thoại lúc này.');
     }
   };
 

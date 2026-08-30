@@ -290,13 +290,31 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* 3. Footer Điều khoản */}
+          {/* 3. Footer Điều khoản & Reset */}
           <View style={styles.footerSection}>
             <Text style={styles.footerTermsText}>
               Bằng việc đăng nhập, bạn đồng ý với{' '}
               <Text style={styles.termsLink}>Điều khoản sử dụng</Text> và{' '}
               <Text style={styles.termsLink}>Chính sách bảo mật</Text> của N.E.D.
             </Text>
+
+            <TouchableOpacity
+              style={{ marginTop: 16, alignItems: 'center' }}
+              onPress={async () => {
+                try {
+                  const { executeHardReset } = await import('../services/storage');
+                  await executeHardReset();
+                  Alert.alert('Đã Dọn Dẹp 🎉', 'Đã xóa sạch dữ liệu đệm và làm mới phiên.');
+                } catch (e) {
+                  console.log(e);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 12, color: '#94A3B8', textDecorationLine: 'underline' }}>
+                Khắc phục sự cố: Dọn dẹp bộ nhớ phiên (Reset Cache)
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -148,3 +148,29 @@ export const removeLinkedPhone = async (): Promise<void> => {
     console.error('Error removing linkedPhone from AsyncStorage:', error);
   }
 };
+
+/**
+ * Dọn dẹp sâu toàn bộ Corrupted State, logout an toàn và xóa sạch AsyncStorage
+ */
+export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<void> => {
+  console.log('🧹 [Hard Reset] Bắt đầu dọn dẹp sâu session và bộ nhớ đệm...');
+  if (typeof logoutFn === 'function') {
+    try {
+      await Promise.race([
+        logoutFn(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 2500)),
+      ]);
+      console.log('✅ [Hard Reset] Đã logout Privy thành công');
+    } catch (logoutErr) {
+      console.warn('⚠️ [Hard Reset] Bỏ qua lỗi timeout logout (mfa:clear / user-signer):', logoutErr);
+    }
+  }
+
+  try {
+    await AsyncStorage.clear();
+    console.log('✅ [Hard Reset] Đã dọn dẹp sạch sẽ 100% AsyncStorage');
+  } catch (storageErr) {
+    console.error('Lỗi khi xóa AsyncStorage:', storageErr);
+  }
+};
+

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import {
@@ -23,13 +23,26 @@ import {
   SystemProgram,
 } from '@solana/web3.js';
 import { lookupWalletByPhone } from '../services/supabase';
-import { solanaConnection, getSolanaBalance } from '../services/solana';
+import { getSolanaBalance, ActivityItem } from '../services/solana';
+import { cacheActivities, getCachedActivities } from '../services/storage';
+import { useTransferToken } from '../hooks/useTransferToken';
+import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 
 export default function SendScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = usePrivy();
+  const { user, logout } = usePrivy();
   const solanaWalletState = useEmbeddedSolanaWallet();
+  const {
+    transfer,
+    isTransferring,
+    isWalletReady,
+    needsRecovery,
+    walletStatus,
+    statusMessage,
+  } = useTransferToken();
+
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const [searchInput, setSearchInput] = useState((params.recipient as string) || '');
   const [debouncedInput, setDebouncedInput] = useState((params.recipient as string) || '');
@@ -37,7 +50,6 @@ export default function SendScreen() {
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [amount, setAmount] = useState('0.001');
-  const [isSending, setIsSending] = useState(false);
   const [solBalance, setSolBalance] = useState<number | null>(null);
 
   // Lấy địa chỉ ví người dùng hiện tại
@@ -147,65 +159,122 @@ export default function SendScreen() {
   };
 
   const handleSendTransaction = async () => {
-    if (!myAddress || !resolvedAddress) {
-      Alert.alert('Thông báo', 'Vui lòng kiểm tra lại địa chỉ người nhận.');
+    if (!myAddress) {
+      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví người gửi.');
+      return;
+    }
+
+    const recipientInput = (resolvedAddress || searchInput).trim();
+    if (!recipientInput) {
+      Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại hoặc địa chỉ ví người nhận.');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Thông báo', 'Vui lòng nhập số lượng SOL hợp lệ.');
+      Alert.alert('Thông báo', 'Vui lòng nhập số lượng SOL hợp lệ (lớn hơn 0).');
       return;
     }
 
-    const sendLamports = Math.floor(numAmount * 1e9);
-    setIsSending(true);
+    if (needsRecovery) {
+      setShowRecoveryModal(true);
+      return;
+    }
+
+    if (!isWalletReady) {
+      Alert.alert(
+        'Ví đang kết nối',
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ trong giây lát!`
+      );
+      return;
+    }
 
     try {
-      if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
-        throw new Error('Ví nhúng Solana chưa sẵn sàng.');
+      const result = await transfer({
+        fromAddress: myAddress,
+        recipientAddressOrPhone: recipientInput,
+        amountSol: numAmount,
+      });
+
+      if (!result.success || !result.txSignature) {
+        const errorMsg = result.error || '';
+        if (
+          errorMsg.includes('timeout') ||
+          errorMsg.includes('user-signer') ||
+          errorMsg.includes('WebView')
+        ) {
+          Alert.alert(
+            'Phiên làm việc bị gián đoạn ⚠️',
+            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+            [
+              { text: 'Đóng', style: 'cancel' },
+              {
+                text: 'Làm mới ngay',
+                style: 'destructive',
+                onPress: async () => {
+                  const { executeHardReset } = await import('../services/storage');
+                  await executeHardReset(logout);
+                  router.replace('/login');
+                },
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg || 'Không thể thực hiện giao dịch.');
+        return;
       }
 
-      const provider = await solanaWalletState.wallets[0].getProvider();
-      const fromPubkey = new PublicKey(myAddress);
-      const toPubkey = new PublicKey(resolvedAddress);
+      const txSignature = result.txSignature;
+      const finalRecipient = result.recipientAddress || recipientInput;
 
-      const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+      // Lưu log lịch sử giao dịch vào cache sau khi giao dịch On-chain đã xác nhận
+      const currentActs = (await getCachedActivities()) || [];
+      const newAct: ActivityItem = {
+        id: txSignature,
+        type: 'sent',
+        title: 'Chuyển tiền',
+        time: 'Vừa xong',
+        amount: `-$${(numAmount * 150).toFixed(2)}`,
+        isPositive: false,
+        iconBg: '#374151',
+        signature: txSignature,
+      };
+      await cacheActivities([newAct, ...currentActs]);
 
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: sendLamports,
-        })
+      Alert.alert(
+        'Giao Dịch Thành Công! ⚡',
+        `Đã chuyển ${numAmount} SOL đến:\n${formatShortAddress(finalRecipient)}\nSignature: ${txSignature.slice(0, 16)}...`,
+        [{ text: 'Về Trang Chủ', onPress: () => router.replace('/') }]
       );
-
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      const { signedTransaction } = await provider.request({
-        method: 'signTransaction',
-        params: { transaction },
-      });
-
-      const rawBytes = signedTransaction.serialize();
-      const txSignature = await solanaConnection.sendRawTransaction(rawBytes, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-
-      if (txSignature) {
-        Alert.alert(
-          'Giao Dịch Thành Công! ⚡',
-          `Đã chuyển ${numAmount} SOL đến:\n${formatShortAddress(resolvedAddress)}\nSignature: ${txSignature.slice(0, 16)}...`,
-          [{ text: 'Về Trang Chủ', onPress: () => router.replace('/') }]
-        );
-      }
     } catch (err: any) {
       console.error('Send Transaction Error:', err);
-      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể thực hiện chuyển tiền.');
-    } finally {
-      setIsSending(false);
+      const errStr = err?.message || '';
+      if (
+        errStr.includes('timeout') ||
+        errStr.includes('user-signer') ||
+        errStr.includes('WebView')
+      ) {
+        Alert.alert(
+          'Phiên làm việc bị gián đoạn ⚠️',
+          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+          [
+            { text: 'Đóng', style: 'cancel' },
+            {
+              text: 'Làm mới ngay',
+              style: 'destructive',
+              onPress: async () => {
+                const { executeHardReset } = await import('../services/storage');
+                await executeHardReset(logout);
+                router.replace('/login');
+              },
+            },
+          ]
+        );
+        return;
+      }
+      Alert.alert('Lỗi Giao Dịch', errStr || 'Không thể thực hiện chuyển tiền.');
     }
   };
 
@@ -213,6 +282,18 @@ export default function SendScreen() {
     if (addr.length <= 12) return addr;
     return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
   };
+
+  // Bảo vệ giao diện: Chỉ render khi ví và tài khoản đã sẵn sàng
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00A859" />
+        <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
+          Đang xác thực phiên đăng nhập...
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -331,17 +412,29 @@ export default function SendScreen() {
             </View>
           </View>
 
-          {/* 5. Nút Xác Nhận Chuyển Tiền */}
+          {/* 5. Nút Xác Nhận Chuyển Tiền / Khôi phục ví */}
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              (!resolvedAddress || isSending || isLoadingLookup) && styles.sendBtnDisabled,
+              needsRecovery && styles.sendBtnRecovery,
+              (!resolvedAddress && !needsRecovery || isTransferring || isLoadingLookup) && styles.sendBtnDisabled,
             ]}
-            onPress={handleSendTransaction}
-            disabled={!resolvedAddress || isSending || isLoadingLookup}
+            onPress={() => {
+              if (needsRecovery) {
+                setShowRecoveryModal(true);
+                return;
+              }
+              handleSendTransaction();
+            }}
+            disabled={(!resolvedAddress && !needsRecovery) || isTransferring || isLoadingLookup}
             activeOpacity={0.85}
           >
-            {isSending ? (
+            {needsRecovery ? (
+              <View style={styles.sendBtnInner}>
+                <MaterialCommunityIcons name="shield-key" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.sendBtnText}>Khôi phục ví bảo mật</Text>
+              </View>
+            ) : isTransferring ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <View style={styles.sendBtnInner}>
@@ -352,6 +445,13 @@ export default function SendScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal Khôi phục Ví Bảo Mật */}
+      <WalletRecoveryModal
+        visible={showRecoveryModal || needsRecovery}
+        onClose={() => setShowRecoveryModal(false)}
+        onSuccess={() => setShowRecoveryModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -543,6 +643,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 8,
     elevation: 3,
+  },
+  sendBtnRecovery: {
+    backgroundColor: '#F59E0B',
+    shadowColor: '#F59E0B',
   },
   sendBtnDisabled: {
     opacity: 0.6,

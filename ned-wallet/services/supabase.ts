@@ -36,124 +36,153 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 /**
- * Chuẩn hóa số điện thoại về định dạng tiêu chuẩn (E.164 hoặc số nội địa)
+ * Chuẩn hóa số điện thoại về định dạng tiêu chuẩn (E.164 +84...)
  */
 export function normalizePhoneNumber(phone: string): string {
   let cleaned = phone.trim().replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('0') && cleaned.length >= 10) {
+  if (cleaned.startsWith('0') && cleaned.length >= 9) {
     cleaned = '+84' + cleaned.slice(1);
+  } else if (!cleaned.startsWith('+') && cleaned.startsWith('84') && cleaned.length >= 10) {
+    cleaned = '+' + cleaned;
+  } else if (!cleaned.startsWith('+') && cleaned.length >= 9) {
+    cleaned = '+84' + cleaned;
   }
   return cleaned;
+}
+
+/**
+ * Tạo danh sách các biến thể số điện thoại để tra cứu không bỏ sót (+84..., 0..., 84...)
+ */
+export function getPhoneVariants(phone: string): string[] {
+  const cleaned = phone.trim().replace(/[^\d+]/g, '');
+  const digits = phone.trim().replace(/[^\d]/g, '');
+  const normalized = normalizePhoneNumber(phone);
+
+  let local0 = '';
+  if (normalized.startsWith('+84')) {
+    local0 = '0' + normalized.slice(3);
+  } else if (digits.startsWith('84')) {
+    local0 = '0' + digits.slice(2);
+  }
+
+  const variants = new Set([cleaned, digits, normalized]);
+  if (local0) variants.add(local0);
+  return Array.from(variants).filter(Boolean);
+}
+
+/**
+ * Lấy số điện thoại đã lưu từ Supabase (Source of Truth) theo Privy userId
+ */
+export async function getUserPhoneNumberFromDB(userId: string): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('phone_wallets')
+      .select('phone_number')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data?.phone_number) {
+      console.log(`📱 [Supabase] Tìm thấy SĐT của user ${userId}:`, data.phone_number);
+      return data.phone_number;
+    }
+  } catch (err) {
+    console.error('Error fetching user phone from Supabase:', err);
+  }
+  return null;
 }
 
 /**
  * Tra cứu địa chỉ ví Solana theo số điện thoại từ Supabase Identity Service
  */
 export async function lookupWalletByPhone(phone: string): Promise<string | null> {
-  const normalizedPhone = normalizePhoneNumber(phone);
-  const rawDigits = phone.trim().replace(/[^\d]/g, '');
+  const variants = getPhoneVariants(phone);
+  if (variants.length === 0) return null;
 
-  const tables = ['phone_wallets', 'users', 'identities'];
-  const phoneFields = ['phone_number', 'phone', 'phoneNumber'];
+  try {
+    const { data, error } = await supabase
+      .from('phone_wallets')
+      .select('wallet_address')
+      .in('phone_number', variants)
+      .limit(1)
+      .maybeSingle();
 
-  for (const table of tables) {
-    for (const pField of phoneFields) {
-      try {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*')
-          .or(`${pField}.eq.${normalizedPhone},${pField}.eq.${rawDigits}`)
-          .limit(1)
-          .maybeSingle();
-
-        if (!error && data) {
-          const foundAddress =
-            data.wallet_address ||
-            data.solana_address ||
-            data.address ||
-            data.wallet;
-          if (foundAddress && typeof foundAddress === 'string') {
-            return foundAddress;
-          }
-        }
-      } catch {
-        // Thử trường / bảng tiếp theo
-      }
+    if (!error && data?.wallet_address) {
+      console.log(`🔍 [Supabase] Tìm thấy ví cho SĐT (${phone}):`, data.wallet_address);
+      return data.wallet_address;
     }
+  } catch (err) {
+    console.error('Error looking up wallet by phone:', err);
   }
 
   return null;
 }
 
 /**
- * Lưu liên kết số điện thoại với ví Solana lên bảng phone_wallets / users trên Supabase
+ * Lưu liên kết số điện thoại với ví Solana lên bảng phone_wallets trên Supabase (UPSERT)
  */
 export async function linkPhoneNumber(
   userId: string,
   walletAddress: string,
   phoneNumber: string
 ): Promise<{ success: boolean; error?: string }> {
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
-
-  const payloadVariations: Array<{
-    table: string;
-    data: Record<string, any>;
-    conflict: string;
-  }> = [
-    {
-      table: 'phone_wallets',
-      data: {
-        user_id: userId,
-        phone_number: normalizedPhone,
-        wallet_address: walletAddress,
-      },
-      conflict: 'phone_number',
-    },
-    {
-      table: 'phone_wallets',
-      data: {
-        user_id: userId,
-        phone: normalizedPhone,
-        wallet_address: walletAddress,
-      },
-      conflict: 'phone',
-    },
-    {
-      table: 'users',
-      data: {
-        id: userId,
-        phone_number: normalizedPhone,
-        wallet_address: walletAddress,
-      },
-      conflict: 'id',
-    },
-  ];
-
-  for (const variant of payloadVariations) {
-    try {
-      const { error: upsertError } = await supabase
-        .from(variant.table)
-        .upsert(variant.data as any, { onConflict: variant.conflict });
-
-      if (!upsertError) {
-        console.log(`✅ [Supabase] Đã liên kết thành công vào ${variant.table}`);
-        return { success: true };
-      }
-
-      const { error: insertError } = await supabase
-        .from(variant.table)
-        .insert(variant.data as any);
-
-      if (!insertError) {
-        console.log(`✅ [Supabase] Đã insert thành công vào ${variant.table}`);
-        return { success: true };
-      }
-    } catch {
-      // Tiếp tục thử biến thể tiếp theo
-    }
+  if (!userId) {
+    return { success: false, error: 'Không tìm thấy định danh người dùng.' };
+  }
+  if (!walletAddress) {
+    return { success: false, error: 'Không tìm thấy địa chỉ ví Solana.' };
   }
 
-  return { success: true };
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+  const variants = getPhoneVariants(phoneNumber);
+
+  try {
+    // 1. Kiểm tra xem SĐT này đã được người dùng khác liên kết chưa
+    const { data: existingUser, error: checkError } = await supabase
+      .from('phone_wallets')
+      .select('user_id, phone_number')
+      .in('phone_number', variants)
+      .neq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!checkError && existingUser) {
+      return {
+        success: false,
+        error: 'Số điện thoại này đã được liên kết với một tài khoản khác!',
+      };
+    }
+
+    // 2. Thực hiện UPSERT dựa trên user_id
+    const { error: upsertError } = await supabase
+      .from('phone_wallets')
+      .upsert(
+        {
+          user_id: userId,
+          phone_number: normalizedPhone,
+          wallet_address: walletAddress,
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (upsertError) {
+      console.error('❌ [Supabase] Lỗi khi upsert phone_wallets:', upsertError);
+      return {
+        success: false,
+        error: upsertError.message || 'Không thể lưu số điện thoại vào cơ sở dữ liệu.',
+      };
+    }
+
+    console.log(`✅ [Supabase] Đã liên kết thành công SĐT ${normalizedPhone} cho user ${userId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('❌ [Supabase] Ngoại lệ khi liên kết số điện thoại:', err);
+    return {
+      success: false,
+      error: err?.message || 'Lỗi kết nối cơ sở dữ liệu Supabase.',
+    };
+  }
 }
 
 /**
@@ -174,26 +203,25 @@ export async function unlinkPhoneNumber(
   userId: string,
   phoneNumber?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const tables = ['phone_wallets', 'users'];
-
-  for (const table of tables) {
-    try {
-      if (userId) {
-        await supabase.from(table).delete().eq('user_id', userId);
-        await supabase.from(table).delete().eq('id', userId);
-      }
-      if (phoneNumber) {
-        const normalized = normalizePhoneNumber(phoneNumber);
-        const rawDigits = phoneNumber.trim().replace(/[^\d]/g, '');
-        await supabase.from(table).delete().eq('phone', normalized);
-        await supabase.from(table).delete().eq('phone_number', normalized);
-        await supabase.from(table).delete().eq('phone', rawDigits);
-        await supabase.from(table).delete().eq('phone_number', rawDigits);
-      }
-    } catch (err) {
-      console.warn(`Error deleting phone record from ${table}:`, err);
+  try {
+    let query = supabase.from('phone_wallets').delete();
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else if (phoneNumber) {
+      const variants = getPhoneVariants(phoneNumber);
+      query = query.in('phone_number', variants);
     }
-  }
 
-  return { success: true };
+    const { error } = await query;
+    if (error) {
+      console.error('❌ [Supabase] Lỗi khi hủy liên kết phone_wallets:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`✅ [Supabase] Đã xóa liên kết SĐT của user ${userId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('❌ [Supabase] Ngoại lệ khi hủy liên kết:', err);
+    return { success: false, error: err?.message || 'Lỗi khi hủy liên kết.' };
+  }
 }

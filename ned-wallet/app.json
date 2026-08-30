@@ -46,6 +46,14 @@
         {
           "cameraPermission": "Cho phép ứng dụng truy cập camera để quét mã QR thanh toán."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
       ]
     ],
     "experiments": {

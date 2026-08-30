@@ -9,12 +9,14 @@ import {
   Modal,
   TouchableOpacity,
   Alert,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   usePrivy,
   useEmbeddedSolanaWallet,
+  useEmbeddedWallet,
 } from '@privy-io/expo';
 import {
   PublicKey,
@@ -30,6 +32,7 @@ import {
   fetchOnChainHistory,
   ActivityItem,
   formatRelativeTime,
+  executeSolanaTransfer,
 } from '@/services/solana';
 import {
   cacheBalance,
@@ -38,31 +41,38 @@ import {
   getCachedActivities,
   getHasSkippedPhoneLink,
   getLinkedPhone,
+  setLinkedPhone,
 } from '@/services/storage';
+import { getUserPhoneNumberFromDB, lookupWalletByPhone } from '@/services/supabase';
+import { useTransferToken } from '@/hooks/useTransferToken';
 import { DepositModal } from '@/components/DepositModal';
 import { SendModal } from '@/components/SendModal';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
+import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
   const router = useRouter();
   
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {
-    // safely ignore
-  }
-  const isReady = privy?.isReady ?? false;
-  const user = privy?.user ?? null;
+  const { isReady, user, logout } = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const embeddedWalletState = useEmbeddedWallet();
+  const {
+    transfer: executeTokenTransfer,
+    isTransferring: isExecutingTransfer,
+    isWalletReady,
+    needsRecovery: hookNeedsRecovery,
+    walletStatus,
+  } = useTransferToken();
 
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {
-    // safely ignore
-  }
+  const isNeedsRecovery = Boolean(
+    hookNeedsRecovery ||
+    solanaWalletState?.status === 'needs-recovery' ||
+    embeddedWalletState?.status === 'needs-recovery'
+  );
+
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -174,19 +184,25 @@ export default function HomeScreen() {
     loadCachedData();
   }, []);
 
-  // 2. Kiểm tra trạng thái liên kết SĐT (Phone Linking Prompt)
+  // 2. Kiểm tra trạng thái liên kết SĐT (Source of Truth từ Supabase)
   useEffect(() => {
     const checkPhoneLinkingPrompt = async () => {
       if (!user) return;
       try {
-        const [skipped, linked] = await Promise.all([
-          getHasSkippedPhoneLink(),
-          getLinkedPhone(),
-        ]);
-        if (linked) {
-          setLinkedPhoneState(linked);
+        // Bắt buộc gọi API Supabase kiểm tra xem user_id này đã có SĐT trong DB chưa
+        const dbPhone = await getUserPhoneNumberFromDB(user.id);
+        if (dbPhone) {
+          console.log('✅ [Home] Đã tìm thấy SĐT trong Supabase DB:', dbPhone);
+          setLinkedPhoneState(dbPhone);
+          await setLinkedPhone(dbPhone);
+          // Đã có trong DB -> Tuyệt đối không hiển thị modal nhập lại SĐT
+          return;
         }
-        if (!linked && !skipped) {
+
+        // Nếu DB chưa có, kiểm tra xem người dùng có từng bấm Bỏ qua trong phiên này không
+        setLinkedPhoneState(null);
+        const skipped = await getHasSkippedPhoneLink();
+        if (!skipped) {
           setTimeout(() => {
             setShowPhoneLinkingModal(true);
           }, 800);
@@ -234,7 +250,7 @@ export default function HomeScreen() {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             fetchActivities(solanaAddress);
-          }, 2000);
+          }, 3500);
         },
         'confirmed'
       );
@@ -328,15 +344,21 @@ export default function HomeScreen() {
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện quét QR thành công
+  // Xử lý sự kiện quét QR thành công (Tạo độ trễ an toàn cho Android Main Thread)
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (isScanningLocked.current) return;
     isScanningLocked.current = true;
     setHasScanned(true);
     setShowScanner(false);
     console.log('Đã quét địa chỉ:', data);
-    setWithdrawAddress(data);
-    setShowWithdrawModal(true);
+
+    // Chờ CameraView hoàn tất unmount và animation đóng hoàn toàn trước khi mở Modal
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        setWithdrawAddress(data);
+        setShowWithdrawModal(true);
+      }, 1000);
+    });
   };
 
   // Ký và gửi giao dịch chuyển tiền On-chain lên Solana Devnet
@@ -344,82 +366,135 @@ export default function HomeScreen() {
     targetAddress?: string,
     amountSol?: number
   ) => {
-    if (!solanaAddress) return;
-    const recipient = targetAddress || withdrawAddress.trim() || solanaAddress;
-    const sendLamports = Math.floor((amountSol || 0.001) * 1e9);
+    if (!solanaAddress) {
+      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nguồn.');
+      return;
+    }
 
+    const recipientInput = (targetAddress || withdrawAddress).trim();
+    if (!recipientInput) {
+      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.');
+      return;
+    }
+
+    if (isNeedsRecovery) {
+      setShowRecoveryModal(true);
+      return;
+    }
+
+    if (!isWalletReady) {
+      Alert.alert(
+        'Ví đang kết nối',
+        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ 2-3 giây để kết nối hoàn tất!`
+      );
+      return;
+    }
+
+    const numAmount = amountSol || 0.001;
     setIsSendingTx(true);
 
     try {
-      if (!solanaWalletState?.wallets || solanaWalletState.wallets.length === 0) {
-        throw new Error('Ví nhúng Solana chưa sẵn sàng.');
+      const result = await executeTokenTransfer({
+        fromAddress: solanaAddress,
+        recipientAddressOrPhone: recipientInput,
+        amountSol: numAmount,
+      });
+
+      if (!result.success || !result.txSignature) {
+        setIsSendingTx(false);
+        const errorMsg = result.error || '';
+        if (
+          errorMsg.includes('timeout') ||
+          errorMsg.includes('user-signer') ||
+          errorMsg.includes('WebView')
+        ) {
+          Alert.alert(
+            'Phiên làm việc bị gián đoạn ⚠️',
+            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+            [
+              { text: 'Đóng', style: 'cancel' },
+              {
+                text: 'Làm mới ngay',
+                style: 'destructive',
+                onPress: async () => {
+                  const { executeHardReset } = await import('@/services/storage');
+                  await executeHardReset(logout);
+                  router.replace('/login');
+                },
+              },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg || 'Không thể thực hiện giao dịch.');
+        return;
       }
 
-      const provider = await solanaWalletState.wallets[0].getProvider();
-      const fromPubkey = new PublicKey(solanaAddress);
-      const toPubkey = new PublicKey(recipient);
+      const txSignature = result.txSignature;
+      const finalRecipient = result.recipientAddress || recipientInput;
 
-      const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+      setShowWithdrawModal(false);
 
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: sendLamports,
-        })
+      // Chỉ ghi nhận vào Recent Activities sau khi giao dịch On-chain đã được xác nhận hoàn tất
+      const newAct: ActivityItem = {
+        id: txSignature,
+        type: 'sent',
+        title: 'Chuyển tiền',
+        time: 'Vừa xong',
+        amount: `-$${(numAmount * 150).toFixed(2)}`,
+        isPositive: false,
+        iconBg: '#374151',
+        signature: txSignature,
+      };
+
+      setActivities((prev) => {
+        const updated = [newAct, ...prev.filter((a) => a.id !== txSignature)];
+        cacheActivities(updated);
+        return updated;
+      });
+
+      setSolBalance((prev) =>
+        prev !== null ? Math.max(0, prev - numAmount - 0.000005) : prev
       );
 
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
+      setIsSendingTx(false);
 
-      const { signedTransaction } = await provider.request({
-        method: 'signTransaction',
-        params: { transaction },
-      });
-
-      const rawBytes = signedTransaction.serialize();
-      const txSignature = await solanaConnection.sendRawTransaction(rawBytes, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-
-      if (txSignature) {
-        setShowWithdrawModal(false);
-
-        const newAct: ActivityItem = {
-          id: txSignature,
-          type: 'sent',
-          title: 'Chuyển tiền',
-          time: 'Vừa xong',
-          amount: `-${((sendLamports / 1e9) * 150).toFixed(2).replace('.', ',')}$`,
-          isPositive: false,
-          iconBg: '#374151',
-          signature: txSignature,
-        };
-
-        setActivities((prev) => {
-          const updated = [newAct, ...prev.filter((a) => a.id !== txSignature)];
-          cacheActivities(updated);
-          return updated;
-        });
-
-        setSolBalance((prev) =>
-          prev !== null ? Math.max(0, prev - sendLamports / 1e9 - 0.000005) : prev
-        );
-
-        Alert.alert(
-          'Giao Dịch Thành Công! ⚡',
-          `Mã chữ ký (Signature):\n${txSignature.slice(0, 20)}...`
-        );
-      }
+      Alert.alert(
+        'Giao Dịch Thành Công! ⚡',
+        `Đã chuyển ${numAmount} SOL đến:\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\nChữ ký: ${txSignature.slice(0, 16)}...`
+      );
     } catch (err: any) {
+      setIsSendingTx(false);
       console.error('Solana Transaction Error:', err);
+      const errStr = err?.message || '';
+      if (
+        errStr.includes('timeout') ||
+        errStr.includes('user-signer') ||
+        errStr.includes('WebView')
+      ) {
+        Alert.alert(
+          'Phiên làm việc bị gián đoạn ⚠️',
+          'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+          [
+            { text: 'Đóng', style: 'cancel' },
+            {
+              text: 'Làm mới ngay',
+              style: 'destructive',
+              onPress: async () => {
+                const { executeHardReset } = await import('@/services/storage');
+                await executeHardReset(logout);
+                router.replace('/login');
+              },
+            },
+          ]
+        );
+        return;
+      }
       Alert.alert(
         'Lỗi Giao Dịch',
-        err?.message || 'Không thể broadcast giao dịch lên Devnet.'
+        errStr || 'Không thể broadcast giao dịch lên Devnet.'
       );
-    } finally {
-      setIsSendingTx(false);
     }
   };
 
@@ -577,6 +652,28 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* 2.5 Banner Khôi phục ví khi thiết bị mới phát hiện / Needs Recovery */}
+        {isNeedsRecovery && (
+          <TouchableOpacity
+            style={styles.recoveryCard}
+            onPress={() => setShowRecoveryModal(true)}
+            activeOpacity={0.88}
+          >
+            <View style={styles.recoveryIconCircle}>
+              <MaterialCommunityIcons name="shield-key" size={24} color="#D97706" />
+            </View>
+            <View style={styles.recoveryTextCol}>
+              <Text style={styles.recoveryTitle}>Thiết bị mới phát hiện ⚠️</Text>
+              <Text style={styles.recoveryDesc}>
+                Cần khôi phục ví bảo mật để tiếp tục giao dịch.
+              </Text>
+            </View>
+            <View style={styles.recoveryBtn}>
+              <Text style={styles.recoveryBtnText}>Khôi phục</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* 3. Next Steps (Onboarding Component) */}
         <View style={styles.nextStepsCard}>
           <View style={styles.nextStepsHeader}>
@@ -719,6 +816,11 @@ export default function HomeScreen() {
         onOpenScanner={handleOpenScanner}
         onConfirmSend={async (target, amt) => handleSendTransaction(target, amt)}
         isSending={isSendingTx}
+        needsRecovery={isNeedsRecovery}
+        onTriggerRecovery={() => {
+          setShowWithdrawModal(false);
+          setShowRecoveryModal(true);
+        }}
       />
 
       <PhoneLinkingModal
@@ -746,10 +848,6 @@ export default function HomeScreen() {
             onBarcodeScanned={hasScanned ? undefined : handleBarCodeScanned}
           />
           <View style={styles.cameraOverlay}>
-            <View style={styles.scanBoundingBox} />
-            <Text style={styles.scanHintText}>
-              Hướng camera vào mã QR thanh toán
-            </Text>
             <TouchableOpacity
               style={styles.cancelCameraBtn}
               onPress={() => setShowScanner(false)}
@@ -759,6 +857,12 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      <WalletRecoveryModal
+        visible={showRecoveryModal || isNeedsRecovery}
+        onClose={() => setShowRecoveryModal(false)}
+        onSuccess={() => setShowRecoveryModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -933,6 +1037,57 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  // Recovery Alert Card
+  recoveryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    marginBottom: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  recoveryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  recoveryTextCol: {
+    flex: 1,
+    marginRight: 8,
+  },
+  recoveryTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  recoveryDesc: {
+    fontSize: 12,
+    color: '#B45309',
+    lineHeight: 16,
+  },
+  recoveryBtn: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  recoveryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
   nextStepsCard: {
     backgroundColor: '#FFFFFF',
