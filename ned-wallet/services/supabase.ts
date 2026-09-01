@@ -51,6 +51,21 @@ export function normalizePhoneNumber(phone: string): string {
 }
 
 /**
+ * So sánh xem 2 chuỗi số điện thoại có phải là một hay không (bỏ qua định dạng +84 / 0 / dấu cách)
+ */
+export function isSamePhoneNumber(phone1?: string | null, phone2?: string | null): boolean {
+  if (!phone1 || !phone2) return false;
+  const p1 = phone1.trim();
+  const p2 = phone2.trim();
+  if (!p1 || !p2) return false;
+  if (p1 === p2) return true;
+
+  const v1 = getPhoneVariants(p1);
+  const v2 = getPhoneVariants(p2);
+  return v1.some((variant) => v2.includes(variant));
+}
+
+/**
  * Tạo danh sách các biến thể số điện thoại để tra cứu không bỏ sót (+84..., 0..., 84...)
  */
 export function getPhoneVariants(phone: string): string[] {
@@ -68,6 +83,36 @@ export function getPhoneVariants(phone: string): string[] {
   const variants = new Set([cleaned, digits, normalized]);
   if (local0) variants.add(local0);
   return Array.from(variants).filter(Boolean);
+}
+
+/**
+ * Định dạng số điện thoại ẩn các ký tự ở giữa (VD: 0912 ••• 678)
+ */
+export function getMaskedPhone(phone?: string | null): string {
+  if (!phone) return '';
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.length < 8) return cleaned;
+  const start = cleaned.slice(0, 4);
+  const end = cleaned.slice(-3);
+  return `${start} ••• ${end}`;
+}
+
+/**
+ * Lấy Mã Định Danh Tài Khoản N.E.D động (Không hardcode chuỗi tĩnh)
+ * Được sinh tự động từ SĐT liên kết hoặc định danh người dùng
+ */
+export function getAccountIdentifier(user?: any, phone?: string | null): string {
+  if (phone) {
+    const digits = phone.replace(/[^\d]/g, '');
+    const last4 = digits.slice(-4) || '8888';
+    return `NED-${last4}`;
+  }
+  if (user?.id) {
+    const cleanId = user.id.replace(/[^\w]/g, '');
+    const last4 = cleanId.slice(-4).toUpperCase() || 'USER';
+    return `NED-${last4}`;
+  }
+  return 'NED-ACC';
 }
 
 /**
@@ -223,5 +268,176 @@ export async function unlinkPhoneNumber(
   } catch (err: any) {
     console.error('❌ [Supabase] Ngoại lệ khi hủy liên kết:', err);
     return { success: false, error: err?.message || 'Lỗi khi hủy liên kết.' };
+  }
+}
+
+/**
+ * Tính khoảng cách giữa hai tọa độ GPS theo công thức Haversine (đơn vị: mét)
+ */
+export function calculateDistanceInMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371e3; // Bán kính Trái Đất theo mét
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // mét
+}
+
+export interface GeoRedPacket {
+  id: string;
+  creator_wallet: string;
+  amount: number;
+  lat: number;
+  lng: number;
+  radius: number; // mét
+  message?: string;
+  status: 'active' | 'claimed' | 'expired';
+  tx_signature?: string;
+  claimed_by?: string;
+  claimed_at?: string;
+  created_at: string;
+  distanceMeters?: number; // Được tính toán động dựa vào GPS người dùng
+}
+
+/**
+ * Tạo bản ghi Geo Red Packet mới trên Supabase sau khi chuyển tiền On-chain thành công
+ */
+export async function createGeoRedPacketRecord(params: {
+  creator_wallet: string;
+  amount: number;
+  lat: number;
+  lng: number;
+  radius?: number;
+  message?: string;
+  tx_signature: string;
+}): Promise<{ success: boolean; data?: GeoRedPacket; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('geo_red_packets')
+      .insert({
+        creator_wallet: params.creator_wallet,
+        amount: params.amount,
+        lat: params.lat,
+        lng: params.lng,
+        radius: params.radius || 50,
+        message: params.message || 'Chúc bạn nhận được thật nhiều may mắn! 🧧',
+        status: 'active',
+        tx_signature: params.tx_signature,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ [Supabase] Lỗi khi tạo Geo Red Packet:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('🧧 [Supabase] Tạo thành công Geo Red Packet:', data?.id);
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('❌ [Supabase] Ngoại lệ khi tạo Geo Red Packet:', err);
+    return { success: false, error: err?.message || 'Lỗi kết nối Supabase.' };
+  }
+}
+
+/**
+ * Lấy danh sách các bao lì xì đang hoạt động lân cận
+ */
+export async function fetchActiveGeoRedPackets(
+  userLat?: number,
+  userLng?: number,
+  maxRadiusMeters: number = 2000
+): Promise<GeoRedPacket[]> {
+  try {
+    const { data, error } = await supabase
+      .from('geo_red_packets')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      console.error('❌ [Supabase] Lỗi khi lấy danh sách Geo Red Packets:', error);
+      return [];
+    }
+
+    if (userLat !== undefined && userLng !== undefined) {
+      const withDistance = data.map((item: any) => {
+        const dist = calculateDistanceInMeters(userLat, userLng, item.lat, item.lng);
+        return {
+          ...item,
+          distanceMeters: Math.round(dist),
+        };
+      });
+
+      return withDistance.filter((item) => item.distanceMeters <= maxRadiusMeters);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('❌ [Supabase] Ngoại lệ khi lấy danh sách Geo Red Packets:', err);
+    return [];
+  }
+}
+
+/**
+ * Gửi yêu cầu nhận lì xì lên Supabase Edge Function (Backend Signer bảo mật)
+ */
+export async function claimGeoRedPacketViaBackend(params: {
+  packet_id: string;
+  user_wallet: string;
+  user_lat: number;
+  user_lng: number;
+}): Promise<{
+  success: boolean;
+  amount?: number;
+  message?: string;
+  creator_wallet?: string;
+  txSignature?: string;
+  error?: string;
+}> {
+  const { packet_id, user_wallet, user_lat, user_lng } = params;
+  try {
+    const { data, error } = await supabase.functions.invoke('claim-redpacket', {
+      body: {
+        packet_id,
+        user_wallet,
+        user_lat,
+        user_lng,
+      },
+    });
+
+    if (error) {
+      console.error('❌ [Edge Function claim-redpacket] Error:', error);
+      return {
+        success: false,
+        error: error.message || 'Lỗi khi gọi Backend Signer.',
+      };
+    }
+
+    if (data && data.success === false) {
+      return {
+        success: false,
+        error: data.error || 'Không thể nhận bao lì xì này.',
+      };
+    }
+
+    return data;
+  } catch (err: any) {
+    console.error('❌ [claimGeoRedPacketViaBackend] Exception:', err);
+    return {
+      success: false,
+      error: err?.message || 'Lỗi kết nối máy chủ.',
+    };
   }
 }

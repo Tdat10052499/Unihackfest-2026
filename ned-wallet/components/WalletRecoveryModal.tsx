@@ -6,14 +6,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  Modal,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRecoverEmbeddedWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useTranslation } from '../services/i18n';
 
 interface WalletRecoveryModalProps {
   visible: boolean;
@@ -26,6 +26,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const { recover } = useRecoverEmbeddedWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
 
@@ -48,11 +49,11 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        'Khôi phục thành công! 🎉',
-        'Khóa bảo mật ví đã được đồng bộ lại trên thiết bị này. Bạn có thể tiếp tục thực hiện các giao dịch on-chain.',
+        t('recovery.successTitle', { defaultValue: 'Khôi phục thành công! 🎉' }),
+        t('recovery.successDesc', { defaultValue: 'Khóa bảo mật ví đã được đồng bộ lại trên thiết bị này. Bạn có thể tiếp tục thực hiện các giao dịch on-chain.' }),
         [
           {
-            text: 'Tiếp tục',
+            text: t('recovery.continue', { defaultValue: 'Tiếp tục' }),
             onPress: () => {
               onSuccess?.();
               onClose();
@@ -62,13 +63,12 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
       );
     } catch (err: any) {
       console.error('Lỗi khôi phục qua Privy:', err);
-      // Nếu privy method yêu cầu passcode hoặc google drive
       if (err?.message?.includes('passcode') || err?.message?.includes('password')) {
         setMode('PASSCODE');
       } else {
         setErrorMessage(
           err?.message ||
-            'Không thể tự động khôi phục. Vui lòng thử phương thức Google Drive hoặc Mật khẩu.'
+            'Không thể tự động khôi phục ví ngầm. Vui lòng thử khôi phục qua Google Drive hoặc Passcode.'
         );
       }
     } finally {
@@ -88,11 +88,11 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        'Khôi phục thành công! 🎉',
-        'Khóa bảo mật ví đã được đồng bộ từ Google Drive. Bạn có thể tiếp tục giao dịch.',
+        t('recovery.successTitle', { defaultValue: 'Khôi phục thành công! 🎉' }),
+        t('recovery.successDesc', { defaultValue: 'Khóa bảo mật ví đã được đồng bộ từ Google Drive. Bạn có thể tiếp tục giao dịch.' }),
         [
           {
-            text: 'Tiếp tục',
+            text: t('recovery.continue', { defaultValue: 'Tiếp tục' }),
             onPress: () => {
               onSuccess?.();
               onClose();
@@ -112,7 +112,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 
   const handleRecoverPasscode = async () => {
     if (!passcode.trim()) {
-      setErrorMessage('Vui lòng nhập mật mã khôi phục của bạn');
+      setErrorMessage(t('recovery.passcodeEmpty', { defaultValue: 'Vui lòng nhập mật mã khôi phục của bạn' }));
       return;
     }
 
@@ -127,11 +127,11 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        'Khôi phục thành công! 🎉',
-        'Ví đã được khôi phục thành công!',
+        t('recovery.successTitle', { defaultValue: 'Khôi phục thành công! 🎉' }),
+        t('recovery.successDesc', { defaultValue: 'Ví đã được khôi phục thành công!' }),
         [
           {
-            text: 'Tiếp tục',
+            text: t('recovery.continue', { defaultValue: 'Tiếp tục' }),
             onPress: () => {
               setPasscode('');
               setMode('CHOICE');
@@ -166,9 +166,9 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
           </View>
 
           {/* Title & Desc */}
-          <Text style={styles.titleText}>Thiết bị mới phát hiện</Text>
+          <Text style={styles.titleText}>{t('recovery.title', { defaultValue: 'Thiết bị mới phát hiện' })}</Text>
           <Text style={styles.descText}>
-            Thiết bị của bạn vừa được cài đặt lại hoặc đăng nhập trên môi trường mới. Vui lòng khôi phục khóa bảo mật ví để tiếp tục ký các giao dịch on-chain.
+            {t('recovery.desc', { defaultValue: 'Thiết bị của bạn vừa được cài đặt lại hoặc đăng nhập trên môi trường mới. Vui lòng khôi phục khóa bảo mật ví để tiếp tục ký các giao dịch on-chain.' })}
           </Text>
 
           {errorMessage ? (
@@ -192,7 +192,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
                 ) : (
                   <>
                     <Ionicons name="cloud-download-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.primaryActionBtnText}>Khôi phục tự động (Cloud)</Text>
+                    <Text style={styles.primaryActionBtnText}>{t('recovery.autoCloud', { defaultValue: 'Khôi phục tự động (Cloud)' })}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -205,7 +205,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
                 activeOpacity={0.85}
               >
                 <Ionicons name="logo-google" size={18} color="#3B82F6" style={{ marginRight: 8 }} />
-                <Text style={styles.secondaryActionBtnText}>Khôi phục từ Google Drive</Text>
+                <Text style={styles.secondaryActionBtnText}>{t('recovery.googleDrive', { defaultValue: 'Khôi phục từ Google Drive' })}</Text>
               </TouchableOpacity>
 
               {/* Option 3: Passcode */}
@@ -217,17 +217,17 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
                 }}
                 disabled={isRecovering}
               >
-                <Text style={styles.linkActionBtnText}>Sử dụng Mật khẩu / Passcode ví</Text>
+                <Text style={styles.linkActionBtnText}>{t('recovery.usePasscode', { defaultValue: 'Sử dụng Mật khẩu / Passcode ví' })}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.passcodeContainer}>
-              <Text style={styles.inputLabel}>Nhập mật khẩu khôi phục ví:</Text>
+              <Text style={styles.inputLabel}>{t('recovery.passcodeLabel', { defaultValue: 'Nhập mật khẩu khôi phục ví:' })}</Text>
               <TextInput
                 style={styles.passcodeInput}
                 value={passcode}
                 onChangeText={setPasscode}
-                placeholder="Nhập mật khẩu của bạn..."
+                placeholder={t('recovery.passcodePlaceholder', { defaultValue: 'Nhập mật khẩu của bạn...' })}
                 placeholderTextColor="#64748B"
                 secureTextEntry
                 autoFocus
@@ -242,7 +242,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
                 {isRecovering ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryActionBtnText}>Xác nhận khôi phục</Text>
+                  <Text style={styles.primaryActionBtnText}>{t('recovery.confirmPasscode', { defaultValue: 'Xác nhận khôi phục' })}</Text>
                 )}
               </TouchableOpacity>
 
@@ -254,7 +254,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
                 }}
                 disabled={isRecovering}
               >
-                <Text style={styles.linkActionBtnText}>Quay lại phương thức khác</Text>
+                <Text style={styles.linkActionBtnText}>{t('recovery.back', { defaultValue: 'Quay lại phương thức khác' })}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -265,7 +265,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
             onPress={onClose}
             disabled={isRecovering}
           >
-            <Text style={styles.cancelBtnText}>Để sau</Text>
+            <Text style={styles.cancelBtnText}>{t('recovery.close', { defaultValue: 'Để sau' })}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -276,36 +276,35 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 const styles = StyleSheet.create({
   overlayWrapper: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 10000,
+    elevation: 10000,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 400,
     backgroundColor: '#1E293B',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    shadowColor: '#F59E0B',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
   iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -320,11 +319,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   descText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   errorBox: {
     flexDirection: 'row',
@@ -333,91 +332,89 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 14,
+    padding: 10,
+    marginBottom: 16,
     width: '100%',
   },
   errorText: {
+    fontSize: 12,
+    color: '#EF4444',
     flex: 1,
-    fontSize: 13,
-    color: '#F87171',
-    lineHeight: 18,
   },
   actionsContainer: {
     width: '100%',
-    gap: 10,
+  },
+  primaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00A859',
+    paddingVertical: 14,
+    borderRadius: 14,
+    width: '100%',
+    marginBottom: 10,
+  },
+  primaryActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  secondaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 14,
+    borderRadius: 14,
+    width: '100%',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  secondaryActionBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  linkActionBtn: {
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  linkActionBtnText: {
+    fontSize: 13,
+    color: '#34D399',
+    fontWeight: '600',
   },
   passcodeContainer: {
     width: '100%',
-    gap: 12,
   },
   inputLabel: {
     fontSize: 13,
     color: '#CBD5E1',
+    marginBottom: 8,
     fontWeight: '600',
   },
   passcodeInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  primaryActionBtn: {
-    backgroundColor: '#00A859',
-    borderRadius: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryActionBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  secondaryActionBtn: {
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 14,
-    paddingVertical: 13,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryActionBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E2E8F0',
-  },
-  linkActionBtn: {
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  linkActionBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#38BDF8',
+    marginBottom: 16,
   },
   cancelBtn: {
-    marginTop: 10,
+    marginTop: 8,
     paddingVertical: 6,
-    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   cancelBtnText: {
     fontSize: 13,
     color: '#64748B',
+    fontWeight: '500',
   },
   btnDisabled: {
     opacity: 0.6,

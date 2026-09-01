@@ -10,9 +10,11 @@ import {
   TouchableOpacity,
   Alert,
   InteractionManager,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import {
   usePrivy,
   useEmbeddedSolanaWallet,
@@ -28,10 +30,15 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import {
   getSolanaBalance,
+  getAccountDisplayBalance,
+  formatFiatBalance,
+  AccountDisplayBalance,
   solanaConnection,
   fetchOnChainHistory,
   ActivityItem,
   formatRelativeTime,
+  formatLocalizedRelativeTime,
+  getActivityTitle,
   executeSolanaTransfer,
 } from '@/services/solana';
 import {
@@ -43,17 +50,28 @@ import {
   getLinkedPhone,
   setLinkedPhone,
 } from '@/services/storage';
-import { getUserPhoneNumberFromDB, lookupWalletByPhone } from '@/services/supabase';
+import {
+  getUserPhoneNumberFromDB,
+  lookupWalletByPhone,
+  getAccountIdentifier,
+  getMaskedPhone,
+} from '@/services/supabase';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
+import { useTranslation } from '@/services/i18n';
 import { DepositModal } from '@/components/DepositModal';
 import { SendModal } from '@/components/SendModal';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
 import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
+import { NeoBalanceCard } from '@/components/neo/NeoBalanceCard';
+import { NeoCard } from '@/components/neo/NeoCard';
+import { NeoButton } from '@/components/neo/NeoButton';
+import { NEO_COLORS } from '@/components/neo/tokens';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   
   const { isReady, user, logout } = usePrivy();
   const solanaWalletState = useEmbeddedSolanaWallet();
@@ -73,6 +91,7 @@ export default function HomeScreen() {
 
   // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -91,26 +110,7 @@ export default function HomeScreen() {
   const [isSendingTx, setIsSendingTx] = useState(false);
 
   // State danh sách lịch sử giao dịch & loading
-  const [activities, setActivities] = useState<ActivityItem[]>([
-    {
-      id: '1',
-      type: 'reward',
-      title: 'Reward',
-      time: '4 mo ago',
-      amount: '+$<0,01',
-      isPositive: true,
-      iconBg: '#3B82F6',
-    },
-    {
-      id: '2',
-      type: 'received',
-      title: 'Received',
-      time: '4 mo ago',
-      amount: '+$0,10',
-      isPositive: true,
-      iconBg: '#DDD6FE',
-    },
-  ]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
   // Ref theo dõi activities hiện tại để so sánh chống chớp màn hình (Anti-flicker)
@@ -206,24 +206,72 @@ export default function HomeScreen() {
     checkPhoneLinkingPrompt();
   }, [user]);
 
-  // 3. Luồng Cache-then-Network: Kéo dữ liệu on-chain chạy nền khi có địa chỉ ví
-  useEffect(() => {
-    if (solanaAddress) {
-      fetchBalance(solanaAddress);
-      fetchActivities(solanaAddress);
+  // Lấy số dư On-chain
+  const fetchBalance = useCallback(async (address: string) => {
+    if (!address) return;
+    try {
+      const displayData = await getAccountDisplayBalance(address);
+      setSolBalance(displayData.solBalance);
+      setAccountBalanceState(displayData);
+      cacheBalance(displayData.solBalance);
+    } catch (err: any) {
+      console.log('Error fetching Devnet balance:', err);
     }
-  }, [solanaAddress]);
+  }, []);
 
-  // 4. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
+  // Lấy lịch sử giao dịch On-chain
+  const fetchActivities = useCallback(async (address: string, force: boolean = false) => {
+    if (!address) return;
+    setIsLoadingActivities(true);
+    try {
+      const onChainList = await fetchOnChainHistory(address, force);
+      if (onChainList && Array.isArray(onChainList)) {
+        setActivities(onChainList);
+        cacheActivities(onChainList);
+      }
+    } catch (err: any) {
+      console.log('Error fetching on-chain history:', err);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  }, []);
+
+  // 3. Tự động làm mới khi chuyển Tab vào Trang Chủ (Focus Effect)
+  useFocusEffect(
+    useCallback(() => {
+      if (solanaAddress) {
+        fetchBalance(solanaAddress);
+        fetchActivities(solanaAddress, true);
+      }
+    }, [solanaAddress, fetchBalance, fetchActivities])
+  );
+
+  // 4. Lắng nghe khi App mở lại từ Background (AppState Active)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && solanaAddress) {
+        fetchBalance(solanaAddress);
+        fetchActivities(solanaAddress, true);
+      }
+    });
+    return () => sub.remove();
+  }, [solanaAddress, fetchBalance, fetchActivities]);
+
+  // 5. Luồng Auto-Polling Heartbeat & WebSocket Realtime Sync
   useEffect(() => {
     if (!solanaAddress) return;
 
+    let isMounted = true;
     let subscriptionId: number | null = null;
     let debounceTimer: any = null;
 
+    // A. Kéo dữ liệu khởi tạo ngay lập tức
+    fetchBalance(solanaAddress);
+    fetchActivities(solanaAddress, true);
+
+    // B. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
     try {
       const pubKey = new PublicKey(solanaAddress);
-
       subscriptionId = solanaConnection.onAccountChange(
         pubKey,
         (accountInfo) => {
@@ -231,6 +279,9 @@ export default function HomeScreen() {
           console.log('⚡ [WebSocket] Biến động số dư tài khoản thời gian thực:', newBalance, 'SOL');
 
           setSolBalance((prev) => {
+            if (prev !== null && newBalance > prev) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
             if (prev !== newBalance) {
               cacheBalance(newBalance);
               return newBalance;
@@ -240,8 +291,8 @@ export default function HomeScreen() {
 
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
-            fetchActivities(solanaAddress);
-          }, 3500);
+            if (isMounted) fetchActivities(solanaAddress, true);
+          }, 1500);
         },
         'confirmed'
       );
@@ -249,58 +300,43 @@ export default function HomeScreen() {
       console.error('Error setting up onAccountChange WebSocket listener:', err);
     }
 
+    // C. Heartbeat Polling: Quét số dư định kỳ mỗi 7 giây
+    const pollInterval = setInterval(async () => {
+      if (!isMounted) return;
+      try {
+        const latestBal = await getSolanaBalance(solanaAddress);
+        setSolBalance((prev) => {
+          if (prev !== null && latestBal !== prev) {
+            console.log(`⚡ [Auto-Poll] Nhận biến động số dư: ${prev} -> ${latestBal} SOL`);
+            cacheBalance(latestBal);
+            if (latestBal > prev) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+            // Lập tức kéo lại danh sách hoạt động khi số dư thay đổi
+            fetchActivities(solanaAddress, true);
+            return latestBal;
+          } else if (prev === null) {
+            cacheBalance(latestBal);
+            return latestBal;
+          }
+          return prev;
+        });
+      } catch (e) {
+        // bỏ qua lỗi rpc tạm thời
+      }
+    }, 7000);
+
     return () => {
+      isMounted = false;
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollInterval);
       if (subscriptionId !== null) {
         solanaConnection.removeAccountChangeListener(subscriptionId).catch((e) => {
           console.log('Error removing account change listener:', e);
         });
       }
     };
-  }, [solanaAddress]);
-
-  // Lấy số dư On-chain
-  const fetchBalance = async (address: string) => {
-    try {
-      const balance = await getSolanaBalance(address);
-      setSolBalance((prev) => {
-        if (prev !== balance) {
-          cacheBalance(balance);
-          return balance;
-        }
-        return prev;
-      });
-    } catch (err: any) {
-      console.log('Error fetching Devnet balance:', err);
-    }
-  };
-
-  // Lấy lịch sử giao dịch On-chain (Tối ưu Anti-Flicker)
-  const fetchActivities = async (address: string, force: boolean = false) => {
-    setIsLoadingActivities(true);
-    try {
-      const onChainList = await fetchOnChainHistory(address, force);
-      if (onChainList && onChainList.length > 0) {
-        const currentList = activitiesRef.current;
-        const isSame =
-          currentList.length === onChainList.length &&
-          currentList.every(
-            (item, idx) =>
-              item.id === onChainList[idx]?.id &&
-              item.amount === onChainList[idx]?.amount
-          );
-
-        if (!isSame) {
-          setActivities(onChainList);
-          cacheActivities(onChainList);
-        }
-      }
-    } catch (err: any) {
-      console.log('Error fetching on-chain history:', err);
-    } finally {
-      setIsLoadingActivities(false);
-    }
-  };
+  }, [solanaAddress, fetchBalance, fetchActivities]);
 
   // Hàm xử lý Vuốt để làm mới (Pull-to-Refresh)
   const handlePullToRefresh = useCallback(async () => {
@@ -316,7 +352,7 @@ export default function HomeScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [solanaAddress]);
+  }, [solanaAddress, fetchBalance, fetchActivities]);
 
   // Mở màn hình Camera quét mã QR
   const handleOpenScanner = async () => {
@@ -474,32 +510,20 @@ export default function HomeScreen() {
   };
 
   const getFormattedBalance = () => {
-    if (solBalance === null) return currency === 'USD' ? '$0,10' : '2.540 ₫';
-    const usdVal = solBalance * 150 + 0.1;
-    if (currency === 'USD') {
-      return `$${usdVal.toFixed(2).replace('.', ',')}`;
-    } else {
-      const vndVal = usdVal * 25400;
-      return `${Math.round(vndVal).toLocaleString('vi-VN')} ₫`;
+    if (accountBalanceState) {
+      return currency === 'USD'
+        ? accountBalanceState.formattedUsd
+        : accountBalanceState.formattedVnd;
     }
-  };
-
-  const getMaskedPhone = (rawPhone: string | null): string => {
-    if (!rawPhone) return 'Chưa liên kết';
-    const cleaned = rawPhone.trim();
-    if (cleaned.length < 8) return cleaned;
-    const prefix = cleaned.slice(0, 5);
-    const suffix = cleaned.slice(-2);
-    const middleCount = Math.max(3, cleaned.length - 7);
-    const masked = 'x'.repeat(middleCount);
-    return `${prefix} ${masked} ${suffix}`;
+    if (solBalance === null) return currency === 'USD' ? '$0.00' : 'đ 0';
+    return formatFiatBalance(solBalance * 150, currency);
   };
 
   if (!isReady) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00A859" />
-        <Text style={styles.loadingText}>Đang khởi tạo ví N.E.D...</Text>
+        <Text style={styles.loadingText}>Đang kết nối tài khoản N.E.D...</Text>
       </View>
     );
   }
@@ -522,110 +546,49 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* 1. Header Component */}
+        {/* 1. Header Component Phong Cách Neo-brutalism */}
         <View style={styles.header}>
+          {/* Nút Profile Tròn Góc Trái */}
           <TouchableOpacity
-            style={styles.welcomeBadge}
+            style={styles.neoProfileBtn}
             onPress={() => router.push('/settings')}
             activeOpacity={0.8}
           >
-            <View style={styles.welcomeLogoCircle}>
-              <Text style={styles.welcomeLogoText}>Đ</Text>
+            <View style={styles.neoProfileShadow} />
+            <View style={styles.neoProfileBody}>
+              <Ionicons name="person-outline" size={20} color="#000000" />
             </View>
-            <Text style={styles.welcomeText}>Welcome to N.E.D! 👋</Text>
           </TouchableOpacity>
 
+          {/* Nút Quét Mã QR Góc Phải */}
           <TouchableOpacity
-            style={styles.qrScannerIconBtn}
+            style={styles.neoQrBtn}
             onPress={handleOpenScanner}
             activeOpacity={0.7}
           >
-            <Ionicons name="qr-code-outline" size={24} color="#111827" />
+            <Ionicons name="qr-code-outline" size={26} color="#000000" />
           </TouchableOpacity>
         </View>
 
-        {/* 2. Balance Card Component */}
-        <View style={styles.balanceCardWrapper}>
-          <View style={styles.balanceCard}>
-            <View style={styles.cardTopRow}>
-              <Text style={styles.currencyLabel}>
-                {currency === 'USD' ? 'Dollars' : 'Vietnam Dong'}
-              </Text>
-
-              <View style={styles.toggleContainer}>
-                <Text
-                  style={[
-                    styles.toggleOptionText,
-                    currency === 'USD'
-                      ? styles.toggleOptionActive
-                      : styles.toggleOptionInactive,
-                  ]}
-                >
-                  USD
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.customSwitch,
-                    currency === 'VND'
-                      ? styles.customSwitchActive
-                      : styles.customSwitchInactive,
-                  ]}
-                  onPress={() =>
-                    setCurrency(currency === 'USD' ? 'VND' : 'USD')
-                  }
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[
-                      styles.switchThumb,
-                      currency === 'VND'
-                        ? styles.switchThumbRight
-                        : styles.switchThumbLeft,
-                    ]}
-                  />
-                </TouchableOpacity>
-                <Text
-                  style={[
-                    styles.toggleOptionText,
-                    currency === 'VND'
-                      ? styles.toggleOptionActive
-                      : styles.toggleOptionInactive,
-                  ]}
-                >
-                  VND
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.balanceDisplayRow}>
-              <Text style={styles.mainBalanceText}>{getFormattedBalance()}</Text>
-            </View>
-
-            <View style={styles.cardActionsRow}>
-              <TouchableOpacity
-                style={styles.cardActionBtn}
-                onPress={() => setShowDepositModal(true)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.actionIconCircle}>
-                  <Feather name="arrow-down" size={16} color="#00A859" />
-                </View>
-                <Text style={styles.cardActionBtnText}>Deposit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cardActionBtn}
-                onPress={() => router.push('/send')}
-                activeOpacity={0.85}
-              >
-                <View style={styles.actionIconCircle}>
-                  <Feather name="arrow-up-right" size={16} color="#00A859" />
-                </View>
-                <Text style={styles.cardActionBtnText}>Withdraw</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        {/* 2. Thẻ Ví Neo-brutalism (NeoBalanceCard Component) */}
+        <NeoBalanceCard
+          balanceUsd={getFormattedBalance()}
+          balanceVnd={
+            currency === 'USD'
+              ? accountBalanceState
+                ? accountBalanceState.formattedVnd
+                : 'đ 0.00'
+              : accountBalanceState
+              ? accountBalanceState.formattedUsd
+              : '$0.00'
+          }
+          onDepositPress={() => setShowDepositModal(true)}
+          onWithdrawPress={() => router.push('/send')}
+          onToggleCurrency={() => setCurrency(currency === 'USD' ? 'VND' : 'USD')}
+          onBottomLatchPress={() => {
+            if (solanaAddress) fetchActivities(solanaAddress, true);
+          }}
+        />
 
         {/* 2.5 Banner Khôi phục ví khi thiết bị mới phát hiện / Needs Recovery */}
         {isNeedsRecovery && (
@@ -638,33 +601,48 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="shield-key" size={24} color="#D97706" />
             </View>
             <View style={styles.recoveryTextCol}>
-              <Text style={styles.recoveryTitle}>Thiết bị mới phát hiện ⚠️</Text>
+              <Text style={styles.recoveryTitle}>{t('home.newDeviceTitle', { defaultValue: 'Thiết bị mới phát hiện ⚠️' })}</Text>
               <Text style={styles.recoveryDesc}>
-                Cần khôi phục ví bảo mật để tiếp tục giao dịch.
+                {t('home.newDeviceDesc', { defaultValue: 'Cần khôi phục ví bảo mật để tiếp tục giao dịch.' })}
               </Text>
             </View>
             <View style={styles.recoveryBtn}>
-              <Text style={styles.recoveryBtnText}>Khôi phục</Text>
+              <Text style={styles.recoveryBtnText}>{t('home.recover', { defaultValue: 'Khôi phục' })}</Text>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* 3. Next Steps (Onboarding Component) */}
-        <View style={styles.nextStepsCard}>
+        {/* 3. Next Steps (Onboarding Component Phong Cách Neo-brutalism) */}
+        <NeoCard
+          backgroundColor="#FFFFFF"
+          borderColor="#000000"
+          shadowColor="#000000"
+          borderRadius={22}
+          borderWidth={2.5}
+          offset={5}
+          containerStyle={styles.sectionNeoCardContainer}
+          style={styles.nextStepsCardInner}
+        >
           <View style={styles.nextStepsHeader}>
-            <Text style={styles.nextStepsTitle}>Next steps</Text>
+            <Text style={styles.nextStepsTitle}>
+              {t('home.nextSteps', { defaultValue: 'Next steps' })}
+            </Text>
             <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>1 of 2</Text>
+              <Text style={styles.stepBadgeText}>
+                {t('home.stepCount', { current: 1, total: 2, defaultValue: '1 of 2' })}
+              </Text>
             </View>
           </View>
 
+          {/* Progress Bar Viền Đen Bao Quanh */}
           <View style={styles.progressBarTrack}>
             <View style={styles.progressBarFill} />
           </View>
 
+          {/* Task 1: Connect Account (Đã Hoàn Thành) */}
           <View style={styles.taskItemRow}>
             <View style={styles.taskIconSuccess}>
-              <Ionicons name="checkmark-sharp" size={14} color="#FFFFFF" />
+              <Ionicons name="checkmark-sharp" size={13} color="#FFFFFF" />
             </View>
             <TouchableOpacity
               style={styles.taskTextCol}
@@ -678,43 +656,67 @@ export default function HomeScreen() {
               activeOpacity={0.7}
             >
               <Text style={styles.taskTitleCompleted}>
-                Connect Account
+                {t('home.connectAccount', { defaultValue: 'Connect Account' })}
               </Text>
-              <Text style={styles.taskSubCompleted}>
+              <Text style={styles.taskSubCompleted} numberOfLines={1}>
                 {linkedPhoneState
-                  ? `Linked: ${getMaskedPhone(linkedPhoneState)} (Chạm để quản lý)`
-                  : 'Signed in securely (Chạm để thêm SĐT)'}
+                  ? `Linked: ${getMaskedPhone(linkedPhoneState)} (Tap to manage)`
+                  : t('home.signedInTapToAddPhone', {
+                      defaultValue: 'Secured login (Tap to add phone)',
+                    })}
               </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Task 2: Make a deposit (Chưa Nạp - Nút Receive Xanh Ngọc) */}
           <View style={[styles.taskItemRow, { marginTop: 14 }]}>
             <View style={styles.taskIconPending} />
             <View style={styles.taskTextCol}>
-              <Text style={styles.taskTitlePending}>Make a deposit</Text>
-              <Text style={styles.taskSubPending}>Then you're ready</Text>
+              <Text style={styles.taskTitlePending}>
+                {t('home.makeDeposit', { defaultValue: 'Make a deposit' })}
+              </Text>
+              <Text style={styles.taskSubPending}>
+                {t('home.readyHint', { defaultValue: "When you're ready" })}
+              </Text>
             </View>
             <TouchableOpacity
-              style={styles.depositDarkActionBtn}
+              style={styles.receiveActionBtn}
               onPress={() => setShowDepositModal(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.depositDarkActionBtnText}>Deposit</Text>
+              <View style={styles.receiveActionBtnShadow} />
+              <View style={styles.receiveActionBtnBody}>
+                <Text style={styles.receiveActionBtnText}>
+                  {t('home.receive', { defaultValue: 'Receive' })}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
+        </NeoCard>
 
-        {/* 4. Recent Activity Component (Tối đa 4 hoạt động & Điều hướng sang History) */}
-        <View style={styles.activityCard}>
+        {/* 4. Recent Activities Component Phong Cách Neo-brutalism */}
+        <NeoCard
+          backgroundColor="#FFFFFF"
+          borderColor="#000000"
+          shadowColor="#000000"
+          borderRadius={22}
+          borderWidth={2.5}
+          offset={5}
+          containerStyle={styles.sectionNeoCardContainer}
+          style={styles.activityCardInner}
+        >
           <View style={styles.activityHeaderRow}>
-            <Text style={styles.activityTitle}>Recent activity</Text>
+            <Text style={styles.activityTitle}>
+              {t('home.activities', { defaultValue: 'Recent Activities' })}
+            </Text>
             <TouchableOpacity
               style={styles.viewMorePillBtn}
               onPress={() => router.push('/history')}
               activeOpacity={0.75}
             >
-              <Text style={styles.viewMoreText}>View more</Text>
-              <Feather name="chevron-right" size={12} color="#374151" style={{ marginLeft: 2 }} />
+              <Text style={styles.viewMoreText}>
+                {t('home.seeAll', { defaultValue: 'See all >' })}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -722,55 +724,66 @@ export default function HomeScreen() {
             <View style={styles.emptyActivityBox}>
               <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
               <Text style={styles.emptyActivityText}>
-                Chưa có giao dịch gần đây
+                {t('home.noActivities', { defaultValue: 'Chưa có giao dịch gần đây' })}
               </Text>
             </View>
           ) : (
             <View style={styles.activityList}>
-              {activities.slice(0, 4).map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.activityItem}
-                  onPress={() => router.push('/history')}
-                  activeOpacity={0.75}
-                >
-                  <View
-                    style={[
-                      styles.activityIconCircle,
-                      { backgroundColor: item.iconBg },
-                    ]}
+              {activities.slice(0, 4).map((item) => {
+                const isReceived = item.type === 'received' || item.isPositive;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.activityItem}
+                    onPress={() => router.push('/history')}
+                    activeOpacity={0.75}
                   >
-                    {item.type === 'reward' ? (
-                      <MaterialCommunityIcons
-                        name="gift-outline"
-                        size={20}
-                        color="#FFFFFF"
-                      />
-                    ) : item.type === 'received' ? (
-                      <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
-                    ) : (
-                      <Feather name="arrow-up-right" size={18} color="#FFFFFF" />
-                    )}
-                  </View>
-                  <View style={styles.activityDetailCol}>
-                    <Text style={styles.activityItemTitle}>{item.title}</Text>
-                    <Text style={styles.activityItemTime}>{item.time}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.activityItemAmount,
-                      item.isPositive
-                        ? styles.amountPositive
-                        : styles.amountNegative,
-                    ]}
-                  >
-                    {item.amount}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <View
+                      style={[
+                        styles.neoActivityIconCircle,
+                        isReceived ? styles.iconReceivedBg : styles.iconSentBg,
+                      ]}
+                    >
+                      {item.type === 'reward' ? (
+                        <MaterialCommunityIcons
+                          name="gift-outline"
+                          size={18}
+                          color={isReceived ? '#FFFFFF' : '#000000'}
+                        />
+                      ) : isReceived ? (
+                        <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
+                      ) : (
+                        <Feather name="arrow-up-right" size={18} color="#000000" />
+                      )}
+                    </View>
+                    <View style={styles.activityDetailCol}>
+                      <Text style={styles.activityItemTitle}>
+                        {item.type === 'sent'
+                          ? 'Sent'
+                          : item.type === 'received'
+                          ? 'Received'
+                          : getActivityTitle(item, t)}
+                      </Text>
+                      <Text style={styles.activityItemTime}>
+                        {formatLocalizedRelativeTime(item.blockTime, t)}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.activityItemAmount,
+                        isReceived ? styles.amountPositive : styles.amountNegative,
+                      ]}
+                    >
+                      {item.amount.startsWith('+') || item.amount.startsWith('-')
+                        ? item.amount
+                        : `${isReceived ? '+' : '-'} ${item.amount}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
-        </View>
+        </NeoCard>
 
         <View style={{ height: 90 }} />
       </ScrollView>
@@ -845,11 +858,48 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5EBE1', // Nền Beige sáng phong cách Neo-brutalism
   },
   scrollContent: {
+    paddingBottom: 110,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  neoProfileBtn: {
+    position: 'relative',
+    width: 44,
+    height: 44,
+  },
+  neoProfileShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#000000',
+  },
+  neoProfileBody: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  neoQrBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -862,12 +912,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#059669',
     fontWeight: '600',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   welcomeBadge: {
     flexDirection: 'row',
@@ -1064,18 +1108,13 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '800',
   },
-  nextStepsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  // Neo-brutalism Next Steps & Recent Activities Styles
+  sectionNeoCardContainer: {
+    marginHorizontal: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+  },
+  nextStepsCardInner: {
+    padding: 18,
   },
   nextStepsHeader: {
     flexDirection: 'row',
@@ -1083,33 +1122,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nextStepsTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#111827',
   },
   stepBadge: {
-    backgroundColor: '#D1F4E0',
-    paddingHorizontal: 8,
+    backgroundColor: '#00A389',
+    paddingHorizontal: 10,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#000000',
   },
   stepBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#065F46',
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   progressBarTrack: {
-    height: 4,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 2,
+    height: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+    borderWidth: 1.8,
+    borderColor: '#000000',
     marginVertical: 14,
     overflow: 'hidden',
   },
   progressBarFill: {
     width: '50%',
     height: '100%',
-    backgroundColor: '#00A859',
-    borderRadius: 2,
+    backgroundColor: '#00A389',
   },
   taskItemRow: {
     flexDirection: 'row',
@@ -1119,7 +1161,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#00A859',
+    backgroundColor: '#00A389',
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1128,85 +1172,92 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#00A859',
+    borderColor: '#000000',
     marginRight: 12,
   },
   taskTextCol: {
     flex: 1,
   },
   taskTitleCompleted: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#4B5563',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
   },
   taskSubCompleted: {
-    fontSize: 11,
-    color: '#9CA3AF',
+    fontSize: 11.5,
+    color: '#94A3B8',
     marginTop: 1,
   },
   taskTitlePending: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: '#111827',
   },
   taskSubPending: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 11.5,
+    color: '#94A3B8',
     marginTop: 1,
   },
-  depositDarkActionBtn: {
-    backgroundColor: '#1E1E2E',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
+  receiveActionBtn: {
+    position: 'relative',
+    width: 88,
+    height: 34,
   },
-  depositDarkActionBtnText: {
+  receiveActionBtnShadow: {
+    position: 'absolute',
+    top: 2.5,
+    left: 2.5,
+    width: 88,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#000000',
+  },
+  receiveActionBtnBody: {
+    width: 88,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#00A389',
+    borderWidth: 2,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiveActionBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
   },
-  activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+  activityCardInner: {
     padding: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   activityHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   activityTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#450A0A',
   },
   viewMorePillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 10,
+    backgroundColor: '#FFD6E8',
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderRadius: 999,
+    borderWidth: 1.8,
+    borderColor: '#000000',
   },
   viewMoreText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#9D174D',
   },
   activityList: {
-    gap: 16,
+    gap: 14,
   },
   emptyActivityBox: {
     alignItems: 'center',
@@ -1222,33 +1273,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  activityIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  neoActivityIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  iconSentBg: {
+    backgroundColor: '#FFD6E8',
+  },
+  iconReceivedBg: {
+    backgroundColor: '#DC2626',
   },
   activityDetailCol: {
     flex: 1,
   },
   activityItemTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#111827',
   },
   activityItemTime: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: 11.5,
+    color: '#94A3B8',
     marginTop: 2,
   },
   activityItemAmount: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#111827',
   },
   amountPositive: {
-    color: '#00A859',
+    color: '#111827',
   },
   amountNegative: {
     color: '#111827',

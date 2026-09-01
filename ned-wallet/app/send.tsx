@@ -18,19 +18,27 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import {
-  PublicKey,
-  Transaction,
-  SystemProgram,
-} from '@solana/web3.js';
-import { lookupWalletByPhone } from '../services/supabase';
-import { getSolanaBalance, ActivityItem } from '../services/solana';
-import { cacheActivities, getCachedActivities } from '../services/storage';
+  lookupWalletByPhone,
+  getUserPhoneNumberFromDB,
+  isSamePhoneNumber,
+  getAccountIdentifier,
+  getMaskedPhone,
+} from '../services/supabase';
+import {
+  getSolanaBalance,
+  ActivityItem,
+  formatFiatBalance,
+  USD_TO_VND_RATE,
+} from '../services/solana';
+import { cacheActivities, getCachedActivities, getLinkedPhone } from '../services/storage';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+import { useTranslation } from '../services/i18n';
 
 export default function SendScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
   const { user, isReady, logout } = usePrivy();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const {
@@ -39,7 +47,6 @@ export default function SendScreen() {
     isWalletReady,
     needsRecovery,
     walletStatus,
-    statusMessage,
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -47,10 +54,12 @@ export default function SendScreen() {
   const [searchInput, setSearchInput] = useState((params.recipient as string) || '');
   const [debouncedInput, setDebouncedInput] = useState((params.recipient as string) || '');
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
+  const [resolvedPhone, setResolvedPhone] = useState<string | null>(null);
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [amount, setAmount] = useState('0.001');
+  const [amount, setAmount] = useState('5');
   const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [myPhone, setMyPhone] = useState<string | null>(null);
 
   // Lấy địa chỉ ví người dùng hiện tại
   const getMySolanaAddress = (): string | null => {
@@ -68,11 +77,21 @@ export default function SendScreen() {
 
   const myAddress = getMySolanaAddress();
 
+  // Nạp SĐT và số dư của chính người dùng
   useEffect(() => {
-    if (myAddress) {
-      getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
-    }
-  }, [myAddress]);
+    const loadUserData = async () => {
+      if (myAddress) {
+        getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
+      }
+      const cachedPhone = await getLinkedPhone();
+      if (cachedPhone) setMyPhone(cachedPhone);
+      if (user?.id) {
+        const dbPhone = await getUserPhoneNumberFromDB(user.id);
+        if (dbPhone) setMyPhone(dbPhone);
+      }
+    };
+    loadUserData();
+  }, [myAddress, user]);
 
   // 1. Debounce 500ms
   useEffect(() => {
@@ -85,10 +104,11 @@ export default function SendScreen() {
     };
   }, [searchInput]);
 
-  // 2. Logic phân loại định dạng & Tra cứu ví Supabase
+  // 2. Logic phân loại định dạng, Chặn tự chuyển tiền & Tra cứu ví Supabase
   useEffect(() => {
     if (!debouncedInput) {
       setResolvedAddress(null);
+      setResolvedPhone(null);
       setSearchError('');
       setIsLoadingLookup(false);
       return;
@@ -97,10 +117,35 @@ export default function SendScreen() {
     const isPhone = /^[+]?[0-9]{8,15}$/.test(debouncedInput);
     const isSolanaBase58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(debouncedInput);
 
+    // Chặn 1: Người dùng nhập chính SĐT của mình
+    if (isPhone && myPhone && isSamePhoneNumber(debouncedInput, myPhone)) {
+      setResolvedAddress(null);
+      setResolvedPhone(null);
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      setIsLoadingLookup(false);
+      return;
+    }
+
+    // Chặn 2: Người dùng nhập chính địa chỉ ví của mình
+    if (myAddress && debouncedInput.toLowerCase() === myAddress.toLowerCase()) {
+      setResolvedAddress(null);
+      setResolvedPhone(null);
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      setIsLoadingLookup(false);
+      return;
+    }
+
     // Trường hợp 1: Nhập trực tiếp địa chỉ Base58 hợp lệ
     if (isSolanaBase58 && !isPhone) {
-      setResolvedAddress(debouncedInput);
-      setSearchError('');
+      if (myAddress && debouncedInput.toLowerCase() === myAddress.toLowerCase()) {
+        setResolvedAddress(null);
+        setResolvedPhone(null);
+        setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      } else {
+        setResolvedAddress(debouncedInput);
+        setResolvedPhone(null);
+        setSearchError('');
+      }
       setIsLoadingLookup(false);
       return;
     }
@@ -111,24 +156,34 @@ export default function SendScreen() {
       setIsLoadingLookup(true);
       setSearchError('');
       setResolvedAddress(null);
+      setResolvedPhone(null);
 
       lookupWalletByPhone(debouncedInput)
         .then((foundAddress) => {
           if (!isMounted) return;
           setIsLoadingLookup(false);
           if (foundAddress) {
-            setResolvedAddress(foundAddress);
-            setSearchError('');
+            if (myAddress && foundAddress.toLowerCase() === myAddress.toLowerCase()) {
+              setResolvedAddress(null);
+              setResolvedPhone(null);
+              setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+            } else {
+              setResolvedAddress(foundAddress);
+              setResolvedPhone(debouncedInput);
+              setSearchError('');
+            }
           } else {
             setResolvedAddress(null);
-            setSearchError('Số điện thoại này chưa liên kết ví N.E.D');
+            setResolvedPhone(null);
+            setSearchError(t('send.phoneNotLinked', { defaultValue: 'Số điện thoại này chưa liên kết tài khoản N.E.D' }));
           }
         })
         .catch((err) => {
           if (!isMounted) return;
           setIsLoadingLookup(false);
           setResolvedAddress(null);
-          setSearchError('Lỗi tra cứu thông tin ví.');
+          setResolvedPhone(null);
+          setSearchError(t('send.lookupError', { defaultValue: 'Lỗi tra cứu thông tin tài khoản.' }));
           console.log('Phone lookup error:', err);
         });
 
@@ -140,47 +195,78 @@ export default function SendScreen() {
     // Trường hợp 3: Chuỗi không hợp lệ
     if (debouncedInput.length > 5) {
       setResolvedAddress(null);
-      setSearchError('Định dạng địa chỉ ví hoặc số điện thoại không hợp lệ');
+      setResolvedPhone(null);
+      setSearchError(t('send.invalidRecipient', { defaultValue: 'Định dạng tài khoản hoặc số điện thoại không hợp lệ' }));
       setIsLoadingLookup(false);
     } else {
       setResolvedAddress(null);
+      setResolvedPhone(null);
       setSearchError('');
       setIsLoadingLookup(false);
     }
-  }, [debouncedInput]);
+  }, [debouncedInput, myAddress, myPhone, t]);
 
   const copyToClipboard = async (text: string) => {
     try {
       await Clipboard.setStringAsync(text);
-      Alert.alert('Thông báo', 'Đã sao chép địa chỉ ví!');
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Thông báo' }),
+        t('deposit.copiedAlert', { defaultValue: 'Đã sao chép vào bộ nhớ tạm!' })
+      );
     } catch (e) {
       console.log('Copy error:', e);
     }
   };
 
-  // THỰC THI GIAO DỊCH ON-CHAIN 100% TRÊN SOLANA DEVNET
+  // THỰC THI GIAO DỊCH 100% ON-CHAIN GASLESS
   const handleSendTransaction = async () => {
     if (!myAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví người gửi.');
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Thông báo' }),
+        t('deposit.noAddress', { defaultValue: 'Không tìm thấy địa chỉ tài khoản người gửi.' })
+      );
       return;
     }
 
     const recipientInput = (resolvedAddress || searchInput).trim();
     if (!recipientInput) {
-      Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại hoặc địa chỉ ví người nhận.');
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Thông báo' }),
+        t('send.invalidRecipient', { defaultValue: 'Vui lòng nhập số điện thoại hoặc tài khoản người nhận.' })
+      );
+      return;
+    }
+
+    // Chặn người dùng tự chuyển cho bản thân
+    if (myAddress && recipientInput.toLowerCase() === myAddress.toLowerCase()) {
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Không thể thực hiện ⚠️' }),
+        t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình.' })
+      );
+      return;
+    }
+
+    if (myPhone && isSamePhoneNumber(recipientInput, myPhone)) {
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Không thể thực hiện ⚠️' }),
+        t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình.' })
+      );
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Thông báo', 'Vui lòng nhập số lượng SOL hợp lệ (lớn hơn 0).');
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Thông báo' }),
+        t('send.invalidAmount', { defaultValue: 'Vui lòng nhập số tiền hợp lệ (lớn hơn 0).' })
+      );
       return;
     }
 
     if (!isWalletReady) {
       Alert.alert(
-        'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
+        t('settings.title', { defaultValue: 'Tài khoản đang kết nối' }),
+        `Tài khoản đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để hoàn tất kết nối!`
       );
       return;
     }
@@ -189,23 +275,23 @@ export default function SendScreen() {
       const result = await transfer({
         fromAddress: myAddress,
         recipientAddressOrPhone: recipientInput,
-        amountSol: numAmount,
+        amountUsd: numAmount,
       });
 
       if (!result.success || !result.transactionHash) {
-        const errorMsg = result.error || 'Không thể thực hiện giao dịch.';
+        const errorMsg = result.error || 'Không thể thực hiện chuyển tiền.';
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
           errorMsg.includes('WebView')
         ) {
           Alert.alert(
-            'Phiên làm việc bị gián đoạn ⚠️',
-            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
+            t('settings.resetTitle', { defaultValue: 'Phiên làm việc bị gián đoạn ⚠️' }),
+            t('settings.resetMsg', { defaultValue: 'Phiên kết nối đang bị treo. Bạn có muốn làm mới phiên đăng nhập ngay?' }),
             [
-              { text: 'Đóng', style: 'cancel' },
+              { text: t('settings.cancel', { defaultValue: 'Đóng' }), style: 'cancel' },
               {
-                text: 'Làm mới ngay',
+                text: t('settings.confirmReset', { defaultValue: 'Làm mới ngay' }),
                 style: 'destructive',
                 onPress: async () => {
                   const { executeHardReset } = await import('../services/storage');
@@ -218,21 +304,7 @@ export default function SendScreen() {
           return;
         }
 
-        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
-          Alert.alert(
-            'Phiên hết hạn ⚠️',
-            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
-            [
-              {
-                text: 'Đăng nhập lại',
-                onPress: () => router.replace('/login'),
-              },
-            ]
-          );
-          return;
-        }
-
-        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg);
+        Alert.alert(t('send.failedTitle', { defaultValue: 'Chuyển tiền chưa hoàn tất ❌' }), errorMsg);
         return;
       }
 
@@ -246,28 +318,32 @@ export default function SendScreen() {
         type: 'sent',
         title: 'Chuyển tiền',
         time: 'Vừa xong',
-        amount: `-$${(numAmount * 150).toFixed(2)}`,
+        amount: `-$${numAmount.toFixed(2)}`,
         isPositive: false,
         iconBg: '#374151',
         signature: txSignature,
+        blockTime: Math.floor(Date.now() / 1000),
       };
       await cacheActivities([newAct, ...currentActs]);
 
+      const recipientDisplayName = resolvedPhone
+        ? getMaskedPhone(resolvedPhone)
+        : getAccountIdentifier(null, finalRecipient);
+
       Alert.alert(
-        'Giao Dịch Thành Công! ⚡',
-        `Đã chuyển ${numAmount} SOL đến:\n${formatShortAddress(finalRecipient)}\nChữ ký: ${txSignature.slice(0, 16)}...`,
-        [{ text: 'Về Trang Chủ', onPress: () => router.replace('/') }]
+        t('send.successTitle', { defaultValue: 'Chuyển Tiền Thành Công! ⚡' }),
+        `Đã chuyển $${numAmount.toFixed(2)} (${(numAmount * USD_TO_VND_RATE).toLocaleString('vi-VN')} ₫) đến:\n${recipientDisplayName}\n\nMã giao dịch: ${txSignature.slice(0, 16)}...`,
+        [{ text: t('tabs.home', { defaultValue: 'Về Trang Chủ' }), onPress: () => router.replace('/') }]
       );
     } catch (err: any) {
       console.error('Send Transaction Error:', err);
-      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể thực hiện chuyển tiền.');
+      Alert.alert(t('send.failedTitle', { defaultValue: 'Lỗi Giao Dịch' }), err?.message || 'Không thể thực hiện chuyển tiền.');
     }
   };
 
-  const formatShortAddress = (addr: string) => {
-    if (addr.length <= 12) return addr;
-    return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
-  };
+  const parsedAmount = parseFloat(amount) || 0;
+  const vndEquivalent = Math.round(parsedAmount * USD_TO_VND_RATE);
+  const availableUsd = solBalance !== null ? solBalance * 150 : 0;
 
   // Bảo vệ giao diện: Chỉ render khi ví và tài khoản đã sẵn sàng
   if (!user) {
@@ -275,7 +351,7 @@ export default function SendScreen() {
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#00A859" />
         <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
-          Đang xác thực phiên đăng nhập...
+          {t('activities.loading', { defaultValue: 'Đang xác thực phiên đăng nhập...' })}
         </Text>
       </SafeAreaView>
     );
@@ -293,7 +369,7 @@ export default function SendScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chuyển Tiền</Text>
+          <Text style={styles.headerTitle}>{t('send.title', { defaultValue: 'Chuyển Tiền' })}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -304,7 +380,7 @@ export default function SendScreen() {
         >
           {/* 1. Thanh Tìm Kiếm Thông Minh (Smart Debounce Input) */}
           <View style={styles.inputSection}>
-            <Text style={styles.fieldLabel}>Người nhận:</Text>
+            <Text style={styles.fieldLabel}>{t('send.recipientLabel', { defaultValue: 'Người nhận:' })}</Text>
             <View
               style={[
                 styles.searchBox,
@@ -315,7 +391,7 @@ export default function SendScreen() {
               <Feather name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Nhập số điện thoại hoặc địa chỉ ví..."
+                placeholder={t('send.recipientPlaceholder', { defaultValue: 'Nhập số điện thoại người nhận...' })}
                 placeholderTextColor="#94A3B8"
                 value={searchInput}
                 onChangeText={setSearchInput}
@@ -328,23 +404,27 @@ export default function SendScreen() {
             </View>
           </View>
 
-          {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Ví) */}
+          {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Tài Khoản) */}
           {resolvedAddress && (
             <View style={styles.successCard}>
               <View style={styles.successIconBox}>
                 <Ionicons name="checkmark-circle" size={22} color="#00A859" />
               </View>
               <View style={styles.successInfoCol}>
-                <Text style={styles.successTitle}>Đã tìm thấy ví N.E.D</Text>
+                <Text style={styles.successTitle}>
+                  {resolvedPhone
+                    ? `Tài khoản: ${getMaskedPhone(resolvedPhone)}`
+                    : `Tài khoản: ${getAccountIdentifier(null, resolvedPhone)}`}
+                </Text>
                 <Text style={styles.successAddressText}>
-                  {formatShortAddress(resolvedAddress)}
+                  Đã xác thực danh tính N.E.D
                 </Text>
               </View>
               <TouchableOpacity
                 style={styles.copyPillBtn}
-                onPress={() => copyToClipboard(resolvedAddress)}
+                onPress={() => copyToClipboard(resolvedPhone || resolvedAddress)}
               >
-                <Text style={styles.copyPillText}>Sao chép</Text>
+                <Text style={styles.copyPillText}>{t('deposit.copyAddress', { defaultValue: 'Sao chép' })}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -357,41 +437,51 @@ export default function SendScreen() {
             </View>
           ) : null}
 
-          {/* 4. Nhập Số Lượng SOL */}
+          {/* 4. Nhập Số Tiền USD / VND */}
           <View style={[styles.inputSection, { marginTop: 18 }]}>
             <View style={styles.amountHeaderRow}>
-              <Text style={styles.fieldLabel}>Số lượng chuyển:</Text>
-              {solBalance !== null && (
-                <Text style={styles.balanceHintText}>
-                  Khả dụng: {solBalance.toFixed(4)} SOL
-                </Text>
-              )}
+              <Text style={styles.fieldLabel}>{t('send.amountLabel', { defaultValue: 'Số tiền chuyển:' })}</Text>
+              <Text style={styles.balanceHintText}>
+                Khả dụng: {formatFiatBalance(availableUsd, 'USD')}
+              </Text>
             </View>
 
             <View style={styles.amountInputRow}>
+              <Text style={styles.currencyPrefix}>$</Text>
               <TextInput
                 style={styles.amountInput}
-                placeholder="0.001"
+                placeholder="5.00"
                 placeholderTextColor="#94A3B8"
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
               />
               <View style={styles.currencyBadge}>
-                <Text style={styles.currencyBadgeText}>SOL</Text>
+                <Text style={styles.currencyBadgeText}>USD</Text>
+              </View>
+            </View>
+
+            {/* Dòng quy đổi tỷ giá VND thời gian thực & Gasless Badge */}
+            <View style={styles.rateHintRow}>
+              <Text style={styles.rateHintText}>
+                ≈ {vndEquivalent.toLocaleString('vi-VN')} ₫ ($1 = 25.000 ₫)
+              </Text>
+              <View style={styles.gaslessBadge}>
+                <Ionicons name="flash" size={12} color="#059669" />
+                <Text style={styles.gaslessText}>Miễn phí chuyển tiền</Text>
               </View>
             </View>
 
             {/* Quick Amount Pills */}
             <View style={styles.quickAmountRow}>
-              {['0.001', '0.005', '0.01', '0.05'].map((amt) => (
+              {['2', '5', '10', '20'].map((amt) => (
                 <TouchableOpacity
                   key={amt}
                   style={[styles.quickPill, amount === amt && styles.quickPillActive]}
                   onPress={() => setAmount(amt)}
                 >
                   <Text style={[styles.quickPillText, amount === amt && styles.quickPillTextActive]}>
-                    {amt} SOL
+                    ${amt}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -402,12 +492,12 @@ export default function SendScreen() {
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              (!resolvedAddress && !searchInput.trim() || isTransferring || isLoadingLookup || !isReady || !user || !isWalletReady) && styles.sendBtnDisabled,
+              (!resolvedAddress || !!searchError || isTransferring || isLoadingLookup || !isReady || !user || !isWalletReady) && styles.sendBtnDisabled,
             ]}
             onPress={() => {
               handleSendTransaction();
             }}
-            disabled={!isReady || !user || (!resolvedAddress && !searchInput.trim()) || isTransferring || isLoadingLookup || !isWalletReady}
+            disabled={!isReady || !user || !resolvedAddress || !!searchError || isTransferring || isLoadingLookup || !isWalletReady}
             activeOpacity={0.85}
           >
             {isTransferring ? (
@@ -415,19 +505,19 @@ export default function SendScreen() {
             ) : (!isWalletReady || !isReady || !user) ? (
               <View style={styles.sendBtnInner}>
                 <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.sendBtnText}>Đang kết nối ví...</Text>
+                <Text style={styles.sendBtnText}>{t('send.lookupButton', { defaultValue: 'Đang kết nối tài khoản...' })}</Text>
               </View>
             ) : (
               <View style={styles.sendBtnInner}>
                 <Feather name="send" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.sendBtnText}>Xác nhận Chuyển tiền</Text>
+                <Text style={styles.sendBtnText}>{t('send.sendButton', { defaultValue: 'Xác nhận chuyển' })}</Text>
               </View>
             )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal Khôi phục Ví Bảo Mật */}
+      {/* Modal Khôi phục Tài Khoản Bảo Mật */}
       <WalletRecoveryModal
         visible={showRecoveryModal || needsRecovery}
         onClose={() => setShowRecoveryModal(false)}
@@ -505,10 +595,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#86EFAC',
     borderRadius: 14,
     padding: 12,
-    marginTop: 8,
+    marginBottom: 8,
   },
   successIconBox: {
     marginRight: 10,
@@ -517,39 +607,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   successTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#166534',
+    color: '#15803D',
   },
   successAddressText: {
     fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#15803D',
-    fontWeight: '600',
+    color: '#166534',
     marginTop: 1,
   },
   copyPillBtn: {
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   copyPillText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#166534',
+    fontWeight: '600',
+    color: '#15803D',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    marginTop: 6,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
   },
   errorText: {
     fontSize: 12,
     color: '#DC2626',
     fontWeight: '500',
+    flex: 1,
   },
   amountHeaderRow: {
     flexDirection: 'row',
@@ -558,9 +650,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   balanceHintText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#00A859',
+    fontWeight: '600',
   },
   amountInputRow: {
     flexDirection: 'row',
@@ -571,66 +663,102 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     height: 52,
+    marginBottom: 6,
+  },
+  currencyPrefix: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginRight: 6,
   },
   amountInput: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#0F172A',
   },
   currencyBadge: {
     backgroundColor: '#E2E8F0',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   currencyBadgeText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#334155',
+    fontWeight: '700',
+    color: '#475569',
+  },
+  rateHintRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  rateHintText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  gaslessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  gaslessText: {
+    fontSize: 10.5,
+    color: '#059669',
+    fontWeight: '700',
+    marginLeft: 3,
   },
   quickAmountRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   quickPill: {
     flex: 1,
     paddingVertical: 8,
+    marginHorizontal: 3,
     backgroundColor: '#F1F5F9',
     borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   quickPillActive: {
-    backgroundColor: '#00A859',
+    backgroundColor: '#D1F4E0',
+    borderColor: '#00A859',
   },
   quickPillText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#475569',
   },
   quickPillTextActive: {
-    color: '#FFFFFF',
+    color: '#00A859',
+    fontWeight: '700',
   },
   sendBtn: {
     backgroundColor: '#00A859',
-    height: 52,
-    borderRadius: 16,
-    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: 24,
+    justifyContent: 'center',
     shadowColor: '#00A859',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 3,
-  },
-  sendBtnRecovery: {
-    backgroundColor: '#F59E0B',
-    shadowColor: '#F59E0B',
+    elevation: 4,
+    marginTop: 10,
   },
   sendBtnDisabled: {
-    opacity: 0.6,
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   sendBtnInner: {
     flexDirection: 'row',
@@ -638,8 +766,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnText: {
-    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

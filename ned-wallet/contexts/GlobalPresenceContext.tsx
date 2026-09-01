@@ -21,6 +21,7 @@ export interface BroadcastInviteOptions {
   totalBill?: number;
   splitAmount?: number;
   note?: string;
+  roomType?: 'shake' | 'coin_toss';
 }
 
 interface GlobalPresenceContextType {
@@ -225,43 +226,66 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       })
       .on('broadcast', { event: 'room_invite' }, ({ payload }) => {
         console.log('📥 [Supabase Broadcast] Nhận sự kiện room_invite:', payload);
-        const hostName = payload?.host_name || 'A friend';
-        const splitAmountStr = payload?.split_amount
-          ? ` ($${payload.split_amount} USD)`
-          : '';
+        const hostName = payload?.host_name || 'Một người bạn';
+        const isCoinToss = payload?.room_type === 'coin_toss';
+
         if (
           userId &&
           payload?.target_user_ids?.includes(userId) &&
           payload?.host_id !== userId
         ) {
-          Alert.alert(
-            '🔔 Room Invite',
-            `${hostName} wants to split a bill with you${splitAmountStr}`,
-            [
-              {
-                text: 'Decline',
-                style: 'cancel',
-                onPress: () => {
-                  console.log('❌ [Guest] Đã từ chối lời mời phòng:', payload.room_id);
+          if (isCoinToss) {
+            Alert.alert(
+              '🪙 Lì Xì Tung Đồng Xu',
+              `${hostName} đang mời bạn vào phòng Lì Xì Tung Đồng Xu may mắn!`,
+              [
+                {
+                  text: 'Từ chối',
+                  style: 'cancel',
                 },
-              },
-              {
-                text: 'Join',
-                onPress: () => {
-                  console.log('🚀 [Guest] Chấp nhận lời mời, chuyển sang phòng:', payload.room_id);
-                  router.push(
-                    `/shake-room?roomId=${payload.room_id}&hostId=${payload.host_id}&hostName=${encodeURIComponent(
-                      payload.host_name || ''
-                    )}&hostWallet=${encodeURIComponent(
-                      payload.host_wallet || ''
-                    )}&totalBill=${payload.total_bill || 0}&splitAmount=${payload.split_amount || 0}&note=${encodeURIComponent(
-                      payload.note || ''
-                    )}`
-                  );
+                {
+                  text: 'Vào phòng ngay',
+                  onPress: () => {
+                    console.log('🚀 [Guest] Vào phòng Coin Toss:', payload.room_id);
+                    router.push(
+                      `/coin-toss-room?roomId=${payload.room_id}&hostId=${payload.host_id}&hostName=${encodeURIComponent(
+                        payload.host_name || ''
+                      )}` as any
+                    );
+                  },
                 },
-              },
-            ]
-          );
+              ]
+            );
+          } else {
+            const splitAmountStr = payload?.split_amount
+              ? ` ($${payload.split_amount} USD)`
+              : '';
+            Alert.alert(
+              '🔔 Lời Mời Chia Tiền',
+              `${hostName} muốn chia hóa đơn cùng bạn${splitAmountStr}`,
+              [
+                {
+                  text: 'Từ chối',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Tham gia',
+                  onPress: () => {
+                    console.log('🚀 [Guest] Chấp nhận lời mời, chuyển sang phòng:', payload.room_id);
+                    router.push(
+                      `/shake-room?roomId=${payload.room_id}&hostId=${payload.host_id}&hostName=${encodeURIComponent(
+                        payload.host_name || ''
+                      )}&hostWallet=${encodeURIComponent(
+                        payload.host_wallet || ''
+                      )}&totalBill=${payload.total_bill || 0}&splitAmount=${payload.split_amount || 0}&note=${encodeURIComponent(
+                        payload.note || ''
+                      )}` as any
+                    );
+                  },
+                },
+              ]
+            );
+          }
         }
       })
       .subscribe((status) => {
@@ -404,6 +428,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
         host_avatar: avatar,
         host_wallet: solanaAddress || undefined,
         target_user_ids: targetUserIds,
+        room_type: options?.roomType || 'shake',
         total_bill: options?.totalBill,
         split_amount: options?.splitAmount,
         note: options?.note,

@@ -14,23 +14,27 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import {
   fetchOnChainHistory,
   ActivityItem,
+  getActivityTitle,
+  formatLocalizedRelativeTime,
 } from '../services/solana';
 import {
   getCachedActivities,
   cacheActivities,
 } from '../services/storage';
+import { useTranslation } from '../services/i18n';
 
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   let privy: any = null;
   try {
@@ -100,11 +104,14 @@ export default function HistoryScreen() {
     }
   }, [solanaAddress]);
 
-  useEffect(() => {
-    if (solanaAddress) {
-      loadOnChainHistory();
-    }
-  }, [solanaAddress, loadOnChainHistory]);
+  // Tự động làm mới khi màn hình được Focus
+  useFocusEffect(
+    useCallback(() => {
+      if (solanaAddress) {
+        loadOnChainHistory(true);
+      }
+    }, [solanaAddress, loadOnChainHistory])
+  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -117,7 +124,10 @@ export default function HistoryScreen() {
     if (!sig) return;
     try {
       await Clipboard.setStringAsync(sig);
-      Alert.alert('Thông Báo', 'Đã sao chép Transaction Signature!');
+      Alert.alert(
+        t('settings.title', { defaultValue: 'Thông Báo' }),
+        t('activities.copied', { defaultValue: 'Đã sao chép Transaction Signature!' })
+      );
     } catch (e) {
       console.log('Copy signature error:', e);
     }
@@ -141,7 +151,7 @@ export default function HistoryScreen() {
     // 2. Lọc theo chuỗi tìm kiếm
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const matchTitle = item.title.toLowerCase().includes(q);
+      const matchTitle = (getActivityTitle(item, t) || item.title).toLowerCase().includes(q);
       const matchAmount = item.amount.toLowerCase().includes(q);
       const matchSig = item.signature ? item.signature.toLowerCase().includes(q) : false;
       return matchTitle || matchAmount || matchSig;
@@ -162,7 +172,7 @@ export default function HistoryScreen() {
         >
           <Feather name="arrow-left" size={22} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch Sử Giao Dịch</Text>
+        <Text style={styles.headerTitle}>{t('activities.title', { defaultValue: 'Lịch Sử Giao Dịch' })}</Text>
         <TouchableOpacity
           style={styles.refreshBtn}
           onPress={handleRefresh}
@@ -179,7 +189,7 @@ export default function HistoryScreen() {
           <Feather name="search" size={18} color="#94A3B8" style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm theo số tiền, chữ ký tx..."
+            placeholder={t('activities.searchPlaceholder', { defaultValue: 'Tìm theo số tiền, chữ ký tx...' })}
             placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -206,7 +216,7 @@ export default function HistoryScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-              Tất cả ({activities.length})
+              {t('activities.all', { defaultValue: 'Tất cả' })} ({activities.length})
             </Text>
           </TouchableOpacity>
 
@@ -216,7 +226,7 @@ export default function HistoryScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.filterText, filter === 'received' && styles.filterTextActive]}>
-              Nhận tiền
+              {t('activities.received', { defaultValue: 'Nhận tiền' })}
             </Text>
           </TouchableOpacity>
 
@@ -226,7 +236,7 @@ export default function HistoryScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.filterText, filter === 'sent' && styles.filterTextActive]}>
-              Chuyển tiền
+              {t('activities.sent', { defaultValue: 'Chuyển tiền' })}
             </Text>
           </TouchableOpacity>
 
@@ -236,7 +246,7 @@ export default function HistoryScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.filterText, filter === 'reward' && styles.filterTextActive]}>
-              Phần thưởng
+              {t('activities.reward', { defaultValue: 'Phần thưởng' })}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -258,18 +268,18 @@ export default function HistoryScreen() {
         {isLoading ? (
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color="#00A859" />
-            <Text style={styles.loadingText}>Đang tải lịch sử giao dịch...</Text>
+            <Text style={styles.loadingText}>{t('activities.loading', { defaultValue: 'Đang tải lịch sử giao dịch...' })}</Text>
           </View>
         ) : filteredActivities.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="receipt-outline" size={36} color="#94A3B8" />
             </View>
-            <Text style={styles.emptyTitle}>Không có giao dịch nào</Text>
+            <Text style={styles.emptyTitle}>{t('activities.empty', { defaultValue: 'Không có giao dịch nào' })}</Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
-                ? 'Không tìm thấy giao dịch khớp với từ khóa tìm kiếm.'
-                : 'Chưa có biến động giao dịch on-chain nào trong danh mục này.'}
+                ? t('activities.emptySearchDesc', { defaultValue: 'Không tìm thấy giao dịch khớp với từ khóa tìm kiếm.' })
+                : t('activities.emptyDesc', { defaultValue: 'Chưa có biến động giao dịch on-chain nào trong danh mục này.' })}
             </Text>
           </View>
         ) : (
@@ -302,7 +312,7 @@ export default function HistoryScreen() {
                     {/* Chi Tiết Giao Dịch */}
                     <View style={styles.activityContentCol}>
                       <View style={styles.titleAndAmountRow}>
-                        <Text style={styles.activityItemTitle}>{item.title}</Text>
+                        <Text style={styles.activityItemTitle}>{getActivityTitle(item, t)}</Text>
                         <Text
                           style={[
                             styles.activityItemAmount,
@@ -316,7 +326,7 @@ export default function HistoryScreen() {
                       </View>
 
                       <View style={styles.timeAndMetaRow}>
-                        <Text style={styles.activityItemTime}>{item.time}</Text>
+                        <Text style={styles.activityItemTime}>{formatLocalizedRelativeTime(item.blockTime, t)}</Text>
 
                         {/* Signature Pill & Hành động */}
                         {item.signature ? (
@@ -341,7 +351,7 @@ export default function HistoryScreen() {
                         ) : (
                           <View style={styles.confirmedBadge}>
                             <Ionicons name="checkmark-circle" size={12} color="#00A859" />
-                            <Text style={styles.confirmedText}>Confirmed</Text>
+                            <Text style={styles.confirmedText}>{t('activities.confirmed', { defaultValue: 'Confirmed' })}</Text>
                           </View>
                         )}
                       </View>

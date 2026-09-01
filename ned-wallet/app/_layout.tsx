@@ -1,4 +1,5 @@
 import '../polyfill';
+import '../services/i18n';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -33,6 +34,7 @@ export default function RootLayout() {
                 <Stack.Screen name="login" options={{ headerShown: false }} />
                 <Stack.Screen name="shake-room" options={{ headerShown: false }} />
                 <Stack.Screen name="send" options={{ headerShown: false }} />
+                <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
               </Stack>
             </View>
           </GlobalPresenceProvider>

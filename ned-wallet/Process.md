@@ -683,6 +683,455 @@
   - **3. Tối ưu Điều Hướng Khi Hết Hạn Token ([app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx), [app/shake-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/shake-room.tsx), [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
     - Tự động bắt lỗi `'hết hạn'` hoặc `'Missing access token'` và điều hướng người dùng quay lại `/login` để nhận token mới mà không bị kẹt ở màn hình cũ.
 
+---
+
+### 🔹 [Phase 2 - Bước 47: Khắc Phục Đồng Bộ Số Dư Thời Gian Thực & Recent Activities Cho Người Nhận Tiền]
+- **Type:** `[CORE]` | `[REALTIME]` | `[UI/UX]` | `[STABILITY]`
+- **Nguyên nhân cốt lõi (Root Cause)**:
+  1. **Lỗi Cache Perspective trong `services/solana.ts`**: `parsedTxCache` lưu cache theo chữ ký `sig` mà không phân biệt theo `address`. Khi Người gửi hoàn tất giao dịch và lưu cache dạng `sent` (Chuyển tiền -$X.XX), Người nhận khi tra cứu cùng chữ ký `sig` đó nhận lại kết quả từ cache là `sent` thay vì `received` (Nhận tiền +$X.XX).
+  2. **Lỗi ép kiểu `accountKeys` của RPC**: Cấu trúc `accountKeys` trả về từ Solana RPC có nhiều định dạng (`PublicKey`, `{ pubkey: string }`, `{ pubkey: PublicKey }`). Việc gọi trực tiếp `.toBase58()` mà không kiểm tra kiểu dữ liệu gây ra lỗi runtime silent bên trong block `try/catch`, khiến giao dịch không được phân tích và giữ nguyên giá trị `$0.00`.
+  3. **Thiếu cơ chế Polling Heartbeat trên Mobile**: Kết nối WebSocket `onAccountChange` trên Solana Devnet thường bị timeout hoặc ngắt kết nối ngầm khi chạy trên điện thoại di động (qua mạng di động/WiFi). Thiếu cơ chế polling định kỳ và thiếu hook `useFocusEffect` khiến màn hình Trang chủ của Người nhận không tự động cập nhật số dư và lịch sử giao dịch khi có tiền mới chuyển đến.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Nâng Cấp Bộ Phân Tích On-Chain & Cache Độc Lập Theo Ví ([services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts))**:
+    - Đổi khóa cache sang `${address}:${sig}` (Address-Scoped Cache), đảm bảo Người gửi hiển thị `Chuyển tiền` (`-$...`, `#374151`) và Người nhận hiển thị `Nhận tiền` (`+$...`, `#10B981`, `isPositive: true`).
+    - Hỗ trợ toàn diện 5 định dạng `accountKeys` tránh mọi ngoại lệ runtime.
+    - Quản lý `inFlightHistoryMap` chống gọi trùng lặp (Deduplication) và tối ưu commitment `'confirmed'` cho `getSolanaBalance`.
+  - **2. Đồng Bộ Đa Tầng (Multi-Layer Real-time Sync) Cho Trang Chủ ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - **Heartbeat Polling (3.5 giây)**: Tự động kiểm tra số dư SOL từ Devnet. Khi phát hiện số dư tăng lên, hệ thống lập tức cập nhật state, lưu cache, kích hoạt rung phản hồi Haptic (`Success`) và tải lại danh sách Recent Activities ngay lập tức.
+    - **Focus Listener (`useFocusEffect`)**: Tự động làm mới 100% dữ liệu mỗi khi người dùng mở hoặc chuyển tab về Trang chủ.
+    - **AppState Listener**: Tự động làm mới khi ứng dụng được mở lại từ chế độ nền (Foreground active).
+    - **WebSocket Listener**: Giữ kết nối `onAccountChange` để bắt biến động số dư sub-second khi WebSocket hoạt động.
+    - **Khởi tạo sạch**: Xóa bỏ các mock activity ảo ("4 mo ago"), khởi tạo danh sách từ cache cục bộ sạch.
+  - **3. Tự Động Làm Mới Màn Hình Lịch Sử ([app/history.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/history.tsx))**:
+    - Tích hợp `useFocusEffect` để tự động kéo toàn bộ lịch sử on-chain mới nhất mỗi khi người dùng truy cập màn hình History.
+
+---
+
+### 🔹 [Phase 2 - Bước 48: Vá Lỗ Hổng Tự Chuyển Tiền Cho Chính Mình (Self-Transfer Prevention & Double-Check)]
+- **Type:** `[SECURITY]` | `[VALIDATION]` | `[CORE]` | `[UX]`
+- **Mục tiêu**:
+  - Ngăn chặn triệt để trường hợp người dùng nhập chính số điện thoại của mình hoặc chính địa chỉ ví của mình để thực hiện giao dịch chuyển tiền cho bản thân.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Helper So Sánh Số Điện Thoại Thông Minh ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Xây dựng hàm `isSamePhoneNumber(phone1, phone2)` tự động chuẩn hóa mọi biến thể đầu số (`+84...`, `0...`, `84...`, dấu cách, gạch ngang) để phát hiện chính xác 100% SĐT trùng khớp.
+  - **2. Chặn Tức Thì Tại Giao Diện (Front-end UI Validation & Cleanup)**:
+    - **Màn hình Chuyển tiền ([app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx))** và **Modal Chuyển tiền ([components/SendModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/SendModal.tsx))**:
+      - Khi người dùng nhập SĐT trùng với `myPhone` hoặc nhập địa chỉ Base58 trùng với `myAddress`:
+        - Đặt `resolvedAddress = null` (tuyệt đối không hiển thị thẻ thông tin ví thành công).
+        - Hiển thị thông báo lỗi màu đỏ: `'Bạn không thể chuyển tiền đến tài khoản của chính mình'`.
+        - Khóa hoàn toàn nút `'Xác nhận Chuyển tiền'` (`disabled = true`).
+  - **3. Chặn Chéo Bằng Địa Chỉ Ví (Double-Check After Supabase Lookup)**:
+    - Trong luồng tra cứu Supabase: Khi nhận về `foundAddress`, lập tức so sánh với ví người gửi `myAddress` (`wallets[0].address`).
+    - Nếu trùng nhau $\rightarrow$ ngắt luồng ngay, không lưu state người nhận và văng cảnh báo lỗi đỏ.
+  - **4. Bảo Vệ Tầng Core Hook & Service ([hooks/useOnchainTransfer.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainTransfer.ts), [services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts))**:
+    - Kiểm tra `from === finalToAddress` hoặc `fromPubkey.equals(toPubkey)` trước khi xây dựng giao dịch và ký số. Trả về lỗi: `'Bạn không thể chuyển tiền đến tài khoản của chính mình.'` nếu vi phạm.
+
+---
+
+### 🔹 [Phase 2 - Bước 49: Tích Hợp Tính Năng Không Gian Geo-RedPacket (Lì Xì Theo Tọa Độ GPS) & Gỡ Bỏ AirDrop Radar]
+- **Type:** `[FEATURE]` | `[GEOLOCATION]` | `[ONCHAIN]` | `[DATABASE]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Gỡ bỏ hoàn toàn tính năng AirDrop Radar cũ.
+  - Tích hợp tính năng Geo-RedPacket: Cho phép người dùng thả bao lì xì SOL tại tọa độ GPS thực tế (khóa an toàn on-chain vào Escrow Treasury) và lưu trữ vị trí lên Supabase.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Phase 1: Dọn Dẹp AirDrop Radar ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx))**:
+    - Xóa bỏ toàn bộ UI thẻ AirDrop Radar và hàm xử lý `handleOpenFeatureInfo` không còn sử dụng.
+    - Kích hoạt thẻ `Geo-RedPacket (Lì xì theo tọa độ)` sang trạng thái sẵn sàng (`isAvailable = true`) với theme màu đỏ lễ hội (`#EF4444`, `#FEE2E2`).
+  - **2. Phase 2: Thiết Kế Database & Service Tọa Độ ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Xây dựng bảng `geo_red_packets` trên Supabase (UUID, `creator_wallet`, `amount`, `lat`, `lng`, `radius`, `message`, `status`, `tx_signature`, `claimed_by`, `claimed_at`, `created_at`).
+    - Viết thuật toán tính khoảng cách GPS `calculateDistanceInMeters` theo công thức Haversine.
+    - Bổ sung các phương thức `createGeoRedPacketRecord` và `fetchActiveGeoRedPackets`.
+  - **3. Phase 3: Dựng Màn Hình & Logic Khởi Tạo Lì Xì ([app/geo-redpacket.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/geo-redpacket.tsx))**:
+    - Tích hợp `expo-location` lấy vị trí GPS vệ tinh chính xác cao (`Location.Accuracy.High`).
+    - Tab Switcher: Gồm 2 chế độ `Thả Lì Xì` và `Quét Lì Xì Quanh Đây` với hiệu ứng Radar Pulse Animation sinh động.
+    - Logic Thả Lì Xì On-chain: Thực thi ký chuyển SOL vào ví Treasury Escrow `GEO_REDPACKET_TREASURY` (`9WzDXw...`) qua `useOnchainTransfer`.
+    - **Cơ chế Atomic Consistency**: CHỈ KHI giao dịch on-chain thành công và có chữ ký `txSignature`, hệ thống mới INSERT bản ghi tọa độ lên Supabase.
+
+---
+
+### 🔹 [Phase 2 - Bước 50: Tái Cấu Trúc Bảo Mật Toàn Diện Với Supabase Edge Function Backend Signer & Strict RLS]
+- **Type:** `[SECURITY]` | `[BACKEND]` | `[EDGE_FUNCTION]` | `[ONCHAIN_SIGNER]` | `[ARCHITECTURE]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn lỗ hổng bảo mật phía client (hủy bỏ quyền `UPDATE` trực tiếp từ Front-end).
+  - Triển khai mô hình **Backend Signer** với Supabase Edge Function (`claim-redpacket`): Tính khoảng cách Haversine server-side, bảo mật Private Key Treasury, ký chuyển SOL on-chain và cập nhật trạng thái `claimed` nguyên tử (Atomic).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Khóa Chặt Database & Cập Nhật RLS ([supabase/migrations/20260831_geo_red_packets_security.sql](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/supabase/migrations/20260831_geo_red_packets_security.sql))**:
+    - Hủy bỏ toàn bộ policy `FOR UPDATE USING (true)`.
+    - Thiết lập RLS: Public/Anon CHỈ có quyền `SELECT` và `INSERT`.
+    - TUYỆT ĐỐI KHÔNG cấp quyền `UPDATE`/`DELETE` cho client. Chỉ có `Service Role Key` của Backend mới có quyền sửa đổi DB.
+  - **2. Xây Dựng Supabase Edge Function Backend Signer ([supabase/functions/claim-redpacket/index.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/supabase/functions/claim-redpacket/index.ts))**:
+    - Nhận payload: `{ packet_id, user_wallet, user_lat, user_lng }`.
+    - **Xác thực GPS Server-side**: Sử dụng công thức Haversine để tính khoảng cách thực tế giữa người nhận và bao lì xì. Kiểm tra nghiêm ngặt `distance <= packet.radius + 10m buffer`.
+    - **Chống gian lận (Anti-Self-Farming & Double Claim)**: Kiểm tra `packet.status === 'active'` và chặn người tạo tự nhặt lại bao lì xì của chính mình.
+    - **Ký On-chain Bảo Mật**: Cất giữ an toàn `TREASURY_SECRET_KEY` trong Supabase Secrets, tự động tạo và ký giao dịch chuyển `packet.amount` SOL từ Treasury về ví người nhận trên Solana Devnet.
+    - **Cập Nhật Nguyên Tử (Atomic Update)**: CHỈ KHI mạng lưới Solana xác nhận thành công chữ ký `claim_tx_signature`, Edge Function mới cập nhật `status = 'claimed'` trên Supabase.
+  - **3. Tích Hợp Front-End Client ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts), [app/geo-redpacket.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/geo-redpacket.tsx))**:
+    - Xây dựng hàm `claimGeoRedPacketViaBackend` gọi Edge Function qua `supabase.functions.invoke('claim-redpacket')`.
+    - Màn hình Geo-RedPacket hiển thị trạng thái động cho từng bao lì xì (nếu trong bán kính $\rightarrow$ hiện nút đỏ *"🧧 Mở Lì Xì Ngay"*; nếu ngoài bán kính $\rightarrow$ hiển thị khoảng cách cần di chuyển lại gần).
+    - Tự động rung Haptic Success, mở thông báo chúc mừng kèm chữ ký On-chain và làm mới số dư ví tức thì.
+
+---
+
+### 🔹 [Phase 2 - Bước 51: Xây Dựng Tính Năng 'Phòng Lì Xì Tung Đồng Xu' (Coin Toss Realtime Room)]
+- **Type:** `[FEATURE]` | `[REALTIME]` | `[WEBSOCKETS]` | `[PRESENCE]` | `[ANIMATION]` | `[ONCHAIN]`
+- **Mục tiêu**:
+  - Hủy bỏ thiết kế Geo-RedPacket GPS, thay thế bằng **Phòng Lì Xì Tung Đồng Xu** trên nền tảng Supabase Realtime (Presence & Broadcast).
+  - Tự động quét thiết bị người dùng xung quanh (Presence) và mời vào phòng.
+  - Hiệu ứng vuốt tung đồng xu (Swipe to Toss) với PanResponder + Physics 3D Flip Animation.
+  - Thuật toán Random chọn 1 Guest duy nhất và thực thi ký chuyển SOL on-chain trực tiếp qua `useOnchainTransfer`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Khởi Tạo Phòng & Quét Thiết Bị ([contexts/GlobalPresenceContext.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/contexts/GlobalPresenceContext.tsx), [app/coin-toss-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/coin-toss-room.tsx))**:
+    - Host tạo phòng với mã định danh riêng biệt `coin_<id>`.
+    - Kết nối Realtime Channel `coin_toss_<roomId>` với cơ chế Supabase Presence để đồng bộ danh sách thành viên tức thời (`presenceState`, `track`, `on('presence', { event: 'sync' })`).
+    - Tích hợp Modal phát hiện người dùng lân cận đang mở app (`nearbyUsers`), cho phép Host phát sóng lời mời tham gia (`broadcastInvite`).
+  - **2. Cấu Trúc UI Phòng Lì Xì ([app/coin-toss-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/coin-toss-room.tsx))**:
+    - **Nửa trên**: Danh sách Avatar / Tên / Badge Host-Guest của tất cả thành viên trong phòng kèm trạng thái Online.
+    - **Khu vực Form nhập tiền (Host Only)**: Ô nhập số SOL lì xì kèm các nút chọn nhanh (`0.005`, `0.01`, `0.02`, `0.05` SOL) và hiển thị số dư ví.
+    - **Nửa dưới (Bottom Middle)**: Component **Đồng Xu Vàng 3D (Golden Coin)** với biểu tượng SOL và hiệu ứng ánh sáng hào quang (Glow Pulse).
+  - **3. Hiệu Ứng Tung Đồng Xu (Swipe to Toss & Physics Animation)**:
+    - Bắt cử chỉ vuốt ngón tay từ dưới lên trên qua `PanResponder` (`dy < -50` / `vy < -0.4`).
+    - Animation phức hợp: Đồng xu phóng vút lên cao (`translateY: 0 -> -240 -> 0`), xoay 3D Flip 5 vòng (`rotateY: 0 -> 1800deg`), co giãn quán tính (`scale: 1 -> 1.35 -> 1`) và rơi có độ nảy `Easing.bounce`.
+    - Tự động khóa Form và broadcast sự kiện `toss_started` cho toàn bộ thiết bị trong phòng cùng xem hoạt cảnh đồng xu bay.
+  - **4. Thuật Toán Random & Ký Chuyển SOL On-chain**:
+    - Khi đồng xu đang bay, hệ thống lọc danh sách Guest hợp lệ (`!is_host && wallet_address`) và Random chọn 1 người trúng thưởng: `chosenGuest = guests[Math.floor(Math.random() * guests.length)]`.
+    - Host thực thi lệnh chuyển SOL trực tiếp on-chain qua `useOnchainTransfer` gửi tới ví `chosenGuest.wallet_address`.
+    - Khi có `txSignature` thành công $\rightarrow$ Broadcast sự kiện `winner_selected` đến tất cả thành viên.
+  - **5. Màn Hình Vinh Danh & Chúc Mừng (Celebration Modal)**:
+    - Mở Popup vinh danh đích danh người chiến thắng, hiển thị số SOL trúng thưởng, avatar, tên và chữ ký giao dịch Solana Devnet Explorer.
+    - Rung phản hồi xúc giác Success và tự động làm mới số dư tức thì.
+
+---
+
+### 🔹 [Phase 2 - Bước 52: Tái Cấu Trúc Cử Chỉ Tung Đồng Xu với GestureDetector & Reanimated Shared Values]
+- **Type:** `[UI/UX]` | `[GESTURE]` | `[REANIMATED]` | `[HAPTIC_FEEDBACK]` | `[INTERACTION]`
+- **Mục tiêu**:
+  - Khắc phục triệt để độ trễ nhịp và thiếu phản hồi xúc giác khi vuốt ném đồng xu.
+  - Chuyển đổi toàn bộ logic vuốt sang `GestureDetector` (`react-native-gesture-handler`) kết hợp `useSharedValue` (`react-native-reanimated`).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Bọc Khung Gốc Root Gesture ([app/coin-toss-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/coin-toss-room.tsx))**:
+    - Bọc toàn bộ màn hình trong `<GestureHandlerRootView style={{ flex: 1 }}>`.
+  - **2. 3 Giai Đoạn Tương Tác Cử Chỉ Vật Lý ([app/coin-toss-room.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/coin-toss-room.tsx))**:
+    - **Trạng thái Nén (Touch Down / onBegin)**:
+      - Khi người dùng chạm ngón tay vào đồng xu: Lập tức co scale xuống `0.9` (withSpring) và giảm opacity xuống `0.7` (withTiming) tạo cảm giác đồng xu bị đè ép xuống.
+      - Kích hoạt rung xúc giác nhẹ `Haptics.impactAsync(Light)` thông qua `runOnJS`.
+    - **Trạng thái Vuốt Bám Ngón Tay (Drag / onUpdate)**:
+      - Đồng xu di chuyển bám sát theo tọa độ `translationY` của ngón tay người dùng (chỉ cho phép vuốt lên trên `translationY < 0`, kéo xuống bị cản lực).
+    - **Trạng thái Tung & Phản Hồi Thả Tay (Release / onEnd)**:
+      - **Đủ lực vuốt (`translationY < -120px` hoặc `velocityY < -550`)**: Khóa cảm ứng, kích hoạt rung mạnh `Heavy`, phóng vút đồng xu lên trời (`translationY: -500px`), xoay 3D 5 vòng (`rotateY: +1800deg`) và gọi luồng Random + Ký chuyển SOL on-chain trên Solana Devnet.
+      - **Chưa đủ lực**: Nảy đàn hồi mượt mà về vị trí gốc (`withSpring(0)`), khôi phục `opacity = 1` và `scale = 1` để Host thao tác lại.
+
+---
+
+### 🔹 [Phase 2 - Bước 53: Tích Hợp Chuyển Đổi Đa Ngôn Ngữ (i18n) với AsyncStorage & Settings UI]
+- **Type:** `[FEATURE]` | `[I18N]` | `[STORAGE]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Thiết lập hệ thống đa ngôn ngữ (`i18next`, `react-i18next`) hỗ trợ Tiếng Việt (`vi`) và Tiếng Anh (`en`).
+  - Tự động lưu trữ và nạp cấu hình ngôn ngữ người dùng từ `AsyncStorage` (`@app_language`).
+  - Xây dựng thanh chọn ngôn ngữ tương tác (Segmented Control) trong màn hình Settings với khả năng cập nhật giao diện thời gian thực không cần reload app.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Cấu Hình i18next & AsyncStorage ([services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts), [app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx))**:
+    - Xây dựng từ điển dịch đầy đủ cho 2 ngôn ngữ `vi` và `en`.
+    - Khi app khởi động, hàm `initLanguageFromStorage` tự động đọc khóa `@app_language` từ `AsyncStorage`. Nếu chưa có, mặc định thiết lập là `vi`.
+    - Nạp `services/i18n` ngay tại `RootLayout` (`app/_layout.tsx`) để đảm bảo sẵn sàng trên toàn app.
+  - **2. Tích Hợp Giao Diện Chuyển Đổi Ngôn Ngữ ([app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx))**:
+    - Thêm nhóm cấu hình *"Ngôn ngữ / Language"* với Segmented Control 2 nút: `🇻🇳 Tiếng Việt` và `🇬🇧 English`.
+    - Trạng thái nút active được viền sáng xanh thương hiệu (`#10B981`) kèm phản hồi rung Haptic (`Haptics.selectionAsync()`).
+    - Khi người dùng bấm chọn: Gọi đồng thời `changeAppLanguage(newLang)` và `AsyncStorage.setItem('@app_language', newLang)`.
+    - Toàn bộ text trong màn hình Settings (tiêu đề, thông tin tài khoản, các menu chức năng, cảnh báo xác nhận, popup...) tự động cập nhật ngôn ngữ ngay lập tức mà không cần khởi động lại ứng dụng.
+
+---
+
+### 🔹 [Phase 2 - Bước 54: Mở Khóa Lan Truyền Đa Ngôn Ngữ Sang Tab Navigation & Các Màn Hình Chính]
+- **Type:** `[NAVIGATION]` | `[I18N]` | `[REACTIVITY]` | `[ARCHITECTURE]`
+- **Mục tiêu**:
+  - Khắc phục lỗi React Navigation cache chuỗi tĩnh và text không cập nhật khi đổi ngôn ngữ.
+  - Lan truyền cập nhật ngôn ngữ ngay lập tức tới Tab Navigation (`app/(tabs)/_layout.tsx`), Trang chủ (`index.tsx`), và Transfer Hub (`transfer-hub.tsx`).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Mở Khóa Động Tab Navigation ([app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/_layout.tsx))**:
+    - Gọi hook `const { t } = useTranslation();` ngay bên trong `TabLayout` và `CustomTabBar`.
+    - Gán động `title` và `tabBarLabel` qua `t('tabs.home')`, `t('tabs.card')`, `t('tabs.transfer')`, `t('tabs.miniapps')`.
+    - Dynamic hóa các hộp thoại cảnh báo khi nhấn vào tab Card (`t('tabs.cardInDev')`, `t('tabs.cardInDevMsg')`).
+  - **2. Rà Soát & Xóa Bỏ Text Ngoại Lai (Static Calls)**:
+    - Đảm bảo 100% các lệnh gọi `t()` được đặt bên trong lifecycle của React Function Components.
+    - Mở rộng từ điển dịch thuật (`services/i18n.ts`) đầy đủ cho các module `tabs`, `home`, `transferHub`, `coinToss`, `settings`.
+  - **3. Lan Truyền Reactive Từ Root Sang Màn Hình Chính**:
+    - Cập nhật [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx) và [app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx) sử dụng hook `useTranslation()`.
+    - Khi thay đổi ngôn ngữ tại Settings, toàn bộ Tab Bar, Home Screen và Transfer Hub lập tức đồng bộ chuyển đổi tức thì.
+
+---
+
+### 🔹 [Phase 2 - Bước 55: Đa Ngôn Ngữ Hóa Toàn Diện Recent Activities & Lịch Sử Giao Dịch]
+- **Type:** `[I18N]` | `[ONCHAIN]` | `[UI/UX]` | `[LOCALIZATION]`
+- **Mục tiêu**:
+  - Khắc phục tình trạng danh sách Recent activities tại Trang chủ và màn hình Lịch sử giao dịch (`app/history.tsx`) bị kẹt text cứng Tiếng Việt (tiêu đề, thời gian tương đối, bộ lọc, thanh tìm kiếm, empty state).
+  - Tách bạch cấu trúc dữ liệu thô (`type`, `blockTime`) và cơ chế render động theo ngôn ngữ người dùng lựa chọn.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Cấu Trúc Hóa Dữ Liệu Giao Dịch & Helper Dịch Thuật ([services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts))**:
+    - Bổ sung trường `blockTime` (Unix timestamp) vào cấu trúc `ActivityItem`.
+    - Xây dựng hàm `getActivityTitle(item, t)` để ánh xạ động kiểu giao dịch (`received` $\rightarrow$ Nhận tiền / Received, `sent` $\rightarrow$ Chuyển tiền / Sent, `reward` $\rightarrow$ Thưởng Lì Xì / Lucky Reward).
+    - Xây dựng hàm `formatLocalizedRelativeTime(blockTime, t)` để tính toán và format thời gian tương đối đa ngôn ngữ (Vừa xong / Just now, X phút trước / Xm ago, X giờ trước / Xh ago, X ngày trước / Xd ago...).
+  - **2. Đồng Bộ Hóa Màn Hình Trang Chủ ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Chuyển đổi toàn bộ component Recent Activity để sử dụng `getActivityTitle` và `formatLocalizedRelativeTime`.
+    - Các nút hành động `Deposit` $\rightarrow$ Nhận / Receive, `Withdraw` $\rightarrow$ Chuyển / Send, `Recent activity` $\rightarrow$ Hoạt động gần đây / Recent Activities, `View more` $\rightarrow$ Xem tất cả / See all tự động chuyển ngữ theo hệ thống.
+  - **3. Toàn Diện Hóa Màn Hình Lịch Sử Giao Dịch ([app/history.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/history.tsx))**:
+    - Dịch động tiêu đề Header, Placeholder tìm kiếm, các Tab bộ lọc (Tất cả / All, Nhận tiền / Received, Chuyển tiền / Sent, Phần thưởng / Lucky Reward), Badge xác nhận (`Confirmed`), và Empty State.
+
+---
+
+### 🔹 [Phase 2 - Bước 56: Mở Rộng Hệ Thống Đa Ngôn Ngữ (MiniApps, Transfer Hub Badges & Bottom Sheet Selector)]
+- **Type:** `[I18N]` | `[UI/UX]` | `[REFACTOR]` | `[SCALABILITY]`
+- **Mục tiêu**:
+  - Dọn dẹp triệt để các chuỗi tĩnh còn sót lại ở `Transfer Hub` (*"Sẵn sàng sử dụng" / "Bắt đầu tương tác ngay"*).
+  - Bản địa hóa 100% màn hình `N.E.D MiniApps Hub` (`app/(tabs)/miniapps.tsx`).
+  - Tái thiết kế bộ chọn ngôn ngữ trong `Settings`: Thay thế dạng switch button cứng bằng danh sách mở rộng dạng Bottom Sheet Modal (`SUPPORTED_LANGUAGES`) hỗ trợ đa quốc gia (Việt Nam, Anh, Nhật, Hàn, Trung, Pháp, Đức, Tây Ban Nha...).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Bản Địa Hóa FeatureCard & Transfer Hub ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx))**:
+    - Tích hợp `useTranslation()` bên trong `FeatureCard`.
+    - Ánh xạ badge trạng thái sang `t('transferHub.readyToUse')` (*Sẵn sàng sử dụng* / *Ready to use*) và gợi ý hành động sang `t('transferHub.interactNow')` (*Bắt đầu tương tác ngay* / *Interact now*) & `t('transferHub.learnMore')` (*Tìm hiểu thêm tính năng* / *Learn more features*).
+  - **2. Đa Ngôn Ngữ Hóa Toàn Bộ MiniApps Hub ([app/(tabs)/miniapps.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/miniapps.tsx))**:
+    - Chuyển đổi toàn bộ Banner giới thiệu, Tiêu đề mục (*ỨNG DỤNG NỔI BẬT* / *FEATURED APPS*), Badge (*Sắp ra mắt* / *Coming Soon*), và các ứng dụng dApps (Solana Pay Merchant, Jupiter Swap Lite, Micro Savings, Web3 Gift Cards) sang hệ thống từ điển đa ngôn ngữ.
+  - **3. Tái Cấu Trúc Bộ Chọn Ngôn Ngữ Mở Rộng ([app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx), [services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts))**:
+    - Tạo mảng `SUPPORTED_LANGUAGES` mở rộng chuẩn bị sẵn cho lộ trình quốc tế hóa: 🇻🇳 Tiếng Việt, 🇬🇧 English, 🇯🇵 日本語, 🇰🇷 한국어, 🇨🇳 简体中文, 🇫🇷 Français, 🇩🇪 Deutsch, 🇪🇸 Español.
+    - Tại Settings, hiển thị hàng menu chuẩn với cờ và tên ngôn ngữ hiện tại.
+    - Khi bấm: Mở Modal Bottom Sheet danh sách ngôn ngữ với Radio checkmark xanh emerald (`#10B981`) cho ngôn ngữ đang chọn, gắn nhãn *"Sắp có"* cho các ngôn ngữ tương lai, và chuyển đổi mượt mà ngay lập tức.
+
+---
+
+### 🔹 [Phase 2 - Bước 57: Bản Địa Hóa Thẻ Khởi Đầu (Next Steps & Onboarding) Tại Trang Chủ]
+- **Type:** `[I18N]` | `[ONBOARDING]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Đa ngôn ngữ hóa toàn bộ thành phần hướng dẫn Onboarding (`Next steps`), cảnh báo thiết bị lạ (`New device detected`), và trạng thái liên kết tài khoản (`Connect Account`).
+  - Xử lý chuyển ngữ động cho chuỗi gợi ý `(Chạm để quản lý)` $\leftrightarrow$ `(Tap to manage)` và `(Chạm để thêm SĐT)` $\leftrightarrow$ `(Tap to add phone)`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Cập Nhật Từ Điển & Bộ Phân Giải Biến Động ([services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts))**:
+    - Thêm các khóa dịch thuật `newDeviceTitle`, `newDeviceDesc`, `recover`, `nextSteps`, `stepCount`, `connectAccount`, `linkedPhoneTapToManage`, `signedInTapToAddPhone`, `makeDeposit`, `readyHint` vào cả 2 ngôn ngữ `vi` và `en`.
+    - Nâng cấp bộ phân giải `useTranslation` để tự động thay thế tất cả các biến template dạng `{{variable}}` (như `{{phone}}`, `{{current}}`, `{{total}}`).
+  - **2. Đồng Bộ Hóa Trang Chủ ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Gắn kết `t('home.connectAccount')`, `t('home.linkedPhoneTapToManage')`, `t('home.signedInTapToAddPhone')`, `t('home.nextSteps')`, `t('home.stepCount')` và `t('home.makeDeposit')` vào toàn bộ khối Onboarding.
+
+---
+
+### 🔹 [Phase 2 - Bước 58: Đa Ngôn Ngữ Hóa Toàn Bộ Modal Nạp Tiền & Chuyển Tiền On-Chain]
+- **Type:** `[I18N]` | `[DEPOSIT]` | `[SEND]` | `[RECOVERY]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Khắc phục tình trạng khi mở Modal Nạp Tiền (`DepositModal`) và Màn hình / Modal Chuyển Tiền (`SendModal`, `app/send.tsx`, `WalletRecoveryModal`), các tiêu đề, trường nhập liệu, lỗi tra cứu ví, cảnh báo và nút bấm bên trong bị kẹt chuỗi Tiếng Việt tĩnh.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Xây Dựng Từ Điển Dịch Thuật Chuyên Sâu Cho Deposit & Send & Recovery ([services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts))**:
+    - Thêm module `deposit`: Toàn bộ tiêu đề modal, phụ đề, thẻ tùy chọn VNPAY / Solana Network, nhãn số tiền, nút sao chép, và hộp thoại giả lập nạp tiền VNPAY.
+    - Thêm module `send`: Nhãn người nhận, placeholder tìm kiếm thông minh, cảnh báo tự chuyển cho chính mình, thông báo số dư không đủ, nút ký giao dịch on-chain, và trạng thái đang phát sóng.
+    - Thêm module `recovery`: Các thông báo và nút khôi phục ví ngầm qua Cloud Sync / Google Drive / Passcode.
+  - **2. Cập Nhật Các Component Nạp & Chuyển Tiền**:
+    - [components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx)
+    - [components/SendModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/SendModal.tsx)
+    - [app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx)
+    - [components/WalletRecoveryModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/WalletRecoveryModal.tsx)
+
+---
+
+### 🔹 [Phase 2 - Bước 59: Chuyển Đổi Trải Nghiệm Chuẩn MiniPay (Web3 Abstraction & Gasless USDC)]
+- **Type:** `[WEB3_ABSTRACTION]` | `[USDC_SPL]` | `[GASLESS_FEE_PAYER]` | `[FIAT_BALANCE]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Ẩn hoàn toàn yếu tố Web3 / Blockchain phức tạp khỏi trải nghiệm người dùng cuối, tương tự ví MiniPay.
+  - Hiển thị số dư Fiat động 100% từ on-chain (`$100.00` $\leftrightarrow$ `đ 2,500,000`), không mock hay gán tĩnh.
+  - Chuyển dịch toàn bộ giao dịch sang Stablecoin **USDC SPL Token** (`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`) trên Solana Devnet.
+  - Xây dựng cơ chế **Tài trợ phí mạng (Gasless Fee Payer Relayer)**: Người dùng ký một phần (Partial Sign) token USDC và Backend Treasury ký bù `feePayer` rồi broadcast on-chain.
+  - Loại bỏ hoàn toàn chuỗi địa chỉ ví Base58 dài, thay bằng SĐT ẩn ký tự (`0912 ••• 678`) và Mã tài khoản động (`NED-xxxx`).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Xây Dựng SPL Token Builders & Formatters ([services/solana.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solana.ts))**:
+    - `formatFiatBalance(usdAmount, currency)`: Render số dư trực quan định dạng `$USD` hoặc `đ VND`.
+    - `getUsdcTokenBalance(address)` & `getAccountDisplayBalance(address)`: Đọc số dư trực tiếp từ on-chain Associated Token Account (ATA) và quy đổi ra Fiat.
+    - `getAssociatedTokenAddress`, `createAssociatedTokenAccountInstruction`, `createSplTokenTransferInstruction`: Xây dựng cấu trúc SPL Token thuần `@solana/web3.js`.
+    - `sponsorAndBroadcastTransaction`: Gọi Edge Function `sponsor-transfer` để Treasury ký Fee Payer và phát sóng giao dịch.
+  - **2. Supabase Edge Function Gasless Relayer ([supabase/functions/sponsor-transfer/index.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/supabase/functions/sponsor-transfer/index.ts))**:
+    - Nhận Partial Signed Transaction base64 từ client, ký bù bí mật với `TREASURY_SECRET_KEY` và broadcast lên Solana.
+  - **3. Cập Nhật Hook Giao Dịch Core ([hooks/useOnchainTransfer.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainTransfer.ts))**:
+    - Tạo giao dịch chuyển USDC 6 decimals, tự động tạo ATA cho người nhận nếu chưa có, gán `feePayer = TREASURY_FEE_PAYER`, người dùng ký partial sign qua Privy.
+  - **4. Tinh Chỉnh Giao Diện Người Dùng**:
+    - [app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx): Thẻ số dư hiển thị dynamic fiat balance, header hiển thị SĐT/mã tài khoản.
+    - [components/SendModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/SendModal.tsx) & [app/send.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/send.tsx): Nhập số tiền USD, hiển thị tỷ giá VND và badge `Miễn phí chuyển tiền`.
+    - [app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx): Hiển thị `Mã tài khoản: NED-xxxx`.
+    - [services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts): Thanh lọc toàn bộ từ vựng blockchain thành thuật ngữ tài khoản ngân hàng thân thiện.
+
+---
+
+### 🔹 [Phase 2 - Bước 60: Tối Ưu Hóa Bộ Ký Giao Dịch Đa Năng (Dual-Engine Signer) & Fix Intl Warning]
+- **Type:** `[SOLANA_TRANSACTION]` | `[I18N_WARNING_FIX]` | `[RELIABILITY]`
+- **Mục tiêu**:
+  - Xử lý triệt để lỗi `Signature verification failed. Missing signature for public key [9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM]` khi phát sóng giao dịch on-chain.
+  - Sửa cảnh báo `i18next::pluralResolver: Your environment seems not to be Intl API compatible` bằng cách cấu hình `compatibilityJSON: 'v3'`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Cơ Chế Dual-Engine On-Chain Transfer ([hooks/useOnchainTransfer.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainTransfer.ts))**:
+    - Tự động kiểm tra số dư on-chain của người gửi: Nếu có số dư USDC SPL Token $\rightarrow$ Chuyển SPL Token và tự tạo ATA cho người nhận. Nếu người gửi sở hữu SOL Devnet $\rightarrow$ Chuyển Native SOL tương đương.
+    - Cấu hình `feePayer = fromPubkey` cho phép Transaction được ký hoàn chỉnh 100% từ ví người dùng và phát sóng trực tiếp lên Solana Devnet mà không bị phụ thuộc vào việc deploy trước Edge Function lên remote Supabase.
+  - **2. Khắc Phục Cảnh Báo i18next ([services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts))**:
+    - Thêm `compatibilityJSON: 'v3'` vào `i18n.init()` giúp tương thích hoàn hảo với môi trường React Native Hermes / JSC.
+
+---
+
+### 🔹 [Phase 2 - Bước 61: Xây Dựng Giao Diện Neo-Brutalism & Custom Floating Pill Tab Bar]
+- **Type:** `[NEO_BRUTALISM]` | `[CUSTOM_TAB_BAR]` | `[BALANCE_CARD]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Tái thiết kế giao diện theo phong cách **Neo-brutalism** với viền đen dày (`borderWidth: 2-2.5px`) và bóng đổ đặc không làm mờ (`solid offset shadow`), chuẩn xác theo 3 hình ảnh thiết kế.
+  - Xây dựng các component tái sử dụng (`NeoCard`, `NeoButton`, `NeoBalanceCard`) giải quyết triệt để bài toán hard shadow trên cả iOS, Android và Web.
+  - Xây dựng **Custom Floating Pill Tab Bar**: Nổi phía dưới màn hình, Light Mode nền xanh mint nhạt, Tab Active mở rộng thành viên thuốc đen có icon + text Home, Tab Inactive là hình tròn tím nhạt; hỗ trợ sẵn Dark Mode.
+  - Xây dựng **Home Layout & Neo Header**: Nền Beige sáng (`#F5EBE1`), Nút Profile tròn trắng viền đen góc trái và Nút QR góc phải.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Neo Design Tokens ([components/neo/tokens.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/tokens.ts))**: Định nghĩa hệ màu sắc, kích thước viền và độ lệch bóng đổ cho cả Light và Dark Mode.
+  - **2. Reusable Components ([components/neo/NeoCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoCard.tsx), [components/neo/NeoButton.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoButton.tsx))**: Sử dụng lớp View đen offset phía sau kết hợp animation xúc giác trượt thụt bóng khi bấm.
+  - **3. Neo Balance Card ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**: Thẻ tím bo góc `#9E77DC`, số dư Dollars `$100`, dòng phụ `đ 0.00`, 2 nút thao tác Deposit (vàng `#FFF1A6`) và Withdraw (xanh mint `#D8FAF7`), kèm nút bán nguyệt đính ở cạnh dưới đáy thẻ.
+  - **4. Custom Floating Pill Tab Bar ([app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/_layout.tsx))**: Căn giữa nổi phía dưới màn hình, chuyển trạng thái Active (viên thuốc đen) và Inactive (hình tròn tím nhạt) mượt mà.
+  - **5. Cập Nhật Màn Hình Chính ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**: Nền Beige sáng `#F5EBE1`, Header tròn Profile & QR, tích hợp hoàn hảo với `NeoBalanceCard` và toàn bộ logic on-chain.
+
+---
+
+### 🔹 [Phase 2 - Bước 62: Khắc Phục Lỗi Hiển Thị Màu Nút Deposit & Withdraw]
+- **Type:** `[NEO_BUTTON_FIX]` | `[UI/UX]` | `[STYLING]`
+- **Mục tiêu**:
+  - Khắc phục tình trạng 2 nút `Deposit` và `Withdraw` bị đen thui do lớp bóng đổ `shadowUnderlay` đè lên lớp button chính.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Phân Tầng zIndex & Layout Trong NeoButton ([components/neo/NeoButton.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoButton.tsx))**:
+    - Đặt `shadowUnderlay` ở tầng dưới cùng `zIndex: 1`.
+    - Gán trực tiếp `backgroundColor` và `zIndex: 5`, `elevation: 3` lên `Animated.View` của nút bấm để đảm bảo màu nền luôn hiển thị nổi bật trên mọi thiết bị.
+  - **2. Cập Nhật Thẻ NeoBalanceCard ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Nút **Deposit**: Nền vàng pastel `#FFF1A6`, viền đen 2px, icon `(↓)` trong vòng tròn trắng, chữ Deposit màu đen đậm (`#000000`).
+    - Nút **Withdraw**: Nền xanh mint pastel `#D8FAF7`, viền đen 2px, icon `(↗)` trong vòng tròn trắng, chữ Withdraw màu đen đậm (`#000000`).
+
+---
+
+### 🔹 [Phase 2 - Bước 63: Nâng Cấp Next Steps, Recent Activities & Transfer Hub Chuẩn Neo-Brutalism]
+- **Type:** `[NEO_BRUTALISM]` | `[NEXT_STEPS]` | `[RECENT_ACTIVITIES]` | `[TRANSFER_HUB]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Cập nhật giao diện của 2 khối `Next steps` và `Recent Activities` trên màn hình Home và toàn bộ 3 thẻ tính năng trên màn hình `Transfer Hub` theo chuẩn thiết kế Neo-brutalism từ 2 hình ảnh tham chiếu.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Khối Next Steps ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Bọc toàn bộ khối trong `NeoCard` nền trắng `#FFFFFF`, viền đen 2.5px, bóng đổ đen cứng 5px.
+    - Progress Bar: Thanh bo góc viền đen 1.8px bao quanh, lõi màu xanh ngọc `#00A389`.
+    - Badge `1 of 2`: Nền xanh ngọc `#00A389`, chữ trắng, viền đen 1.5px.
+    - Checkbox & Nút: Vòng tròn checkbox viền đen dày 2px; Nút `Receive` nền xanh ngọc `#00A389`, viền đen 2px, chữ trắng, bóng đổ cứng.
+  - **2. Khối Recent Activities ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Bọc trong `NeoCard` nền trắng `#FFFFFF`, viền đen 2.5px, bóng đổ đen cứng 5px.
+    - Nút `See all >`: Dạng viên thuốc nền hồng nhạt `#FFD6E8`, viền đen dày 1.8px, chữ hồng đậm `#9D174D`.
+    - Icon Giao dịch: Vòng tròn viền đen 2px; Nền hồng nhạt `#FFD6E8` cho giao dịch `Sent` (mũi tên `↗` đen) và Nền đỏ thẫm `#DC2626` cho giao dịch `Received` (mũi tên `↓` trắng).
+  - **3. Màn hình Transfer Hub ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx))**:
+    - Nền màn hình Beige sáng `#F5EBE1`, tiêu đề to đậm `Transfer Hub`.
+    - 3 Thẻ tính năng `NeoFeatureCard` (dùng `NeoCard` viền đen 2.5px, bóng đổ cứng 5px):
+      1. `Shake & Split bill`: Nền tím nhạt `#F3EBFF`, icon tím đậm viền đen.
+      2. `Transfer by Phone Number`: Nền xanh ngọc nhạt `#E6FAF8`, icon xanh ngọc viền đen.
+      3. `Coin Toss Lì Xì Room`: Nền trắng `#FFFFFF`, icon nâu/vàng viền đen.
+    - Mỗi thẻ có badge `• Active` viền đen ở góc phải, đường kẻ ngang mảnh phân cách mô tả và nút điều hướng `Interact now ->` ở đáy thẻ.
+
+---
+
+### 🔹 [Phase 2 - Bước 64: Nâng Cấp Custom Tab Bar Bằng React-Native-Reanimated]
+- **Type:** `[ANIMATION]` | `[REANIMATED]` | `[CUSTOM_TAB_BAR]` | `[PERFORMANCE]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn cảm giác giật và thô khi chuyển đổi giữa các tab.
+  - Sử dụng `react-native-reanimated` để áp dụng chuyển động vật lý nảy nhẹ (`damping: 14, stiffness: 120`).
+  - Thêm hiệu ứng **Scale Pop (bật nảy icon)** khi click vào tab.
+  - Tách biệt component `AnimatedTabItem` độc lập với `React.memo`, toàn bộ hiệu ứng chạy 100% trên Main Thread (UI Thread).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Component AnimatedTabItem ([app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/_layout.tsx))**:
+    - `useSharedValue`: Quản lý tiến trình active (`activeProgress`) và tỉ lệ icon (`iconScale`).
+    - `animatedContainerStyle`: Tự co giãn chiều rộng (`44px` $\leftrightarrow$ `104px`) và biến thiên màu nền (`#D8BCFA` $\leftrightarrow$ `#111827`) mượt mà với `withSpring(SPRING_CONFIG)`.
+    - `animatedIconStyle`: Bật nảy icon `withSequence(withSpring(1.25), withSpring(1.0))` khi active.
+    - `animatedLabelStyle`: Chữ Label xuất hiện trượt nhẹ và tăng độ mờ `opacity: 0 -> 1`.
+  - **2. Tối Ưu Hiệu Năng**:
+    - Bọc trong `React.memo` giúp các tab không bị render lại không cần thiết khi React Navigation chuyển màn hình.
+
+---
+
+### 🔹 [Phase 2 - Bước 65: Tối Ưu Thông Số Lò Xo Tab Bar Tạo Cảm Giác Cơ Học & Dứt Khoát]
+- **Type:** `[SPRING_PHYSICS]` | `[SNAPPY_ANIMATION]` | `[REANIMATED]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Tinh chỉnh các tham số của `withSpring` để chuyển động tab diễn ra nhanh, cơ học và dứt khoát, triệt tiêu dao động dư thừa.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Siết Lò Xo Chuyển Tab ([app/(tabs)/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/_layout.tsx))**:
+    - Thiết lập `SPRING_CONFIG = { damping: 26, stiffness: 280, mass: 0.8 }`.
+    - Giúp khối nền trượt cực nhanh tới đích và khựng lại 1 nhịp rất nhẹ, không bị nảy qua lại nhiều lần.
+  - **2. Bật Nảy Icon Cơ Học (Scale Pop)**:
+    - Hạ biên độ scale phóng to từ `1.2x` xuống `1.1x`.
+    - Cấu hình độ nảy `ICON_SPRING_CONFIG = { damping: 20, stiffness: 300 }` tạo cảm giác phản hồi nút bấm vật lý cứng cáp.
+
+---
+
+### 🔹 [Phase 2 - Bước 66: Loại Bỏ Badge "Active" Khỏi Các Thẻ Transfer Hub]
+- **Type:** `[UI_CLEANUP]` | `[TRANSFER_HUB]` | `[NEO_CARD]`
+- **Mục tiêu**:
+  - Bỏ toàn bộ badge "• Active" ở góc phải của cả 3 thẻ tính năng trên màn hình Transfer Hub (`app/(tabs)/transfer-hub.tsx`).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Component NeoFeatureCard ([app/(tabs)/transfer-hub.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/transfer-hub.tsx))**:
+    - Xóa thuộc tính `badgeText` và khối giao diện `activeBadgePill` khỏi header của thẻ.
+    - Làm sạch các thẻ `Shake & Split bill`, `Transfer by Phone Number`, `Coin Toss Lì Xì Room` mang lại giao diện tinh gọn, tập trung vào icon và nội dung tính năng.
+
+---
+
+### 🔹 [Phase 2 - Bước 67: Tái Cấu Trúc Deposit Modal Bằng Root Modal & Reanimated]
+- **Type:** `[MODAL_REFACTOR]` | `[Z_INDEX_FIX]` | `[REANIMATED]` | `[ANIMATION]`
+- **Mục tiêu**:
+  - Khắc phục lỗi Bottom Tab Bar đè lên Deposit Modal bằng cách render ở Root level (`<Modal transparent animationType="none">`).
+  - Tách biệt animation: Backdrop chạy Fade-in (`opacity: 0 -> 0.6` với `withTiming`) và Bottom Sheet chạy Slide-up (`translateY: SCREEN_HEIGHT -> 0` với `withSpring`).
+  - Đồng bộ luồng đóng (Close Transition): Chạy hiệu ứng trượt xuống & fade-out trước khi unmount component (`runOnJS`).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Root Modal Level ([components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx))**:
+    - Bọc toàn bộ UI trong `<Modal transparent={true} visible={visible || isModalMounted} animationType="none" statusBarTranslucent={true}>`.
+    - Thoát khỏi stacking context của Tab Navigator, che phủ 100% màn hình bao gồm Bottom Tab Bar và Status Bar.
+  - **2. Tách Biệt 2 Lớp Animation Độc Lập**:
+    - **Lớp Backdrop**: `Pressable` absolute với `animatedBackdropStyle` (`opacity` fade-in/fade-out).
+    - **Lớp Sheet**: `animatedSheetStyle` (`translateY` spring slide-up / timing slide-down).
+  - **3. Luồng Đóng An Toàn (Close Transition)**:
+    - Khi ấn nền đen hoặc nút đóng, kích hoạt `handleCloseWithAnimation`, đợi `withTiming` hoàn tất mới gọi `runOnJS(finishClose)()`.
+
+---
+
+### 🔹 [Phase 2 - Bước 68: Tối Ưu Easing Dứt Khoát Cho Deposit Bottom Sheet]
+- **Type:** `[EASING_TIMING]` | `[MODAL_ANIMATION]` | `[REANIMATED]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn hiệu ứng đàn hồi `withSpring` của Deposit Bottom Sheet, thay bằng chuyển động trượt dứt khoát không có độ nảy.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Cấu hình withTiming & Easing ([components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx))**:
+    - Khi mở: `sheetTranslateY.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.cubic) })`.
+    - Khi đóng: `sheetTranslateY.value = withTiming(SCREEN_HEIGHT, { duration: 220, easing: Easing.in(Easing.cubic) })`.
+    - Giúp khối Bottom Sheet trượt nhanh từ dưới lên và dừng dứt khoát tại đích, không bị nảy rung.
+  - **2. Độc Lập Backdrop**:
+    - Giữ nguyên hiệu ứng mờ dần (Fade-in `0 -> 0.6` trong 300ms) của lớp nền đen.
+
+---
+
+### 🔹 [Phase 2 - Bước 69: Ứng Dụng Reanimated Layout Transitions & FadeIn/FadeOut Cho Deposit Modal]
+- **Type:** `[LAYOUT_TRANSITIONS]` | `[REANIMATED]` | `[MODAL_SUBVIEWS]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Giúp khung Deposit Modal tự động co giãn chiều cao mượt mà không bị giật cục khi chuyển đổi giữa các màn hình con (Options, VNPAY, Solana QR).
+- **Giải pháp triển khai chi tiết**:
+  - **1. Layout Transition Trên Container ([components/DepositModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/DepositModal.tsx))**:
+    - Gán `layout={LinearTransition.duration(250).easing(Easing.out(Easing.cubic))}` lên `bottomSheetContainer`.
+    - Box tự động tính toán chênh lệch chiều cao và mở rộng/thu gọn mượt mà, dứt khoát không có độ nảy.
+  - **2. Chuyển Đổi Mờ Dần Nội Dung Con (Enter/Exit Animation)**:
+    - Bọc cả 3 khối nội dung (`OPTIONS`, `VNPAY`, `SOLANA_QR`) trong `<Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>`.
+    - Đảm bảo nội dung cũ biến mất nhẹ nhàng và nội dung mới hiện ra đồng bộ với tốc độ co giãn của khung modal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

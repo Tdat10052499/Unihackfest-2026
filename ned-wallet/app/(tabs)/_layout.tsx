@@ -1,81 +1,246 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  Dimensions,
   Platform,
   Alert,
 } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+  interpolateColor,
+  interpolate,
+} from 'react-native-reanimated';
+import { useTranslation } from '../../services/i18n';
+import { NEO_COLORS } from '../../components/neo/tokens';
 
 const TAB_ROUTES = ['index', 'card', 'transfer-hub', 'miniapps'];
 
-function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
+// Cấu hình vật lý cơ học dứt khoát và nhanh (Snappy & Mechanical Spring)
+const SPRING_CONFIG = {
+  damping: 26,
+  stiffness: 280,
+  mass: 0.8,
+};
 
-  // Chỉ lọc đúng 4 route tab chính thức
+const ICON_SPRING_CONFIG = {
+  damping: 20,
+  stiffness: 300,
+};
+
+interface AnimatedTabItemProps {
+  route: any;
+  index: number;
+  isFocused: boolean;
+  options: any;
+  colors: any;
+  onPress: () => void;
+  onLongPress: () => void;
+  label: string;
+}
+
+/**
+ * AnimatedTabItem: Tách biệt render độc lập cho từng tab,
+ * Sử dụng react-native-reanimated trên UI Thread:
+ * - Trục X & Chiều rộng (Width) tự co giãn đàn hồi với withSpring({ damping: 26, stiffness: 280, mass: 0.8 })
+ * - Icon Scale Pop bật nảy nhẹ khi được click (1.0 -> 1.1 -> 1.0) với { damping: 20, stiffness: 300 }
+ * - Text Label xuất hiện mượt mà
+ */
+const AnimatedTabItem = React.memo(function AnimatedTabItem({
+  route,
+  index,
+  isFocused,
+  options,
+  colors,
+  onPress,
+  onLongPress,
+  label,
+}: AnimatedTabItemProps) {
+  const activeProgress = useSharedValue(isFocused ? 1 : 0);
+  const iconScale = useSharedValue(1);
+
+  useEffect(() => {
+    activeProgress.value = withSpring(isFocused ? 1 : 0, SPRING_CONFIG);
+
+    if (isFocused) {
+      // Hiệu ứng Bật nảy Icon (Scale Pop): Phóng to 1.1 rồi nhả về 1.0 với phản hồi cơ học dứt khoát
+      iconScale.value = withSequence(
+        withSpring(1.1, ICON_SPRING_CONFIG),
+        withSpring(1.0, ICON_SPRING_CONFIG)
+      );
+    } else {
+      iconScale.value = withSpring(1.0, ICON_SPRING_CONFIG);
+    }
+  }, [isFocused]);
+
+  // Animated style cho Khung viên thuốc (Pill)
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    const width = interpolate(activeProgress.value, [0, 1], [44, 104]);
+    const backgroundColor = interpolateColor(
+      activeProgress.value,
+      [0, 1],
+      [colors.tabInactiveCircle, colors.tabActiveBg]
+    );
+
+    return {
+      width,
+      backgroundColor,
+    };
+  });
+
+  // Animated style cho Icon bật nảy (Scale Pop)
+  const animatedIconStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: iconScale.value }],
+    };
+  });
+
+  // Animated style cho Text Label
+  const animatedLabelStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(activeProgress.value, [0, 0.4, 1], [0, 0, 1]);
+    const translateX = interpolate(activeProgress.value, [0, 1], [6, 0]);
+
+    return {
+      opacity,
+      transform: [{ translateX }],
+    };
+  });
+
+  const renderIcon = () => {
+    const iconColor = isFocused ? colors.tabActiveText : colors.tabInactiveIcon;
+    const iconSize = isFocused ? 18.5 : 20;
+
+    if (route.name === 'index') {
+      return (
+        <Ionicons
+          name={isFocused ? 'home' : 'home-outline'}
+          size={iconSize}
+          color={iconColor}
+        />
+      );
+    }
+
+    if (route.name === 'card') {
+      return (
+        <Ionicons
+          name={isFocused ? 'card' : 'card-outline'}
+          size={iconSize}
+          color={iconColor}
+        />
+      );
+    }
+
+    if (route.name === 'transfer-hub') {
+      return (
+        <Ionicons
+          name={isFocused ? 'navigate' : 'navigate-outline'}
+          size={iconSize}
+          color={iconColor}
+          style={{ transform: [{ rotate: '45deg' }] }}
+        />
+      );
+    }
+
+    if (route.name === 'miniapps') {
+      return (
+        <MaterialCommunityIcons
+          name={isFocused ? 'view-grid-plus' : 'view-grid-plus-outline'}
+          size={iconSize + 1}
+          color={iconColor}
+        />
+      );
+    }
+
+    return <Ionicons name="apps-outline" size={iconSize} color={iconColor} />;
+  };
+
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      accessibilityLabel={options.tabBarAccessibilityLabel || options.title}
+      testID={options.tabBarButtonTestID}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.88}
+    >
+      <Animated.View style={[styles.tabItemBase, animatedContainerStyle]}>
+        <Animated.View style={animatedIconStyle}>
+          {renderIcon()}
+        </Animated.View>
+
+        {isFocused && (
+          <Animated.Text
+            style={[
+              styles.activeTabText,
+              { color: colors.tabActiveText },
+              animatedLabelStyle,
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Animated.Text>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+});
+
+interface CustomTabBarProps extends BottomTabBarProps {
+  darkMode?: boolean;
+}
+
+/**
+ * Custom Floating Pill Tab Bar theo phong cách Neo-brutalism
+ * Được nâng cấp bằng react-native-reanimated:
+ * - Chuyển động vật lý nảy nhẹ với withSpring(damping: 14, stiffness: 120)
+ * - Tách biệt component render độc lập, không giật cục trên Main Thread
+ */
+function CustomTabBar({ state, descriptors, navigation, darkMode = false }: CustomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const colors = darkMode ? NEO_COLORS.dark : NEO_COLORS.light;
+
+  // Lọc đúng 4 route chính thức
   const visibleRoutes = state.routes.filter((route) =>
     TAB_ROUTES.includes(route.name)
   );
-
-  const numTabs = visibleRoutes.length || 4;
-  const tabWidth = SCREEN_WIDTH / numTabs;
 
   const activeIndex = visibleRoutes.findIndex(
     (r) => r.name === state.routes[state.index]?.name
   );
   const currentTabIdx = activeIndex >= 0 ? activeIndex : 0;
 
-  // Animation trượt Indicator
-  const translateX = useRef(new Animated.Value(currentTabIdx * tabWidth)).current;
-
-  useEffect(() => {
-    Animated.spring(translateX, {
-      toValue: currentTabIdx * tabWidth,
-      useNativeDriver: true,
-      friction: 7,
-      tension: 65,
-    }).start();
-  }, [currentTabIdx, tabWidth]);
-
   return (
     <View
       style={[
-        styles.tabBarContainer,
+        styles.floatingContainer,
         {
-          paddingBottom: Math.max(insets.bottom, 12),
-          height: 60 + Math.max(insets.bottom, 12),
+          bottom: Math.max(insets.bottom, 12) + 4,
         },
       ]}
+      pointerEvents="box-none"
     >
-      {/* Animated Sliding Indicator (Vệt sáng trượt mượt mà) */}
-      <Animated.View
+      {/* Thanh Điều Hướng Dạng Nổi (Floating Pill) */}
+      <View
         style={[
-          styles.activeIndicator,
+          styles.pillBar,
           {
-            width: tabWidth * 0.5,
-            transform: [
-              {
-                translateX: Animated.add(
-                  translateX,
-                  new Animated.Value(tabWidth * 0.25)
-                ),
-              },
-            ],
+            backgroundColor: colors.tabBarBg,
+            borderColor: colors.border,
           },
         ]}
-      />
-
-      <View style={styles.tabsRow}>
+      >
         {visibleRoutes.map((route, index) => {
           const isFocused = currentTabIdx === index;
           const { options } = descriptors[route.key];
@@ -85,11 +250,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
 
-            // Đánh chặn sự kiện tab Card: Không chuyển trang, hiển thị thông báo chờ
+            // Đánh chặn tab Card đang phát triển
             if (route.name === 'card') {
               Alert.alert(
-                'Đang phát triển',
-                'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!'
+                t('tabs.cardInDev', { defaultValue: 'Đang phát triển' }),
+                t('tabs.cardInDevMsg', {
+                  defaultValue: 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!',
+                })
               );
               return;
             }
@@ -112,59 +279,26 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
           };
 
-          const renderIcon = (focused: boolean) => {
-            const color = focused ? '#00A859' : '#94A3B8';
-            if (route.name === 'index') {
-              return (
-                <Ionicons
-                  name={focused ? 'home' : 'home-outline'}
-                  size={24}
-                  color={color}
-                />
-              );
-            }
-            if (route.name === 'card') {
-              // Visual Hint: Icon mờ biểu thị tính năng đang khóa tạm thời
-              return (
-                <View style={{ opacity: 0.45 }}>
-                  <Ionicons name="card-outline" size={24} color="#94A3B8" />
-                </View>
-              );
-            }
-            if (route.name === 'transfer-hub') {
-              return <Feather name="send" size={22} color={color} />;
-            }
-            if (route.name === 'miniapps') {
-              return (
-                <Ionicons
-                  name={focused ? 'grid' : 'grid-outline'}
-                  size={24}
-                  color={color}
-                />
-              );
-            }
-            return <Ionicons name="apps-outline" size={24} color={color} />;
+          const getTabLabel = () => {
+            if (route.name === 'index') return 'Home';
+            if (route.name === 'card') return t('tabs.card', { defaultValue: 'Thẻ' });
+            if (route.name === 'transfer-hub') return t('tabs.transfer', { defaultValue: 'Chuyển' });
+            if (route.name === 'miniapps') return t('tabs.miniapps', { defaultValue: 'Tiện ích' });
+            return options.title || 'Tab';
           };
 
           return (
-            <TouchableOpacity
+            <AnimatedTabItem
               key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarButtonTestID}
+              route={route}
+              index={index}
+              isFocused={isFocused}
+              options={options}
+              colors={colors}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={styles.tabItem}
-              activeOpacity={route.name === 'card' ? 0.6 : 0.75}
-            >
-              <View style={styles.iconContainer}>
-                {renderIcon(isFocused)}
-                {isFocused && route.name !== 'card' && (
-                  <View style={styles.activeGlowDot} />
-                )}
-              </View>
-            </TouchableOpacity>
+              label={getTabLabel()}
+            />
           );
         })}
       </View>
@@ -173,6 +307,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -184,28 +320,24 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home', { defaultValue: 'Trang chủ' }),
+          tabBarLabel: t('tabs.home', { defaultValue: 'Trang chủ' }),
         }}
       />
       <Tabs.Screen
         name="card"
         options={{
-          title: 'Card',
-          tabBarIcon: ({ color }) => (
-            <Ionicons
-              name="card-outline"
-              size={24}
-              color={color}
-              style={{ opacity: 0.5 }}
-            />
-          ),
+          title: t('tabs.card', { defaultValue: 'Thẻ' }),
+          tabBarLabel: t('tabs.card', { defaultValue: 'Thẻ' }),
         }}
         listeners={{
           tabPress: (e) => {
             e.preventDefault();
             Alert.alert(
-              'Đang phát triển',
-              'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!'
+              t('tabs.cardInDev', { defaultValue: 'Đang phát triển' }),
+              t('tabs.cardInDevMsg', {
+                defaultValue: 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!',
+              })
             );
           },
         }}
@@ -213,13 +345,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transfer-hub"
         options={{
-          title: 'Send',
+          title: t('tabs.transfer', { defaultValue: 'Chuyển tiền' }),
+          tabBarLabel: t('tabs.transfer', { defaultValue: 'Chuyển tiền' }),
         }}
       />
       <Tabs.Screen
         name="miniapps"
         options={{
-          title: 'MiniApps',
+          title: t('tabs.miniapps', { defaultValue: 'Tiện ích' }),
+          tabBarLabel: t('tabs.miniapps', { defaultValue: 'Tiện ích' }),
         }}
       />
     </Tabs>
@@ -227,49 +361,45 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
+  floatingContainer: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
   },
-  activeIndicator: {
-    position: 'absolute',
-    top: 0,
-    height: 3,
-    backgroundColor: '#00A859',
-    borderRadius: 1.5,
-  },
-  tabsRow: {
-    flex: 1,
+  pillBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#000000',
+    gap: 8,
+    // Solid offset shadow phong cách Neo-brutalism
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
   },
-  tabItem: {
-    flex: 1,
-    height: '100%',
+  tabItemBase: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    overflow: 'hidden',
   },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  activeGlowDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#00A859',
-    marginTop: 4,
+  activeTabText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    marginLeft: 6,
+    letterSpacing: 0.2,
   },
 });

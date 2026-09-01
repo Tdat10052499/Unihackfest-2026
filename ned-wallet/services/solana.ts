@@ -1,8 +1,127 @@
 import { InteractionManager } from 'react-native';
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { lookupWalletByPhone } from './supabase';
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+import { Buffer } from 'buffer';
+import { lookupWalletByPhone, supabase } from './supabase';
 
 export const SOLANA_DEVNET_RPC = 'https://api.devnet.solana.com';
+
+// Địa chỉ ví Treasury Escrow & Fee Payer trên Solana Devnet
+export const GEO_REDPACKET_TREASURY = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+export const TREASURY_FEE_PAYER = new PublicKey(
+  process.env.EXPO_PUBLIC_TREASURY_FEE_PAYER || '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+);
+
+// USDC Mint chuẩn trên Solana Devnet (Decimals = 6)
+export const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+export const SYSVAR_RENT_PUBKEY = new PublicKey('SysvarRent111111111111111111111111111111111');
+
+// Tỷ giá quy đổi tiền tệ chuẩn (USD & VND)
+export const USD_TO_VND_RATE = 25000;
+export const SOL_USD_RATE = 150;
+
+/**
+ * Định dạng số dư tiền tệ Fiat hiển thị trực quan (Visual Abstraction - MiniPay standard)
+ * @param usdAmount Số dư tính theo USD (lấy trực tiếp từ on-chain)
+ * @param currency 'USD' hoặc 'VND'
+ */
+export function formatFiatBalance(
+  usdAmount: number,
+  currency: 'USD' | 'VND' = 'USD'
+): string {
+  if (isNaN(usdAmount) || usdAmount < 0) usdAmount = 0;
+  if (currency === 'VND') {
+    const vnd = Math.round(usdAmount * USD_TO_VND_RATE);
+    return `đ ${vnd.toLocaleString('vi-VN')}`;
+  }
+  return `$${usdAmount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/**
+ * Tính toán địa chỉ ví Associated Token Account (ATA) theo chuẩn Solana Program Derived Address (PDA)
+ */
+export function getAssociatedTokenAddress(
+  mint: PublicKey,
+  owner: PublicKey,
+  allowOwnerOffCurve = false,
+  programId = TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
+): PublicKey {
+  if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
+    throw new Error('TokenOwnerOffCurveError');
+  }
+
+  const [address] = PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
+    associatedTokenProgramId
+  );
+
+  return address;
+}
+
+/**
+ * Tạo Instruction khởi tạo Associated Token Account (ATA) cho ví người nhận nếu chưa tồn tại
+ */
+export function createAssociatedTokenAccountInstruction(
+  payer: PublicKey,
+  associatedToken: PublicKey,
+  owner: PublicKey,
+  mint: PublicKey,
+  programId = TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
+): TransactionInstruction {
+  const keys = [
+    { pubkey: payer, isSigner: true, isWritable: true },
+    { pubkey: associatedToken, isSigner: false, isWritable: true },
+    { pubkey: owner, isSigner: false, isWritable: false },
+    { pubkey: mint, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    { pubkey: programId, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+  ];
+
+  return new TransactionInstruction({
+    keys,
+    programId: associatedTokenProgramId,
+    data: Buffer.alloc(0),
+  });
+}
+
+/**
+ * Tạo Instruction chuyển SPL Token (USDC) chuẩn (Instruction index 3 - Transfer)
+ */
+export function createSplTokenTransferInstruction(
+  source: PublicKey,
+  destination: PublicKey,
+  owner: PublicKey,
+  amount: bigint | number,
+  programId = TOKEN_PROGRAM_ID
+): TransactionInstruction {
+  const data = Buffer.alloc(9);
+  data.writeUInt8(3, 0); // Instruction 3 for Transfer
+  data.writeBigUInt64LE(BigInt(amount), 1);
+
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: source, isSigner: false, isWritable: true },
+      { pubkey: destination, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: true, isWritable: false },
+    ],
+    programId,
+    data,
+  });
+}
 
 export const solanaConnection = new Connection(SOLANA_DEVNET_RPC, {
   commitment: 'confirmed',
@@ -18,6 +137,7 @@ export interface ActivityItem {
   isPositive: boolean;
   iconBg: string;
   signature?: string;
+  blockTime?: number;
 }
 
 export interface TransferResult {
@@ -27,27 +147,237 @@ export interface TransferResult {
   error?: string;
 }
 
-let lastFetchTime = 0;
-let cachedHistoryResult: ActivityItem[] = [];
-let isFetchingHistory = false;
+const addressHistoryCache = new Map<string, { timestamp: number; data: ActivityItem[] }>();
+const inFlightHistoryMap = new Map<string, Promise<ActivityItem[]>>();
 const parsedTxCache = new Map<string, ActivityItem>();
+const inFlightBalanceMap = new Map<string, Promise<number>>();
+const balanceCache = new Map<string, { timestamp: number; balance: number }>();
 
 /**
- * Lấy số dư SOL của một địa chỉ trên Solana Devnet
+ * Lấy số dư SOL của một địa chỉ trên Solana Devnet với commitment 'confirmed'
+ * Tích hợp Cache 4 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
  */
-export async function getSolanaBalance(address: string): Promise<number> {
+export async function getSolanaBalance(address: string, force: boolean = false): Promise<number> {
+  if (!address) return 0;
+  const now = Date.now();
+  const cached = balanceCache.get(address);
+  if (!force && cached && now - cached.timestamp < 4000) {
+    return cached.balance;
+  }
+
+  if (inFlightBalanceMap.has(address)) {
+    return inFlightBalanceMap.get(address)!;
+  }
+
+  const promise = (async () => {
+    try {
+      const publicKey = new PublicKey(address);
+      const lamports = await solanaConnection.getBalance(publicKey, 'confirmed');
+      const sol = lamports / LAMPORTS_PER_SOL;
+      balanceCache.set(address, { timestamp: Date.now(), balance: sol });
+      return sol;
+    } catch (error: any) {
+      if (error?.message?.includes('429') || error?.toString()?.includes('429')) {
+        console.warn('⚠️ [Solana RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');
+        if (cached) return cached.balance;
+      }
+      throw error;
+    } finally {
+      inFlightBalanceMap.delete(address);
+    }
+  })();
+
+  inFlightBalanceMap.set(address, promise);
+  return promise;
+}
+
+const usdcBalanceCache = new Map<string, { timestamp: number; balance: number }>();
+
+/**
+ * Lấy số dư USDC SPL Token thực tế từ on-chain Associated Token Account (ATA)
+ * @param address Địa chỉ ví Solana của người dùng
+ */
+export async function getUsdcTokenBalance(address: string, force: boolean = false): Promise<number> {
+  if (!address) return 0;
+  const now = Date.now();
+  const cached = usdcBalanceCache.get(address);
+  if (!force && cached && now - cached.timestamp < 4000) {
+    return cached.balance;
+  }
+
   try {
-    const publicKey = new PublicKey(address);
-    const lamports = await solanaConnection.getBalance(publicKey);
-    return lamports / 1000000000;
-  } catch (error) {
-    console.error('Error fetching Solana balance:', error);
-    throw error;
+    const ownerPubkey = new PublicKey(address);
+    const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
+    const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
+
+    if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
+      const parsedData = (tokenAccountInfo.value.data as any).parsed;
+      const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
+      if (typeof amountUi === 'number') {
+        usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
+        return amountUi;
+      }
+    }
+  } catch (e) {
+    // Nếu chưa tạo ATA hoặc có lỗi đọc RPC, trả về cache nếu có
+    if (cached) return cached.balance;
+  }
+
+  usdcBalanceCache.set(address, { timestamp: Date.now(), balance: 0 });
+  return 0;
+}
+
+export interface AccountDisplayBalance {
+  usdBalance: number;
+  vndBalance: number;
+  solBalance: number;
+  usdcBalance: number;
+  formattedUsd: string;
+  formattedVnd: string;
+}
+
+/**
+ * Lấy dữ liệu số dư tổng hợp động 100% từ Blockchain On-chain
+ * Kết hợp số dư USDC và quy đổi tài sản SOL sang Fiat hiển thị
+ */
+export async function getAccountDisplayBalance(
+  address: string,
+  force: boolean = false
+): Promise<AccountDisplayBalance> {
+  if (!address) {
+    return {
+      usdBalance: 0,
+      vndBalance: 0,
+      solBalance: 0,
+      usdcBalance: 0,
+      formattedUsd: '$0.00',
+      formattedVnd: 'đ 0',
+    };
+  }
+
+  try {
+    const [sol, usdc] = await Promise.all([
+      getSolanaBalance(address, force).catch(() => 0),
+      getUsdcTokenBalance(address, force).catch(() => 0),
+    ]);
+
+    // Tổng số dư USD tính động: Nếu có USDC dùng USDC, cộng thêm giá trị quy đổi SOL
+    const totalUsd = usdc > 0 ? usdc + (sol * SOL_USD_RATE) : (sol * SOL_USD_RATE);
+    const totalVnd = Math.round(totalUsd * USD_TO_VND_RATE);
+
+    return {
+      usdBalance: totalUsd,
+      vndBalance: totalVnd,
+      solBalance: sol,
+      usdcBalance: usdc,
+      formattedUsd: formatFiatBalance(totalUsd, 'USD'),
+      formattedVnd: formatFiatBalance(totalUsd, 'VND'),
+    };
+  } catch (err) {
+    console.error('Error in getAccountDisplayBalance:', err);
+    return {
+      usdBalance: 0,
+      vndBalance: 0,
+      solBalance: 0,
+      usdcBalance: 0,
+      formattedUsd: '$0.00',
+      formattedVnd: 'đ 0',
+    };
   }
 }
 
 /**
- * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối
+ * Cơ chế Tài trợ Phí Mạng (Gasless Fee Payer Relayer)
+ * Gửi transaction đã được người dùng Partial Sign lên Backend để Treasury ký Fee Payer và Broadcast
+ */
+export async function sponsorAndBroadcastTransaction(
+  serializedPartialTxBase64: string
+): Promise<{ success: boolean; txSignature?: string; error?: string }> {
+  try {
+    // 1. Gọi Supabase Edge Function 'sponsor-transfer'
+    const { data, error } = await supabase.functions.invoke('sponsor-transfer', {
+      body: {
+        transaction_base64: serializedPartialTxBase64,
+      },
+    });
+
+    if (!error && data?.success && data?.txSignature) {
+      console.log('⚡ [Gasless Fee Payer] Sponsored via Backend Edge Function:', data.txSignature);
+      return { success: true, txSignature: data.txSignature };
+    }
+
+    if (error) {
+      console.warn('⚠️ [Edge Function sponsor-transfer] Error:', error.message);
+    }
+  } catch (edgeErr: any) {
+    console.warn('⚠️ [sponsor-transfer] Exception calling Edge Function:', edgeErr?.message);
+  }
+
+  // 2. Fallback Broadcast trực tiếp nếu transaction đã đủ điều kiện trên Devnet
+  try {
+    const txBuffer = Buffer.from(serializedPartialTxBase64, 'base64');
+    const transaction = Transaction.from(txBuffer);
+    const rawTx = transaction.serialize();
+    const txSignature = await solanaConnection.sendRawTransaction(rawTx, {
+      skipPreflight: false,
+      preflightCommitment: 'confirmed',
+    });
+    await solanaConnection.confirmTransaction(txSignature, 'confirmed');
+    console.log('✅ [Direct Broadcast Confirmed] TxSignature:', txSignature);
+    return { success: true, txSignature };
+  } catch (directErr: any) {
+    console.error('❌ [Broadcast Error]:', directErr);
+    return {
+      success: false,
+      error: directErr?.message || 'Không thể phát sóng giao dịch lên mạng Solana.',
+    };
+  }
+}
+
+/**
+ * Hàm lấy tiêu đề động đa ngôn ngữ cho ActivityItem
+ */
+export function getActivityTitle(
+  item: ActivityItem,
+  t?: (key: string, options?: any) => string
+): string {
+  if (!t) return item.title;
+  if (item.type === 'received') {
+    return t('activities.received', { defaultValue: 'Nhận tiền' });
+  }
+  if (item.type === 'sent') {
+    return t('activities.sent', { defaultValue: 'Chuyển tiền' });
+  }
+  if (item.type === 'reward') {
+    return t('activities.reward', { defaultValue: 'Thưởng Lì Xì' });
+  }
+  return item.title || t('activities.contract', { defaultValue: 'Tương tác hợp đồng' });
+}
+
+/**
+ * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối đa ngôn ngữ
+ */
+export function formatLocalizedRelativeTime(
+  blockTime: number | null | undefined,
+  t?: (key: string, options?: any) => string
+): string {
+  if (!t) return formatRelativeTime(blockTime);
+  if (!blockTime) return t('activities.justNow', { defaultValue: 'Vừa xong' });
+  const now = Math.floor(Date.now() / 1000);
+  const diffSec = Math.max(0, now - blockTime);
+  if (diffSec < 60) return t('activities.justNow', { defaultValue: 'Vừa xong' });
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return t('activities.minutesAgo', { count: diffMin, defaultValue: `${diffMin} phút trước` });
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return t('activities.hoursAgo', { count: diffHour, defaultValue: `${diffHour} giờ trước` });
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return t('activities.daysAgo', { count: diffDay, defaultValue: `${diffDay} ngày trước` });
+  const diffMonth = Math.floor(diffDay / 30);
+  return t('activities.monthsAgo', { count: diffMonth, defaultValue: `${diffMonth} tháng trước` });
+}
+
+/**
+ * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối mặc định
  */
 export function formatRelativeTime(blockTime: number | null | undefined): string {
   if (!blockTime) return 'Vừa xong';
@@ -71,152 +401,194 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Truy xuất lịch sử giao dịch on-chain từ Solana Devnet an toàn, chống rate-limit & 429
- * - Sử dụng Immutable Signature Cache để không gọi lại getParsedTransaction cho các tx đã phân tích
- * - Concurrency Lock chống gọi chồng chéo
+ * - Sử dụng getParsedTransactions theo BATCH (1 RPC call duy nhất thay vì 8-10 calls liên tiếp)
+ * - Lưu Cache theo từng địa chỉ (Address-Scoped Cache) để phân biệt chuẩn giữa Người Gửi (Sent) và Người Nhận (Received)
  */
 export async function fetchOnChainHistory(address: string, force: boolean = false): Promise<ActivityItem[]> {
+  if (!address) return [];
+
   const now = Date.now();
-  if (isFetchingHistory) {
-    return cachedHistoryResult;
+  const cached = addressHistoryCache.get(address);
+
+  if (!force && cached && now - cached.timestamp < 15000 && cached.data.length > 0) {
+    return cached.data;
   }
-  if (!force && now - lastFetchTime < 3000 && cachedHistoryResult.length > 0) {
-    return cachedHistoryResult;
+
+  // Deduplicate các lệnh gọi song song cùng 1 địa chỉ
+  if (inFlightHistoryMap.has(address)) {
+    return inFlightHistoryMap.get(address)!;
   }
 
-  isFetchingHistory = true;
-  lastFetchTime = now;
+  const fetchPromise = (async () => {
+    try {
+      const pubKey = new PublicKey(address);
 
-  try {
-    const pubKey = new PublicKey(address);
+      const signaturesInfo = await solanaConnection.getSignaturesForAddress(pubKey, {
+        limit: 8,
+      });
 
-    const signaturesInfo = await solanaConnection.getSignaturesForAddress(pubKey, {
-      limit: 10,
-    });
+      if (!signaturesInfo || signaturesInfo.length === 0) {
+        return cached?.data || [];
+      }
 
-    if (!signaturesInfo || signaturesInfo.length === 0) {
-      isFetchingHistory = false;
-      return cachedHistoryResult;
-    }
-
-    const activities: ActivityItem[] = signaturesInfo.map((sigInfo) => {
-      const isFailed = sigInfo.err !== null;
-      return {
-        id: sigInfo.signature,
-        type: isFailed ? 'sent' : 'sent',
-        title: isFailed ? 'Giao dịch lỗi' : 'Giao dịch On-chain',
-        time: formatRelativeTime(sigInfo.blockTime),
-        amount: isFailed ? '$0.00' : '$0.00',
-        isPositive: false,
-        iconBg: isFailed ? '#DC2626' : '#374151',
-        signature: sigInfo.signature,
-      };
-    });
-
-    const topSigs = signaturesInfo.slice(0, 4);
-
-    for (let index = 0; index < topSigs.length; index++) {
-      const s = topSigs[index];
-      const sig = s.signature;
-
-      // 1. Kiểm tra cache đã phân tích chưa (tránh gọi lại RPC gây 429)
-      if (parsedTxCache.has(sig)) {
-        const cachedItem = parsedTxCache.get(sig)!;
-        // Cập nhật lại relative time theo blockTime
-        activities[index] = {
-          ...cachedItem,
-          time: formatRelativeTime(s.blockTime),
+      const activities: ActivityItem[] = signaturesInfo.map((sigInfo) => {
+        const isFailed = sigInfo.err !== null;
+        return {
+          id: sigInfo.signature,
+          type: 'sent',
+          title: isFailed ? 'Giao dịch lỗi' : 'Giao dịch On-chain',
+          time: formatRelativeTime(sigInfo.blockTime),
+          amount: '$0.00',
+          isPositive: false,
+          iconBg: isFailed ? '#DC2626' : '#374151',
+          signature: sigInfo.signature,
         };
-        continue;
+      });
+
+      // Lọc danh sách các signature chưa có trong parsedTxCache
+      const sigsToFetch: { signature: string; index: number }[] = [];
+      signaturesInfo.forEach((s, idx) => {
+        const txCacheKey = `${address}:${s.signature}`;
+        if (parsedTxCache.has(txCacheKey)) {
+          const cachedItem = parsedTxCache.get(txCacheKey)!;
+          activities[idx] = {
+            ...cachedItem,
+            time: formatRelativeTime(s.blockTime),
+          };
+        } else {
+          sigsToFetch.push({ signature: s.signature, index: idx });
+        }
+      });
+
+      // Nếu có các giao dịch mới chưa phân tích, gọi BATCH getParsedTransactions (1 RPC request)
+      if (sigsToFetch.length > 0) {
+        try {
+          const parsedTxs = await solanaConnection.getParsedTransactions(
+            sigsToFetch.map((item) => item.signature),
+            {
+              maxSupportedTransactionVersion: 0,
+              commitment: 'confirmed',
+            }
+          );
+
+          if (parsedTxs && parsedTxs.length > 0) {
+            parsedTxs.forEach((parsedTx, batchIdx) => {
+              if (!parsedTx || !parsedTx.meta) return;
+
+              const originalItem = sigsToFetch[batchIdx];
+              const sig = originalItem.signature;
+              const targetIndex = originalItem.index;
+              const meta = parsedTx.meta;
+              const blockTime = parsedTx.blockTime;
+              const accountKeys = parsedTx.transaction.message.accountKeys;
+
+              let userAccountIndex = -1;
+              for (let j = 0; j < accountKeys.length; j++) {
+                const key: any = accountKeys[j];
+                let pubkeyStr = '';
+                if (typeof key === 'string') {
+                  pubkeyStr = key;
+                } else if (key && typeof key.pubkey === 'string') {
+                  pubkeyStr = key.pubkey;
+                } else if (key && key.pubkey && typeof key.pubkey.toBase58 === 'function') {
+                  pubkeyStr = key.pubkey.toBase58();
+                } else if (key && typeof key.toBase58 === 'function') {
+                  pubkeyStr = key.toBase58();
+                }
+
+                if (pubkeyStr === address) {
+                  userAccountIndex = j;
+                  break;
+                }
+              }
+
+              if (meta && userAccountIndex !== -1 && meta.preBalances && meta.postBalances) {
+                const preBalance = meta.preBalances[userAccountIndex] ?? 0;
+                const postBalance = meta.postBalances[userAccountIndex] ?? 0;
+                const balanceDiffLamports = postBalance - preBalance;
+
+                let parsedItem: ActivityItem;
+
+                if (balanceDiffLamports > 0) {
+                  const solAmount = balanceDiffLamports / LAMPORTS_PER_SOL;
+                  const usdVal = solAmount * 150;
+                  const formattedAmount =
+                    usdVal < 0.01
+                      ? solAmount < 0.0001
+                        ? '<0.01'
+                        : `${usdVal.toFixed(2)}`
+                      : usdVal.toFixed(2);
+                  parsedItem = {
+                    id: sig,
+                    type: 'received',
+                    title: 'Nhận tiền',
+                    time: formatRelativeTime(blockTime),
+                    amount: `+$${formattedAmount}`,
+                    isPositive: true,
+                    iconBg: '#10B981',
+                    signature: sig,
+                    blockTime: blockTime ?? undefined,
+                  };
+                } else if (balanceDiffLamports < 0) {
+                  const solAmount = Math.abs(balanceDiffLamports) / LAMPORTS_PER_SOL;
+                  const usdVal = solAmount * 150;
+                  const formattedAmount =
+                    usdVal < 0.01
+                      ? solAmount < 0.0001
+                        ? '<0.01'
+                        : `${usdVal.toFixed(2)}`
+                      : usdVal.toFixed(2);
+                  parsedItem = {
+                    id: sig,
+                    type: 'sent',
+                    title: 'Chuyển tiền',
+                    time: formatRelativeTime(blockTime),
+                    amount: `-$${formattedAmount}`,
+                    isPositive: false,
+                    iconBg: '#374151',
+                    signature: sig,
+                    blockTime: blockTime ?? undefined,
+                  };
+                } else {
+                  parsedItem = {
+                    id: sig,
+                    type: 'sent',
+                    title: 'Tương tác Web3',
+                    time: formatRelativeTime(blockTime),
+                    amount: '$0.00',
+                    isPositive: false,
+                    iconBg: '#64748B',
+                    signature: sig,
+                    blockTime: blockTime ?? undefined,
+                  };
+                }
+
+                activities[targetIndex] = parsedItem;
+                parsedTxCache.set(`${address}:${sig}`, parsedItem);
+              }
+            });
+          }
+        } catch (batchErr: any) {
+          console.warn('⚠️ [Solana History] Batch getParsedTransactions rate-limit fallback:', batchErr?.message);
+        }
       }
 
-      // 2. Nếu chưa có trong cache, gọi RPC phân tích
-      try {
-        if (index > 0) {
-          await delay(120); // Delay nhẹ giữa các request mới
-        }
-
-        const parsedTx = await solanaConnection.getParsedTransaction(sig, {
-          maxSupportedTransactionVersion: 0,
-        });
-
-        if (parsedTx && parsedTx.meta) {
-          const meta = parsedTx.meta;
-          const blockTime = parsedTx.blockTime;
-          const accountKeys = parsedTx.transaction.message.accountKeys;
-
-          let userAccountIndex = -1;
-          for (let j = 0; j < accountKeys.length; j++) {
-            const key = accountKeys[j];
-            const pubkeyStr = typeof key === 'string' ? key : key.pubkey.toBase58();
-            if (pubkeyStr === address) {
-              userAccountIndex = j;
-              break;
-            }
-          }
-
-          if (meta && userAccountIndex !== -1 && meta.preBalances && meta.postBalances) {
-            const preBalance = meta.preBalances[userAccountIndex] || 0;
-            const postBalance = meta.postBalances[userAccountIndex] || 0;
-            const balanceDiffLamports = postBalance - preBalance;
-
-            let parsedItem: ActivityItem;
-
-            if (balanceDiffLamports > 0) {
-              const solAmount = balanceDiffLamports / 1e9;
-              const usdVal = solAmount * 150;
-              parsedItem = {
-                id: sig,
-                type: 'received',
-                title: 'Nhận tiền',
-                time: formatRelativeTime(blockTime),
-                amount: `+$${usdVal < 0.01 ? '<0.01' : usdVal.toFixed(2)}`,
-                isPositive: true,
-                iconBg: '#10B981',
-                signature: sig,
-              };
-            } else if (balanceDiffLamports < 0) {
-              const solAmount = Math.abs(balanceDiffLamports) / 1e9;
-              const usdVal = solAmount * 150;
-              parsedItem = {
-                id: sig,
-                type: 'sent',
-                title: 'Chuyển tiền',
-                time: formatRelativeTime(blockTime),
-                amount: `-$${usdVal < 0.01 ? '<0.01' : usdVal.toFixed(2)}`,
-                isPositive: false,
-                iconBg: '#374151',
-                signature: sig,
-              };
-            } else {
-              parsedItem = {
-                id: sig,
-                type: 'sent',
-                title: 'Tương tác Web3',
-                time: formatRelativeTime(blockTime),
-                amount: '-$0.00',
-                isPositive: false,
-                iconBg: '#64748B',
-                signature: sig,
-              };
-            }
-
-            activities[index] = parsedItem;
-            parsedTxCache.set(sig, parsedItem);
-          }
-        }
-      } catch (parseErr) {
-        console.log('Skipping single tx parse on rate-limit:', sig, parseErr);
+      addressHistoryCache.set(address, { timestamp: Date.now(), data: activities });
+      return activities;
+    } catch (error: any) {
+      if (error?.message?.includes('429')) {
+        console.warn('⚠️ [Solana History 429] Rate-limited on getSignaturesForAddress, using cache.');
+      } else {
+        console.error('Error fetching on-chain history:', error);
       }
+      return cached?.data || [];
+    } finally {
+      inFlightHistoryMap.delete(address);
     }
+  })();
 
-    cachedHistoryResult = activities;
-    return activities;
-  } catch (error) {
-    console.error('Error fetching on-chain history:', error);
-    return cachedHistoryResult;
-  } finally {
-    isFetchingHistory = false;
-  }
+  inFlightHistoryMap.set(address, fetchPromise);
+  return fetchPromise;
 }
 
 /**
@@ -274,6 +646,11 @@ export async function executeSolanaTransfer(params: {
     toPubkey = new PublicKey(recipientAddress);
   } catch (err: any) {
     return { success: false, error: 'Địa chỉ ví đích không hợp lệ trên mạng lưới Solana.' };
+  }
+
+  // Chặn tự chuyển tiền cho chính mình
+  if (fromAddress === recipientAddress || fromPubkey.equals(toPubkey)) {
+    return { success: false, error: 'Bạn không thể chuyển tiền đến tài khoản của chính mình.' };
   }
 
   const sendLamports = Math.floor(amountSol * 1e9);
