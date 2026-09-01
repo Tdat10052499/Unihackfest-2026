@@ -1109,6 +1109,47 @@
     - Bọc cả 3 khối nội dung (`OPTIONS`, `VNPAY`, `SOLANA_QR`) trong `<Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>`.
     - Đảm bảo nội dung cũ biến mất nhẹ nhàng và nội dung mới hiện ra đồng bộ với tốc độ co giãn của khung modal.
 
+---
+
+### 🔹 [Phase 2 - Bước 70: Thiết Kế Khu Vực Sub-Wallets & Hệ Thống Swap Neo-Brutalism]
+- **Type:** `[SUB_WALLETS]` | `[SWAP_POPUP]` | `[NEO_BRUTALISM]` | `[EXCHANGE_RATE]`
+- **Mục tiêu**:
+  - Mở rộng hệ thống ví đa tiền tệ với ScrollView ngang các ví phụ (VND, EUR, GBP, JPY).
+  - Nút "Thêm ví" viền đen nét đứt (dashed border) mở Bottom Sheet kích hoạt ví mới.
+  - Swap Popup phong cách Neo-brutalism với 2 khối Input lớn (USD nền tím, VND nền vàng) tự động tính toán tỷ giá tức thì và nút xác nhận đổi tiền to bản.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Hook Quản Lý Sub-Wallets ([hooks/useSubWallets.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useSubWallets.ts))**:
+    - Quản lý danh sách ví phụ, lưu trữ persistence qua AsyncStorage, hỗ trợ thêm/xóa ví và thực thi quy đổi tiền tệ.
+  - **2. Component NeoSubWallets ([components/neo/NeoSubWallets.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoSubWallets.tsx))**:
+    - ScrollView ngang: Nút "Thêm ví" viền đen nét đứt, cao 86px; Các thẻ mini ví phụ nền pastel (vàng VND, mint EUR...) viền đen 2px, bóng đổ cứng 3px.
+  - **3. Component AddSubWalletModal ([components/neo/AddSubWalletModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/AddSubWalletModal.tsx))**:
+    - Bottom Sheet Root Modal chọn loại tiền tệ hỗ trợ (VND, EUR, GBP, JPY).
+  - **4. Component NeoSwapModal ([components/neo/NeoSwapModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoSwapModal.tsx))**:
+    - 2 Khối Input lớn: Khối USD (nền tím pastel `#EDE4FF`), Khối VND (nền vàng pastel `#FFF1A6`).
+    - Icon mũi tên đảo chiều ở giữa.
+    - TextInput font số cực lớn `fontSize: 32`, tự động nhân tỷ giá (1 USD ≈ 25,400 VND) khi gõ.
+    - Nút "Xác Nhận Đổi Tiền" nền đen `#111827`, chữ trắng đậm, viền đen 2px và bóng đổ cứng.
+  - **5. Tích Hợp HomeScreen ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Render `NeoSubWallets` ngay dưới thẻ số dư chính và kết nối mở Modal Swap/Add Sub-wallet trơn tru.
+
+---
+
+### 🔹 [Phase 2 - Bước 71: Lồng Ghép Sub-Wallets Vào Thẻ Tím Hoạt Động Theo Cơ Chế Accordion]
+- **Type:** `[ACCORDION]` | `[REANIMATED]` | `[BALANCE_CARD]` | `[UI/UX]`
+- **Mục tiêu**:
+  - Di chuyển toàn bộ block 'Ví Tiền Tệ Phụ' vào hoàn toàn BÊN TRONG thẻ tím chính (`NeoBalanceCard`), hoạt động theo cơ chế Accordion trượt mở/đóng.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Accordion LinearTransition ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Gán `layout={LinearTransition.duration(250).easing(Easing.out(Easing.cubic))}` lên `Animated.View` ngoài cùng.
+    - Toàn bộ viền đen 2.5px và bóng đổ cứng 5px của thẻ tím tự động mở rộng/thu gọn bao bọc lấy cả khu vực ví phụ.
+  - **2. Render Có Điều Kiện & FadeIn/FadeOut**:
+    - `{isExpanded && (<Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}> ... </Animated.View>)}`
+    - Có đường kẻ ngang phân cách viền đen 2px ngăn cách giữa nút Action và vùng ví phụ.
+  - **3. Xoay Mũi Tên Latch 180 Độ (Chevron Rotation)**:
+    - Sử dụng `useSharedValue` và `useAnimatedStyle` xoay icon `chevron-down` từ `0deg` $\leftrightarrow$ `180deg` mượt mà khi người dùng bấm nút bán nguyệt để toggle.
+
+
+
 
 
 

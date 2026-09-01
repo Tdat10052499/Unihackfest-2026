@@ -1,16 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   StyleProp,
   ViewStyle,
+  Platform,
 } from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { NeoCard } from './NeoCard';
 import { NeoButton } from './NeoButton';
 import { NEO_COLORS } from './tokens';
+import { SubWalletItem } from '../../hooks/useSubWallets';
+import { useTranslation } from '../../services/i18n';
 
 export interface NeoBalanceCardProps {
   balanceUsd?: string;
@@ -19,12 +33,17 @@ export interface NeoBalanceCardProps {
   onWithdrawPress?: () => void;
   onBottomLatchPress?: () => void;
   onToggleCurrency?: () => void;
+  subWallets?: SubWalletItem[];
+  onPressSubWallet?: (wallet: SubWalletItem) => void;
+  onPressAddSubWallet?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * NeoBalanceCard: Thẻ Ví phong cách Neo-brutalism
- * Chuẩn thiết kế với Thẻ tím, Nút Deposit vàng (#FFF1A6), Nút Withdraw xanh nhạt (#D8FAF7), và Nút đính cạnh dưới.
+ * NeoBalanceCard: Thẻ Ví phong cách Neo-brutalism tích hợp Accordion Sub-wallets
+ * - Toàn bộ vùng Ví Phụ nằm hoàn toàn BÊN TRONG thẻ màu tím.
+ * - Khi bấm nút bán nguyệt (latch), thẻ tím tự động trượt mở (LinearTransition) bao bọc toàn bộ nội dung.
+ * - Icon mũi tên xoay 180 độ mượt mà khi mở rộng.
  */
 export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
   balanceUsd = '$100',
@@ -33,16 +52,49 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
   onWithdrawPress,
   onBottomLatchPress,
   onToggleCurrency,
+  subWallets = [],
+  onPressSubWallet,
+  onPressAddSubWallet,
   style,
 }) => {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Animation xoay mũi tên latch (0deg -> 180deg)
+  const chevronRotation = useSharedValue(0);
+
+  useEffect(() => {
+    chevronRotation.value = withTiming(isExpanded ? 180 : 0, {
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [isExpanded]);
+
+  const animatedChevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
+
+  const handleToggleExpand = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsExpanded((prev) => !prev);
+    if (onBottomLatchPress) {
+      onBottomLatchPress();
+    }
+  };
+
   return (
-    <View style={[styles.outerWrapper, style]}>
-      {/* 1. Thẻ Tím Neo-brutalism chính */}
+    <Animated.View
+      layout={LinearTransition.duration(250).easing(Easing.out(Easing.cubic))}
+      style={[styles.outerWrapper, style]}
+    >
+      {/* 1. Thẻ Tím Neo-brutalism chính bao bọc toàn bộ nội dung */}
       <NeoCard
         backgroundColor="#9E77DC"
         borderColor="#000000"
         shadowColor="#000000"
-        borderRadius={22}
+        borderRadius={24}
         borderWidth={2.5}
         offset={5}
         style={styles.cardInner}
@@ -110,24 +162,93 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
             <Text style={styles.actionBtnText}>Withdraw</Text>
           </NeoButton>
         </View>
+
+        {/* 2. KHU VỰC VÍ TIỀN TỆ PHỤ NẰM HOÀN TOÀN BÊN TRONG THẺ TÍM (ACCORDION) */}
+        {isExpanded && (
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
+            style={styles.expandedSubWalletsArea}
+          >
+            {/* Đường Kẻ Ngang Phân Cách Neo-brutalism */}
+            <View style={styles.subWalletsDivider} />
+
+            <View style={styles.subWalletsHeaderRow}>
+              <Text style={styles.subWalletsTitle}>
+                {t('subWallets.title', { defaultValue: 'Ví Tiền Tệ Phụ' })}
+              </Text>
+              <Text style={styles.subWalletsHint}>
+                {t('subWallets.hint', { defaultValue: 'Chạm vào thẻ để đổi tiền' })}
+              </Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.subWalletsScrollList}
+            >
+              {/* Danh Sách Các Thẻ Mini Ví Phụ */}
+              {subWallets.map((wallet) => (
+                <TouchableOpacity
+                  key={wallet.id}
+                  style={[styles.miniCard, { backgroundColor: wallet.color }]}
+                  onPress={() => onPressSubWallet && onPressSubWallet(wallet)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.miniCardTopRow}>
+                    <View style={styles.miniIconCircle}>
+                      <Text style={styles.miniSymbolText}>{wallet.symbol}</Text>
+                    </View>
+                    <View style={styles.swapActionIcon}>
+                      <MaterialCommunityIcons name="swap-horizontal" size={15} color="#000000" />
+                    </View>
+                  </View>
+
+                  <View style={styles.miniCardBottomCol}>
+                    <Text style={styles.miniCurrencyCode}>{wallet.currency}</Text>
+                    <Text style={styles.miniBalanceText} numberOfLines={1}>
+                      {wallet.symbol} {wallet.balance.toLocaleString()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              {/* Nút 'Thêm ví' Viền Nét Đứt */}
+              <TouchableOpacity
+                style={styles.addWalletBtn}
+                onPress={onPressAddSubWallet}
+                activeOpacity={0.75}
+              >
+                <View style={styles.addIconCircle}>
+                  <Feather name="plus" size={18} color="#000000" />
+                </View>
+                <Text style={styles.addWalletText}>
+                  {t('subWallets.addBtn', { defaultValue: 'Thêm ví' })}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Animated.View>
+        )}
       </NeoCard>
 
-      {/* 2. Nút Bán Nguyệt / Viên Thuốc Đính Ở Cạnh Dưới Thẻ Tím */}
+      {/* 3. Nút Bán Nguyệt Đính Ở Cạnh Dưới Thẻ Tím (Toggle Accordion & Xoay Icon) */}
       <View style={styles.bottomLatchAnchor}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={onBottomLatchPress}
+          onPress={handleToggleExpand}
           style={styles.latchWrapper}
         >
           {/* Lớp bóng đen cho nút bán nguyệt */}
           <View style={styles.latchShadow} />
           {/* Lớp nút bán nguyệt màu tím */}
           <View style={styles.latchBody}>
-            <Feather name="chevron-down" size={22} color="#000000" />
+            <Animated.View style={animatedChevronStyle}>
+              <Feather name="chevron-down" size={22} color="#000000" />
+            </Animated.View>
           </View>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -138,7 +259,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   cardInner: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 24,
     minHeight: 185,
@@ -164,7 +285,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subBalanceRow: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   subBalanceText: {
     fontSize: 13.5,
@@ -195,6 +316,124 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#000000',
     letterSpacing: 0.1,
+  },
+  // Sub-wallets Accordion Styles Inside Purple Card
+  expandedSubWalletsArea: {
+    marginTop: 14,
+    paddingBottom: 6,
+  },
+  subWalletsDivider: {
+    height: 2,
+    backgroundColor: '#000000',
+    marginBottom: 12,
+    borderRadius: 1,
+  },
+  subWalletsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  subWalletsTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  subWalletsHint: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4C1D95',
+  },
+  subWalletsScrollList: {
+    gap: 10,
+    paddingBottom: 4,
+  },
+  miniCard: {
+    width: 130,
+    height: 80,
+    borderRadius: 16,
+    padding: 10,
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: '#000000',
+    shadowColor: '#000000',
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  miniCardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  miniIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniSymbolText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#000000',
+  },
+  swapActionIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#000000',
+  },
+  miniCardBottomCol: {
+    marginTop: 2,
+  },
+  miniCurrencyCode: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  miniBalanceText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111827',
+    marginTop: 1,
+  },
+  addWalletBtn: {
+    width: 100,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  addIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  addWalletText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#111827',
   },
   bottomLatchAnchor: {
     position: 'absolute',

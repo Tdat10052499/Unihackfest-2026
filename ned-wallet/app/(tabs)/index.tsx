@@ -67,6 +67,10 @@ import { NeoBalanceCard } from '@/components/neo/NeoBalanceCard';
 import { NeoCard } from '@/components/neo/NeoCard';
 import { NeoButton } from '@/components/neo/NeoButton';
 import { NEO_COLORS } from '@/components/neo/tokens';
+import { NeoSubWallets } from '@/components/neo/NeoSubWallets';
+import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
+import { NeoSwapModal } from '@/components/neo/NeoSwapModal';
+import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -94,6 +98,18 @@ export default function HomeScreen() {
   const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) & Swap Quy Đổi
+  const mainUsdNumericBalance = accountBalanceState ? accountBalanceState.usdBalance : 100;
+  const { subWallets, addSubWallet, executeSwap } = useSubWallets(mainUsdNumericBalance);
+  const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
+
+  const handleOpenSwapForWallet = (wallet: SubWalletItem) => {
+    setSelectedSubWalletForSwap(wallet);
+    setShowSwapModal(true);
+  };
 
   // State Modals & Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -570,7 +586,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 2. Thẻ Ví Neo-brutalism (NeoBalanceCard Component) */}
+        {/* 2. Thẻ Ví Neo-brutalism (NeoBalanceCard Component Tích Hợp Accordion Sub-wallets) */}
         <NeoBalanceCard
           balanceUsd={getFormattedBalance()}
           balanceVnd={
@@ -585,6 +601,9 @@ export default function HomeScreen() {
           onDepositPress={() => setShowDepositModal(true)}
           onWithdrawPress={() => router.push('/send')}
           onToggleCurrency={() => setCurrency(currency === 'USD' ? 'VND' : 'USD')}
+          subWallets={subWallets}
+          onPressSubWallet={handleOpenSwapForWallet}
+          onPressAddSubWallet={() => setShowAddSubWalletModal(true)}
           onBottomLatchPress={() => {
             if (solanaAddress) fetchActivities(solanaAddress, true);
           }}
@@ -850,6 +869,28 @@ export default function HomeScreen() {
         visible={showRecoveryModal || isNeedsRecovery}
         onClose={() => setShowRecoveryModal(false)}
         onSuccess={() => setShowRecoveryModal(false)}
+      />
+
+      {/* Modal Thêm Ví Tiền Tệ Phụ (Add Sub-Wallet) */}
+      <AddSubWalletModal
+        visible={showAddSubWalletModal}
+        onClose={() => setShowAddSubWalletModal(false)}
+        existingWallets={subWallets}
+        onSelectCurrency={(cur) => {
+          addSubWallet(cur);
+        }}
+      />
+
+      {/* Modal Quy Đổi Tiền Tệ (Neo-brutalism Swap Modal) */}
+      <NeoSwapModal
+        visible={showSwapModal}
+        onClose={() => {
+          setShowSwapModal(false);
+          setSelectedSubWalletForSwap(null);
+        }}
+        targetWallet={selectedSubWalletForSwap || subWallets[0] || null}
+        mainUsdBalance={mainUsdNumericBalance}
+        onConfirmSwap={executeSwap}
       />
     </SafeAreaView>
   );

@@ -10,7 +10,10 @@ import {
 import { Buffer } from 'buffer';
 import { lookupWalletByPhone, supabase } from './supabase';
 
-export const SOLANA_DEVNET_RPC = 'https://api.devnet.solana.com';
+export const SOLANA_DEVNET_RPC =
+  process.env.EXPO_PUBLIC_SOLANA_RPC ||
+  process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
+  'https://api.devnet.solana.com';
 
 // Địa chỉ ví Treasury Escrow & Fee Payer trên Solana Devnet
 export const GEO_REDPACKET_TREASURY = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
@@ -192,39 +195,54 @@ export async function getSolanaBalance(address: string, force: boolean = false):
 }
 
 const usdcBalanceCache = new Map<string, { timestamp: number; balance: number }>();
+const inFlightUsdcMap = new Map<string, Promise<number>>();
 
 /**
  * Lấy số dư USDC SPL Token thực tế từ on-chain Associated Token Account (ATA)
+ * Tích hợp Cache 10 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
  * @param address Địa chỉ ví Solana của người dùng
  */
 export async function getUsdcTokenBalance(address: string, force: boolean = false): Promise<number> {
   if (!address) return 0;
   const now = Date.now();
   const cached = usdcBalanceCache.get(address);
-  if (!force && cached && now - cached.timestamp < 4000) {
+  if (!force && cached && now - cached.timestamp < 10000) {
     return cached.balance;
   }
 
-  try {
-    const ownerPubkey = new PublicKey(address);
-    const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
-    const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
-
-    if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
-      const parsedData = (tokenAccountInfo.value.data as any).parsed;
-      const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
-      if (typeof amountUi === 'number') {
-        usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
-        return amountUi;
-      }
-    }
-  } catch (e) {
-    // Nếu chưa tạo ATA hoặc có lỗi đọc RPC, trả về cache nếu có
-    if (cached) return cached.balance;
+  if (inFlightUsdcMap.has(address)) {
+    return inFlightUsdcMap.get(address)!;
   }
 
-  usdcBalanceCache.set(address, { timestamp: Date.now(), balance: 0 });
-  return 0;
+  const promise = (async () => {
+    try {
+      const ownerPubkey = new PublicKey(address);
+      const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
+      const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
+
+      if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
+        const parsedData = (tokenAccountInfo.value.data as any).parsed;
+        const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
+        if (typeof amountUi === 'number') {
+          usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
+          return amountUi;
+        }
+      }
+      usdcBalanceCache.set(address, { timestamp: Date.now(), balance: 0 });
+      return 0;
+    } catch (e: any) {
+      if (e?.message?.includes('429') || e?.toString()?.includes('429')) {
+        console.warn('⚠️ [Solana USDC RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');
+      }
+      if (cached) return cached.balance;
+      return 0;
+    } finally {
+      inFlightUsdcMap.delete(address);
+    }
+  })();
+
+  inFlightUsdcMap.set(address, promise);
+  return promise;
 }
 
 export interface AccountDisplayBalance {
