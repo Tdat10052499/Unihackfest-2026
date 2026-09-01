@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getActiveFiatWallets, setActiveFiatWallets } from '../services/supabase';
+import { Platform } from 'react-native';
 
 export interface SubWalletItem {
   id: string;
@@ -43,30 +43,33 @@ export const SUPPORTED_CURRENCIES: Omit<SubWalletItem, 'id' | 'balance'>[] = [
   },
 ];
 
-const STORAGE_KEY = '@ned_sub_wallets_v2';
-
 /**
- * useSubWallets: Quản lý danh sách Ví Phụ đồng bộ với Supabase & Tính toán tỷ giá động
+ * useSubWallets: Quản lý danh sách Ví Phụ (VND, EUR...) chuẩn bị tích hợp Anchor PDA
  */
 export function useSubWallets(userId?: string | null, onchainUsdcBalance: number = 0) {
+  const storageKey = `@ned_active_fiat_wallets_${userId || 'guest'}`;
   const [activeCurrencies, setActiveCurrencies] = useState<string[]>([]);
   const [subWallets, setSubWallets] = useState<SubWalletItem[]>([]);
 
-  // 1. Fetch danh sách `active_fiat_wallets` từ Supabase profiles khi khởi động
+  // 1. Tải danh sách active currencies từ local storage khi khởi động
   useEffect(() => {
-    getActiveFiatWallets(userId)
-      .then((currencies) => {
-        if (Array.isArray(currencies)) {
-          setActiveCurrencies(currencies);
-        } else {
-          setActiveCurrencies([]);
+    if (Platform.OS === 'web' && typeof window === 'undefined') return;
+
+    AsyncStorage.getItem(storageKey)
+      .then((raw) => {
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              setActiveCurrencies(parsed);
+              return;
+            }
+          } catch {}
         }
-      })
-      .catch((err) => {
-        console.warn('⚠️ [useSubWallets] Error fetching active fiat wallets:', err);
         setActiveCurrencies([]);
-      });
-  }, [userId]);
+      })
+      .catch(() => setActiveCurrencies([]));
+  }, [storageKey]);
 
   // 2. Tính toán danh sách SubWallets dựa trên activeCurrencies & số dư on-chain thực tế
   useEffect(() => {
@@ -93,7 +96,7 @@ export function useSubWallets(userId?: string | null, onchainUsdcBalance: number
     setSubWallets(wallets);
   }, [activeCurrencies, onchainUsdcBalance]);
 
-  // 3. Thêm ví phụ mới và đồng bộ lên Supabase
+  // 3. Thêm ví phụ mới
   const addSubWallet = useCallback(
     async (currencyCode: 'VND' | 'EUR' | 'GBP' | 'JPY') => {
       if (activeCurrencies.includes(currencyCode)) return false;
@@ -101,12 +104,12 @@ export function useSubWallets(userId?: string | null, onchainUsdcBalance: number
       const updated = [...activeCurrencies, currencyCode];
       setActiveCurrencies(updated);
 
-      if (userId) {
-        await setActiveFiatWallets(userId, updated);
-      }
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {}
       return true;
     },
-    [activeCurrencies, userId]
+    [activeCurrencies, storageKey]
   );
 
   // 4. Xóa ví phụ
@@ -115,11 +118,11 @@ export function useSubWallets(userId?: string | null, onchainUsdcBalance: number
       const updated = activeCurrencies.filter((c) => c !== currencyCode);
       setActiveCurrencies(updated);
 
-      if (userId) {
-        await setActiveFiatWallets(userId, updated);
-      }
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {}
     },
-    [activeCurrencies, userId]
+    [activeCurrencies, storageKey]
   );
 
   // 5. Thực hiện đổi tiền (Swap)

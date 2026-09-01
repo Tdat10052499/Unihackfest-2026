@@ -67,7 +67,6 @@ import { NeoBalanceCard } from '@/components/neo/NeoBalanceCard';
 import { NeoCard } from '@/components/neo/NeoCard';
 import { NeoButton } from '@/components/neo/NeoButton';
 import { NEO_COLORS } from '@/components/neo/tokens';
-import { NeoSubWallets } from '@/components/neo/NeoSubWallets';
 import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';

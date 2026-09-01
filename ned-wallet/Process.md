@@ -1262,6 +1262,27 @@
     - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
     - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công toàn bộ 18 Static Routes mà không có bất kỳ lỗi nào.
 
+---
+
+### 🔹 [Phase 2 - Bước 79: Dọn Dẹp Cấu Trúc Dự Án (Project Structure Cleanup) Chuẩn Bị Cho Solana Native & Anchor PDA]
+- **Type:** `[CLEANUP]` | `[DECOUPLING]` | `[PROJECT_STRUCTURE]` | `[CODE_HEALTH]`
+- **Mục tiêu**:
+  - Dọn dẹp các tàn tích Web2, file rác và component thừa trước khi triển khai Giai đoạn 1 của Kế hoạch Solana-Native.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Xóa Bỏ Các File Thừa / Boilerplate Cũ**:
+    - `components/neo/NeoSubWallets.tsx`: Đã được tích hợp trực tiếp vào accordion trong `NeoBalanceCard.tsx`.
+    - `hooks/useTransferToken.ts`: Đã được thay thế bởi `hooks/useOnchainTransfer.ts`.
+    - `components/hello-wave.tsx` & `components/parallax-scroll-view.tsx`: File mẫu Expo không sử dụng.
+  - **2. Tách Biệt Phụ Thuộc Web2 Khỏi useSubWallets ([hooks/useSubWallets.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useSubWallets.ts))**:
+    - Gỡ bỏ gọi hàm Web2 Supabase `profiles.active_fiat_wallets`.
+    - Quản lý state ví phụ cục bộ bằng `AsyncStorage` làm cầu nối sẵn sàng kết nối Anchor PDA on-chain ở Giai đoạn 4.
+  - **3. Dọn Dẹp Supabase Service ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Xóa bỏ `getActiveFiatWallets` và `setActiveFiatWallets`.
+  - **4. Xác Thực Đóng Gói**:
+    - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
+    - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công toàn bộ 18 Routes.
+
+
 
 
 
