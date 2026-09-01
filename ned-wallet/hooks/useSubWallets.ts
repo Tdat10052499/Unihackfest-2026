@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getActiveFiatWallets, setActiveFiatWallets } from '../services/supabase';
 
 export interface SubWalletItem {
   id: string;
@@ -42,114 +43,109 @@ export const SUPPORTED_CURRENCIES: Omit<SubWalletItem, 'id' | 'balance'>[] = [
   },
 ];
 
-const STORAGE_KEY = '@ned_sub_wallets_v1';
+const STORAGE_KEY = '@ned_sub_wallets_v2';
 
-export function useSubWallets(mainUsdBalance: number = 100) {
-  const [subWallets, setSubWallets] = useState<SubWalletItem[]>([
-    {
-      id: 'sub_vnd',
-      currency: 'VND',
-      symbol: 'đ',
-      name: 'Việt Nam Đồng',
-      balance: 2500000,
-      rateToUsd: 25400,
-      color: '#FFF1A6',
-    },
-  ]);
+/**
+ * useSubWallets: Quản lý danh sách Ví Phụ đồng bộ với Supabase & Tính toán tỷ giá động
+ */
+export function useSubWallets(userId?: string | null, onchainUsdcBalance: number = 0) {
+  const [activeCurrencies, setActiveCurrencies] = useState<string[]>([]);
+  const [subWallets, setSubWallets] = useState<SubWalletItem[]>([]);
 
-  // Load từ storage khi khởi động
+  // 1. Fetch danh sách `active_fiat_wallets` từ Supabase profiles khi khởi động
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((data) => {
-      if (data) {
-        try {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSubWallets(parsed);
-          }
-        } catch (e) {
-          console.log('Error loading sub wallets:', e);
+    getActiveFiatWallets(userId)
+      .then((currencies) => {
+        if (Array.isArray(currencies)) {
+          setActiveCurrencies(currencies);
+        } else {
+          setActiveCurrencies([]);
         }
-      }
-    });
-  }, []);
+      })
+      .catch((err) => {
+        console.warn('⚠️ [useSubWallets] Error fetching active fiat wallets:', err);
+        setActiveCurrencies([]);
+      });
+  }, [userId]);
 
-  // Lưu vào storage khi state thay đổi
-  const saveSubWallets = useCallback(async (wallets: SubWalletItem[]) => {
+  // 2. Tính toán danh sách SubWallets dựa trên activeCurrencies & số dư on-chain thực tế
+  useEffect(() => {
+    const wallets: SubWalletItem[] = activeCurrencies
+      .map((cur) => {
+        const config = SUPPORTED_CURRENCIES.find((c) => c.currency === cur);
+        if (!config) return null;
+
+        // Tính số dư quy đổi động từ số dư USDC on-chain thực tế
+        const dynamicBalance = Math.round(onchainUsdcBalance * config.rateToUsd);
+
+        return {
+          id: `sub_${cur.toLowerCase()}`,
+          currency: config.currency as 'VND' | 'EUR' | 'GBP' | 'JPY',
+          symbol: config.symbol,
+          name: config.name,
+          balance: dynamicBalance,
+          rateToUsd: config.rateToUsd,
+          color: config.color,
+        };
+      })
+      .filter((w): w is SubWalletItem => w !== null);
+
     setSubWallets(wallets);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
-    } catch (e) {
-      console.log('Error saving sub wallets:', e);
-    }
-  }, []);
+  }, [activeCurrencies, onchainUsdcBalance]);
 
-  // Thêm ví phụ mới
+  // 3. Thêm ví phụ mới và đồng bộ lên Supabase
   const addSubWallet = useCallback(
     async (currencyCode: 'VND' | 'EUR' | 'GBP' | 'JPY') => {
-      // Kiểm tra xem đã có ví tiền tệ này chưa
-      const exists = subWallets.some((w) => w.currency === currencyCode);
-      if (exists) return false;
+      if (activeCurrencies.includes(currencyCode)) return false;
 
-      const currencyConfig = SUPPORTED_CURRENCIES.find((c) => c.currency === currencyCode);
-      if (!currencyConfig) return false;
+      const updated = [...activeCurrencies, currencyCode];
+      setActiveCurrencies(updated);
 
-      const newWallet: SubWalletItem = {
-        id: `sub_${currencyCode.toLowerCase()}_${Date.now()}`,
-        currency: currencyConfig.currency,
-        symbol: currencyConfig.symbol,
-        name: currencyConfig.name,
-        balance: 0,
-        rateToUsd: currencyConfig.rateToUsd,
-        color: currencyConfig.color,
-      };
-
-      const updated = [...subWallets, newWallet];
-      await saveSubWallets(updated);
+      if (userId) {
+        await setActiveFiatWallets(userId, updated);
+      }
       return true;
     },
-    [subWallets, saveSubWallets]
+    [activeCurrencies, userId]
   );
 
-  // Xóa ví phụ
+  // 4. Xóa ví phụ
   const removeSubWallet = useCallback(
-    async (walletId: string) => {
-      const updated = subWallets.filter((w) => w.id !== walletId);
-      await saveSubWallets(updated);
+    async (currencyCode: string) => {
+      const updated = activeCurrencies.filter((c) => c !== currencyCode);
+      setActiveCurrencies(updated);
+
+      if (userId) {
+        await setActiveFiatWallets(userId, updated);
+      }
     },
-    [subWallets, saveSubWallets]
+    [activeCurrencies, userId]
   );
 
-  // Thực hiện đổi tiền (Swap USD -> SubWallet Currency)
+  // 5. Thực hiện đổi tiền (Swap)
   const executeSwap = useCallback(
     async (targetCurrency: string, usdAmount: number) => {
       if (usdAmount <= 0) return { success: false, error: 'Số tiền không hợp lệ' };
-      if (usdAmount > mainUsdBalance) return { success: false, error: 'Số dư USD không đủ' };
+      if (usdAmount > onchainUsdcBalance) return { success: false, error: 'Số dư USDC không đủ' };
 
-      const walletIndex = subWallets.findIndex((w) => w.currency === targetCurrency);
-      if (walletIndex === -1) return { success: false, error: 'Không tìm thấy ví đích' };
+      const config = SUPPORTED_CURRENCIES.find((c) => c.currency === targetCurrency);
+      if (!config) return { success: false, error: 'Không tìm thấy loại tiền tệ' };
 
-      const targetWallet = subWallets[walletIndex];
-      const receivedAmount = usdAmount * targetWallet.rateToUsd;
+      const receivedAmount = Math.round(usdAmount * config.rateToUsd);
 
-      const updatedWallets = [...subWallets];
-      updatedWallets[walletIndex] = {
-        ...targetWallet,
-        balance: targetWallet.balance + receivedAmount,
-      };
-
-      await saveSubWallets(updatedWallets);
       return {
         success: true,
         receivedAmount,
-        currency: targetWallet.currency,
-        symbol: targetWallet.symbol,
+        currency: config.currency,
+        symbol: config.symbol,
       };
     },
-    [subWallets, mainUsdBalance, saveSubWallets]
+    [onchainUsdcBalance]
   );
 
   return {
     subWallets,
+    activeCurrencies,
     addSubWallet,
     removeSubWallet,
     executeSwap,

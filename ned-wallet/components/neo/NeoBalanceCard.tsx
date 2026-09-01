@@ -15,8 +15,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   Easing,
-  FadeIn,
-  FadeOut,
+  FadeInDown,
+  FadeOutUp,
   LinearTransition,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -42,8 +42,9 @@ export interface NeoBalanceCardProps {
 /**
  * NeoBalanceCard: Thẻ Ví phong cách Neo-brutalism tích hợp Accordion Sub-wallets
  * - Toàn bộ vùng Ví Phụ nằm hoàn toàn BÊN TRONG thẻ màu tím.
- * - Khi bấm nút bán nguyệt (latch), thẻ tím tự động trượt mở (LinearTransition) bao bọc toàn bộ nội dung.
- * - Icon mũi tên xoay 180 độ mượt mà khi mở rộng.
+ * - Chuyển động mở mềm mại: LinearTransition(350ms, Easing.bezier(0.25, 0.1, 0.25, 1)).
+ * - Staggered Entrance: FadeInDown(300ms, delay 100ms) và FadeOutUp(200ms).
+ * - Icon mũi tên xoay 180 độ đồng bộ tốc độ 350ms với đường cong Bezier.
  */
 export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
   balanceUsd = '$100',
@@ -59,16 +60,37 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [measuredHeight, setMeasuredHeight] = useState(145);
 
-  // Animation xoay mũi tên latch (0deg -> 180deg)
+  // Reanimated Shared Values cho Chiều Cao Nội Suy & Xoay Icon Mũi Tên
+  const animatedHeight = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
 
   useEffect(() => {
+    if (isExpanded) {
+      if (measuredHeight > 0) {
+        animatedHeight.value = withTiming(measuredHeight, {
+          duration: 400,
+          easing: Easing.bezier(0.33, 1, 0.68, 1),
+        });
+      }
+    } else {
+      animatedHeight.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.bezier(0.33, 1, 0.68, 1),
+      });
+    }
+
     chevronRotation.value = withTiming(isExpanded ? 180 : 0, {
-      duration: 250,
-      easing: Easing.out(Easing.cubic),
+      duration: 350,
+      easing: Easing.bezier(0.33, 1, 0.68, 1),
     });
-  }, [isExpanded]);
+  }, [isExpanded, measuredHeight]);
+
+  const animatedHeightStyle = useAnimatedStyle(() => ({
+    height: animatedHeight.value,
+    opacity: animatedHeight.value === 0 ? 0 : 1,
+  }));
 
   const animatedChevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronRotation.value}deg` }],
@@ -85,10 +107,7 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
   };
 
   return (
-    <Animated.View
-      layout={LinearTransition.duration(250).easing(Easing.out(Easing.cubic))}
-      style={[styles.outerWrapper, style]}
-    >
+    <View style={[styles.outerWrapper, style]}>
       {/* 1. Thẻ Tím Neo-brutalism chính bao bọc toàn bộ nội dung */}
       <NeoCard
         backgroundColor="#9E77DC"
@@ -163,12 +182,16 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
           </NeoButton>
         </View>
 
-        {/* 2. KHU VỰC VÍ TIỀN TỆ PHỤ NẰM HOÀN TOÀN BÊN TRONG THẺ TÍM (ACCORDION) */}
-        {isExpanded && (
-          <Animated.View
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut.duration(150)}
-            style={styles.expandedSubWalletsArea}
+        {/* 2. KHU VỰC VÍ TIỀN TỆ PHỤ NẰM HOÀN TOÀN BÊN TRONG THẺ TÍM (ABSOLUTE MEASUREMENT ACCORDION) */}
+        <Animated.View style={[styles.accordionWrapper, animatedHeightStyle]}>
+          <View
+            style={styles.measuredSubWalletsArea}
+            onLayout={(e) => {
+              const h = Math.round(e.nativeEvent.layout.height);
+              if (h > 0 && Math.abs(h - measuredHeight) > 1) {
+                setMeasuredHeight(h);
+              }
+            }}
           >
             {/* Đường Kẻ Ngang Phân Cách Neo-brutalism */}
             <View style={styles.subWalletsDivider} />
@@ -187,33 +210,34 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.subWalletsScrollList}
             >
-              {/* Danh Sách Các Thẻ Mini Ví Phụ */}
-              {subWallets.map((wallet) => (
-                <TouchableOpacity
-                  key={wallet.id}
-                  style={[styles.miniCard, { backgroundColor: wallet.color }]}
-                  onPress={() => onPressSubWallet && onPressSubWallet(wallet)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.miniCardTopRow}>
-                    <View style={styles.miniIconCircle}>
-                      <Text style={styles.miniSymbolText}>{wallet.symbol}</Text>
+              {/* 1. Danh Sách Các Thẻ Mini Ví Phụ (Chỉ render khi loại tiền đó thực sự tồn tại) */}
+              {Array.isArray(subWallets) &&
+                subWallets.map((wallet) => (
+                  <TouchableOpacity
+                    key={wallet.id}
+                    style={[styles.miniCard, { backgroundColor: wallet.color }]}
+                    onPress={() => onPressSubWallet && onPressSubWallet(wallet)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.miniCardTopRow}>
+                      <View style={styles.miniIconCircle}>
+                        <Text style={styles.miniSymbolText}>{wallet.symbol}</Text>
+                      </View>
+                      <View style={styles.swapActionIcon}>
+                        <MaterialCommunityIcons name="swap-horizontal" size={15} color="#000000" />
+                      </View>
                     </View>
-                    <View style={styles.swapActionIcon}>
-                      <MaterialCommunityIcons name="swap-horizontal" size={15} color="#000000" />
+
+                    <View style={styles.miniCardBottomCol}>
+                      <Text style={styles.miniCurrencyCode}>{wallet.currency}</Text>
+                      <Text style={styles.miniBalanceText} numberOfLines={1}>
+                        {wallet.symbol} {wallet.balance.toLocaleString()}
+                      </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
+                ))}
 
-                  <View style={styles.miniCardBottomCol}>
-                    <Text style={styles.miniCurrencyCode}>{wallet.currency}</Text>
-                    <Text style={styles.miniBalanceText} numberOfLines={1}>
-                      {wallet.symbol} {wallet.balance.toLocaleString()}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-
-              {/* Nút 'Thêm ví' Viền Nét Đứt */}
+              {/* 2. Nút 'Thêm ví' Viền Nét Đứt Cố Định Ở Cuối Danh Sách */}
               <TouchableOpacity
                 style={styles.addWalletBtn}
                 onPress={onPressAddSubWallet}
@@ -227,8 +251,8 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
                 </Text>
               </TouchableOpacity>
             </ScrollView>
-          </Animated.View>
-        )}
+          </View>
+        </Animated.View>
       </NeoCard>
 
       {/* 3. Nút Bán Nguyệt Đính Ở Cạnh Dưới Thẻ Tím (Toggle Accordion & Xoay Icon) */}
@@ -248,7 +272,7 @@ export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
           </View>
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -318,9 +342,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   // Sub-wallets Accordion Styles Inside Purple Card
-  expandedSubWalletsArea: {
-    marginTop: 14,
-    paddingBottom: 6,
+  accordionWrapper: {
+    width: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  measuredSubWalletsArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 14,
+    paddingBottom: 4,
   },
   subWalletsDivider: {
     height: 2,

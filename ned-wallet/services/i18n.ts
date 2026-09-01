@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
+import { Platform } from 'react-native';
 
 export const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -473,6 +474,7 @@ i18n.init({
 
 // Tải ngôn ngữ đã lưu từ AsyncStorage khi ứng dụng khởi động
 export const initLanguageFromStorage = async () => {
+  if (Platform.OS === 'web' && typeof window === 'undefined') return;
   try {
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (savedLanguage && (savedLanguage === 'vi' || savedLanguage === 'en')) {
@@ -486,8 +488,10 @@ export const initLanguageFromStorage = async () => {
   }
 };
 
-// Tự động nạp khi module khởi động
-initLanguageFromStorage();
+// Tự động nạp khi module khởi động (trên client / native)
+if (Platform.OS !== 'web' || typeof window !== 'undefined') {
+  initLanguageFromStorage();
+}
 
 /**
  * Hàm thay đổi ngôn ngữ đồng thời lưu vào AsyncStorage

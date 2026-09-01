@@ -1148,6 +1148,127 @@
   - **3. Xoay Mũi Tên Latch 180 Độ (Chevron Rotation)**:
     - Sử dụng `useSharedValue` và `useAnimatedStyle` xoay icon `chevron-down` từ `0deg` $\leftrightarrow$ `180deg` mượt mà khi người dùng bấm nút bán nguyệt để toggle.
 
+---
+
+### 🔹 [Phase 2 - Bước 72: Tinh Chỉnh Easing Bezier & Staggered Entrance Cho Accordion Thẻ Tím]
+- **Type:** `[BEZIER_EASING]` | `[STAGGERED_ANIMATION]` | `[REANIMATED]` | `[UI/UX_POLISH]`
+- **Mục tiêu**:
+  - Làm mềm mại chuyển động co giãn Accordion của thẻ tím và hiệu ứng xuất hiện nội dung ví phụ uyển chuyển, thư giãn.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Container Bezier Transition ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Gán `layout={LinearTransition.duration(350).easing(Easing.bezier(0.25, 0.1, 0.25, 1))}`.
+    - Chuyển động chuẩn ease-in-out bắt đầu từ từ, tăng tốc ở giữa và giảm tốc nhẹ nhàng khi chạm đích.
+  - **2. Staggered Entrance & FadeInDown**:
+    - Gán `entering={FadeInDown.duration(300).delay(100).easing(Easing.out(Easing.quad))}` và `exiting={FadeOutUp.duration(200)}`.
+    - Độ trễ 100ms cho phép khung thẻ tím mở ra một khoảng trước khi nội dung ví phụ trượt nhẹ từ trên xuống.
+  - **3. Đồng Bộ Mũi Tên Chevron Rotation**:
+    - Áp dụng `withTiming(isExpanded ? 180 : 0, { duration: 350, easing: Easing.bezier(0.25, 0.1, 0.25, 1) })`.
+
+---
+
+### 🔹 [Phase 2 - Bước 73: Chuẩn Hóa Chu Kỳ Staged Expansion & Staggered Delay 150ms Cho Thẻ Tím]
+- **Type:** `[STAGED_ANIMATION]` | `[REANIMATED]` | `[ACCORDION_TIMING]`
+- **Mục tiêu**:
+  - Đảm bảo thẻ tím mở ra trước khoảng 50% rồi nội dung ví phụ mới trượt xuống và mờ dần vào, tạo chu trình diễn hoạt 2 giai đoạn hoàn hảo.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Khung Thẻ Tím ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - `layout={LinearTransition.duration(350).easing(Easing.bezier(0.25, 0.1, 0.25, 1))}` tính toán và trượt giãn khung thẻ mượt mà.
+  - **2. Nội Dung Con Bắt Buộc Delay 150ms**:
+    - `entering={FadeInDown.delay(150).duration(250).easing(Easing.out(Easing.quad))}` và `exiting={FadeOutUp.duration(150)}`.
+  - **3. Xoay Mũi Tên 300ms**:
+    - `withTiming(isExpanded ? 180 : 0, { duration: 300 })` lật 180 độ đồng thời trong lúc thẻ đang trượt xuống.
+
+---
+
+### 🔹 [Phase 2 - Bước 74: Chuyển Sang Kỹ Thuật Nội Suy Chiều Cao (Animated Height 60fps) Cho Accordion Thẻ Tím]
+- **Type:** `[ANIMATED_HEIGHT]` | `[REANIMATED]` | `[60FPS_OPTIMIZATION]` | `[PERFORMANCE]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn `layout={LinearTransition...}` để chống hiện tượng giật rung/drop frame, thay bằng cơ chế nội suy chiều cao trực tiếp với `useSharedValue(0)` và `overflow: 'hidden'`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Shared Value & Đo Lường Nội Dung Ngầm ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Khởi tạo `animatedHeight = useSharedValue(0)`.
+    - Sử dụng `onLayout` trên container con để lấy chiều cao thực tế `measuredHeight` (~145px).
+  - **2. Đường Cong Gia Tốc Phanh Êm Ái**:
+    - Cập nhật `animatedHeight.value = withTiming(isExpanded ? measuredHeight : 0, { duration: 400, easing: Easing.bezier(0.33, 1, 0.68, 1) })`.
+    - Đường cong cubic bezier `(0.33, 1, 0.68, 1)` bắt đầu nhanh dứt khoát và hãm phanh cực kỳ êm dịu ở điểm dừng.
+  - **3. Khóa Tràn Viền (Hidden Overflow)**:
+    - Bọc vùng mở rộng bằng `<Animated.View style={[{ overflow: 'hidden' }, animatedHeightStyle]}>`.
+    - Khi `animatedHeight` chạy từ 0 đến `measuredHeight`, nội dung trượt mở mượt mà 60fps như kéo rèm, không còn bất kỳ sự rung giật nào.
+
+---
+
+### 🔹 [Phase 2 - Bước 75: Ứng Dụng Kỹ Thuật Absolute Measurement Cho Accordion Thẻ Tím]
+- **Type:** `[ABSOLUTE_MEASUREMENT]` | `[ACCORDION_FIX]` | `[REANIMATED]` | `[UI_BUGFIX]`
+- **Mục tiêu**:
+  - Khắc phục lỗi nội dung Ví Phụ bị biến mất do thẻ cha ép `height: 0` khiến `onLayout` đo ra 0.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Bỏ Render Có Điều Kiện**:
+    - Nội dung Ví Phụ luôn được mount sẵn trong cấu trúc cây DOM ảo để hệ thống đo đạc kích thước chính xác.
+  - **2. Kỹ Thuật Absolute Measurement ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Thẻ `<View style={styles.measuredSubWalletsArea}>` chứa `onLayout` được gắn `position: 'absolute', top: 0, left: 0, right: 0`.
+    - Cho phép khối nội dung bung đủ 100% kích thước thực để đo `measuredHeight` chính xác ngay cả khi thẻ cha bên ngoài có `height: 0` và `overflow: 'hidden'`.
+  - **3. Kiểm Soát Cập Nhật Chiều Cao An Toàn**:
+    - Chỉ chạy `withTiming(measuredHeight, ...)` khi `isExpanded = true` và `measuredHeight > 0`.
+
+---
+
+### 🔹 [Phase 2 - Bước 76: Loại Bỏ Mock Data, Kết Nối On-Chain Balance Thật & Đồng Bộ Ví Phụ Supabase]
+- **Type:** `[ONCHAIN_BALANCE]` | `[SUPABASE_SYNC]` | `[DYNAMIC_FIAT]` | `[ANTI_HARDCODE]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn mock data tĩnh cho thẻ số dư và ví phụ.
+  - Sử dụng số dư on-chain thật từ Solana Devnet (SOL & USDC SPL Token).
+  - Đồng bộ mảng `active_fiat_wallets` với bảng `profiles` trên Supabase.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Hook useOnchainBalance ([hooks/useOnchainBalance.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainBalance.ts))**:
+    - Truy vấn trực tiếp số dư SOL và USDC ATA (`USDC_DEVNET_MINT: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`).
+    - Helper `formatFiatBalance(usdcBalance, currencyType)` tự động nhân tỷ giá động (`25,400 VND / USD`, `0.92 EUR`, `0.79 GBP`, `152.5 JPY`).
+  - **2. Đồng Bộ Supabase Profiles ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Thêm `getActiveFiatWallets(userId)` và `setActiveFiatWallets(userId, wallets)` đồng bộ lưu trữ 2 chiều giữa Supabase `profiles` và `AsyncStorage`.
+  - **3. Nâng Cấp useSubWallets ([hooks/useSubWallets.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useSubWallets.ts))**:
+    - Chỉ render các thẻ ví phụ có trong `active_fiat_wallets`.
+    - Số dư ví phụ tính toán 100% động từ số dư USDC on-chain thật.
+  - **4. Tích Hợp HomeScreen ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx))**:
+    - Móc nối `useOnchainBalance` và `useSubWallets(user?.id, onchainUsdcBalance)` trực tiếp vào `NeoBalanceCard`.
+
+---
+
+### 🔹 [Phase 2 - Bước 77: Chuẩn Hóa Khởi Tạo Mặc Định Mảng Rỗng & Nút Thêm Ví Cố Định]
+- **Type:** `[EMPTY_STATE_INIT]` | `[SUB_WALLETS]` | `[NULL_SAFETY]` | `[UI_STABILITY]`
+- **Mục tiêu**:
+  - Khởi tạo mặc định `active_fiat_wallets` là `[]` đối với user mới đăng ký.
+  - Xử lý triệt để trường hợp Supabase trả về `null` hoặc `undefined` để chống crash UI.
+  - Nút "Thêm ví" viền nét đứt luôn cố định ở cuối danh sách. Nếu chưa có ví phụ nào, khu vực hiển thị duy nhất nút "Thêm ví".
+- **Giải pháp triển khai chi tiết**:
+  - **1. Khởi Tạo Mặc Định Mảng Rỗng ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts), [hooks/useSubWallets.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useSubWallets.ts))**:
+    - `getActiveFiatWallets` và `useState<string[]>([])` mặc định trả về `[]`.
+    - Kiểm tra `Array.isArray(currencies)` chặt chẽ, fallback về `[]` khi chưa có dữ liệu.
+  - **2. Render Danh Sách Động & Nút Thêm Ví Cố Định ([components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - `Array.isArray(subWallets) && subWallets.map(...)`: Chỉ render thẻ khi loại tiền thực sự tồn tại trong mảng.
+    - Nút "Thêm ví" luôn render ở cuối danh sách. Khi `subWallets = []`, hiển thị duy nhất nút "Thêm ví" trong không gian Accordion.
+
+---
+
+### 🔹 [Phase 2 - Bước 78: Khắc Phục Lỗi SSR/Node 'ReferenceError: window is not defined' Cho Expo Metro Bundler]
+- **Type:** `[SSR_SAFETY]` | `[STORAGE_ADAPTER]` | `[METRO_FIX]` | `[CROSS_PLATFORM]`
+- **Mục tiêu**:
+  - Khắc phục lỗi `ReferenceError: window is not defined` khi Metro Bundler / Expo Router dựng trước trang (Static Rendering / SSR) với `@react-native-async-storage/async-storage`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Bộ Điều Phối safeStorage Cho Supabase ([services/supabase.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/supabase.ts))**:
+    - Tạo object `safeStorage` bọc các hàm `getItem`, `setItem`, `removeItem` với điều kiện `Platform.OS !== 'web' || typeof window !== 'undefined'`.
+    - Trả về `null` an toàn trong môi trường Node.js server context thay vì ném ngoại lệ làm sập Metro.
+  - **2. Khóa Khởi Động i18n & Storage ([services/i18n.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/i18n.ts), [services/storage.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/storage.ts))**:
+    - Thêm guard `isBrowserOrNative` trước khi gọi `initLanguageFromStorage()` ở cấp module.
+  - **3. Xác Thực Build Toàn Diện**:
+    - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
+    - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công toàn bộ 18 Static Routes mà không có bất kỳ lỗi nào.
+
+
+
+
+
+
+
+
 
 
 

@@ -71,6 +71,7 @@ import { NeoSubWallets } from '@/components/neo/NeoSubWallets';
 import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
+import { useOnchainBalance, formatFiatBalance as formatFiatOnchain } from '@/hooks/useOnchainBalance';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -98,18 +99,6 @@ export default function HomeScreen() {
   const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) & Swap Quy Đổi
-  const mainUsdNumericBalance = accountBalanceState ? accountBalanceState.usdBalance : 100;
-  const { subWallets, addSubWallet, executeSwap } = useSubWallets(mainUsdNumericBalance);
-  const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
-  const [showSwapModal, setShowSwapModal] = useState(false);
-  const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
-
-  const handleOpenSwapForWallet = (wallet: SubWalletItem) => {
-    setSelectedSubWalletForSwap(wallet);
-    setShowSwapModal(true);
-  };
 
   // State Modals & Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -168,6 +157,26 @@ export default function HomeScreen() {
   };
 
   const solanaAddress = getSolanaWalletAddress();
+
+  // Hook truy xuất số dư On-chain thực tế 100% (USDC & SOL)
+  const {
+    solBalance: onchainSolBalance,
+    usdcBalance: onchainUsdcBalance,
+    formattedUsd: onchainFormattedUsd,
+    formattedVnd: onchainFormattedVnd,
+    refreshBalance: refreshOnchainBalance,
+  } = useOnchainBalance(solanaAddress);
+
+  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) đồng bộ Supabase & Swap Quy Đổi
+  const { subWallets, addSubWallet, executeSwap } = useSubWallets(user?.id, onchainUsdcBalance);
+  const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
+
+  const handleOpenSwapForWallet = (wallet: SubWalletItem) => {
+    setSelectedSubWalletForSwap(wallet);
+    setShowSwapModal(true);
+  };
 
   // 1. Luồng Cache-then-Network: Nạp Cache khởi tạo ngay lập tức
   useEffect(() => {
@@ -588,15 +597,15 @@ export default function HomeScreen() {
 
         {/* 2. Thẻ Ví Neo-brutalism (NeoBalanceCard Component Tích Hợp Accordion Sub-wallets) */}
         <NeoBalanceCard
-          balanceUsd={getFormattedBalance()}
+          balanceUsd={
+            currency === 'USD'
+              ? onchainFormattedUsd
+              : onchainFormattedVnd
+          }
           balanceVnd={
             currency === 'USD'
-              ? accountBalanceState
-                ? accountBalanceState.formattedVnd
-                : 'đ 0.00'
-              : accountBalanceState
-              ? accountBalanceState.formattedUsd
-              : '$0.00'
+              ? onchainFormattedVnd
+              : onchainFormattedUsd
           }
           onDepositPress={() => setShowDepositModal(true)}
           onWithdrawPress={() => router.push('/send')}
@@ -605,7 +614,10 @@ export default function HomeScreen() {
           onPressSubWallet={handleOpenSwapForWallet}
           onPressAddSubWallet={() => setShowAddSubWalletModal(true)}
           onBottomLatchPress={() => {
-            if (solanaAddress) fetchActivities(solanaAddress, true);
+            if (solanaAddress) {
+              fetchActivities(solanaAddress, true);
+              refreshOnchainBalance(true);
+            }
           }}
         />
 
@@ -889,7 +901,7 @@ export default function HomeScreen() {
           setSelectedSubWalletForSwap(null);
         }}
         targetWallet={selectedSubWalletForSwap || subWallets[0] || null}
-        mainUsdBalance={mainUsdNumericBalance}
+        mainUsdBalance={onchainUsdcBalance > 0 ? onchainUsdcBalance : (onchainSolBalance * 150)}
         onConfirmSwap={executeSwap}
       />
     </SafeAreaView>

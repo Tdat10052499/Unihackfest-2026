@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+const isAvailable = Platform.OS !== 'web' || typeof window !== 'undefined';
 
 const STORAGE_KEYS = {
   BALANCE: '@ned_wallet_balance',
@@ -12,6 +15,7 @@ const STORAGE_KEYS = {
  * Lưu số dư SOL vào local cache
  */
 export const cacheBalance = async (balance: number): Promise<void> => {
+  if (!isAvailable) return;
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.BALANCE, JSON.stringify(balance));
   } catch (error) {

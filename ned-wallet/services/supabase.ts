@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 function getCleanSupabaseUrl(): string {
   const raw = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -26,11 +27,37 @@ function getCleanSupabaseAnonKey(): string {
 const SUPABASE_URL = getCleanSupabaseUrl();
 const SUPABASE_ANON_KEY = getCleanSupabaseAnonKey();
 
+// Adapter Storage an toàn chống lỗi SSR / Node.js (window is not defined)
+const isBrowserOrNative = Platform.OS !== 'web' || typeof window !== 'undefined';
+
+const safeStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (!isBrowserOrNative) return null;
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (!isBrowserOrNative) return;
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch {}
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (!isBrowserOrNative) return;
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch {}
+  },
+};
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    storage: safeStorage,
+    autoRefreshToken: isBrowserOrNative,
+    persistSession: isBrowserOrNative,
     detectSessionInUrl: false,
   },
 });
@@ -268,6 +295,85 @@ export async function unlinkPhoneNumber(
   } catch (err: any) {
     console.error('❌ [Supabase] Ngoại lệ khi hủy liên kết:', err);
     return { success: false, error: err?.message || 'Lỗi khi hủy liên kết.' };
+  }
+}
+
+/**
+ * Lấy danh sách các Ví Tiền Tệ Phụ (active_fiat_wallets) của người dùng từ Supabase profiles
+ * Mặc định trả về mảng rỗng [] đối với user mới
+ */
+export async function getActiveFiatWallets(userId?: string | null): Promise<string[]> {
+  const DEFAULT_WALLETS: string[] = [];
+  if (!userId) return DEFAULT_WALLETS;
+
+  const storageKey = `@ned_active_fiat_wallets_${userId}`;
+
+  try {
+    // 1. Thử lấy từ Supabase bảng `profiles`
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('active_fiat_wallets')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data?.active_fiat_wallets && Array.isArray(data.active_fiat_wallets)) {
+      await AsyncStorage.setItem(storageKey, JSON.stringify(data.active_fiat_wallets));
+      return data.active_fiat_wallets;
+    }
+  } catch (err) {
+    console.warn('⚠️ [Supabase] Lỗi khi đọc active_fiat_wallets:', err);
+  }
+
+  // 2. Fallback sang AsyncStorage
+  try {
+    const cached = await AsyncStorage.getItem(storageKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (storageErr) {
+    console.warn('⚠️ [AsyncStorage] Lỗi khi đọc cache ví phụ:', storageErr);
+  }
+
+  return DEFAULT_WALLETS;
+}
+
+/**
+ * Cập nhật danh sách các Ví Tiền Tệ Phụ (active_fiat_wallets) lên Supabase profiles
+ */
+export async function setActiveFiatWallets(
+  userId: string,
+  wallets: string[]
+): Promise<{ success: boolean; error?: string }> {
+  if (!userId) return { success: false, error: 'Thiếu userId' };
+
+  const storageKey = `@ned_active_fiat_wallets_${userId}`;
+
+  // 1. Lưu ngay vào AsyncStorage để phản hồi UI tức thì
+  try {
+    await AsyncStorage.setItem(storageKey, JSON.stringify(wallets));
+  } catch (e) {
+    console.warn('⚠️ [AsyncStorage] Không thể cache active_fiat_wallets:', e);
+  }
+
+  // 2. Đồng bộ lên Supabase profiles
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: userId, active_fiat_wallets: wallets }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('⚠️ [Supabase] Không thể upsert profiles active_fiat_wallets:', error.message);
+      // Không ném lỗi vì đã có local cache
+    } else {
+      console.log(`✅ [Supabase] Đã đồng bộ active_fiat_wallets [${wallets.join(', ')}] cho user ${userId}`);
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('⚠️ [Supabase] Ngoại lệ khi cập nhật active_fiat_wallets:', err?.message);
+    return { success: true }; // Vẫn cho là thành công vì đã lưu offline
   }
 }
 
