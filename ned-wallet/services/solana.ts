@@ -8,7 +8,7 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { lookupWalletByPhone, supabase } from './supabase';
+import { lookupWalletByPhone } from './identity';
 
 export const SOLANA_DEVNET_RPC =
   process.env.EXPO_PUBLIC_SOLANA_RPC ||
@@ -311,27 +311,7 @@ export async function getAccountDisplayBalance(
 export async function sponsorAndBroadcastTransaction(
   serializedPartialTxBase64: string
 ): Promise<{ success: boolean; txSignature?: string; error?: string }> {
-  try {
-    // 1. Gọi Supabase Edge Function 'sponsor-transfer'
-    const { data, error } = await supabase.functions.invoke('sponsor-transfer', {
-      body: {
-        transaction_base64: serializedPartialTxBase64,
-      },
-    });
-
-    if (!error && data?.success && data?.txSignature) {
-      console.log('⚡ [Gasless Fee Payer] Sponsored via Backend Edge Function:', data.txSignature);
-      return { success: true, txSignature: data.txSignature };
-    }
-
-    if (error) {
-      console.warn('⚠️ [Edge Function sponsor-transfer] Error:', error.message);
-    }
-  } catch (edgeErr: any) {
-    console.warn('⚠️ [sponsor-transfer] Exception calling Edge Function:', edgeErr?.message);
-  }
-
-  // 2. Fallback Broadcast trực tiếp nếu transaction đã đủ điều kiện trên Devnet
+  // Broadcast trực tiếp nếu transaction đã đủ điều kiện trên Devnet
   try {
     const txBuffer = Buffer.from(serializedPartialTxBase64, 'base64');
     const transaction = Transaction.from(txBuffer);
@@ -343,11 +323,11 @@ export async function sponsorAndBroadcastTransaction(
     await solanaConnection.confirmTransaction(txSignature, 'confirmed');
     console.log('✅ [Direct Broadcast Confirmed] TxSignature:', txSignature);
     return { success: true, txSignature };
-  } catch (directErr: any) {
-    console.error('❌ [Broadcast Error]:', directErr);
+  } catch (err: any) {
+    console.error('❌ [sponsorAndBroadcastTransaction] Lỗi broadcast:', err);
     return {
       success: false,
-      error: directErr?.message || 'Không thể phát sóng giao dịch lên mạng Solana.',
+      error: err?.message || 'Không thể phát sóng giao dịch lên Solana Devnet.',
     };
   }
 }

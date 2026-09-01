@@ -25,7 +25,7 @@ import {
   fetchActiveGeoRedPackets,
   claimGeoRedPacketViaBackend,
   GeoRedPacket,
-} from '../services/supabase';
+} from '../services/identity';
 import { GEO_REDPACKET_TREASURY, getSolanaBalance } from '../services/solana';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 

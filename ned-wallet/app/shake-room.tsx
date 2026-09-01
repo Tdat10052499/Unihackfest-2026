@@ -20,7 +20,6 @@ import * as Clipboard from 'expo-clipboard';
 import { Accelerometer } from 'expo-sensors';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import { supabase } from '@/services/supabase';
 import {
   cacheBalance,
   getCachedBalance,
@@ -35,7 +34,6 @@ import {
 } from '@/services/solana';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Tỷ giá quy đổi ngầm: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
@@ -123,7 +121,6 @@ export default function ShakeRoomScreen() {
   const [isHostClaiming, setIsHostClaiming] = useState(false);
 
   // Refs & Animations
-  const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const accelerometerSubRef = useRef<any>(null);
   const lastShakeTimeRef = useRef(0);
 
@@ -205,20 +202,9 @@ export default function ShakeRoomScreen() {
     ).start();
   }, []);
 
-  // 1. Khởi tạo kết nối channel cục bộ: room_[room_id]
+  // 1. Khởi tạo phòng & Dọn dẹp sensor
   useEffect(() => {
     if (!roomId || !user) return;
-
-    const channelName = `room_${roomId}`;
-    console.log(`🔌 [Shake Room] Kết nối channel: ${channelName}`);
-
-    const channel = supabase.channel(channelName, {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
 
     const myProfile: RoomMember = {
       user_id: user.id,
@@ -229,103 +215,9 @@ export default function ShakeRoomScreen() {
       status: isHost ? 'paid' : 'pending',
     };
 
-    channel
-      // A. Presence Sync: Danh sách người có mặt trong phòng
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<RoomMember>();
-        const presenceList: RoomMember[] = [];
-
-        Object.keys(state).forEach((key) => {
-          const presences = state[key];
-          if (presences && presences.length > 0) {
-            const p = presences[presences.length - 1];
-            presenceList.push(p);
-          }
-        });
-
-        // Tìm địa chỉ ví của Host từ presence list nếu chưa có
-        const foundHost = presenceList.find(
-          (m) => m.isHost || (hostId && m.user_id === hostId)
-        );
-        if (foundHost?.wallet_address) {
-          setHostWalletAddress(foundHost.wallet_address);
-        }
-
-        setMembers((prev) => {
-          const paidMap = new Map(
-            prev.filter((m) => m.status === 'paid').map((m) => [m.user_id, m.tx_signature])
-          );
-          const baseList = presenceList.length > 0 ? presenceList : [myProfile];
-          return baseList.map((m) => ({
-            ...m,
-            status: m.isHost || paidMap.has(m.user_id) ? 'paid' : m.status || 'pending',
-            tx_signature: paidMap.get(m.user_id) || m.tx_signature,
-          }));
-        });
-      })
-      // B. Event trigger_split: Guest nhận lệnh chia tiền
-      .on('broadcast', { event: 'trigger_split' }, ({ payload }) => {
-        console.log('⚡ [Shake Room] Nhận sự kiện trigger_split:', payload);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        if (payload?.total_bill) setTotalBill(payload.total_bill.toString());
-        if (payload?.split_amount) setSplitAmount(payload.split_amount.toString());
-        if (payload?.note) setBillNote(payload.note);
-        if (payload?.host_wallet_address) {
-          setHostWalletAddress(payload.host_wallet_address);
-        }
-
-        if (!isHost) {
-          setGuestPhase('READY_TO_PAY');
-        }
-      })
-      // C. Event payment_update: Host nhận xác nhận giao dịch từ Guest
-      .on('broadcast', { event: 'payment_update' }, ({ payload }) => {
-        console.log('💰 [Shake Room] Nhận sự kiện payment_update:', payload);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setMembers((prev) =>
-          prev.map((m) =>
-            m.user_id === payload.user_id
-              ? { ...m, status: 'paid', tx_signature: payload.tx_signature }
-              : m
-          )
-        );
-      })
-      // D. Event room_closed: Guest nhận lệnh giải tán phòng khi Host hoàn tất
-      .on('broadcast', { event: 'room_closed' }, () => {
-        console.log('🚪 [Shake Room] Nhận sự kiện room_closed từ Host');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        if (!isHost) {
-          Alert.alert(
-            'Hoàn tất 🎉',
-            'Giao dịch đã được hoàn tất!',
-            [
-              {
-                text: 'Xác nhận',
-                onPress: () => {
-                  router.replace('/(tabs)');
-                },
-              },
-            ],
-            { cancelable: false }
-          );
-        }
-      })
-      .subscribe((status) => {
-        console.log(`📡 [Shake Room] Channel ${channelName} status:`, status);
-        if (status === 'SUBSCRIBED') {
-          channel.track(myProfile);
-        }
-      });
-
-    roomChannelRef.current = channel;
+    setMembers((prev) => (prev.length === 0 ? [myProfile] : prev));
 
     return () => {
-      console.log(`🧹 [Shake Room] Dọn dẹp channel ${channelName}`);
-      if (roomChannelRef.current) {
-        roomChannelRef.current.unsubscribe();
-        supabase.removeChannel(roomChannelRef.current);
-        roomChannelRef.current = null;
-      }
       if (accelerometerSubRef.current) {
         accelerometerSubRef.current.remove();
         accelerometerSubRef.current = null;
@@ -373,25 +265,6 @@ export default function ShakeRoomScreen() {
       invitedGuestCount,
       totalParticipants,
     });
-
-    if (roomChannelRef.current) {
-      try {
-        await roomChannelRef.current.send({
-          type: 'broadcast',
-          event: 'trigger_split',
-          payload: {
-            room_id: roomId,
-            host_id: user?.id || '',
-            host_wallet_address: mySolanaAddress,
-            total_bill: bill,
-            split_amount: calculatedSplit,
-            note: billNote,
-          },
-        });
-      } catch (e) {
-        console.error('Lỗi khi gửi trigger_split:', e);
-      }
-    }
 
     setHostPhase('WAITING');
 
@@ -476,7 +349,7 @@ export default function ShakeRoomScreen() {
       // Ghi nhận Lịch Sử Hoạt Động (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
       const newActivity: ActivityItem = {
-        id: `shake_rcv_${Date.now()}`,
+        id: `split_income_${Date.now()}`,
         type: 'received',
         title: `Chia tiền nhóm (${paidGuestsCount} người)`,
         time: 'Vừa xong',
@@ -485,24 +358,6 @@ export default function ShakeRoomScreen() {
         iconBg: '#00A859',
       };
       await cacheActivities([newActivity, ...currentActs]);
-
-      // Phát sóng sự kiện room_closed lên channel room_[roomId] để giải tán phòng
-      if (roomChannelRef.current) {
-        try {
-          await roomChannelRef.current.send({
-            type: 'broadcast',
-            event: 'room_closed',
-            payload: {
-              room_id: roomId,
-              host_id: user.id,
-              total_collected: totalCollectedSoFar,
-              closed_at: new Date().toISOString(),
-            },
-          });
-        } catch (err) {
-          console.error('Lỗi khi gửi room_closed:', err);
-        }
-      }
 
       setIsHostClaiming(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -639,26 +494,6 @@ export default function ShakeRoomScreen() {
           m.user_id === user.id ? { ...m, status: 'paid', tx_signature: txSignature } : m
         )
       );
-
-      // 6. Phát sóng sự kiện Realtime cập nhật trạng thái cho Host
-      if (roomChannelRef.current) {
-        try {
-          await roomChannelRef.current.send({
-            type: 'broadcast',
-            event: 'payment_update',
-            payload: {
-              user_id: user.id,
-              name: currentUserProfile.name,
-              status: 'paid',
-              tx_signature: txSignature,
-              amount: paymentAmountUSD,
-              paid_at: new Date().toISOString(),
-            },
-          });
-        } catch (broadcastErr) {
-          console.error('Lỗi broadcast payment_update:', broadcastErr);
-        }
-      }
 
       setHasGuestPaid(true);
       setIsGuestPaying(false);

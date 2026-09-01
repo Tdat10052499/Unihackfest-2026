@@ -34,12 +34,10 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { supabase } from '../services/supabase';
 import { getSolanaBalance } from '../services/solana';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { useGlobalPresence } from '../contexts/GlobalPresenceContext';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -88,8 +86,6 @@ export default function CoinTossRoomScreen() {
   const [wonAmount, setWonAmount] = useState<number | null>(null);
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
-
-  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Reanimated Shared Values cho Đồng Xu
   const coinTranslateY = useSharedValue(0);
@@ -175,113 +171,20 @@ export default function CoinTossRoomScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  // 1. KẾT NỐI SUPABASE REALTIME PRESENCE VÀ BROADCAST CHANNEL
+  // 1. KHỞI TẠO THÀNH VIÊN PHÒNG
   useEffect(() => {
     if (!user?.id || !roomId) return;
 
-    const channelName = `coin_toss_${roomId}`;
-    console.log(`🔌 [Coin Toss Room] Kết nối channel: ${channelName}`);
-
-    const channel = supabase.channel(channelName, {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
-
-    // A. Lắng nghe Presence (Danh sách người trong phòng)
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<RoomMember>();
-        const memberList: RoomMember[] = [];
-
-        Object.keys(state).forEach((key) => {
-          const presences = state[key];
-          if (presences && presences.length > 0) {
-            const p = presences[presences.length - 1];
-            memberList.push(p);
-          }
-        });
-
-        // Sắp xếp Host lên đầu tiên
-        memberList.sort((a, b) => (b.is_host ? 1 : 0) - (a.is_host ? 1 : 0));
-        setMembers(memberList);
-      })
-      // B. Nhận sự kiện Host tung đồng xu (Guest cũng thấy animation đồng thời)
-      .on('broadcast', { event: 'toss_started' }, ({ payload }) => {
-        console.log('🪙 [Broadcast] Đồng xu đang tung:', payload);
-        setIsTossing(true);
-        setTossStatusText(`${payload?.host_name || 'Host'} đang tung đồng xu may mắn (${payload?.amount} SOL)...`);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        // Kích hoạt animation tung đồng xu cho Guest
-        coinTranslateY.value = withSequence(
-          withTiming(-450, { duration: 800, easing: Easing.out(Easing.quad) }),
-          withSpring(0, { damping: 12, stiffness: 100 })
-        );
-        coinScale.value = withSequence(
-          withTiming(1.35, { duration: 400 }),
-          withTiming(1, { duration: 500 })
-        );
-        coinRotateY.value = withTiming(coinRotateY.value + 1800, {
-          duration: 1800,
-          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-        });
-      })
-      // C. Nhận kết quả người trúng thưởng
-      .on('broadcast', { event: 'winner_selected' }, ({ payload }) => {
-        console.log('🎉 [Broadcast] Đã tìm ra người trúng thưởng:', payload);
-        setIsTossing(false);
-        setTossStatusText('Đã tìm ra người may mắn!');
-
-        const winnerMember: RoomMember = {
-          user_id: payload.winner_id,
-          name: payload.winner_name,
-          avatar: payload.winner_name?.charAt(0).toUpperCase() || 'W',
-          wallet_address: payload.winner_wallet,
-        };
-
-        setWinner(winnerMember);
-        setWonAmount(payload.amount);
-        setLastTxSignature(payload.txSignature);
-        setShowWinnerModal(true);
-
-        triggerHapticSuccess();
-
-        // Animation popup vinh danh
-        winnerModalScale.value = 0.3;
-        winnerModalScale.value = withSpring(1, { damping: 10, stiffness: 120 });
-
-        // Cập nhật lại số dư ví nếu là người nhận hoặc host
-        if (myAddress) {
-          getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
-        }
-      })
-      .subscribe(async (status) => {
-        console.log(`📡 [Realtime Room] Status: ${status}`);
-        if (status === 'SUBSCRIBED') {
-          const payload: RoomMember = {
-            user_id: user.id,
-            name: myProfile.name,
-            avatar: myProfile.avatar,
-            wallet_address: myAddress || undefined,
-            is_host: isHost,
-            joined_at: Date.now(),
-          };
-          await channel.track(payload);
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      console.log(`🧹 [Coin Toss Room] Rời phòng ${channelName}`);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+    const currentMember: RoomMember = {
+      user_id: user.id,
+      name: myProfile.name,
+      avatar: myProfile.avatar,
+      wallet_address: myAddress || undefined,
+      is_host: isHost,
+      joined_at: Date.now(),
     };
+
+    setMembers([currentMember]);
   }, [user?.id, roomId, myAddress, myProfile, isHost]);
 
   // 2. THUẬT TOÁN RANDOM & THỰC THI GIAO DỊCH ON-CHAIN (CHỈ HOST THỰC HIỆN)
@@ -342,16 +245,6 @@ export default function CoinTossRoomScreen() {
       setIsTossing(true);
       setTossStatusText('Đang tung đồng xu và chọn người may mắn...');
 
-      // Bắn sự kiện bắt đầu tung cho toàn phòng
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'toss_started',
-        payload: {
-          host_name: myProfile.name,
-          amount: numAmount,
-        },
-      });
-
       // Thuật toán Random chọn 1 Guest may mắn duy nhất
       const randomIndex = Math.floor(Math.random() * guests.length);
       const chosenGuest = guests[randomIndex];
@@ -373,19 +266,6 @@ export default function CoinTossRoomScreen() {
       }
 
       const txSignature = transferResult.transactionHash;
-
-      // Broadcast kết quả cho tất cả mọi người trong phòng
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'winner_selected',
-        payload: {
-          winner_id: chosenGuest.user_id,
-          winner_name: chosenGuest.name,
-          winner_wallet: chosenGuest.wallet_address,
-          amount: numAmount,
-          txSignature,
-        },
-      });
 
       // Cập nhật trạng thái Host
       setWinner(chosenGuest);

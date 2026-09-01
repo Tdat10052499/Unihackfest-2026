@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { linkPhoneNumber } from '../services/supabase';
+import { linkPhoneNumber } from '../services/identity';
 import { setLinkedPhone, setHasSkippedPhoneLink } from '../services/storage';
 
 interface PhoneLinkingModalProps {

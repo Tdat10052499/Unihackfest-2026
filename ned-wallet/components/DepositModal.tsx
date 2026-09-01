@@ -27,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTranslation } from '../services/i18n';
 import { getLinkedPhone } from '../services/storage';
-import { getAccountIdentifier, getMaskedPhone } from '../services/supabase';
+import { getAccountIdentifier, getMaskedPhone } from '../services/identity';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

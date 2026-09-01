@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+.env*
+.env*.local
+*.env
+
+# Build & OS
+.DS_Store
+dist/
+build/
+.expo/

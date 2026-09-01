@@ -18,7 +18,7 @@ import {
   isSamePhoneNumber,
   getAccountIdentifier,
   getMaskedPhone,
-} from '../services/supabase';
+} from '../services/identity';
 import { getLinkedPhone } from '../services/storage';
 import { formatFiatBalance, USD_TO_VND_RATE } from '../services/solana';
 import { useTranslation } from '../services/i18n';

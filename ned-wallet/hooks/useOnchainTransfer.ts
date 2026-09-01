@@ -9,7 +9,7 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { lookupWalletByPhone } from '../services/supabase';
+import { lookupWalletByPhone } from '../services/identity';
 import {
   solanaConnection,
   USDC_DEVNET_MINT,

@@ -23,7 +23,7 @@ import {
   isSamePhoneNumber,
   getAccountIdentifier,
   getMaskedPhone,
-} from '../services/supabase';
+} from '../services/identity';
 import {
   getSolanaBalance,
   ActivityItem,

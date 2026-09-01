@@ -17,7 +17,7 @@ import {
   updatePhoneNumber,
   unlinkPhoneNumber,
   normalizePhoneNumber,
-} from '../services/supabase';
+} from '../services/identity';
 import {
   setLinkedPhone,
   removeLinkedPhone,

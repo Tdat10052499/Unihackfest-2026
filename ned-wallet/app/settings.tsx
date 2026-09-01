@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { getLinkedPhone, setLinkedPhone as setLinkedPhoneStorage, executeHardReset } from '../services/storage';
-import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '../services/supabase';
+import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '../services/identity';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';

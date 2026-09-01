@@ -55,7 +55,7 @@ import {
   lookupWalletByPhone,
   getAccountIdentifier,
   getMaskedPhone,
-} from '@/services/supabase';
+} from '@/services/identity';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { useTranslation } from '@/services/i18n';
 import { DepositModal } from '@/components/DepositModal';
