@@ -72,7 +72,8 @@
     "text-encoding": "^0.7.0",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "viem": "2.55.15"
+    "viem": "2.55.15",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

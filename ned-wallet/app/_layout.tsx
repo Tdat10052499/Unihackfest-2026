@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
+import { MwaProvider } from '../contexts/MwaProvider';
 
 export default function RootLayout() {
   return (
@@ -25,19 +26,21 @@ export default function RootLayout() {
             },
           }}
         >
-          <GlobalPresenceProvider>
-            <View style={styles.root}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="history" options={{ headerShown: false }} />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="shake-room" options={{ headerShown: false }} />
-                <Stack.Screen name="send" options={{ headerShown: false }} />
-                <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
-              </Stack>
-            </View>
-          </GlobalPresenceProvider>
+          <MwaProvider>
+            <GlobalPresenceProvider>
+              <View style={styles.root}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="history" options={{ headerShown: false }} />
+                  <Stack.Screen name="settings" options={{ headerShown: false }} />
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="shake-room" options={{ headerShown: false }} />
+                  <Stack.Screen name="send" options={{ headerShown: false }} />
+                  <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
+                </Stack>
+              </View>
+            </GlobalPresenceProvider>
+          </MwaProvider>
         </PrivyProvider>
       </View>
     </SafeAreaProvider>

@@ -21,6 +21,7 @@ import { getLinkedPhone, setLinkedPhone as setLinkedPhoneStorage, executeHardRes
 import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '../services/supabase';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
+import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -125,6 +126,21 @@ export default function SettingsScreen() {
     } catch (e) {
       console.log('Copy account error:', e);
     }
+  };
+
+  // State cấu hình mạng lưới (Solana Network - Helius RPC)
+  const { activeNetwork, setNetwork } = useNetworkStore();
+
+  const handleSelectNetwork = (network: SolanaNetwork) => {
+    if (network === activeNetwork) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setNetwork(network);
+    Alert.alert(
+      t('settings.networkSwitchConfirm'),
+      t('settings.networkSwitchDesc', { network: network === 'mainnet-beta' ? 'Mainnet-Beta' : 'Devnet' })
+    );
   };
 
   // Xử lý chuyển đổi ngôn ngữ từ danh sách
@@ -284,6 +300,101 @@ export default function SettingsScreen() {
               <Feather name="chevron-right" size={18} color="#64748B" style={{ marginLeft: 6 }} />
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* 2.5. Nhóm Cấu Hình Mạng (Network Environment - Helius RPC) */}
+        <View style={styles.groupCard}>
+          <View style={styles.networkHeaderRow}>
+            <View style={styles.menuItemLeft}>
+              <View
+                style={[
+                  styles.networkIconCircle,
+                  { backgroundColor: activeNetwork === 'mainnet-beta' ? '#D8FAF7' : '#FFF1A6' },
+                ]}
+              >
+                <MaterialCommunityIcons name="lan" size={18} color="#000000" />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <Text style={styles.menuItemTitle}>{t('settings.networkEnv')}</Text>
+                <Text style={styles.menuItemSubtitle}>{t('settings.networkSubtitle')}</Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.networkBadge,
+                { backgroundColor: activeNetwork === 'mainnet-beta' ? '#D8FAF7' : '#FFF1A6' },
+              ]}
+            >
+              <Text style={styles.networkBadgeText}>
+                {activeNetwork === 'mainnet-beta' ? t('settings.mainnetBadge') : t('settings.devnetBadge')}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.dividerLine} />
+
+          {/* Segmented Control Lựa Chọn Mạng */}
+          <View style={styles.networkSegmentContainer}>
+            {/* Nút Devnet */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => handleSelectNetwork('devnet')}
+              style={[
+                styles.networkSegmentBtn,
+                activeNetwork === 'devnet' && styles.networkSegmentBtnActiveDevnet,
+              ]}
+            >
+              <View
+                style={[
+                  styles.networkRadioCircle,
+                  activeNetwork === 'devnet' && styles.networkRadioCircleActive,
+                ]}
+              >
+                {activeNetwork === 'devnet' && <View style={styles.networkRadioInner} />}
+              </View>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text
+                  style={[
+                    styles.networkSegmentTitle,
+                    activeNetwork === 'devnet' && styles.networkSegmentTitleActive,
+                  ]}
+                >
+                  {t('settings.devnet')}
+                </Text>
+                <Text style={styles.networkSegmentDesc}>Helius Devnet RPC</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Nút Mainnet-beta */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => handleSelectNetwork('mainnet-beta')}
+              style={[
+                styles.networkSegmentBtn,
+                activeNetwork === 'mainnet-beta' && styles.networkSegmentBtnActiveMainnet,
+              ]}
+            >
+              <View
+                style={[
+                  styles.networkRadioCircle,
+                  activeNetwork === 'mainnet-beta' && styles.networkRadioCircleActive,
+                ]}
+              >
+                {activeNetwork === 'mainnet-beta' && <View style={styles.networkRadioInner} />}
+              </View>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text
+                  style={[
+                    styles.networkSegmentTitle,
+                    activeNetwork === 'mainnet-beta' && styles.networkSegmentTitleActive,
+                  ]}
+                >
+                  {t('settings.mainnet')}
+                </Text>
+                <Text style={styles.networkSegmentDesc}>Helius Mainnet RPC</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 3. Nhóm 2 (Tài chính & Lịch sử) */}
@@ -745,6 +856,104 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginLeft: 52,
+  },
+
+  // 2.5. Network Environment Styles (Neo-brutalism Segmented Control)
+  networkHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  networkIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  networkBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#000000',
+  },
+  networkBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  networkSegmentContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
+    backgroundColor: '#1E1F2E',
+  },
+  networkSegmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#27293D',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  networkSegmentBtnActiveDevnet: {
+    borderColor: '#000000',
+    backgroundColor: '#FFF1A6',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  networkSegmentBtnActiveMainnet: {
+    borderColor: '#000000',
+    backgroundColor: '#D8FAF7',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  networkRadioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#64748B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  networkRadioCircleActive: {
+    borderColor: '#000000',
+  },
+  networkRadioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#000000',
+  },
+  networkSegmentTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  networkSegmentTitleActive: {
+    color: '#000000',
+    fontWeight: '800',
+  },
+  networkSegmentDesc: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 1,
+    fontWeight: '600',
   },
 
   // Modal Styles

@@ -47,8 +47,8 @@ export interface NeoBalanceCardProps {
  * - Icon mũi tên xoay 180 độ đồng bộ tốc độ 350ms với đường cong Bezier.
  */
 export const NeoBalanceCard: React.FC<NeoBalanceCardProps> = ({
-  balanceUsd = '$100',
-  balanceVnd = 'đ 0.00',
+  balanceUsd = '$0.00',
+  balanceVnd = 'đ 0',
   onDepositPress,
   onWithdrawPress,
   onBottomLatchPress,

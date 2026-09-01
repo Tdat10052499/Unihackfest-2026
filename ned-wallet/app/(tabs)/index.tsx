@@ -157,9 +157,8 @@ export default function HomeScreen() {
 
   const solanaAddress = getSolanaWalletAddress();
 
-  // Hook truy xuất số dư On-chain thực tế 100% (USDC & SOL)
+  // Hook truy xuất số dư On-chain thực tế 100% (USDC SPL Token qua Helius RPC)
   const {
-    solBalance: onchainSolBalance,
     usdcBalance: onchainUsdcBalance,
     formattedUsd: onchainFormattedUsd,
     formattedVnd: onchainFormattedVnd,
@@ -264,22 +263,22 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (solanaAddress) {
-        fetchBalance(solanaAddress);
+        refreshOnchainBalance(true);
         fetchActivities(solanaAddress, true);
       }
-    }, [solanaAddress, fetchBalance, fetchActivities])
+    }, [solanaAddress, refreshOnchainBalance, fetchActivities])
   );
 
   // 4. Lắng nghe khi App mở lại từ Background (AppState Active)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active' && solanaAddress) {
-        fetchBalance(solanaAddress);
+        refreshOnchainBalance(true);
         fetchActivities(solanaAddress, true);
       }
     });
     return () => sub.remove();
-  }, [solanaAddress, fetchBalance, fetchActivities]);
+  }, [solanaAddress, refreshOnchainBalance, fetchActivities]);
 
   // 5. Luồng Auto-Polling Heartbeat & WebSocket Realtime Sync
   useEffect(() => {
@@ -900,7 +899,7 @@ export default function HomeScreen() {
           setSelectedSubWalletForSwap(null);
         }}
         targetWallet={selectedSubWalletForSwap || subWallets[0] || null}
-        mainUsdBalance={onchainUsdcBalance > 0 ? onchainUsdcBalance : (onchainSolBalance * 150)}
+        mainUsdBalance={onchainUsdcBalance}
         onConfirmSwap={executeSwap}
       />
     </SafeAreaView>

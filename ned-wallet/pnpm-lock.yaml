@@ -191,6 +191,9 @@ importers:
       viem:
         specifier: 2.55.15
         version: 2.55.15(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)
+      zustand:
+        specifier: ^5.0.15
+        version: 5.0.15(@types/react@19.1.17)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0

@@ -1282,6 +1282,80 @@
     - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
     - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công toàn bộ 18 Routes.
 
+---
+
+### 🔹 [Phase 2 - Bước 80: Hoàn Thành Giai Đoạn 1 - Network Store (Zustand) & Helius RPC Connection & Settings UI]
+- **Type:** `[ZUSTAND]` | `[HELIUS_RPC]` | `[NETWORK_SWITCHER]` | `[SETTINGS_UI]`
+- **Mục tiêu**:
+  - Quản lý trạng thái mạng lưới toàn cục (`activeNetwork`: `'devnet'` | `'mainnet-beta'`).
+  - Xây dựng tiện ích kết nối Helius RPC (`services/solanaConnection.ts`).
+  - Tích hợp giao diện chuyển mạng phong cách Neo-brutalism vào `SettingsScreen`.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Network Store Toàn Cục ([stores/useNetworkStore.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/stores/useNetworkStore.ts))**:
+    - Sử dụng `zustand` kết hợp middleware `persist` với `AsyncStorage` (`@ned_active_network_v1`).
+    - Cung cấp `activeNetwork`, `setNetwork`, `toggleNetwork`, và cờ `isHydrated` chống chớp nháy giao diện khi khởi động.
+  - **2. Helius Connection Utility ([services/solanaConnection.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solanaConnection.ts))**:
+    - `getHeliusRpcUrl(network)`: Trỏ chính xác endpoint Helius Devnet / Mainnet với API Key từ `EXPO_PUBLIC_HELIUS_API_KEY`.
+    - `getHeliusConnection(network)`: Trả về đối tượng `Connection` của `@solana/web3.js` với commitment `confirmed` và connection caching.
+    - Quản lý `USDC_DEVNET_MINT` và `USDC_MAINNET_MINT`.
+  - **3. Giao Diện Settings Phong Cách Neo-brutalism ([app/settings.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/settings.tsx))**:
+    - Thêm nhóm "Môi trường mạng (Network Environment)" với Segmented Control 2 nút bấm: **Devnet (Thử nghiệm)** (màu vàng `#FFF1A6`) và **Mainnet-Beta (Chính thức)** (màu xanh mint `#D8FAF7`).
+    - Hiệu ứng rung phản hồi (Light/Medium Haptics) và thông báo Alert xác nhận.
+    - Giữ nguyên vẹn 100% giao diện màn hình chính HomeScreen.
+  - **4. Kiểm Thử Toàn Diện**:
+    - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
+    - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công 18/18 routes.
+
+---
+
+### 🔹 [Phase 2 - Bước 81: Hoàn Thành Giai Đoạn 2 - Loại Bỏ SOL Ảo & Tích Hợp Số Dư SPL Token USDC On-Chain Helius]
+- **Type:** `[USDC_ONCHAIN]` | `[HELIUS_DAS]` | `[SPL_TOKEN]` | `[ZERO_FALLBACK]`
+- **Mục tiêu**:
+  - Loại bỏ hoàn toàn Native SOL balance quy đổi ảo làm số dư chính.
+  - Tích hợp truy vấn Associated Token Account (ATA) của USDC từ Helius RPC theo `activeNetwork`.
+  - Hiển thị `$0.00` chính xác nếu ví chưa có ATA hoặc số dư bằng 0.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Tiện Ích fetchUsdcBalance ([services/solanaConnection.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/solanaConnection.ts))**:
+    - Tính toán ATA qua `getAssociatedTokenAddress` và truy xuất `getTokenAccountBalance` / `getParsedTokenAccountsByOwner` qua Helius connection.
+    - Đọc đúng `USDC_DEVNET_MINT` khi bật Devnet và `USDC_MAINNET_MINT` khi bật Mainnet.
+  - **2. Custom Hook useUsdcBalance & useOnchainBalance ([hooks/useUsdcBalance.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useUsdcBalance.ts), [hooks/useOnchainBalance.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/hooks/useOnchainBalance.ts))**:
+    - Khởi tạo số dư thuần túy từ USDC `uiAmount`.
+    - Trả về `$0.00` và `đ 0` khi không có token.
+    - Tự động re-fetch khi `activeNetwork` hoặc `walletAddress` thay đổi.
+  - **3. Cập Nhật HomeScreen & Thẻ Tím ([app/(tabs)/index.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/%28tabs%29/index.tsx), [components/neo/NeoBalanceCard.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/neo/NeoBalanceCard.tsx))**:
+    - Gắn trực tiếp `onchainFormattedUsd` và `onchainFormattedVnd` vào Thẻ Tím và Modal Swap.
+    - Loại bỏ toàn bộ `solBalance * 150` khỏi UI.
+  - **4. Kiểm Thử Build**:
+    - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
+    - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công 18/18 routes.
+
+---
+
+### 🔹 [Phase 2 - Bước 82: Hoàn Thành Giai Đoạn 3 - Tích Hợp Mobile Wallet Adapter (MWA) & Bộ Lọc Bảo Vệ Cluster Guard]
+- **Type:** `[MWA_PROTOCOL]` | `[CLUSTER_GUARD]` | `[SECURITY_FILTER]` | `[DEEP_LINKING]`
+- **Mục tiêu**:
+  - Chuẩn hóa hệ sinh thái Solana bằng cách triển khai Mobile Wallet Adapter (MWA) Provider.
+  - Xây dựng bộ lọc bảo vệ Cluster Guard chặn đứng các yêu cầu sai lệch cụm mạng (`devnet` vs `mainnet-beta`).
+  - Thiết kế giao diện Modal MWA Neo-brutalism hiển thị chi tiết quyền và cảnh báo trực quan.
+- **Giải pháp triển khai chi tiết**:
+  - **1. Định Nghĩa Giao Thức MWA ([services/mwa/mwaProtocol.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/mwa/mwaProtocol.ts))**:
+    - Hỗ trợ đầy đủ các loại yêu cầu tiêu chuẩn: `authorize`, `deauthorize`, `reauthorize`, `sign_transactions`, `sign_and_send_transactions`, `sign_messages`.
+    - Định nghĩa hệ thống mã lỗi chuẩn (`ERROR_CLUSTER_NOT_SUPPORTED`, `ERROR_CLUSTER_MISMATCH`, `ERROR_USER_REJECTED`,...).
+  - **2. Bộ Lọc Cluster Guard ([services/mwa/clusterGuard.ts](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/services/mwa/clusterGuard.ts))**:
+    - Chuẩn hóa tên cụm mạng (hỗ trợ cả chuẩn CAIP-2 `solana:devnet`, `solana:mainnet-beta`).
+    - So khớp chính xác với `activeNetwork` từ `useNetworkStore`.
+    - Trả về mã lỗi `ERROR_CLUSTER_MISMATCH` và chặn đứng giao dịch nếu dApp gửi sai môi trường mạng.
+  - **3. Neo-brutalism Modal & Provider ([components/mwa/MwaRequestModal.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/components/mwa/MwaRequestModal.tsx), [contexts/MwaProvider.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/contexts/MwaProvider.tsx))**:
+    - Bọc toàn bộ ứng dụng tại Root Layout ([app/_layout.tsx](file:///c:/Users/tdat1/github/Unihackfest-2026/ned-wallet/app/_layout.tsx)).
+    - Lắng nghe Deep Links (`solana-wallet://`, `mwa://`) và hỗ trợ MiniApp bridge nội bộ.
+    - Hiển thị cảnh báo trực quan khi Cluster Guard phát hiện xung đột, cung cấp nút "Đổi mạng" dẫn ngay đến Settings.
+  - **4. Kiểm Thử Toàn Diện**:
+    - `pnpm tsc --noEmit` $\rightarrow$ 0 lỗi.
+    - `npx expo export --platform web --clear` $\rightarrow$ Đóng gói thành công 18/18 routes.
+
+
+
+
 
 
 
