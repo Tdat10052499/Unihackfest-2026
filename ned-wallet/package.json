@@ -11,7 +11,8 @@
     "lint": "expo lint",
     "postinstall": "node ./scripts/patch-privy.js",
     "test:web3": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-connection.ts",
-    "test:stablecoin": "ts-node -O '{\"module\":\"commonjs\"}' test-stablecoin.ts"
+    "test:stablecoin": "ts-node -O '{\"module\":\"commonjs\"}' test-stablecoin.ts",
+    "test:transfer": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-transfer-tx.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
