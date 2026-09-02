@@ -22,6 +22,7 @@ import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
+import { TestInitProfile } from '../src/components/TestInitProfile';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -396,6 +397,9 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* 2.6. Smart Contract Anchor - Khởi tạo Hồ Sơ Web3 On-Chain */}
+        <TestInitProfile />
 
         {/* 3. Nhóm 2 (Tài chính & Lịch sử) */}
         <View style={styles.groupCard}>

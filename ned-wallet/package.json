@@ -9,9 +9,12 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "postinstall": "node ./scripts/patch-privy.js"
+    "postinstall": "node ./scripts/patch-privy.js",
+    "test:web3": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-connection.ts",
+    "test:stablecoin": "ts-node -O '{\"module\":\"commonjs\"}' test-stablecoin.ts"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
     "@expo/vector-icons": "^15.0.3",
     "@privy-io/expo": "^0.71.0",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -77,8 +80,10 @@
   "devDependencies": {
     "@types/node": "^26.4.0",
     "@types/react": "~19.1.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.9.2"
   },
   "private": true
