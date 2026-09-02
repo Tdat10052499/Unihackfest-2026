@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-ned_program = "FUTD1R2VbVLZ5Nd9BTypoW1rr69TybUtUJ1BiT9mENqB"
+ned_program = "8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi"
 
 [programs.localnet]
 ned_program = "FUTD1R2VbVLZ5Nd9BTypoW1rr69TybUtUJ1BiT9mENqB"
