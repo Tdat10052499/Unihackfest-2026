@@ -19,7 +19,9 @@ import {
   useLoginWithEmail,
 } from '@privy-io/expo';
 import { useRouter } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { WalletSelectorModal } from '../src/components/WalletSelectorModal';
+import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -38,6 +40,10 @@ export default function LoginScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<'INITIAL' | 'OTP_VERIFICATION'>('INITIAL');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
+
+  // Hook Ví Bên Ngoài (Phantom, Solflare, Backpack, MWA)
+  const { connected, publicKey } = useExternalWallet();
 
   // Hook Privy Google OAuth
   const { login: loginWithOAuth, state: oAuthState } = useLoginWithOAuth({
@@ -64,12 +70,12 @@ export default function LoginScreen() {
     },
   });
 
-  // Tự động chuyển hướng vào màn hình Home khi đã đăng nhập
+  // Tự động chuyển hướng vào màn hình Home khi đã đăng nhập hoặc kết nối ví
   useEffect(() => {
-    if (isReady && user) {
+    if ((isReady && user) || (connected && publicKey)) {
       router.replace('/');
     }
-  }, [isReady, user, router]);
+  }, [isReady, user, connected, publicKey, router]);
 
   // Xử lý gửi mã xác nhận OTP qua Email
   const handleSendEmailCode = async () => {
@@ -225,6 +231,20 @@ export default function LoginScreen() {
                     </View>
                   )}
                 </TouchableOpacity>
+
+                {/* Nút Tiếp tục bằng Ví Solana Liên Kết (Phantom, Solflare, Backpack, MWA) */}
+                <TouchableOpacity
+                  style={styles.walletLoginBtn}
+                  onPress={() => setShowWalletModal(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.walletBtnInner}>
+                    <View style={styles.walletIconBox}>
+                      <Ionicons name="wallet-outline" size={20} color="#6366F1" />
+                    </View>
+                    <Text style={styles.walletBtnText}>Tiếp tục bằng ví liên kết</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             ) : (
               // BƯỚC 2: Xác minh mã OTP
@@ -318,6 +338,16 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal Lựa Chọn Ví Solana (Phantom, Solflare, Backpack, MWA) */}
+      <WalletSelectorModal
+        visible={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnected={() => {
+          setShowWalletModal(false);
+          router.replace('/');
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -528,6 +558,40 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#1E293B',
+  },
+
+  // Wallet Login Button
+  walletLoginBtn: {
+    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  walletBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  walletIconBox: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#4338CA',
   },
 
   // OTP Step Styles

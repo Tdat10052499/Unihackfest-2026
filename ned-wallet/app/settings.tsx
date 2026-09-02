@@ -23,6 +23,8 @@ import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLangua
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
 import { TestInitProfile } from '../src/components/TestInitProfile';
+import { ConnectWalletButton } from '../src/components/ConnectWalletButton';
+import { TransferScreen } from '../src/components/TransferScreen';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -398,8 +400,28 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* 2.6. Smart Contract Anchor - Khởi tạo Hồ Sơ Web3 On-Chain */}
+        {/* 2.6. Kết Nối Ví Bên Ngoài (Phantom, Solflare, MWA) */}
+        <View style={styles.groupCard}>
+          <View style={styles.networkHeaderRow}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.networkIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                <Ionicons name="wallet" size={18} color="#6366F1" />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <Text style={styles.menuItemTitle}>Ví Solana Bên Ngoài</Text>
+                <Text style={styles.menuItemSubtitle}>Phantom • Solflare • Mobile Wallet Adapter</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.dividerLine} />
+          <ConnectWalletButton />
+        </View>
+
+        {/* 2.7. Smart Contract Anchor - Khởi tạo Hồ Sơ Web3 On-Chain */}
         <TestInitProfile />
+
+        {/* 2.8. Chuyển Stablecoin On-Chain (USDC CPI TransferChecked) */}
+        <TransferScreen />
 
         {/* 3. Nhóm 2 (Tài chính & Lịch sử) */}
         <View style={styles.groupCard}>

@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 import { MwaProvider } from '../contexts/MwaProvider';
+import { WalletProvider } from '../src/providers/WalletProvider';
 
 export default function RootLayout() {
   return (
@@ -27,19 +28,21 @@ export default function RootLayout() {
           }}
         >
           <MwaProvider>
-            <GlobalPresenceProvider>
-              <View style={styles.root}>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="history" options={{ headerShown: false }} />
-                  <Stack.Screen name="settings" options={{ headerShown: false }} />
-                  <Stack.Screen name="login" options={{ headerShown: false }} />
-                  <Stack.Screen name="shake-room" options={{ headerShown: false }} />
-                  <Stack.Screen name="send" options={{ headerShown: false }} />
-                  <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
-                </Stack>
-              </View>
-            </GlobalPresenceProvider>
+            <WalletProvider defaultCluster="devnet">
+              <GlobalPresenceProvider>
+                <View style={styles.root}>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="history" options={{ headerShown: false }} />
+                    <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    <Stack.Screen name="login" options={{ headerShown: false }} />
+                    <Stack.Screen name="shake-room" options={{ headerShown: false }} />
+                    <Stack.Screen name="send" options={{ headerShown: false }} />
+                    <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
+                  </Stack>
+                </View>
+              </GlobalPresenceProvider>
+            </WalletProvider>
           </MwaProvider>
         </PrivyProvider>
       </View>
