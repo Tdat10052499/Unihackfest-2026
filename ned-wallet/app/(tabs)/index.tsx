@@ -71,6 +71,7 @@ import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import { useOnchainBalance, formatFiatBalance as formatFiatOnchain } from '@/hooks/useOnchainBalance';
+import { useExternalWallet } from '@/src/providers/WalletProvider';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -78,6 +79,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   
   const { isReady, user, logout } = usePrivy();
+  const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const embeddedWalletState = useEmbeddedWallet();
   const {
@@ -125,6 +127,10 @@ export default function HomeScreen() {
 
   // Trích xuất địa chỉ ví Solana dạng Base58
   const getSolanaWalletAddress = (): string | null => {
+    if (externalWallet?.publicKey) {
+      return externalWallet.publicKey.toBase58();
+    }
+
     if (!user) return null;
 
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
@@ -165,8 +171,11 @@ export default function HomeScreen() {
     refreshBalance: refreshOnchainBalance,
   } = useOnchainBalance(solanaAddress);
 
-  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) đồng bộ Supabase & Swap Quy Đổi
-  const { subWallets, addSubWallet, executeSwap } = useSubWallets(user?.id, onchainUsdcBalance);
+  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) đồng bộ On-chain & Swap Quy Đổi
+  const { subWallets, addSubWallet, executeSwap } = useSubWallets(
+    user?.id || externalWallet?.publicKey?.toBase58(),
+    onchainUsdcBalance
+  );
   const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
@@ -542,7 +551,9 @@ export default function HomeScreen() {
     return formatFiatBalance(solBalance * 150, currency);
   };
 
-  if (!isReady) {
+  const isAuthenticated = !!user || !!externalWallet?.publicKey;
+
+  if (!isReady && !externalWallet?.connected) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00A859" />
@@ -551,7 +562,7 @@ export default function HomeScreen() {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <LoginScreen />;
   }
 

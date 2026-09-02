@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   usePrivy,
   useLoginWithOAuth,
   useLoginWithEmail,
+  useLoginWithSiws,
 } from '@privy-io/expo';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -42,40 +43,59 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
 
-  // Hook Ví Bên Ngoài (Phantom, Solflare, Backpack, MWA)
-  const { connected, publicKey } = useExternalWallet();
+  // Hook Ví Bên Ngoài (Phantom Handshake & Sign Message)
+  const { connected, publicKey, connect, signMessage } = useExternalWallet();
+  const siwsAuth = useLoginWithSiws();
+  const savedSiwsMessage = useRef<string | null>(null);
+  const savedSignature = useRef<string | null>(null);
+  const [isWalletSigning, setIsWalletSigning] = useState<boolean>(false);
 
   // Hook Privy Google OAuth
-  const { login: loginWithOAuth, state: oAuthState } = useLoginWithOAuth({
-    onError: (err) => {
-      console.error('Google OAuth Error:', err);
-      Alert.alert(
-        'Đăng nhập thất bại',
-        err?.message || 'Không thể đăng nhập bằng tài khoản Google. Vui lòng thử lại.'
-      );
-    },
-    onSuccess: (u) => {
-      console.log('Google OAuth Success for user:', u?.id);
-    },
-  });
+  let oAuthHook: ReturnType<typeof useLoginWithOAuth> | null = null;
+  try {
+    oAuthHook = useLoginWithOAuth({
+      onError: (err) => {
+        console.error('Google OAuth Error:', err);
+        Alert.alert(
+          'Đăng nhập thất bại',
+          err?.message || 'Không thể đăng nhập bằng tài khoản Google. Vui lòng thử lại.'
+        );
+      },
+      onSuccess: (u) => {
+        console.log('Google OAuth Success for user:', u?.id);
+      },
+    });
+  } catch (err: unknown) {
+    console.error('OAuth hook init error:', err);
+  }
+  const loginWithOAuth = oAuthHook?.login;
+  const oAuthState = oAuthHook?.state;
 
   // Hook Privy Email OTP
-  const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail({
-    onError: (err) => {
-      console.error('Email Login Error:', err);
-      setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
-    },
-    onLoginSuccess: (u) => {
-      console.log('Email Login Success for user:', u?.id);
-    },
-  });
+  let emailHook: ReturnType<typeof useLoginWithEmail> | null = null;
+  try {
+    emailHook = useLoginWithEmail({
+      onError: (err) => {
+        console.error('Email Login Error:', err);
+        setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
+      },
+      onLoginSuccess: (u) => {
+        console.log('Email Login Success for user:', u?.id);
+      },
+    });
+  } catch (err: unknown) {
+    console.error('Email hook init error:', err);
+  }
+  const sendCode = emailHook?.sendCode;
+  const loginWithCode = emailHook?.loginWithCode;
+  const emailState = emailHook?.state;
 
-  // Tự động chuyển hướng vào màn hình Home khi đã đăng nhập hoặc kết nối ví
+  // Tự động chuyển hướng vào màn hình Home khi đã đăng nhập
   useEffect(() => {
-    if ((isReady && user) || (connected && publicKey)) {
+    if (isReady && user) {
       router.replace('/');
     }
-  }, [isReady, user, connected, publicKey, router]);
+  }, [isReady, user, router]);
 
   // Xử lý gửi mã xác nhận OTP qua Email
   const handleSendEmailCode = async () => {
@@ -85,12 +105,17 @@ export default function LoginScreen() {
       return;
     }
     setErrorMessage('');
+    if (!sendCode) {
+      setErrorMessage('Hệ thống xác thực chưa sẵn sàng. Vui lòng thử lại sau.');
+      return;
+    }
     try {
       await sendCode({ email: trimmedEmail });
       setStep('OTP_VERIFICATION');
-    } catch (err: any) {
-      console.log('Error sending email code:', err);
-      setErrorMessage(err?.message || 'Không thể gửi mã xác nhận.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      console.log('Error sending email code:', msg);
+      setErrorMessage(msg || 'Không thể gửi mã xác nhận.');
     }
   };
 
@@ -103,27 +128,36 @@ export default function LoginScreen() {
       return;
     }
     setErrorMessage('');
+    if (!loginWithCode) {
+      setErrorMessage('Hệ thống xác thực chưa sẵn sàng. Vui lòng thử lại sau.');
+      return;
+    }
     try {
       await loginWithCode({ code: trimmedCode, email: trimmedEmail });
-    } catch (err: any) {
-      console.log('Error verifying OTP code:', err);
-      setErrorMessage(err?.message || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      console.log('Error verifying OTP code:', msg);
+      setErrorMessage(msg || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
     }
   };
 
   // Xử lý đăng nhập Google
   const handleGoogleLogin = async () => {
     setErrorMessage('');
+    if (!loginWithOAuth) {
+      Alert.alert('Chưa sẵn sàng', 'Hệ thống đăng nhập Google đang khởi động.');
+      return;
+    }
     try {
       await loginWithOAuth({ provider: 'google' });
-    } catch (err: any) {
-      console.log('Error triggering Google login:', err);
+    } catch (err: unknown) {
+      console.log('Error triggering Google login:', err instanceof Error ? err.message : JSON.stringify(err));
     }
   };
 
-  const isGoogleLoading = oAuthState.status === 'loading';
-  const isSendingEmail = emailState.status === 'sending-code';
-  const isSubmittingOtp = emailState.status === 'submitting-code';
+  const isGoogleLoading = oAuthState?.status === 'loading';
+  const isSendingEmail = emailState?.status === 'sending-code';
+  const isSubmittingOtp = emailState?.status === 'submitting-code';
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -232,17 +266,65 @@ export default function LoginScreen() {
                   )}
                 </TouchableOpacity>
 
-                {/* Nút Tiếp tục bằng Ví Solana Liên Kết (Phantom, Solflare, Backpack, MWA) */}
+                {/* Nút Đăng nhập bằng ví Phantom (Phase 3: Handshake + Sign Message) */}
                 <TouchableOpacity
-                  style={styles.walletLoginBtn}
-                  onPress={() => setShowWalletModal(true)}
+                  style={[
+                    styles.walletLoginBtn,
+                    isWalletSigning && styles.googleLoginBtnDisabled,
+                  ]}
+                  onPress={async () => {
+                    try {
+                      setIsWalletSigning(true);
+                      console.log("🟢 [Phase 1] Người dùng bấm nút kết nối Phantom");
+
+                      // 1. Giai đoạn 2: Handshake
+                      const userPub = await connect('phantom');
+                      if (!userPub) {
+                        console.log("⚠️ [Phase 2] Kết nối ví thất bại hoặc bị hủy.");
+                        setIsWalletSigning(false);
+                        return;
+                      }
+                      console.log("🎯 [Phase 2] Hoàn tất Handshake tại UI Login. Public Key:", userPub.toBase58());
+
+                      // 2. Giai đoạn 3: Sinh SIWS Message từ Privy SDK
+                      if (siwsAuth && typeof siwsAuth.generateMessage === 'function') {
+                        const { message: rawMessage } = await siwsAuth.generateMessage({
+                          wallet: {
+                            address: userPub.toBase58(),
+                          },
+                          from: {
+                            domain: 'ned.wallet',
+                            uri: 'https://ned.wallet',
+                          },
+                        });
+
+                        savedSiwsMessage.current = rawMessage;
+                        console.log("📝 [Phase 3] Thông điệp SIWS sinh ra:\n", rawMessage);
+
+                        // 3. Giai đoạn 3: Gửi yêu cầu ký sang Phantom
+                        const signature = await signMessage(rawMessage);
+                        savedSignature.current = signature;
+                        console.log("✅ [Phase 3] Nhận chữ ký Base58 thành công:", signature);
+
+                        // DỪNG LẠI TẠI ĐÂY! Tuyệt đối không gọi loginWithSiws ở Phase 3.
+                      }
+                    } catch (err: unknown) {
+                      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
+                      console.error("❌ [Phase 3 Error]:", errorMsg);
+                    } finally {
+                      setIsWalletSigning(false);
+                    }
+                  }}
+                  disabled={isWalletSigning}
                   activeOpacity={0.85}
                 >
                   <View style={styles.walletBtnInner}>
                     <View style={styles.walletIconBox}>
-                      <Ionicons name="wallet-outline" size={20} color="#6366F1" />
+                      <Ionicons name="wallet-outline" size={20} color="#AB9FF2" />
                     </View>
-                    <Text style={styles.walletBtnText}>Tiếp tục bằng ví liên kết</Text>
+                    <Text style={styles.walletBtnText}>
+                      {isWalletSigning ? 'Đang xử lý kết nối...' : 'Đăng nhập bằng ví Phantom'}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               </View>

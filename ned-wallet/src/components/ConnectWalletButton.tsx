@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
+import { usePrivy } from '@privy-io/expo';
 import { useExternalWallet, WalletType } from '../providers/WalletProvider';
 
 export interface ConnectWalletButtonProps {
@@ -17,6 +19,15 @@ export interface ConnectWalletButtonProps {
 }
 
 export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ onConnected }) => {
+  const router = useRouter();
+  let privy: any = null;
+  try {
+    privy = usePrivy();
+  } catch (e) {
+    // safely ignore
+  }
+  const user = privy?.user || null;
+
   const {
     publicKey,
     connected,
@@ -71,7 +82,12 @@ export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ onConn
         {/* Nút Ngắt Kết Nối */}
         <TouchableOpacity
           style={styles.disconnectBtn}
-          onPress={disconnect}
+          onPress={async () => {
+            await disconnect();
+            if (!user) {
+              router.replace('/login');
+            }
+          }}
           activeOpacity={0.75}
         >
           <Feather name="log-out" size={14} color="#EF4444" />

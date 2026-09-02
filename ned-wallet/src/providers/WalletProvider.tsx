@@ -5,12 +5,11 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   ReactNode,
 } from 'react';
-import { Linking, Platform, Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { Linking, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
@@ -28,18 +27,12 @@ export interface WalletContextState {
   anchorWallet: AnchorWallet | null;
   cluster: 'devnet' | 'mainnet-beta';
   connect: (type?: WalletType) => Promise<PublicKey | null>;
+  cancelConnecting: () => void;
   disconnect: () => Promise<void>;
+  signMessage: (message: string) => Promise<string>;
   signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
   signAllTransactions: <T extends Transaction | VersionedTransaction>(txs: T[]) => Promise<T[]>;
 }
-
-const STORAGE_KEYS = {
-  PUBLIC_KEY: '@ned_wallet_external_pubkey',
-  WALLET_TYPE: '@ned_wallet_external_type',
-  SESSION_TOKEN: '@ned_wallet_external_session',
-  DAPP_SECRET_KEY: '@ned_wallet_dapp_secret_key',
-  SHARED_SECRET: '@ned_wallet_shared_secret',
-};
 
 const WalletContext = createContext<WalletContextState | null>(null);
 
@@ -49,8 +42,7 @@ export interface WalletProviderProps {
 }
 
 /**
- * Global Wallet Provider hỗ trợ kết nối ví Solana bên ngoài (Phantom, Solflare, Backpack, MWA)
- * qua chuẩn Deep Linking và Solana Mobile Wallet Adapter
+ * Phase 2 & 3: Handshake, Kết nối Phantom & Ký thông điệp SIWS
  */
 export const WalletProvider: React.FC<WalletProviderProps> = ({
   children,
@@ -59,246 +51,239 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
   const [connecting, setConnecting] = useState<boolean>(false);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
-  const [dappKeyPair, setDappKeyPair] = useState<nacl.BoxKeyPair | null>(null);
-  const [sharedSecret, setSharedSecret] = useState<Uint8Array | null>(null);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Khởi tạo hoặc nạp DApp Keypair từ Local Storage
+  // Refs lưu trữ bất biến các thông số mật mã học qua các render cycle
+  const publicKeyRef = useRef<PublicKey | null>(null);
+  const sharedSecretRef = useRef<Uint8Array | null>(null);
+  const sessionTokenRef = useRef<string | null>(null);
+  const dappKeyPairRef = useRef<nacl.BoxKeyPair | null>(null);
+
+  // Ref lưu trữ Promise resolution cho Handshake kết nối
+  const pendingConnectRef = useRef<{
+    resolve: (pubkey: PublicKey) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
+  // Ref lưu trữ Promise resolution cho SignMessage
+  const pendingSignMessageRef = useRef<{
+    resolve: (signature: string) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
+  // Lắng nghe callback Deep Link từ Phantom (onConnect & onSignMessage)
   useEffect(() => {
-    const initKeyPair = async () => {
+    const handleUrl = (event: { url: string }) => {
       try {
-        const storedSecret = await AsyncStorage.getItem(STORAGE_KEYS.DAPP_SECRET_KEY);
-        if (storedSecret) {
-          const secretBytes = bs58.decode(storedSecret);
-          const keyPair = nacl.box.keyPair.fromSecretKey(secretBytes);
-          setDappKeyPair(keyPair);
-        } else {
-          const keyPair = nacl.box.keyPair();
-          await AsyncStorage.setItem(
-            STORAGE_KEYS.DAPP_SECRET_KEY,
-            bs58.encode(keyPair.secretKey)
-          );
-          setDappKeyPair(keyPair);
-        }
+        if (!event.url) return;
 
-        // Khôi phục session kết nối nếu có
-        const savedPubkey = await AsyncStorage.getItem(STORAGE_KEYS.PUBLIC_KEY);
-        const savedType = await AsyncStorage.getItem(STORAGE_KEYS.WALLET_TYPE) as WalletType;
-        const savedSession = await AsyncStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
-        const savedSharedSecret = await AsyncStorage.getItem(STORAGE_KEYS.SHARED_SECRET);
+        const parsed = LinkingExpo.parse(event.url);
+        const params = new URLSearchParams(
+          event.url.includes('?') ? event.url.split('?')[1] : ''
+        );
 
-        if (savedPubkey && savedType) {
-          setPublicKey(new PublicKey(savedPubkey));
-          setWalletType(savedType);
-          if (savedSession) setSessionToken(savedSession);
-          if (savedSharedSecret) setSharedSecret(bs58.decode(savedSharedSecret));
-        }
-      } catch (err) {
-        console.error('[WalletProvider] Lỗi khôi phục session:', err);
-      }
-    };
-
-    initKeyPair();
-  }, []);
-
-  // Xử lý deep link callback từ Phantom/Solflare/Backpack
-  const handleDeepLink = useCallback(
-    async (event: { url: string }) => {
-      if (!event.url || !dappKeyPair) return;
-
-      try {
-        const parsedUrl = new URL(event.url);
-        const params = parsedUrl.searchParams;
-
-        // Xử lý lỗi trả về từ ví
-        const errorCode = params.get('errorCode');
-        const errorMessage = params.get('errorMessage');
-        if (errorCode || errorMessage) {
-          console.warn('[WalletProvider] Lỗi từ ví:', errorCode, errorMessage);
-          setConnecting(false);
-          Alert.alert('Kết nối ví không thành công', errorMessage || 'Người dùng đã hủy xác nhận.');
-          return;
-        }
-
-        // 1. Phản hồi Connect
-        if (event.url.includes('onConnect') || params.get('phantom_encryption_public_key')) {
+        // 1. Bắt Deep Link Callback (onConnect - Phase 2)
+        if (event.url.includes('onConnect') || parsed.path?.includes('onConnect')) {
           const phantomEncryptionPubKey = params.get('phantom_encryption_public_key');
-          const data = params.get('data');
           const nonce = params.get('nonce');
+          const data = params.get('data');
 
-          if (phantomEncryptionPubKey && data && nonce) {
-            const sharedSec = nacl.box.before(
-              bs58.decode(phantomEncryptionPubKey),
-              dappKeyPair.secretKey
-            );
+          console.log('📥 [Phase 2] Nhận callback onConnect với nonce:', nonce);
 
-            const decrypted = nacl.box.open.after(
-              bs58.decode(data),
-              bs58.decode(nonce),
-              sharedSec
-            );
+          if (!phantomEncryptionPubKey || !nonce || !data) {
+            throw new Error('Thiếu tham số mã hóa từ phản hồi onConnect của Phantom.');
+          }
 
-            if (decrypted) {
-              const decoded = JSON.parse(Buffer.from(decrypted).toString('utf8'));
-              const connectedPubkey = new PublicKey(decoded.public_key);
-              const session = decoded.session;
+          if (!dappKeyPairRef.current) {
+            throw new Error('Không tìm thấy dappKeyPair của phiên kết nối hiện tại.');
+          }
 
-              setPublicKey(connectedPubkey);
-              setSharedSecret(sharedSec);
-              setSessionToken(session);
-              setConnecting(false);
+          // Tạo sharedSecret từ private key của Dapp và public key của Phantom (nacl.box.before)
+          const sharedSec = nacl.box.before(
+            bs58.decode(phantomEncryptionPubKey),
+            dappKeyPairRef.current.secretKey
+          );
 
-              await AsyncStorage.setItem(STORAGE_KEYS.PUBLIC_KEY, connectedPubkey.toBase58());
-              if (session) await AsyncStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, session);
-              await AsyncStorage.setItem(STORAGE_KEYS.SHARED_SECRET, bs58.encode(sharedSec));
-            }
+          // Giải mã biến data (nacl.box.open.after)
+          const decrypted = nacl.box.open.after(
+            bs58.decode(data),
+            bs58.decode(nonce),
+            sharedSec
+          );
+
+          if (!decrypted) {
+            throw new Error('Không thể giải mã dữ liệu xác thực từ ví Phantom.');
+          }
+
+          // Trích xuất session và public_key
+          const decoded: { public_key: string; session: string } = JSON.parse(
+            Buffer.from(decrypted).toString('utf8')
+          );
+
+          const userPubkey = new PublicKey(decoded.public_key);
+
+          // Lưu session, sharedSecret, và public_key vào useRef và State
+          sharedSecretRef.current = sharedSec;
+          sessionTokenRef.current = decoded.session;
+          publicKeyRef.current = userPubkey;
+
+          setPublicKey(userPubkey);
+          setConnecting(false);
+          setWalletType('phantom');
+
+          console.log('✅ [Phase 2] Handshake thành công! Public Key:', userPubkey.toBase58());
+
+          if (pendingConnectRef.current) {
+            pendingConnectRef.current.resolve(userPubkey);
+            pendingConnectRef.current = null;
           }
         }
-      } catch (err) {
-        console.error('[WalletProvider] Lỗi xử lý callback deep link:', err);
+
+        // 2. Bắt Deep Link Callback (onSignMessage - Phase 3)
+        if (event.url.includes('onSignMessage') || parsed.path?.includes('onSignMessage')) {
+          const nonce = params.get('nonce');
+          const data = params.get('data');
+
+          console.log('📥 [Phase 3] Nhận callback onSignMessage với nonce:', nonce);
+
+          if (!nonce || !data) {
+            throw new Error('Thiếu tham số mã hóa từ phản hồi onSignMessage của Phantom.');
+          }
+
+          const sec = sharedSecretRef.current;
+          if (!sec) {
+            throw new Error('Không tìm thấy sharedSecret của phiên kết nối.');
+          }
+
+          // Giải mã payload trả về để thu được signature (nacl.box.open.after)
+          const decrypted = nacl.box.open.after(
+            bs58.decode(data),
+            bs58.decode(nonce),
+            sec
+          );
+
+          if (!decrypted) {
+            throw new Error('Không thể giải mã chữ ký trả về từ ví Phantom.');
+          }
+
+          const decoded: { signature: string } = JSON.parse(
+            Buffer.from(decrypted).toString('utf8')
+          );
+
+          // Chữ ký trả về từ Phantom đã là Base58, không bọc bs58.encode() thêm lần nữa
+          const sigBase58 = decoded.signature;
+          console.log('✅ [Phase 3] Nhận chữ ký Base58 thành công:', sigBase58);
+
+          if (pendingSignMessageRef.current) {
+            pendingSignMessageRef.current.resolve(sigBase58);
+            pendingSignMessageRef.current = null;
+          }
+        }
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
+        console.error('❌ [WalletProvider Error Details]:', errorMsg);
         setConnecting(false);
+        if (pendingConnectRef.current) {
+          pendingConnectRef.current.reject(new Error(errorMsg));
+          pendingConnectRef.current = null;
+        }
+        if (pendingSignMessageRef.current) {
+          pendingSignMessageRef.current.reject(new Error(errorMsg));
+          pendingSignMessageRef.current = null;
+        }
       }
-    },
-    [dappKeyPair]
-  );
-
-  // Đăng ký event listener lắng nghe URL
-  useEffect(() => {
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-    return () => {
-      subscription.remove();
     };
-  }, [handleDeepLink]);
 
-  /**
-   * Kết nối với ví bên ngoài (Phantom, Solflare, Backpack, MWA)
-   */
+    const sub = Linking.addEventListener('url', handleUrl);
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl({ url });
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
+  // Hàm khởi tạo kết nối (Handshake - Phase 2)
   const connect = useCallback(
     async (type: WalletType = 'phantom'): Promise<PublicKey | null> => {
-      if (!dappKeyPair) {
-        Alert.alert('Lỗi', 'Chưa khởi tạo được mã khóa bảo mật của ứng dụng.');
-        return null;
-      }
-
-      setConnecting(true);
-      setWalletType(type);
-      await AsyncStorage.setItem(STORAGE_KEYS.WALLET_TYPE, type);
-
-      const redirectLink = LinkingExpo.createURL('onConnect');
-      const dappEncryptionPubKey = bs58.encode(dappKeyPair.publicKey);
-      const appUrl = 'https://ned.wallet';
-      const cluster = defaultCluster;
-
-      let baseUrl = 'https://phantom.app/ul/v1/connect';
-      if (type === 'solflare') {
-        baseUrl = 'https://solflare.com/ul/v1/connect';
-      } else if (type === 'backpack') {
-        baseUrl = 'https://backpack.app/ul/v1/connect';
-      }
-
-      const params = new URLSearchParams({
-        dapp_encryption_public_key: dappEncryptionPubKey,
-        cluster,
-        app_url: appUrl,
-        redirect_link: redirectLink,
-      });
-
-      const fullUrl = `${baseUrl}?${params.toString()}`;
-
       try {
+        setConnecting(true);
+
+        const keyPair = nacl.box.keyPair();
+        dappKeyPairRef.current = keyPair;
+
+        const dappEncryptionPubKey = bs58.encode(keyPair.publicKey);
+        const cluster = 'devnet';
+        const appUrl = 'https://ned.wallet';
+        const redirectLink = LinkingExpo.createURL('onConnect');
+
+        const params = new URLSearchParams({
+          dapp_encryption_public_key: dappEncryptionPubKey,
+          cluster,
+          app_url: appUrl,
+          redirect_link: redirectLink,
+        });
+
+        const fullUrl = `https://phantom.app/ul/v1/connect?${params.toString()}`;
+        console.log('🔗 [Phase 2] Mở Phantom Connect URL:', fullUrl);
+
         const canOpen = await Linking.canOpenURL(fullUrl);
         if (canOpen) {
           await Linking.openURL(fullUrl);
+          return new Promise<PublicKey>((resolve, reject) => {
+            pendingConnectRef.current = { resolve, reject };
+          });
         } else {
+          setConnecting(false);
           Alert.alert(
-            `Chưa phát hiện ứng dụng ${type.toUpperCase()}`,
-            `Bạn có muốn chuyển đến cửa hàng để tải ứng dụng ${type.toUpperCase()} không?`,
-            [
-              { text: 'Hủy', style: 'cancel', onPress: () => setConnecting(false) },
-              {
-                text: 'Tải Ứng Dụng',
-                onPress: () => {
-                  setConnecting(false);
-                  const storeUrl =
-                    type === 'phantom'
-                      ? Platform.OS === 'ios'
-                        ? 'https://apps.apple.com/app/phantom-solana-wallet/id1598432977'
-                        : 'https://play.google.com/store/apps/details?id=app.phantom'
-                      : type === 'solflare'
-                      ? Platform.OS === 'ios'
-                        ? 'https://apps.apple.com/app/solflare-solana-wallet/id1580902721'
-                        : 'https://play.google.com/store/apps/details?id=com.solflare.mobile'
-                      : Platform.OS === 'ios'
-                      ? 'https://apps.apple.com/app/backpack-crypto-wallet/id6445848196'
-                      : 'https://play.google.com/store/apps/details?id=app.backpack.mobile';
-                  Linking.openURL(storeUrl);
-                },
-              },
-            ]
+            'Chưa phát hiện ví Phantom',
+            'Vui lòng cài đặt ứng dụng ví Phantom trên thiết bị của bạn để tiếp tục.'
           );
+          return null;
         }
-      } catch (err) {
-        console.error('[WalletProvider] Lỗi mở deep link kết nối:', err);
+      } catch (err: unknown) {
         setConnecting(false);
-        Alert.alert('Không thể kết nối ví', 'Vui lòng kiểm tra lại ứng dụng ví trên thiết bị.');
+        const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
+        console.error('❌ [Phase 2 Connect Error]:', errorMsg);
+        return null;
       }
-
-      return null;
     },
-    [dappKeyPair, defaultCluster]
+    []
   );
 
-  /**
-   * Ngắt kết nối ví
-   */
-  const disconnect = useCallback(async () => {
-    setPublicKey(null);
-    setWalletType(null);
-    setSharedSecret(null);
-    setSessionToken(null);
-    setConnecting(false);
+  // Hàm mã hóa & gửi thông điệp ký SIWS (Phase 3)
+  const signMessage = useCallback(
+    async (message: string): Promise<string> => {
+      const sec = sharedSecretRef.current;
+      const sess = sessionTokenRef.current;
+      const keyPair = dappKeyPairRef.current;
 
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.PUBLIC_KEY,
-      STORAGE_KEYS.WALLET_TYPE,
-      STORAGE_KEYS.SESSION_TOKEN,
-      STORAGE_KEYS.SHARED_SECRET,
-    ]);
-  }, []);
-
-  /**
-   * Ký giao dịch đơn qua Deep Link / MWA
-   */
-  const signTransaction = useCallback(
-    async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
-      if (!publicKey || !sharedSecret || !sessionToken || !dappKeyPair) {
-        throw new Error('Ví chưa được kết nối hoặc thiếu phiên xác thực.');
+      if (!sec || !sess || !keyPair) {
+        throw new Error('Chưa thiết lập phiên Handshake kết nối ví (thiếu sharedSecret/session).');
       }
 
-      const serializedTx = 'serialize' in tx
-        ? Buffer.from((tx as Transaction).serialize({ requireAllSignatures: false }))
-        : Buffer.from((tx as VersionedTransaction).serialize());
+      // 1. Chuyển đổi chuỗi message sang mảng byte chuẩn ASCII (không dùng Buffer.from) và mã hóa Base58
+      const messageBytes = new Uint8Array(message.length);
+      for (let i = 0; i < message.length; i++) {
+        messageBytes[i] = message.charCodeAt(i);
+      }
+      const encodedMessageForPhantom = bs58.encode(messageBytes);
 
+      // 2. Mã hóa payload gửi đi bằng khóa phiên (sharedSecret và nonce) theo chuẩn nacl.box
       const payload = {
-        session: sessionToken,
-        transaction: bs58.encode(serializedTx),
+        session: sess,
+        message: encodedMessageForPhantom,
       };
 
       const nonce = nacl.randomBytes(24);
       const encrypted = nacl.box.after(
         Buffer.from(JSON.stringify(payload)),
         nonce,
-        sharedSecret
+        sec
       );
 
-      const redirectLink = LinkingExpo.createURL('onSignTransaction');
-      const dappEncryptionPubKey = bs58.encode(dappKeyPair.publicKey);
-      const baseUrl = walletType === 'solflare'
-        ? 'https://solflare.com/ul/v1/signTransaction'
-        : walletType === 'backpack'
-        ? 'https://backpack.app/ul/v1/signTransaction'
-        : 'https://phantom.app/ul/v1/signTransaction';
-
+      const dappEncryptionPubKey = bs58.encode(keyPair.publicKey);
+      const redirectLink = LinkingExpo.createURL('onSignMessage');
       const params = new URLSearchParams({
         dapp_encryption_public_key: dappEncryptionPubKey,
         nonce: bs58.encode(nonce),
@@ -306,80 +291,71 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         payload: bs58.encode(encrypted),
       });
 
-      const fullUrl = `${baseUrl}?${params.toString()}`;
+      const fullUrl = `https://phantom.app/ul/v1/signMessage?${params.toString()}`;
+      console.log('🔗 [Phase 3] Mở Phantom signMessage URL:', fullUrl);
+
       await Linking.openURL(fullUrl);
 
-      return tx;
+      return new Promise<string>((resolve, reject) => {
+        pendingSignMessageRef.current = { resolve, reject };
+      });
     },
-    [publicKey, sharedSecret, sessionToken, dappKeyPair, walletType]
+    []
   );
 
-  /**
-   * Ký danh sách nhiều giao dịch
-   */
-  const signAllTransactions = useCallback(
-    async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
-      const signed: T[] = [];
-      for (const tx of txs) {
-        signed.push(await signTransaction(tx));
-      }
-      return signed;
-    },
-    [signTransaction]
-  );
+  const cancelConnecting = useCallback(() => {
+    setConnecting(false);
+    if (pendingConnectRef.current) {
+      pendingConnectRef.current.reject(new Error('Đã hủy phiên kết nối ví.'));
+      pendingConnectRef.current = null;
+    }
+    if (pendingSignMessageRef.current) {
+      pendingSignMessageRef.current.reject(new Error('Đã hủy yêu cầu ký thông điệp.'));
+      pendingSignMessageRef.current = null;
+    }
+  }, []);
 
-  // Tạo AnchorWallet tương thích cho Smart Contract
+  const disconnect = useCallback(async () => {
+    publicKeyRef.current = null;
+    sharedSecretRef.current = null;
+    sessionTokenRef.current = null;
+    dappKeyPairRef.current = null;
+    setPublicKey(null);
+    setConnecting(false);
+    setWalletType(null);
+  }, []);
+
   const anchorWallet: AnchorWallet | null = useMemo(() => {
     if (!publicKey) return null;
     return {
       publicKey,
-      signTransaction,
-      signAllTransactions,
+      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
     };
-  }, [publicKey, signTransaction, signAllTransactions]);
+  }, [publicKey]);
 
-  const walletName = useMemo(() => {
-    if (!walletType) return null;
-    if (walletType === 'phantom') return 'Phantom';
-    if (walletType === 'solflare') return 'Solflare';
-    if (walletType === 'backpack') return 'Backpack';
-    return 'Mobile Wallet Adapter';
-  }, [walletType]);
-
-  const value = useMemo(
+  const contextValue: WalletContextState = useMemo(
     () => ({
       publicKey,
       connected: !!publicKey,
       connecting,
       walletType,
-      walletName,
+      walletName: walletType ? 'Phantom Wallet' : null,
       anchorWallet,
       cluster: defaultCluster,
       connect,
+      cancelConnecting,
       disconnect,
-      signTransaction,
-      signAllTransactions,
+      signMessage,
+      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
     }),
-    [
-      publicKey,
-      connecting,
-      walletType,
-      walletName,
-      anchorWallet,
-      defaultCluster,
-      connect,
-      disconnect,
-      signTransaction,
-      signAllTransactions,
-    ]
+    [publicKey, connecting, walletType, anchorWallet, defaultCluster, connect, cancelConnecting, disconnect, signMessage]
   );
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;
 };
 
-/**
- * Hook truy xuất trạng thái kết nối ví bên ngoài
- */
 export function useExternalWallet(): WalletContextState {
   const context = useContext(WalletContext);
   if (!context) {

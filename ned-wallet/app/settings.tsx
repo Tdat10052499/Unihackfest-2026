@@ -25,10 +25,12 @@ import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
 import { TestInitProfile } from '../src/components/TestInitProfile';
 import { ConnectWalletButton } from '../src/components/ConnectWalletButton';
 import { TransferScreen } from '../src/components/TransferScreen';
+import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
+  const externalWallet = useExternalWallet();
 
   let privy: any = null;
   try {
@@ -177,6 +179,9 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            if (externalWallet?.disconnect) {
+              await externalWallet.disconnect();
+            }
             await executeHardReset(logout);
             router.replace('/login');
           } catch (e) {
@@ -200,6 +205,9 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (externalWallet?.disconnect) {
+                await externalWallet.disconnect();
+              }
               await executeHardReset(logout);
               Alert.alert(t('settings.resetSuccess'), t('settings.resetSuccessMsg'));
               router.replace('/login');
