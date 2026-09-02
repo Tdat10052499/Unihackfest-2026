@@ -1,3 +1,8 @@
+import "react-native-get-random-values";
+import "react-native-url-polyfill/auto";
+import { Buffer } from "buffer";
+global.Buffer = global.Buffer || Buffer;
+
 import React, {
   createContext,
   useContext,
@@ -13,7 +18,7 @@ import * as LinkingExpo from 'expo-linking';
 import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
-import { Buffer } from 'buffer';
+
 import { AnchorWallet } from '../utils/anchorClient';
 
 export type WalletType = 'phantom' | 'solflare' | 'backpack' | 'mwa';
@@ -262,12 +267,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         throw new Error('Chưa thiết lập phiên Handshake kết nối ví (thiếu sharedSecret/session).');
       }
 
-      // 1. Chuyển đổi chuỗi message sang mảng byte chuẩn ASCII (không dùng Buffer.from) và mã hóa Base58
-      const messageBytes = new Uint8Array(message.length);
-      for (let i = 0; i < message.length; i++) {
-        messageBytes[i] = message.charCodeAt(i);
-      }
-      const encodedMessageForPhantom = bs58.encode(messageBytes);
+      // 1. Mã hóa message bằng Buffer
+      const encodedMessageForPhantom = bs58.encode(Buffer.from(message));
+      console.log('🔑 [Phase 3] Base58 encoded message for Phantom:', encodedMessageForPhantom);
 
       // 2. Mã hóa payload gửi đi bằng khóa phiên (sharedSecret và nonce) theo chuẩn nacl.box
       const payload = {
