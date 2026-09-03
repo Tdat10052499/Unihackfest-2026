@@ -41,7 +41,7 @@ const customStorage = {
 export const useNetworkStore = create<NetworkState>()(
   persist(
     (set, get) => ({
-      activeNetwork: 'devnet',
+      activeNetwork: 'mainnet-beta',
       isHydrated: false,
       setNetwork: (network: SolanaNetwork) => {
         set({ activeNetwork: network });
@@ -55,7 +55,7 @@ export const useNetworkStore = create<NetworkState>()(
       },
     }),
     {
-      name: '@ned_active_network_v1',
+      name: '@ned_solana_network_v2',
       storage: createJSONStorage(() => customStorage),
       onRehydrateStorage: () => (state) => {
         if (state) {

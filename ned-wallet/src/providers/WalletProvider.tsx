@@ -20,6 +20,7 @@ import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 
 import { AnchorWallet } from '../utils/anchorClient';
+import { useNetworkStore } from '../../stores/useNetworkStore';
 
 export type WalletType = 'phantom' | 'solflare' | 'backpack' | 'mwa';
 
@@ -33,7 +34,7 @@ export interface WalletContextState {
   cluster: 'devnet' | 'mainnet-beta';
   connect: (type?: WalletType) => Promise<PublicKey | null>;
   cancelConnecting: () => void;
-  disconnect: () => Promise<void>;
+  disconnect: (revokePhantomSession?: boolean) => Promise<void>;
   signMessage: (message: string) => Promise<string>;
   signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
   signAllTransactions: <T extends Transaction | VersionedTransaction>(txs: T[]) => Promise<T[]>;
@@ -51,8 +52,11 @@ export interface WalletProviderProps {
  */
 export const WalletProvider: React.FC<WalletProviderProps> = ({
   children,
-  defaultCluster = 'devnet',
+  defaultCluster,
 }) => {
+  const { activeNetwork } = useNetworkStore();
+  const currentCluster = activeNetwork || defaultCluster || 'mainnet-beta';
+
   const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
   const [connecting, setConnecting] = useState<boolean>(false);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
@@ -218,7 +222,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         dappKeyPairRef.current = keyPair;
 
         const dappEncryptionPubKey = bs58.encode(keyPair.publicKey);
-        const cluster = 'devnet';
+        const cluster = currentCluster;
         const appUrl = 'https://ned.wallet';
         const redirectLink = LinkingExpo.createURL('onConnect');
 
@@ -230,7 +234,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         });
 
         const fullUrl = `https://phantom.app/ul/v1/connect?${params.toString()}`;
-        console.log('🔗 [Phase 2] Mở Phantom Connect URL:', fullUrl);
+        console.log(`🔗 [Phase 2] Mở Phantom Connect URL (Cluster: ${cluster}):`, fullUrl);
 
         const canOpen = await Linking.canOpenURL(fullUrl);
         if (canOpen) {
@@ -317,14 +321,53 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     }
   }, []);
 
-  const disconnect = useCallback(async () => {
-    publicKeyRef.current = null;
-    sharedSecretRef.current = null;
-    sessionTokenRef.current = null;
-    dappKeyPairRef.current = null;
-    setPublicKey(null);
-    setConnecting(false);
-    setWalletType(null);
+  const disconnect = useCallback(async (revokePhantomSession: boolean = false) => {
+    try {
+      if (
+        revokePhantomSession &&
+        sessionTokenRef.current &&
+        sharedSecretRef.current &&
+        dappKeyPairRef.current
+      ) {
+        const payload = { session: sessionTokenRef.current };
+        const nonce = nacl.randomBytes(24);
+        const encrypted = nacl.box.after(
+          Buffer.from(JSON.stringify(payload)),
+          nonce,
+          sharedSecretRef.current
+        );
+        const dappEncryptionPubKey = bs58.encode(dappKeyPairRef.current.publicKey);
+        const redirectLink = LinkingExpo.createURL('login');
+        const params = new URLSearchParams({
+          dapp_encryption_public_key: dappEncryptionPubKey,
+          nonce: bs58.encode(nonce),
+          redirect_link: redirectLink,
+          payload: bs58.encode(encrypted),
+        });
+        const fullUrl = `https://phantom.app/ul/v1/disconnect?${params.toString()}`;
+        console.log('🔗 [Phantom Disconnect] Gửi yêu cầu ngắt kết nối:', fullUrl);
+        await Linking.openURL(fullUrl);
+      }
+    } catch (e) {
+      console.warn('⚠️ [Phantom Disconnect] Lỗi khi gửi disconnect deeplink:', e);
+    } finally {
+      publicKeyRef.current = null;
+      sharedSecretRef.current = null;
+      sessionTokenRef.current = null;
+      dappKeyPairRef.current = null;
+      if (pendingConnectRef.current) {
+        pendingConnectRef.current.reject(new Error('Phiên kết nối ví đã kết thúc.'));
+        pendingConnectRef.current = null;
+      }
+      if (pendingSignMessageRef.current) {
+        pendingSignMessageRef.current.reject(new Error('Phiên kết nối ví đã kết thúc.'));
+        pendingSignMessageRef.current = null;
+      }
+      setPublicKey(null);
+      setConnecting(false);
+      setWalletType(null);
+      console.log('🧹 [WalletProvider] Đã dọn dẹp sạch toàn bộ State & Secret ví Phantom');
+    }
   }, []);
 
   const anchorWallet: AnchorWallet | null = useMemo(() => {
@@ -344,7 +387,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       walletType,
       walletName: walletType ? 'Phantom Wallet' : null,
       anchorWallet,
-      cluster: defaultCluster,
+      cluster: currentCluster,
       connect,
       cancelConnecting,
       disconnect,
@@ -352,7 +395,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
       signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
     }),
-    [publicKey, connecting, walletType, anchorWallet, defaultCluster, connect, cancelConnecting, disconnect, signMessage]
+    [publicKey, connecting, walletType, anchorWallet, currentCluster, connect, cancelConnecting, disconnect, signMessage]
   );
 
   return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;

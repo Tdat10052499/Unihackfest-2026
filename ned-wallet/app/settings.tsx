@@ -22,9 +22,6 @@ import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
-import { TestInitProfile } from '../src/components/TestInitProfile';
-import { ConnectWalletButton } from '../src/components/ConnectWalletButton';
-import { TransferScreen } from '../src/components/TransferScreen';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export default function SettingsScreen() {
@@ -61,18 +58,26 @@ export default function SettingsScreen() {
   const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
-  // Lấy địa chỉ ví Solana
+  // Lấy địa chỉ ví Solana đã liên kết (từ ví ngoài Phantom hoặc embedded wallet)
   const getSolanaAddress = (): string | null => {
-    if (!user) return null;
+    // 1. Kiểm tra ví Solana bên ngoài vừa kết nối/đăng nhập (Phantom / SIWS)
+    if (externalWallet?.publicKey) {
+      return externalWallet.publicKey.toBase58();
+    }
+    // 2. Kiểm tra ví ngầm Embedded Solana Wallet của Privy
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
       const solWallet = solanaWalletState.wallets[0];
       if (solWallet?.address) return solWallet.address;
     }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
-    );
-    return solAccount?.address || null;
+    // 3. Kiểm tra danh sách tài khoản ví liên kết trong Privy User
+    if (user) {
+      const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
+      const solAccount = linkedAccounts.find(
+        (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
+      );
+      if (solAccount?.address) return solAccount.address;
+    }
+    return null;
   };
 
   const solanaAddress = getSolanaAddress();
@@ -122,31 +127,28 @@ export default function SettingsScreen() {
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
   };
 
+  // Sao chép nội dung vào bộ nhớ tạm với thông báo & phản hồi rung
+  const handleCopyText = async (text: string, successMsg: string) => {
+    if (!text) return;
+    try {
+      await Clipboard.setStringAsync(text);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Alert.alert(t('settings.title', { defaultValue: 'Thông báo' }), successMsg);
+    } catch (e) {
+      console.log('Copy error:', e);
+    }
+  };
+
   // Sao chép mã tài khoản vào bộ nhớ tạm
   const handleCopyWallet = async () => {
     const accId = getAccountIdentifier(user, linkedPhone);
-    try {
-      await Clipboard.setStringAsync(accId);
-      Alert.alert(t('settings.title'), t('settings.copied', { defaultValue: 'Đã sao chép mã tài khoản!' }));
-    } catch (e) {
-      console.log('Copy account error:', e);
-    }
+    handleCopyText(accId, t('settings.copied', { defaultValue: 'Đã sao chép mã tài khoản!' }));
   };
 
   // State cấu hình mạng lưới (Solana Network - Helius RPC)
-  const { activeNetwork, setNetwork } = useNetworkStore();
-
-  const handleSelectNetwork = (network: SolanaNetwork) => {
-    if (network === activeNetwork) return;
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    setNetwork(network);
-    Alert.alert(
-      t('settings.networkSwitchConfirm'),
-      t('settings.networkSwitchDesc', { network: network === 'mainnet-beta' ? 'Mainnet-Beta' : 'Devnet' })
-    );
-  };
+  const { activeNetwork } = useNetworkStore();
 
   // Xử lý chuyển đổi ngôn ngữ từ danh sách
   const handleSelectLanguage = async (langItem: SupportedLanguage) => {
@@ -170,49 +172,47 @@ export default function SettingsScreen() {
     setShowLanguageModal(false);
   };
 
-  // Xử lý Đăng xuất
-  const handleSignOut = async () => {
-    Alert.alert(t('settings.signOutConfirmTitle'), t('settings.signOutConfirmMsg'), [
-      { text: t('settings.cancel'), style: 'cancel' },
-      {
-        text: t('settings.signOut'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            if (externalWallet?.disconnect) {
-              await externalWallet.disconnect();
-            }
-            await executeHardReset(logout);
-            router.replace('/login');
-          } catch (e) {
-            console.error('Logout error:', e);
-            router.replace('/login');
-          }
-        },
-      },
-    ]);
-  };
-
-  // Xử lý Hard Reset (Dọn dẹp sâu Corrupted State)
-  const handleHardReset = async () => {
+  /**
+   * Xử lý Đăng xuất (handleLogout) an toàn:
+   * 1. Hiển thị hộp thoại xác nhận trước khi đăng xuất.
+   * 2. Gọi logout() từ Privy SDK để vô hiệu hóa token/session xác thực.
+   * 3. Gọi externalWallet.disconnect() để dọn dẹp sạch toàn bộ State & Ref ví Phantom:
+   *    - publicKey / phantomWalletPublicKey -> null
+   *    - sessionToken -> null
+   *    - sharedSecret -> null
+   *    - pendingConnectRef / pendingSignMessageRef -> null
+   * 4. Dọn dẹp AsyncStorage qua executeHardReset.
+   * 5. Luôn bảo đảm điều hướng người dùng về màn hình /login trong khối finally.
+   */
+  const handleLogout = async () => {
     Alert.alert(
-      t('settings.resetTitle'),
-      t('settings.resetMsg'),
+      t('settings.signOutConfirmTitle', { defaultValue: 'Đăng xuất tài khoản' }),
+      t('settings.signOutConfirmMsg', { defaultValue: 'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng N.E.D không? Phiên đăng nhập hiện tại sẽ được đóng an toàn.' }),
       [
-        { text: t('settings.cancel'), style: 'cancel' },
+        { text: t('settings.cancel', { defaultValue: 'Hủy' }), style: 'cancel' },
         {
-          text: t('settings.confirmReset'),
+          text: t('settings.signOut', { defaultValue: 'Đăng xuất' }),
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('🔄 [handleLogout] Bắt đầu quy trình đăng xuất an toàn...');
+              // 1. Dọn dẹp sạch State/Ref của ví Phantom cục bộ
               if (externalWallet?.disconnect) {
                 await externalWallet.disconnect();
               }
+              // 2. Đăng xuất khỏi Privy và xóa session cache trong AsyncStorage
               await executeHardReset(logout);
-              Alert.alert(t('settings.resetSuccess'), t('settings.resetSuccessMsg'));
-              router.replace('/login');
+              console.log('✅ [handleLogout] Đã hoàn tất đăng xuất khỏi Privy & dọn dẹp bộ nhớ');
             } catch (err) {
-              console.error('Hard reset error:', err);
+              console.error('❌ [handleLogout] Lỗi trong quá trình đăng xuất:', err);
+            } finally {
+              // 3. Khối finally: Đảm bảo 100% State/Ref ví được reset triệt để
+              try {
+                if (externalWallet?.disconnect) {
+                  await externalWallet.disconnect();
+                }
+              } catch (_) {}
+              // 4. Điều hướng người dùng về màn hình Đăng nhập
               router.replace('/login');
             }
           },
@@ -266,25 +266,59 @@ export default function SettingsScreen() {
             <Feather name="edit-2" size={14} color="#94A3B8" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
 
-          {/* Mã Định Danh Tài Khoản N.E.D & Nút Sao Chép */}
+          {/* Mã Định Danh Tài Khoản N.E.D */}
           <TouchableOpacity
-            style={styles.walletAddressRowBtn}
+            style={styles.infoBadgeRowBtn}
             onPress={handleCopyWallet}
             activeOpacity={0.75}
           >
-            <View style={styles.solanaDot} />
-            <Text style={styles.walletAddressText}>
-              Mã tài khoản: {getAccountIdentifier(user, linkedPhone)}
+            <MaterialCommunityIcons name="card-account-details-outline" size={14} color="#10B981" style={{ marginRight: 6 }} />
+            <Text style={styles.infoBadgeLabel}>Tài khoản:</Text>
+            <Text style={styles.infoBadgeValue}>
+              {getAccountIdentifier(user, linkedPhone)}
             </Text>
-            <Feather name="copy" size={13} color="#94A3B8" style={{ marginLeft: 6 }} />
+            <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
 
-          {/* Badge Google Backed Up */}
-          <View style={styles.backedUpBadge}>
-            <Ionicons name="logo-google" size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
-            <Text style={styles.backedUpText}>{t('settings.googleBackedUp')}</Text>
-            <Feather name="chevron-right" size={14} color="#FFFFFF" style={{ marginLeft: 3 }} />
-          </View>
+          {/* Privy User ID */}
+          {user?.id ? (
+            <TouchableOpacity
+              style={styles.infoBadgeRowBtn}
+              onPress={() => handleCopyText(user.id, 'Đã sao chép Privy User ID!')}
+              activeOpacity={0.75}
+            >
+              <MaterialCommunityIcons name="shield-account-outline" size={14} color="#6366F1" style={{ marginRight: 6 }} />
+              <Text style={styles.infoBadgeLabel}>Privy ID:</Text>
+              <Text style={styles.infoBadgeValueMono}>
+                {user.id.length > 26 ? `${user.id.slice(0, 14)}...${user.id.slice(-6)}` : user.id}
+              </Text>
+              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Địa chỉ ví Solana đã liên kết */}
+          {solanaAddress ? (
+            <TouchableOpacity
+              style={styles.infoBadgeRowBtn}
+              onPress={() => handleCopyText(solanaAddress, 'Đã sao chép địa chỉ ví Solana!')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.solanaDot} />
+              <Text style={styles.infoBadgeLabel}>Ví liên kết:</Text>
+              <Text style={styles.infoBadgeValueMono}>
+                {formatShortAddress(solanaAddress)}
+              </Text>
+              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Badge Google Backed Up (nếu có tài khoản Google) */}
+          {((user as any)?.google || (user as any)?.linked_accounts?.some((a: any) => a.type === 'google_oauth' || a.type === 'google')) ? (
+            <View style={styles.backedUpBadge}>
+              <Ionicons name="logo-google" size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+              <Text style={styles.backedUpText}>{t('settings.googleBackedUp')}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* 2. Nhóm 1 (Ngôn ngữ / Extensible Language Selector Item) */}
@@ -313,23 +347,28 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 2.5. Nhóm Cấu Hình Mạng (Network Environment - Helius RPC) */}
+        {/* 2.5. Nhóm Cấu Hình Nâng Cao / Developer Mode */}
         <View style={styles.groupCard}>
-          <View style={styles.networkHeaderRow}>
+          <TouchableOpacity
+            style={styles.menuItemRow}
+            activeOpacity={0.7}
+            onPress={() => router.push('/developer-mode')}
+          >
             <View style={styles.menuItemLeft}>
               <View
                 style={[
                   styles.networkIconCircle,
-                  { backgroundColor: activeNetwork === 'mainnet-beta' ? '#D8FAF7' : '#FFF1A6' },
+                  { backgroundColor: '#EDE9FE' },
                 ]}
               >
-                <MaterialCommunityIcons name="lan" size={18} color="#000000" />
+                <Feather name="terminal" size={18} color="#6366F1" />
               </View>
               <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>{t('settings.networkEnv')}</Text>
-                <Text style={styles.menuItemSubtitle}>{t('settings.networkSubtitle')}</Text>
+                <Text style={styles.menuItemTitle}>Developer Mode</Text>
+                <Text style={styles.menuItemSubtitle}>Cấu hình mạng Solana (Mainnet / Devnet)</Text>
               </View>
             </View>
+
             <View
               style={[
                 styles.networkBadge,
@@ -337,99 +376,13 @@ export default function SettingsScreen() {
               ]}
             >
               <Text style={styles.networkBadgeText}>
-                {activeNetwork === 'mainnet-beta' ? t('settings.mainnetBadge') : t('settings.devnetBadge')}
+                {activeNetwork === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
               </Text>
+              <Feather name="chevron-right" size={16} color="#000000" style={{ marginLeft: 4 }} />
             </View>
-          </View>
-
-          <View style={styles.dividerLine} />
-
-          {/* Segmented Control Lựa Chọn Mạng */}
-          <View style={styles.networkSegmentContainer}>
-            {/* Nút Devnet */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => handleSelectNetwork('devnet')}
-              style={[
-                styles.networkSegmentBtn,
-                activeNetwork === 'devnet' && styles.networkSegmentBtnActiveDevnet,
-              ]}
-            >
-              <View
-                style={[
-                  styles.networkRadioCircle,
-                  activeNetwork === 'devnet' && styles.networkRadioCircleActive,
-                ]}
-              >
-                {activeNetwork === 'devnet' && <View style={styles.networkRadioInner} />}
-              </View>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text
-                  style={[
-                    styles.networkSegmentTitle,
-                    activeNetwork === 'devnet' && styles.networkSegmentTitleActive,
-                  ]}
-                >
-                  {t('settings.devnet')}
-                </Text>
-                <Text style={styles.networkSegmentDesc}>Helius Devnet RPC</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Nút Mainnet-beta */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => handleSelectNetwork('mainnet-beta')}
-              style={[
-                styles.networkSegmentBtn,
-                activeNetwork === 'mainnet-beta' && styles.networkSegmentBtnActiveMainnet,
-              ]}
-            >
-              <View
-                style={[
-                  styles.networkRadioCircle,
-                  activeNetwork === 'mainnet-beta' && styles.networkRadioCircleActive,
-                ]}
-              >
-                {activeNetwork === 'mainnet-beta' && <View style={styles.networkRadioInner} />}
-              </View>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text
-                  style={[
-                    styles.networkSegmentTitle,
-                    activeNetwork === 'mainnet-beta' && styles.networkSegmentTitleActive,
-                  ]}
-                >
-                  {t('settings.mainnet')}
-                </Text>
-                <Text style={styles.networkSegmentDesc}>Helius Mainnet RPC</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        {/* 2.6. Kết Nối Ví Bên Ngoài (Phantom, Solflare, MWA) */}
-        <View style={styles.groupCard}>
-          <View style={styles.networkHeaderRow}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.networkIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name="wallet" size={18} color="#6366F1" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Ví Solana Bên Ngoài</Text>
-                <Text style={styles.menuItemSubtitle}>Phantom • Solflare • Mobile Wallet Adapter</Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.dividerLine} />
-          <ConnectWalletButton />
-        </View>
-
-        {/* 2.7. Smart Contract Anchor - Khởi tạo Hồ Sơ Web3 On-Chain */}
-        <TestInitProfile />
-
-        {/* 2.8. Chuyển Stablecoin On-Chain (USDC CPI TransferChecked) */}
-        <TransferScreen />
 
         {/* 3. Nhóm 2 (Tài chính & Lịch sử) */}
         <View style={styles.groupCard}>
@@ -558,39 +511,19 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
 
-          <View style={styles.dividerLine} />
-
-          {/* Hard Reset Session */}
-          <TouchableOpacity
-            style={styles.menuItemRow}
-            activeOpacity={0.7}
-            onPress={handleHardReset}
-          >
-            <View style={styles.menuItemLeft}>
-              <Feather name="refresh-cw" size={20} color="#F59E0B" style={styles.itemIcon} />
-              <View style={styles.menuItemTextCol}>
-                <Text style={[styles.menuItemTitle, { color: '#F59E0B' }]}>{t('settings.resetSession')}</Text>
-                <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-                  {t('settings.resetDesc')}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.dividerLine} />
-
-          {/* Sign out */}
-          <TouchableOpacity
-            style={styles.menuItemRow}
-            activeOpacity={0.7}
-            onPress={handleSignOut}
-          >
-            <View style={styles.menuItemLeft}>
-              <Feather name="log-out" size={20} color="#EF4444" style={styles.itemIcon} />
-              <Text style={[styles.menuItemTitle, { color: '#EF4444' }]}>{t('settings.signOut')}</Text>
-            </View>
-          </TouchableOpacity>
         </View>
+
+        {/* 5. Nút Đăng Xuất (Duy nhất, rõ ràng, màu đỏ cảnh báo) */}
+        <TouchableOpacity
+          style={styles.logoutBtnContainer}
+          activeOpacity={0.8}
+          onPress={handleLogout}
+        >
+          <Feather name="log-out" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutBtnText}>
+            {t('settings.signOut', { defaultValue: 'Đăng xuất tài khoản' })}
+          </Text>
+        </TouchableOpacity>
 
         {/* Padding dưới cùng */}
         <View style={{ height: 40 }} />
@@ -780,6 +713,51 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
     fontWeight: '500',
   },
+  infoBadgeRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  infoBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginRight: 4,
+  },
+  infoBadgeValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#E2E8F0',
+  },
+  infoBadgeValueMono: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  logoutBtnContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  logoutBtnText: {
+    color: '#EF4444',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   walletAddressRowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -809,6 +787,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 16,
+    marginTop: 4,
   },
   backedUpText: {
     fontSize: 11.5,
