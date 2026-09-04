@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   shadowUnderlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1,
   },
   buttonWrapper: {

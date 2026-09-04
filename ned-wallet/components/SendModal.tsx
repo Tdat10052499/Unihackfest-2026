@@ -504,7 +504,7 @@ export const SendModal: React.FC<SendModalProps> = ({
 
 const styles = StyleSheet.create({
   overlayWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 9999,
     elevation: 9999,
   },

@@ -196,7 +196,11 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
   );
 });
 
-interface CustomTabBarProps extends BottomTabBarProps {
+interface CustomTabBarProps {
+  state: any;
+  descriptors: any;
+  navigation: any;
+  insets?: any;
   darkMode?: boolean;
 }
 
@@ -212,12 +216,12 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
   const colors = darkMode ? NEO_COLORS.dark : NEO_COLORS.light;
 
   // Lọc đúng 4 route chính thức
-  const visibleRoutes = state.routes.filter((route) =>
+  const visibleRoutes = state.routes.filter((route: any) =>
     TAB_ROUTES.includes(route.name)
   );
 
   const activeIndex = visibleRoutes.findIndex(
-    (r) => r.name === state.routes[state.index]?.name
+    (r: any) => r.name === state.routes[state.index]?.name
   );
   const currentTabIdx = activeIndex >= 0 ? activeIndex : 0;
 
@@ -241,7 +245,7 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
           },
         ]}
       >
-        {visibleRoutes.map((route, index) => {
+        {visibleRoutes.map((route: any, index: number) => {
           const isFocused = currentTabIdx === index;
           const { options } = descriptors[route.key];
 

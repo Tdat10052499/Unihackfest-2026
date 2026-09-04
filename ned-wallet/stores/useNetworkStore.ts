@@ -38,10 +38,16 @@ const customStorage = {
   },
 };
 
+const defaultNetwork: SolanaNetwork =
+  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet-beta' ||
+  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet'
+    ? 'mainnet-beta'
+    : 'devnet';
+
 export const useNetworkStore = create<NetworkState>()(
   persist(
     (set, get) => ({
-      activeNetwork: 'mainnet-beta',
+      activeNetwork: defaultNetwork,
       isHydrated: false,
       setNetwork: (network: SolanaNetwork) => {
         set({ activeNetwork: network });

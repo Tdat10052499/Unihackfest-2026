@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   shadowLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1,
   },
   cardLayer: {

@@ -275,7 +275,7 @@ export const WalletRecoveryModal: React.FC<WalletRecoveryModalProps> = ({
 
 const styles = StyleSheet.create({
   overlayWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 10000,
     elevation: 10000,
   },

@@ -20,7 +20,7 @@ import {
   useLoginWithSiws,
 } from '@privy-io/expo';
 import { useRouter } from 'expo-router';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { WalletSelectorModal } from '../src/components/WalletSelectorModal';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import nacl from 'tweetnacl';
@@ -30,12 +30,7 @@ import { Buffer } from 'buffer';
 export default function LoginScreen() {
   const router = useRouter();
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {
-    // safely ignore
-  }
+  const privy = usePrivy();
   const isReady = privy?.isReady ?? false;
   const user = privy?.user ?? null;
 
@@ -47,48 +42,38 @@ export default function LoginScreen() {
   const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
 
   // Hook Ví Bên Ngoài (Phantom Handshake & Sign Message)
-  const { connected, publicKey, connect, signMessage } = useExternalWallet();
+  const { connect, signMessage } = useExternalWallet();
   const siwsAuth = useLoginWithSiws();
   const savedSiwsMessage = useRef<string | null>(null);
   const savedSignature = useRef<string | null>(null);
   const [isWalletSigning, setIsWalletSigning] = useState<boolean>(false);
 
   // Hook Privy Google OAuth
-  let oAuthHook: ReturnType<typeof useLoginWithOAuth> | null = null;
-  try {
-    oAuthHook = useLoginWithOAuth({
-      onError: (err) => {
-        console.error('Google OAuth Error:', err);
-        Alert.alert(
-          'Đăng nhập thất bại',
-          err?.message || 'Không thể đăng nhập bằng tài khoản Google. Vui lòng thử lại.'
-        );
-      },
-      onSuccess: (u) => {
-        console.log('Google OAuth Success for user:', u?.id);
-      },
-    });
-  } catch (err: unknown) {
-    console.error('OAuth hook init error:', err);
-  }
+  const oAuthHook = useLoginWithOAuth({
+    onError: (err) => {
+      console.error('Google OAuth Error:', err);
+      Alert.alert(
+        'Đăng nhập thất bại',
+        err?.message || 'Không thể đăng nhập bằng tài khoản Google. Vui lòng thử lại.'
+      );
+    },
+    onSuccess: (u) => {
+      console.log('Google OAuth Success for user:', u?.id);
+    },
+  });
   const loginWithOAuth = oAuthHook?.login;
   const oAuthState = oAuthHook?.state;
 
   // Hook Privy Email OTP
-  let emailHook: ReturnType<typeof useLoginWithEmail> | null = null;
-  try {
-    emailHook = useLoginWithEmail({
-      onError: (err) => {
-        console.error('Email Login Error:', err);
-        setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
-      },
-      onLoginSuccess: (u) => {
-        console.log('Email Login Success for user:', u?.id);
-      },
-    });
-  } catch (err: unknown) {
-    console.error('Email hook init error:', err);
-  }
+  const emailHook = useLoginWithEmail({
+    onError: (err) => {
+      console.error('Email Login Error:', err);
+      setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
+    },
+    onLoginSuccess: (u) => {
+      console.log('Email Login Success for user:', u?.id);
+    },
+  });
   const sendCode = emailHook?.sendCode;
   const loginWithCode = emailHook?.loginWithCode;
   const emailState = emailHook?.state;
@@ -301,8 +286,8 @@ export default function LoginScreen() {
                             address: userPub.toBase58(),
                           },
                           from: {
-                            domain: 'com.anonymous.nedwallet',
-                            uri: 'nedwallet://',
+                            domain: 'com.anonymous.nedwallet', // Định danh Expo/Mobile
+                            uri: 'nedwallet://',               // Scheme di động
                           }
                         });
 
@@ -310,6 +295,9 @@ export default function LoginScreen() {
                         // không cần thay thế chuỗi sau đó.
                         savedSiwsMessage.current = rawMessage;
                         console.log("📝 [Phase 3] Thông điệp SIWS sinh ra:\n", rawMessage);
+
+                        // Thêm khoảng đệm nhỏ để thiết bị hoàn tất chuyển cảnh giao diện từ Phantom về app trước khi mở lại Phantom
+                        await new Promise((res) => setTimeout(res, 500));
 
                         // 3. Giai đoạn 3: Gửi yêu cầu ký sang Phantom
                         const signature = await signMessage(rawMessage);
@@ -327,7 +315,7 @@ export default function LoginScreen() {
                             console.warn("⚠️ [Phase 3.5] Cảnh báo: Local verification failed, chữ ký có thể bị sai lệch byte.");
                           }
                         } catch (verErr) {
-                          console.error("❌ [Phase 3.5] Local verification error:", verErr);
+                          console.warn("⚠️ [Phase 3.5] Local verification warning:", verErr);
                         }
 
                         // 4. Giai đoạn 4: Xác thực Backend Privy (loginWithSiws)
@@ -357,11 +345,10 @@ export default function LoginScreen() {
                       }
                     } catch (err: unknown) {
                       const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
-                      // Log đầy đủ error để debug
-                      console.error("❌ [Phase 4 Error Details]:", errorMsg);
+                      console.warn("⚠️ [Phase 4 Error Details]:", errorMsg);
                       if (err && typeof err === 'object') {
                         const e = err as any;
-                        console.error("❌ [Phase 4 Error Full]:", JSON.stringify({
+                        console.warn("⚠️ [Phase 4 Error Full]:", JSON.stringify({
                           code: e.code,
                           error: e.error,
                           status: e.status,

@@ -18,10 +18,10 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { getLinkedPhone, setLinkedPhone as setLinkedPhoneStorage, executeHardReset } from '../services/storage';
-import { getUserPhoneNumberFromDB, getAccountIdentifier, getMaskedPhone } from '../services/identity';
+import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
-import { useNetworkStore, SolanaNetwork } from '../stores/useNetworkStore';
+import { useNetworkStore } from '../stores/useNetworkStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export default function SettingsScreen() {
@@ -29,21 +29,10 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const externalWallet = useExternalWallet();
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {
-    // safely ignore
-  }
+  const privy = usePrivy();
   const user = privy?.user || null;
   const logout = privy?.logout || (async () => {});
-
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {
-    // safely ignore
-  }
+  const solanaWalletState = useEmbeddedSolanaWallet();
 
   // State thông tin người dùng & SĐT
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
@@ -58,25 +47,33 @@ export default function SettingsScreen() {
   const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
-  // Lấy địa chỉ ví Solana đã liên kết (từ ví ngoài Phantom hoặc embedded wallet)
+  // Lấy địa chỉ ví Solana đã liên kết từ đối tượng user của Privy hoặc Embedded Solana Wallet
   const getSolanaAddress = (): string | null => {
-    // 1. Kiểm tra ví Solana bên ngoài vừa kết nối/đăng nhập (Phantom / SIWS)
-    if (externalWallet?.publicKey) {
-      return externalWallet.publicKey.toBase58();
-    }
+    if (!user) return null;
+
+    // 1. Ưu tiên kiểm tra danh sách tài khoản liên kết trong Privy User (Google OAuth / Linked Wallet)
+    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
+    const solAccount = linkedAccounts.find(
+      (acc: any) =>
+        acc.type === 'wallet' &&
+        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x')))
+    );
+    if (solAccount?.address) return solAccount.address;
+
     // 2. Kiểm tra ví ngầm Embedded Solana Wallet của Privy
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
       const solWallet = solanaWalletState.wallets[0];
       if (solWallet?.address) return solWallet.address;
     }
-    // 3. Kiểm tra danh sách tài khoản ví liên kết trong Privy User
-    if (user) {
-      const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-      const solAccount = linkedAccounts.find(
-        (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
-      );
-      if (solAccount?.address) return solAccount.address;
+
+    // 3. Fallback kiểm tra user.wallet
+    if ((user as any)?.wallet?.address) {
+      const addr = (user as any).wallet.address;
+      if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
+        return addr;
+      }
     }
+
     return null;
   };
 
@@ -211,7 +208,7 @@ export default function SettingsScreen() {
                 if (externalWallet?.disconnect) {
                   await externalWallet.disconnect();
                 }
-              } catch (_) {}
+              } catch {}
               // 4. Điều hướng người dùng về màn hình Đăng nhập
               router.replace('/login');
             }

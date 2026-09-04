@@ -37,7 +37,7 @@ function findAndPatch(dir) {
         findAndPatch(fullPath);
       }
     } else if (entry.isFile()) {
-      // 1. Patch @privy-io/expo WebView 0x0 container & fix CAIP-122 SIWS Chain ID: devnet
+      // 1. Patch @privy-io/expo WebView 0x0 container
       if (entry.name.includes('chunk-77II74GH') && (entry.name.endsWith('.js') || entry.name.endsWith('.mjs'))) {
         patchFile(fullPath, [
           {
@@ -48,17 +48,15 @@ function findAndPatch(dir) {
             from: 'style: { width: 0, height: 0, overflow: "hidden" }',
             to: 'style: { position: "absolute", top: -9999, left: -9999, width: 50, height: 50, opacity: 0.01 }',
           },
-          // Force devnet in SIWS message template so Privy nonce and signed message are consistent
+          // Restore Chain ID: mainnet if previously patched to devnet
           {
-            from: 'Chain ID: mainnet',
-            to: 'Chain ID: devnet',
+            from: 'Chain ID: devnet',
+            to: 'Chain ID: mainnet',
           },
         ]);
       }
 
       // 2. Patch @privy-io/js-sdk-core signWithUserSigner timeout to 60s, clearMfa to 30s
-      //    AND fix CAIP-122 SIWS createSiwsMessage to emit Chain ID: devnet
-      //    This ensures the Privy backend nonce is registered with devnet, matching what we sign
       if (
         (fullPath.includes('@privy-io') || fullPath.includes('js-sdk-core')) &&
         (entry.name === 'index.mjs' || entry.name === 'index.js')
@@ -76,13 +74,10 @@ function findAndPatch(dir) {
             from: 'clearMfa(e){return L(this.waitForReady().then(()=>this.invoke(`privy:mfa:clear`,e)),{msg:`Operation reached timeout: mfa:clear`})}',
             to: 'clearMfa(e){return L(this.waitForReady().then(()=>this.invoke(`privy:mfa:clear`,e)),{msg:`Operation reached timeout: mfa:clear`,ms:3e4})}',
           },
-          // CRITICAL: Force devnet in the createSiwsMessage template literal.
-          // The nonce Privy stores server-side is tied to the exact message text.
-          // Replacing the string in the SDK source ensures the backend stores "devnet"
-          // so the signed message we send back matches exactly.
+          // Restore Chain ID: mainnet if previously patched to devnet
           {
-            from: 'Chain ID: mainnet\nNonce: ${t}',
-            to: 'Chain ID: devnet\nNonce: ${t}',
+            from: 'Chain ID: devnet\nNonce: ${t}',
+            to: 'Chain ID: mainnet\nNonce: ${t}',
           },
         ]);
       }
@@ -90,16 +85,13 @@ function findAndPatch(dir) {
   }
 }
 
-// CRITICAL: Direct patch for js-sdk-core createSiwsMessage template literal.
-// This patches "Chain ID: mainnet" → "Chain ID: devnet" so Privy backend
-// stores the nonce tied to devnet, making signed message consistent.
-function patchJsSdkCoreChainId(baseDir) {
+function restoreChainId(baseDir) {
   if (!fs.existsSync(baseDir)) return;
   const entries = fs.readdirSync(baseDir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(baseDir, entry.name);
     if (entry.isDirectory()) {
-      patchJsSdkCoreChainId(fullPath);
+      restoreChainId(fullPath);
     } else if (
       entry.isFile() &&
       (entry.name === 'index.js' || entry.name === 'index.mjs') &&
@@ -107,28 +99,18 @@ function patchJsSdkCoreChainId(baseDir) {
     ) {
       patchFile(fullPath, [
         {
-          from: 'Chain ID: mainnet',
-          to: 'Chain ID: devnet',
-        },
-        // Timeout patches (idempotent if already applied)
-        {
-          from: 'signWithUserSigner(e){return this.invokeWithMfa(t=>this.invoke(`privy:user-signer:sign`,{...t,...e}),{timeoutMsg:`Operation reached timeout: user-signer:sign`})}',
-          to: 'signWithUserSigner(e){return this.invokeWithMfa(t=>this.invoke(`privy:user-signer:sign`,{...t,...e}),{timeoutMsg:`Operation reached timeout: user-signer:sign`,timeoutMs:6e4})}',
-        },
-        {
-          from: 'clearMfa(e){return L(this.waitForReady().then(()=>this.invoke(`privy:mfa:clear`,e)),{msg:`Operation reached timeout: mfa:clear`})}',
-          to: 'clearMfa(e){return L(this.waitForReady().then(()=>this.invoke(`privy:mfa:clear`,e)),{msg:`Operation reached timeout: mfa:clear`,ms:3e4})}',
+          from: 'Chain ID: devnet',
+          to: 'Chain ID: mainnet',
         },
       ]);
     }
   }
 }
 
-console.log('🚀 Running Privy patch: devnet SIWS Chain ID + WebView + Timeouts...');
+console.log('🚀 Running Privy patch: standard SIWS Chain ID + WebView + Timeouts...');
 const nodeModules = path.join(__dirname, '..', 'node_modules');
 findAndPatch(path.join(nodeModules, '@privy-io'));
 findAndPatch(path.join(nodeModules, '.pnpm'));
-// Also run the targeted js-sdk-core Chain ID patch across .pnpm
-patchJsSdkCoreChainId(path.join(nodeModules, '.pnpm'));
-patchJsSdkCoreChainId(path.join(nodeModules, '@privy-io'));
+restoreChainId(path.join(nodeModules, '.pnpm'));
+restoreChainId(path.join(nodeModules, '@privy-io'));
 console.log('✨ Privy patch complete!');
