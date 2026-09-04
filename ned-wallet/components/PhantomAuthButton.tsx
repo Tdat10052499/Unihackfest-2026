@@ -28,7 +28,9 @@ export interface PhantomAuthButtonProps {
    */
   mode?: 'login' | 'signup';
   /** Callback tùy chọn khi xác thực SIWS thành công */
-  onSuccess?: (user: any) => void;
+  onSuccess?: (user: any, isNewUser?: boolean) => void;
+  /** Callback đầy đủ kiểu onComplete(user, isNewUser, wasAlreadyAuthenticated) */
+  onComplete?: (user: any, isNewUser?: boolean, wasAlreadyAuthenticated?: boolean) => void;
   /** Callback tùy chọn khi gặp lỗi */
   onError?: (error: Error) => void;
   /** Style tùy biến cho nút bấm */
@@ -43,6 +45,7 @@ export interface PhantomAuthButtonProps {
 export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
   mode = 'login',
   onSuccess,
+  onComplete,
   onError,
   style,
   disabled = false,
@@ -129,10 +132,25 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
 
       console.log('🎉 [Phase 4] Đăng nhập Privy SIWS thành công! User ID:', loggedInUser.id);
 
+      const isNewUser =
+        mode === 'signup' ||
+        Boolean((loggedInUser as any)?.isNewUser) ||
+        Boolean((loggedInUser as any)?.is_new_user) ||
+        (loggedInUser && 'createdAt' in loggedInUser && Date.now() - new Date((loggedInUser as any).createdAt).getTime() < 60000) ||
+        (loggedInUser && 'created_at' in loggedInUser && Date.now() - new Date((loggedInUser as any).created_at).getTime() < 60000);
+
+      if (onComplete) {
+        onComplete(loggedInUser, isNewUser, false);
+      }
       if (onSuccess) {
-        onSuccess(loggedInUser);
-      } else {
-        router.replace('/');
+        onSuccess(loggedInUser, isNewUser);
+      }
+      if (!onComplete && !onSuccess) {
+        if (isNewUser) {
+          router.replace('/(onboarding)/phone');
+        } else {
+          router.replace('/home');
+        }
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);

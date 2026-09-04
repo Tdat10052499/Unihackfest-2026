@@ -63,6 +63,9 @@ export default function RootLayout() {
                 <View style={styles.root}>
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+                    <Stack.Screen name="home" options={{ headerShown: false }} />
                     <Stack.Screen name="history" options={{ headerShown: false }} />
                     <Stack.Screen name="settings" options={{ headerShown: false }} />
                     <Stack.Screen name="developer-mode" options={{ headerShown: false }} />

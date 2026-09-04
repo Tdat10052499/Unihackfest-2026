@@ -38,6 +38,28 @@ export default function AuthGatewayScreen() {
   const [step, setStep] = useState<'INITIAL' | 'OTP_VERIFICATION'>('INITIAL');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Hàm điều hướng tập trung áp dụng thống nhất cho mọi phương thức (Email, Google, Phantom SIWS)
+  const handleAuthSuccess = (
+    authUser?: any,
+    isNewUser?: boolean,
+    wasAlreadyAuthenticated?: boolean
+  ) => {
+    console.log(
+      '🎉 [Auth Gateway] Xác thực thành công! User:',
+      authUser?.id,
+      '| isNewUser:',
+      isNewUser,
+      '| wasAlreadyAuthenticated:',
+      wasAlreadyAuthenticated
+    );
+
+    if (isNewUser) {
+      router.replace('/(onboarding)/phone');
+    } else {
+      router.replace('/home');
+    }
+  };
+
   // Hook Privy Google OAuth
   const oAuthHook = useLoginWithOAuth({
     onError: (err) => {
@@ -47,8 +69,9 @@ export default function AuthGatewayScreen() {
         err?.message || 'Không thể xác thực bằng tài khoản Google. Vui lòng thử lại.'
       );
     },
-    onSuccess: (u) => {
-      console.log('Google OAuth Success for user:', u?.id);
+    onSuccess: (u, isNew) => {
+      console.log('Google OAuth Success for user:', u?.id, 'isNew:', isNew);
+      handleAuthSuccess(u, isNew ?? !isLoginMode, false);
     },
   });
   const loginWithOAuth = oAuthHook?.login;
@@ -60,20 +83,22 @@ export default function AuthGatewayScreen() {
       console.error('Email Auth Error:', err);
       setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
     },
-    onLoginSuccess: (u) => {
-      console.log('Email Auth Success for user:', u?.id);
+    onLoginSuccess: (u, isNew) => {
+      console.log('Email Auth Success for user:', u?.id, 'isNew:', isNew);
+      handleAuthSuccess(u, isNew ?? !isLoginMode, false);
     },
   });
   const sendCode = emailHook?.sendCode;
   const loginWithCode = emailHook?.loginWithCode;
   const emailState = emailHook?.state;
 
-  // Tự động chuyển hướng vào màn hình Home khi đã xác thực thành công
+  // Tự động chuyển hướng vào màn hình Home khi đã xác thực từ trước
   useEffect(() => {
     if (isReady && user) {
-      router.replace('/');
+      console.log('🔄 [Auth Gateway] Đã có phiên đăng nhập trước đó:', user.id);
+      handleAuthSuccess(user, false, true);
     }
-  }, [isReady, user, router]);
+  }, [isReady, user]);
 
   // Xử lý gửi mã xác nhận OTP qua Email
   const handleSendEmailCode = async () => {
@@ -280,7 +305,11 @@ export default function AuthGatewayScreen() {
                 </TouchableOpacity>
 
                 {/* Web3 Auth: Phantom Auth Button (Encapsulated Component) */}
-                <PhantomAuthButton mode={isLoginMode ? 'login' : 'signup'} />
+                <PhantomAuthButton
+                  mode={isLoginMode ? 'login' : 'signup'}
+                  onSuccess={(u, isNew) => handleAuthSuccess(u, isNew, false)}
+                  onComplete={(u, isNew, wasAuth) => handleAuthSuccess(u, isNew, wasAuth)}
+                />
               </View>
             ) : (
               /* Bước 2: Xác thực mã OTP qua Email */
