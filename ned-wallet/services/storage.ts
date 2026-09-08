@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   LINKED_PHONE: '@ned_wallet_linked_phone',
   USERNAME: '@ned_wallet_user_handle',
   FULL_SNS: '@ned_wallet_full_sns',
+  AVATAR_URL: '@ned_wallet_avatar_url',
 };
 
 /**
@@ -198,6 +199,29 @@ export const setCachedFullSns = async (fullSns: string): Promise<void> => {
     await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, fullSns);
   } catch (error) {
     console.error('Error setting cached full SNS:', error);
+  }
+};
+
+/**
+ * Lấy avatar URL từ AsyncStorage
+ */
+export const getCachedAvatarUrl = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
+  } catch (error) {
+    console.error('Error reading cached avatar URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Lưu avatar URL vào AsyncStorage
+ */
+export const setCachedAvatarUrl = async (avatarUrl: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, avatarUrl);
+  } catch (error) {
+    console.error('Error setting cached avatar URL:', error);
   }
 };
 

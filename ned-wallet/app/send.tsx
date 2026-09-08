@@ -19,6 +19,8 @@ import * as Clipboard from 'expo-clipboard';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import {
   lookupWalletByPhone,
+  resolveIdentityOnchain,
+  normalizeIdentityInput,
   getUserPhoneNumberFromDB,
   isSamePhoneNumber,
   getAccountIdentifier,
@@ -55,6 +57,11 @@ export default function SendScreen() {
   const [debouncedInput, setDebouncedInput] = useState((params.recipient as string) || '');
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [resolvedPhone, setResolvedPhone] = useState<string | null>(null);
+  const [resolvedIdentity, setResolvedIdentity] = useState<{
+    type: 'wallet' | 'phone' | 'username';
+    label: string;
+    maskedWallet: string;
+  } | null>(null);
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [amount, setAmount] = useState('5');
@@ -104,106 +111,109 @@ export default function SendScreen() {
     };
   }, [searchInput]);
 
-  // 2. Logic phân loại định dạng, Chặn tự chuyển tiền & Tra cứu ví Supabase
+  // 2. Logic phân loại định dạng, Chặn tự chuyển tiền & Tra cứu ví On-chain PDA
   useEffect(() => {
     if (!debouncedInput) {
       setResolvedAddress(null);
       setResolvedPhone(null);
+      setResolvedIdentity(null);
       setSearchError('');
       setIsLoadingLookup(false);
       return;
     }
 
-    const isPhone = /^[+]?[0-9]{8,15}$/.test(debouncedInput);
-    const isSolanaBase58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(debouncedInput);
+    const parsed = normalizeIdentityInput(debouncedInput);
 
     // Chặn 1: Người dùng nhập chính SĐT của mình
-    if (isPhone && myPhone && isSamePhoneNumber(debouncedInput, myPhone)) {
+    if (parsed.type === 'phone' && myPhone && isSamePhoneNumber(parsed.normalized, myPhone)) {
       setResolvedAddress(null);
       setResolvedPhone(null);
+      setResolvedIdentity(null);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
     }
 
     // Chặn 2: Người dùng nhập chính địa chỉ ví của mình
-    if (myAddress && debouncedInput.toLowerCase() === myAddress.toLowerCase()) {
+    if (myAddress && (debouncedInput.toLowerCase() === myAddress.toLowerCase() || parsed.normalized.toLowerCase() === myAddress.toLowerCase())) {
       setResolvedAddress(null);
       setResolvedPhone(null);
+      setResolvedIdentity(null);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
     }
 
     // Trường hợp 1: Nhập trực tiếp địa chỉ Base58 hợp lệ
-    if (isSolanaBase58 && !isPhone) {
-      if (myAddress && debouncedInput.toLowerCase() === myAddress.toLowerCase()) {
-        setResolvedAddress(null);
-        setResolvedPhone(null);
-        setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
-      } else {
-        setResolvedAddress(debouncedInput);
-        setResolvedPhone(null);
-        setSearchError('');
-      }
+    if (parsed.type === 'wallet') {
+      setResolvedAddress(parsed.normalized);
+      setResolvedPhone(null);
+      setResolvedIdentity({
+        type: 'wallet',
+        label: 'Địa chỉ ví Solana',
+        maskedWallet: `${parsed.normalized.slice(0, 4)}...${parsed.normalized.slice(-4)}`,
+      });
+      setSearchError('');
       setIsLoadingLookup(false);
       return;
     }
 
-    // Trường hợp 2: Nhập số điện thoại -> Gọi Supabase Identity Lookup
-    if (isPhone) {
-      let isMounted = true;
-      setIsLoadingLookup(true);
-      setSearchError('');
-      setResolvedAddress(null);
-      setResolvedPhone(null);
+    // Trường hợp 2: Tra cứu Username hoặc SĐT 100% On-chain PDA
+    let isMounted = true;
+    setIsLoadingLookup(true);
+    setSearchError('');
+    setResolvedAddress(null);
+    setResolvedPhone(null);
+    setResolvedIdentity(null);
 
-      lookupWalletByPhone(debouncedInput)
-        .then((foundAddress) => {
-          if (!isMounted) return;
-          setIsLoadingLookup(false);
-          if (foundAddress) {
-            if (myAddress && foundAddress.toLowerCase() === myAddress.toLowerCase()) {
-              setResolvedAddress(null);
-              setResolvedPhone(null);
-              setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
-            } else {
-              setResolvedAddress(foundAddress);
-              setResolvedPhone(debouncedInput);
-              setSearchError('');
-            }
-          } else {
+    resolveIdentityOnchain(debouncedInput)
+      .then((res) => {
+        if (!isMounted) return;
+        setIsLoadingLookup(false);
+
+        if (res.success && res.walletAddress) {
+          if (myAddress && res.walletAddress.toLowerCase() === myAddress.toLowerCase()) {
             setResolvedAddress(null);
             setResolvedPhone(null);
-            setSearchError(t('send.phoneNotLinked', { defaultValue: 'Số điện thoại này chưa liên kết tài khoản N.E.D' }));
+            setResolvedIdentity(null);
+            setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+          } else {
+            setResolvedAddress(res.walletAddress);
+            if (res.type === 'phone') {
+              setResolvedPhone(res.normalized || debouncedInput);
+            }
+            const label = res.type === 'phone'
+              ? getMaskedPhone(res.normalized)
+              : `@${res.normalized}.sol`;
+            const maskedWallet = `${res.walletAddress.slice(0, 4)}...${res.walletAddress.slice(-4)}`;
+
+            setResolvedIdentity({
+              type: res.type || 'username',
+              label,
+              maskedWallet,
+            });
+            setSearchError('');
           }
-        })
-        .catch((err) => {
-          if (!isMounted) return;
-          setIsLoadingLookup(false);
+        } else {
           setResolvedAddress(null);
           setResolvedPhone(null);
-          setSearchError(t('send.lookupError', { defaultValue: 'Lỗi tra cứu thông tin tài khoản.' }));
-          console.log('Phone lookup error:', err);
-        });
+          setResolvedIdentity(null);
+          setSearchError(t('send.notFound', { defaultValue: 'Không tìm thấy người dùng định danh này' }));
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setIsLoadingLookup(false);
+        setResolvedAddress(null);
+        setResolvedPhone(null);
+        setResolvedIdentity(null);
+        setSearchError('Không tìm thấy người dùng định danh này');
+        console.error('Identity on-chain lookup error:', err);
+      });
 
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    // Trường hợp 3: Chuỗi không hợp lệ
-    if (debouncedInput.length > 5) {
-      setResolvedAddress(null);
-      setResolvedPhone(null);
-      setSearchError(t('send.invalidRecipient', { defaultValue: 'Định dạng tài khoản hoặc số điện thoại không hợp lệ' }));
-      setIsLoadingLookup(false);
-    } else {
-      setResolvedAddress(null);
-      setResolvedPhone(null);
-      setSearchError('');
-      setIsLoadingLookup(false);
-    }
+    return () => {
+      isMounted = false;
+    };
   }, [debouncedInput, myAddress, myPhone, t]);
 
   const copyToClipboard = async (text: string) => {
@@ -391,7 +401,7 @@ export default function SendScreen() {
               <Feather name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder={t('send.recipientPlaceholder', { defaultValue: 'Nhập số điện thoại người nhận...' })}
+                placeholder={t('send.recipientPlaceholder', { defaultValue: 'Nhập @username, SĐT hoặc ví Solana...' })}
                 placeholderTextColor="#94A3B8"
                 value={searchInput}
                 onChangeText={setSearchInput}
@@ -399,12 +409,26 @@ export default function SendScreen() {
                 autoCorrect={false}
               />
               <View style={styles.rightActionBox}>
-                {isLoadingLookup && <ActivityIndicator size="small" color="#00A859" />}
+                {isLoadingLookup ? (
+                  <ActivityIndicator size="small" color="#00A859" />
+                ) : searchInput.length > 0 ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSearchInput('');
+                      setResolvedAddress(null);
+                      setResolvedIdentity(null);
+                      setSearchError('');
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </View>
 
-          {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Tài Khoản) */}
+          {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Tài Khoản On-chain) */}
           {resolvedAddress && (
             <View style={styles.successCard}>
               <View style={styles.successIconBox}>
@@ -412,17 +436,15 @@ export default function SendScreen() {
               </View>
               <View style={styles.successInfoCol}>
                 <Text style={styles.successTitle}>
-                  {resolvedPhone
-                    ? `Tài khoản: ${getMaskedPhone(resolvedPhone)}`
-                    : `Tài khoản: ${getAccountIdentifier(null, resolvedPhone)}`}
+                  Nhận bởi: {resolvedIdentity?.maskedWallet || `${resolvedAddress.slice(0, 4)}...${resolvedAddress.slice(-4)}`}
                 </Text>
                 <Text style={styles.successAddressText}>
-                  Đã xác thực danh tính N.E.D
+                  {resolvedIdentity?.label ? `Định danh: ${resolvedIdentity.label}` : 'Đã xác thực danh tính on-chain'}
                 </Text>
               </View>
               <TouchableOpacity
                 style={styles.copyPillBtn}
-                onPress={() => copyToClipboard(resolvedPhone || resolvedAddress)}
+                onPress={() => copyToClipboard(resolvedAddress)}
               >
                 <Text style={styles.copyPillText}>{t('deposit.copyAddress', { defaultValue: 'Sao chép' })}</Text>
               </TouchableOpacity>

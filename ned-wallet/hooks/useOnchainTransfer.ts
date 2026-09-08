@@ -9,7 +9,7 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { lookupWalletByPhone } from '../services/identity';
+import { lookupWalletByPhone, resolveIdentityOnchain } from '../services/identity';
 import {
   solanaConnection,
   USDC_DEVNET_MINT,
@@ -49,7 +49,7 @@ export interface UseOnchainTransferReturn {
 /**
  * Custom Hook Giao Dịch Core 100% On-chain:
  * - Tự động phát hiện tài sản (USDC SPL Token hoặc SOL Devnet)
- * - Tự động tra cứu tài khoản nhận từ số điện thoại qua Supabase
+ * - Tự động tra cứu tài khoản nhận từ Username/SĐT qua Anchor Identity PDA trên Solana
  * - Tự động khởi tạo Associated Token Account (ATA) cho người nhận nếu chưa có
  * - Ký xác nhận bảo mật và phát sóng trực tiếp lên Solana Devnet
  * - Bọc InteractionManager bảo vệ Main Thread và WebView trên thiết bị
@@ -147,7 +147,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
 
       const inputRecipient = params.recipientAddressOrPhone.trim();
       if (!inputRecipient) {
-        const err = 'Vui lòng nhập số điện thoại hoặc tài khoản người nhận.';
+        const err = 'Vui lòng nhập định danh hoặc tài khoản người nhận.';
         setError(err);
         return { success: false, error: err };
       }
@@ -160,24 +160,24 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
       }
 
       setIsTransferring(true);
-      setStatusMessage('Đang phân giải thông tin người nhận...');
+      setStatusMessage('Đang phân giải danh tính người nhận on-chain...');
 
       try {
-        // 3. Phân giải SĐT -> Địa chỉ ví từ Supabase nếu cần
+        // 3. Phân giải Username/SĐT -> Địa chỉ ví từ Solana PDA on-chain
         let finalToAddress = inputRecipient;
         const isSolanaBase58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(inputRecipient);
 
         if (!isSolanaBase58) {
-          setStatusMessage('Đang tra cứu tài khoản qua số điện thoại...');
-          const lookedUp = await lookupWalletByPhone(inputRecipient);
-          if (!lookedUp) {
+          setStatusMessage('Đang tra cứu danh tính on-chain...');
+          const resolved = await resolveIdentityOnchain(inputRecipient);
+          if (!resolved.success || !resolved.walletAddress) {
             setIsTransferring(false);
             setStatusMessage('');
-            const err = `Không tìm thấy tài khoản nào liên kết với số điện thoại ${inputRecipient}.`;
+            const err = resolved.error || `Không tìm thấy người dùng định danh này (${inputRecipient}).`;
             setError(err);
             return { success: false, error: err };
           }
-          finalToAddress = lookedUp;
+          finalToAddress = resolved.walletAddress;
         }
 
         // 4. Validate PublicKeys

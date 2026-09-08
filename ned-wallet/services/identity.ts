@@ -123,19 +123,174 @@ export interface GeoRedPacket {
   distanceMeters?: number;
 }
 
-// --- DUMMY FUNCTIONS (Sẵn sàng thay thế trực tiếp bằng Anchor Program On-chain Calls) ---
+import { PublicKey, Connection } from '@solana/web3.js';
+import { Buffer } from 'buffer';
+import * as crypto from 'crypto';
+import { solanaConnection } from './solana';
 
-/**
- * Lấy số điện thoại đã lưu theo Privy userId
- */
-export async function getUserPhoneNumberFromDB(_userId: string): Promise<string | null> {
-  return null;
+export const NED_IDENTITY_PROGRAM_ID = new PublicKey(
+  process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID || '8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi'
+);
+
+export interface NormalizedIdentity {
+  type: 'wallet' | 'phone' | 'username';
+  raw: string;
+  normalized: string;
 }
 
 /**
- * Tra cứu địa chỉ ví Solana theo số điện thoại
+ * 1. Chuẩn hóa chuỗi đầu vào (Username / Số điện thoại / Địa chỉ ví)
  */
-export async function lookupWalletByPhone(_phone: string): Promise<string | null> {
+export function normalizeIdentityInput(input: string): NormalizedIdentity {
+  const trimmed = (input || '').trim();
+  if (!trimmed) {
+    return { type: 'username', raw: '', normalized: '' };
+  }
+
+  // A. Kiểm tra địa chỉ ví Solana Base58 trực tiếp (32-44 ký tự Base58)
+  const isSolanaBase58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed);
+  if (isSolanaBase58 && trimmed.length >= 32 && !trimmed.includes('@') && !trimmed.includes('.')) {
+    try {
+      new PublicKey(trimmed);
+      return { type: 'wallet', raw: trimmed, normalized: trimmed };
+    } catch {}
+  }
+
+  // B. Kiểm tra Số điện thoại
+  const digitsOnly = trimmed.replace(/[^\d]/g, '');
+  const hasPhonePrefix = trimmed.startsWith('+') || trimmed.startsWith('0') || trimmed.startsWith('84');
+  const isPhoneLike =
+    hasPhonePrefix &&
+    digitsOnly.length >= 9 &&
+    digitsOnly.length <= 13 &&
+    !trimmed.includes('@') &&
+    !trimmed.toLowerCase().includes('.sol');
+
+  if (isPhoneLike) {
+    let normalizedPhone = trimmed.replace(/[\s\-().]/g, '');
+    if (normalizedPhone.startsWith('0')) {
+      normalizedPhone = '+84' + normalizedPhone.slice(1);
+    } else if (normalizedPhone.startsWith('84') && !normalizedPhone.startsWith('+')) {
+      normalizedPhone = '+' + normalizedPhone;
+    } else if (!normalizedPhone.startsWith('+')) {
+      normalizedPhone = '+84' + normalizedPhone;
+    }
+    return { type: 'phone', raw: trimmed, normalized: normalizedPhone };
+  }
+
+  // C. Username: Loại bỏ @ ở đầu, loại bỏ .sol ở cuối, chuyển thành chữ thường và bỏ khoảng trắng
+  let cleanUsername = trimmed
+    .toLowerCase()
+    .replace(/\s+/g, '');
+
+  if (cleanUsername.startsWith('@')) {
+    cleanUsername = cleanUsername.slice(1);
+  }
+  if (cleanUsername.endsWith('.sol')) {
+    cleanUsername = cleanUsername.slice(0, -4);
+  }
+
+  return { type: 'username', raw: trimmed, normalized: cleanUsername };
+}
+
+/**
+ * 2. Tìm Program Derived Address (PDA) trên mạng Solana
+ */
+export function findIdentityPDA(
+  normalizedString: string,
+  programId: PublicKey = NED_IDENTITY_PROGRAM_ID
+): [PublicKey, number] {
+  const hashed = crypto.createHash('sha256').update(normalizedString).digest();
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('identity'), hashed],
+    programId
+  );
+}
+
+/**
+ * 3. Phân giải On-chain (Đọc dữ liệu ví đích từ PDA)
+ */
+export async function resolveIdentityOnchain(
+  input: string,
+  connection: Connection = solanaConnection,
+  programId: PublicKey = NED_IDENTITY_PROGRAM_ID
+): Promise<{
+  success: boolean;
+  walletAddress?: string;
+  normalized?: string;
+  type?: 'wallet' | 'phone' | 'username';
+  pdaAddress?: string;
+  error?: string;
+}> {
+  if (!input || !input.trim()) {
+    return { success: false, error: 'Vui lòng nhập định danh người nhận.' };
+  }
+
+  const parsed = normalizeIdentityInput(input);
+  if (!parsed.normalized) {
+    return { success: false, error: 'Định danh không hợp lệ.' };
+  }
+
+  // Nếu là địa chỉ ví trực tiếp
+  if (parsed.type === 'wallet') {
+    return {
+      success: true,
+      walletAddress: parsed.normalized,
+      normalized: parsed.normalized,
+      type: 'wallet',
+    };
+  }
+
+  try {
+    console.log(`🔍 [resolveIdentityOnchain] Tra cứu on-chain cho ${parsed.type}: "${parsed.normalized}"`);
+    const [pda] = findIdentityPDA(parsed.normalized, programId);
+    console.log(`📍 [resolveIdentityOnchain] PDA Address: ${pda.toBase58()}`);
+
+    const accountInfo = await connection.getAccountInfo(pda);
+    if (!accountInfo || !accountInfo.data || accountInfo.data.length < 40) {
+      console.warn(`⚠️ [resolveIdentityOnchain] Không tìm thấy PDA trên chuỗi cho ${parsed.normalized}`);
+      return {
+        success: false,
+        pdaAddress: pda.toBase58(),
+        normalized: parsed.normalized,
+        type: parsed.type,
+        error: 'Không tìm thấy người dùng định danh này',
+      };
+    }
+
+    // Cắt 32 bytes từ offset 8 đến 40 để lấy PublicKey người sở hữu ví
+    const ownerPubkey = new PublicKey(accountInfo.data.slice(8, 40));
+    const walletAddress = ownerPubkey.toBase58();
+
+    console.log(`✅ [resolveIdentityOnchain] Tìm thấy ví đích thành công: ${walletAddress}`);
+    return {
+      success: true,
+      walletAddress,
+      normalized: parsed.normalized,
+      type: parsed.type,
+      pdaAddress: pda.toBase58(),
+    };
+  } catch (err: any) {
+    console.error('❌ [resolveIdentityOnchain] Lỗi truy vấn RPC on-chain:', err);
+    return {
+      success: false,
+      error: err?.message || 'Lỗi truy vấn mạng Solana. Vui lòng thử lại.',
+    };
+  }
+}
+
+/**
+ * Tra cứu địa chỉ ví Solana theo số điện thoại hoặc Username (100% On-chain PDA)
+ */
+export async function lookupWalletByPhone(phoneOrUsername: string): Promise<string | null> {
+  const res = await resolveIdentityOnchain(phoneOrUsername);
+  return res.success && res.walletAddress ? res.walletAddress : null;
+}
+
+/**
+ * Lấy số điện thoại đã lưu theo Privy userId (fallback helper)
+ */
+export async function getUserPhoneNumberFromDB(_userId: string): Promise<string | null> {
   return null;
 }
 

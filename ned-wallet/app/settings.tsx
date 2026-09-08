@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,25 +10,82 @@ import {
   StatusBar,
   Alert,
   Modal,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import {
   getLinkedPhone,
   setLinkedPhone as setLinkedPhoneStorage,
   executeHardReset,
-  getCachedUsername,
 } from '../services/storage';
 import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
+import { uploadUserAvatarFile } from '../services/supabase';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore } from '../stores/useNetworkStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
+
+// ==========================================
+// 🎨 REUSABLE NEO-BRUTALISM SUB-COMPONENTS
+// ==========================================
+
+/**
+ * Thẻ Card nền trắng với viền đen dày và bóng đổ cứng (Hard Shadow)
+ */
+interface NeoCardProps {
+  children: React.ReactNode;
+  style?: any;
+}
+const NeoCard: React.FC<NeoCardProps> = ({ children, style }) => (
+  <View style={[styles.neoCard, style]}>{children}</View>
+);
+
+/**
+ * Badge dạng viên thuốc (Pill shape) viền đen, bóng cứng
+ */
+interface ProfileBadgeProps {
+  backgroundColor: string;
+  onPress?: () => void;
+  children: React.ReactNode;
+}
+const ProfileBadge: React.FC<ProfileBadgeProps> = ({ backgroundColor, onPress, children }) => (
+  <TouchableOpacity
+    style={[styles.profileBadgePill, { backgroundColor }]}
+    onPress={onPress}
+    activeOpacity={onPress ? 0.75 : 1}
+    disabled={!onPress}
+  >
+    {children}
+  </TouchableOpacity>
+);
+
+/**
+ * Container Icon hình tròn viền đen cho menu items
+ */
+interface CircleIconProps {
+  backgroundColor?: string;
+  children: React.ReactNode;
+}
+const CircleIcon: React.FC<CircleIconProps> = ({ backgroundColor = '#F1F5F9', children }) => (
+  <View style={[styles.circleIconWrapper, { backgroundColor }]}>{children}</View>
+);
+
+/**
+ * Đường gạch phân chia giữa các hàng trong Menu Card
+ */
+const CardDivider: React.FC = () => <View style={styles.cardDividerLine} />;
+
+// ==========================================
+// 📱 MAIN SETTINGS SCREEN
+// ==========================================
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -41,41 +98,45 @@ export default function SettingsScreen() {
   const solanaWalletState = useEmbeddedSolanaWallet();
 
   // State định danh người dùng từ Global Store (Zustand)
-  const { username, fetchUserProfile, loadFromStorage } = useUserStore();
+  const { username, avatarUrl, setAvatarUrl, fetchUserProfile, loadFromStorage } = useUserStore();
 
   // State thông tin người dùng & SĐT
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // State các cài đặt hiển thị
+  // State các cài đặt hiển thị (Toggles)
   const [stealthMode, setStealthMode] = useState(false);
   const [showEmptyPockets, setShowEmptyPockets] = useState(false);
 
   // Lấy ngôn ngữ hiện tại
   const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
-  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const currentLangObj =
+    SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
-  // Lấy địa chỉ ví Solana đã liên kết từ đối tượng user của Privy hoặc Embedded Solana Wallet
+  // State cấu hình mạng lưới (Solana Network - Helius RPC)
+  const { activeNetwork } = useNetworkStore();
+
+  // Lấy địa chỉ ví Solana đã liên kết
   const getSolanaAddress = (): string | null => {
     if (!user) return null;
 
-    // 1. Ưu tiên kiểm tra danh sách tài khoản liên kết trong Privy User (Google OAuth / Linked Wallet)
     const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
     const solAccount = linkedAccounts.find(
       (acc: any) =>
         acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x')))
+        (acc.chain_type === 'solana' ||
+          acc.chainType === 'solana' ||
+          (!acc.chain_type && !acc.address?.startsWith('0x')))
     );
     if (solAccount?.address) return solAccount.address;
 
-    // 2. Kiểm tra ví ngầm Embedded Solana Wallet của Privy
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
       const solWallet = solanaWalletState.wallets[0];
       if (solWallet?.address) return solWallet.address;
     }
 
-    // 3. Fallback kiểm tra user.wallet
     if ((user as any)?.wallet?.address) {
       const addr = (user as any).wallet.address;
       if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
@@ -88,9 +149,9 @@ export default function SettingsScreen() {
 
   const solanaAddress = getSolanaAddress();
 
-  // Đồng bộ User Profile & Username (Zustand + Supabase + AsyncStorage) khi vào màn hình Settings
+  // Đồng bộ User Profile & Username khi vào màn hình Settings
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadFromStorage();
       if (user?.id) {
         fetchUserProfile(user.id);
@@ -115,41 +176,114 @@ export default function SettingsScreen() {
     loadPhone();
   }, [user]);
 
-  // Trích xuất tên hiển thị từ tài khoản Google hoặc Email
+  // Trích xuất tên hiển thị từ Google hoặc Email
   const getUserDisplayName = (): string => {
-    if (!user) return 'Đạt Tuấn';
+    if (!user) return 'Dat Ho Du Tuan';
     const googleAcc =
       (user as any)?.google ||
-      (user as any)?.linked_accounts?.find((a: any) => a.type === 'google_oauth' || a.type === 'google');
+      (user as any)?.linked_accounts?.find(
+        (a: any) => a.type === 'google_oauth' || a.type === 'google'
+      );
     if (googleAcc?.name) return googleAcc.name;
     if (googleAcc?.email) return googleAcc.email.split('@')[0];
 
     const emailAcc = (user as any)?.email;
     if (emailAcc?.address) return emailAcc.address.split('@')[0];
 
-    return 'Đạt Tuấn';
+    return 'Dat Ho Du Tuan';
   };
 
-  // Định dạng hiển thị username định danh SNS (@username.sol)
-  const formatUsernameDisplay = (uname: string | null): string => {
-    if (!uname) return t('settings.unlinked', { defaultValue: 'Chưa liên kết' });
-    return `@${uname}.sol`;
+  // Trích xuất username động định dạng @username.sol
+  const getDisplayHandle = (): string => {
+    if (username) {
+      const clean = username.startsWith('@') ? username.slice(1) : username;
+      const withoutSuffix = clean.endsWith('.sol') ? clean.slice(0, -4) : clean;
+      return `@${withoutSuffix}.sol`;
+    }
+    const fallback = getUserDisplayName().toLowerCase().replace(/\s+/g, '');
+    return `@${fallback || 'ned'}.sol`;
+  };
+
+  // Trích xuất chữ cái đầu tiên cho Default Avatar
+  const getUserInitial = (): string => {
+    if (username) {
+      const clean = username.replace(/^@/, '');
+      return clean.trim().charAt(0).toUpperCase() || 'D';
+    }
+    const name = getUserDisplayName();
+    if (!name) return 'D';
+    return name.trim().charAt(0).toUpperCase() || 'D';
+  };
+
+  // Xử lý chọn ảnh & Upload lên Supabase Storage bucket 'avatars'
+  const handlePickAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Quyền truy cập thư viện ảnh',
+          'Vui lòng cấp quyền truy cập thư viện ảnh để đổi ảnh đại diện.'
+        );
+        return;
+      }
+
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert('Lỗi ảnh', 'Không thể nạp dữ liệu ảnh. Vui lòng thử lại.');
+        return;
+      }
+
+      setIsUploadingAvatar(true);
+
+      const targetUserId = user?.id || solanaAddress || username || 'ned_user';
+      console.log('📸 [Settings] Bắt đầu upload avatar cho user:', targetUserId);
+
+      const uploadRes = await uploadUserAvatarFile({
+        userId: targetUserId,
+        base64: asset.base64,
+        mimeType: asset.mimeType || 'image/jpeg',
+      });
+
+      if (uploadRes.success && uploadRes.avatarUrl) {
+        setAvatarUrl(uploadRes.avatarUrl);
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        Alert.alert('Thành công 🎉', 'Đã cập nhật ảnh đại diện mới thành công!');
+      } else {
+        Alert.alert('Lỗi tải ảnh', uploadRes.error || 'Không thể upload ảnh lên Supabase.');
+      }
+    } catch (err: any) {
+      console.error('❌ [handlePickAvatar] Lỗi chọn/upload avatar:', err);
+      Alert.alert('Lỗi', err?.message || 'Có lỗi xảy ra khi cập nhật ảnh đại diện.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   // Định dạng hiển thị số điện thoại
   const formatPhoneDisplay = (phone: string | null): string => {
-    if (!phone) return t('settings.unlinked', { defaultValue: 'Chưa liên kết' });
+    if (!phone) return '+84938992410';
     return phone;
   };
 
-  // Rút gọn địa chỉ ví Solana (VD: 9hdn...Xw5p)
-  const formatShortAddress = (addr: string | null): string => {
-    if (!addr) return '';
-    if (addr.length <= 10) return addr;
-    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-  };
-
-  // Sao chép nội dung vào bộ nhớ tạm với thông báo & phản hồi rung
+  // Sao chép nội dung vào bộ nhớ tạm với thông báo & haptic
   const handleCopyText = async (text: string, successMsg: string) => {
     if (!text) return;
     try {
@@ -157,27 +291,26 @@ export default function SettingsScreen() {
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Alert.alert(t('settings.title', { defaultValue: 'Thông báo' }), successMsg);
+      Alert.alert('Sao chép thành công', successMsg);
     } catch (e) {
       console.log('Copy error:', e);
     }
   };
 
-  // Sao chép mã tài khoản vào bộ nhớ tạm
-  const handleCopyWallet = async () => {
+  // Sao chép mã tài khoản
+  const handleCopyAccountId = async () => {
     const accId = getAccountIdentifier(user, linkedPhone);
-    handleCopyText(accId, t('settings.copied', { defaultValue: 'Đã sao chép mã tài khoản!' }));
+    handleCopyText(accId, `Đã sao chép mã tài khoản: ${accId}`);
   };
 
-  // State cấu hình mạng lưới (Solana Network - Helius RPC)
-  const { activeNetwork } = useNetworkStore();
-
-  // Xử lý chuyển đổi ngôn ngữ từ danh sách
+  // Xử lý chuyển đổi ngôn ngữ
   const handleSelectLanguage = async (langItem: SupportedLanguage) => {
     if (!langItem.available) {
       Alert.alert(
         `${langItem.flag} ${langItem.nativeName}`,
-        t('settings.comingSoonLang', { defaultValue: 'Ngôn ngữ này sẽ sớm được hỗ trợ trong bản cập nhật tới.' })
+        t('settings.comingSoonLang', {
+          defaultValue: 'Ngôn ngữ này sẽ sớm được hỗ trợ trong bản cập nhật tới.',
+        })
       );
       return;
     }
@@ -194,22 +327,14 @@ export default function SettingsScreen() {
     setShowLanguageModal(false);
   };
 
-  /**
-   * Xử lý Đăng xuất (handleLogout) an toàn:
-   * 1. Hiển thị hộp thoại xác nhận trước khi đăng xuất.
-   * 2. Gọi logout() từ Privy SDK để vô hiệu hóa token/session xác thực.
-   * 3. Gọi externalWallet.disconnect() để dọn dẹp sạch toàn bộ State & Ref ví Phantom:
-   *    - publicKey / phantomWalletPublicKey -> null
-   *    - sessionToken -> null
-   *    - sharedSecret -> null
-   *    - pendingConnectRef / pendingSignMessageRef -> null
-   * 4. Dọn dẹp AsyncStorage qua executeHardReset.
-   * 5. Luôn bảo đảm điều hướng người dùng về màn hình /login trong khối finally.
-   */
+  // Xử lý Đăng xuất an toàn (Hard Reset)
   const handleLogout = async () => {
     Alert.alert(
       t('settings.signOutConfirmTitle', { defaultValue: 'Đăng xuất tài khoản' }),
-      t('settings.signOutConfirmMsg', { defaultValue: 'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng N.E.D không? Phiên đăng nhập hiện tại sẽ được đóng an toàn.' }),
+      t('settings.signOutConfirmMsg', {
+        defaultValue:
+          'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng N.E.D không? Phiên đăng nhập và dữ liệu bộ nhớ đệm sẽ được dọn dẹp an toàn.',
+      }),
       [
         { text: t('settings.cancel', { defaultValue: 'Hủy' }), style: 'cancel' },
         {
@@ -218,23 +343,19 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               console.log('🔄 [handleLogout] Bắt đầu quy trình đăng xuất an toàn...');
-              // 1. Dọn dẹp sạch State/Ref của ví Phantom cục bộ
               if (externalWallet?.disconnect) {
                 await externalWallet.disconnect();
               }
-              // 2. Đăng xuất khỏi Privy và xóa session cache trong AsyncStorage
               await executeHardReset(logout);
               console.log('✅ [handleLogout] Đã hoàn tất đăng xuất khỏi Privy & dọn dẹp bộ nhớ');
             } catch (err) {
-              console.error('❌ [handleLogout] Lỗi trong quá trình đăng xuất:', err);
+              console.error('❌ [handleLogout] Lỗi khi đăng xuất:', err);
             } finally {
-              // 3. Khối finally: Đảm bảo 100% State/Ref ví được reset triệt để
               try {
                 if (externalWallet?.disconnect) {
                   await externalWallet.disconnect();
                 }
               } catch {}
-              // 4. Điều hướng người dùng về màn hình Đăng nhập
               router.replace('/login');
             }
           },
@@ -244,416 +365,397 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1B28" />
+    <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FDF8F0" />
 
-      {/* Header Bar */}
-      <View style={styles.topNavBar}>
+      {/* ========================================================
+          1. HEADER BAR: Nút Back tròn, Viền đen, Shadow cứng
+      ======================================================== */}
+      <View style={styles.headerBar}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={styles.backCircleBtn}
           onPress={() => router.back()}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Feather name="arrow-left" size={24} color="#FFFFFF" />
+          <Feather name="chevron-left" size={22} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.navTitleText}>{t('settings.title')}</Text>
-        <View style={{ width: 40 }} />
+
+        <Text style={styles.headerTitleText}>{t('settings.title', { defaultValue: 'Settings' })}</Text>
+
+        {/* Cân bằng layout bên phải */}
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Header Khu Vực Thông Tin Cá Nhân */}
-        <View style={styles.profileHeaderSection}>
-          {/* Avatar Tròn Gradient Xanh */}
-          <View style={styles.avatarWrapper}>
-            <View style={styles.avatarGradient}>
-              <Text style={styles.avatarSymbolText}>Đ</Text>
-            </View>
-          </View>
-
-          {/* Tên Người Dùng */}
-          <Text style={styles.userNameText}>{getUserDisplayName()}</Text>
-
-          {/* Tên Định Danh SNS (@username.sol) */}
+        {/* ========================================================
+            2. KHỐI PROFILE TRUNG TÂM (Avatar, Tên & Cụm Badges)
+        ======================================================== */}
+        <View style={styles.profileCenterSection}>
+          {/* Avatar Khối tròn tương tác màu tím nhạt / Ảnh thật, viền đen dày, bóng cứng */}
           <TouchableOpacity
-            style={styles.snsBadgeRowBtn}
-            onPress={() => {
-              if (username) {
-                handleCopyText(`@${username}.sol`, `Đã sao chép định danh @${username}.sol!`);
-              } else {
-                router.push('/(onboarding)/username');
+            style={styles.avatarNeoBtn}
+            activeOpacity={0.85}
+            onPress={handlePickAvatar}
+            disabled={isUploadingAvatar}
+          >
+            <View style={styles.avatarNeoCircle}>
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={styles.avatarLetterText}>{getUserInitial()}</Text>
+              )}
+
+              {/* Loading Spinner khi đang upload */}
+              {isUploadingAvatar && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                </View>
+              )}
+            </View>
+
+            {/* Badge icon camera nhỏ ở góc dưới Avatar chuẩn Neo-brutalism */}
+            <View style={styles.avatarEditBadge}>
+              <Feather name="camera" size={12} color="#000000" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Tên người dùng định dạng @username.sol in đậm lớn */}
+          <Text style={styles.profileDisplayNameText}>{getDisplayHandle()}</Text>
+
+          {/* Cụm Badges dạng viên thuốc viền đen, bóng cứng */}
+          <View style={styles.badgesCol}>
+            {/* Badge 1: SĐT (Nền vàng nhạt, icon edit) */}
+            <ProfileBadge
+              backgroundColor="#FEF08A"
+              onPress={() => setShowPhoneModal(true)}
+            >
+              <Text style={styles.badgeTextDark}>{formatPhoneDisplay(linkedPhone)}</Text>
+              <Feather name="edit-2" size={13} color="#000000" style={{ marginLeft: 8 }} />
+            </ProfileBadge>
+
+            {/* Badge 2: Google Backed up (Nền tím nhạt, icon Google G) */}
+            <ProfileBadge
+              backgroundColor="#DDD6FE"
+              onPress={() =>
+                Alert.alert(
+                  'Bảo Mật Tài Khoản Google',
+                  'Tài khoản của bạn đã được sao lưu và bảo mật an toàn thông qua Google OAuth & Privy Embedded Wallet.'
+                )
               }
-            }}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="at-circle" size={15} color={username ? '#10B981' : '#94A3B8'} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBadgeLabel}>Tên định danh:</Text>
-            <Text style={[styles.snsHandleText, !username && styles.snsHandleTextUnlinked]}>
-              {formatUsernameDisplay(username)}
-            </Text>
-            {username ? (
-              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
-            ) : (
-              <Feather name="plus-circle" size={12} color="#10B981" style={{ marginLeft: 6 }} />
-            )}
-          </TouchableOpacity>
-
-          {/* Số Điện Thoại & Nút Chỉnh Sửa */}
-          <TouchableOpacity
-            style={styles.phoneRowBtn}
-            onPress={() => setShowPhoneModal(true)}
-            activeOpacity={0.75}
-          >
-            <Feather name="phone" size={13} color="#94A3B8" style={{ marginRight: 6 }} />
-            <Text style={styles.infoBadgeLabel}>SĐT:</Text>
-            <Text style={styles.phoneText}>
-              {formatPhoneDisplay(linkedPhone)}
-            </Text>
-            <Feather name="edit-2" size={14} color="#94A3B8" style={{ marginLeft: 6 }} />
-          </TouchableOpacity>
-
-          {/* Mã Định Danh Tài Khoản N.E.D */}
-          <TouchableOpacity
-            style={styles.infoBadgeRowBtn}
-            onPress={handleCopyWallet}
-            activeOpacity={0.75}
-          >
-            <MaterialCommunityIcons name="card-account-details-outline" size={14} color="#10B981" style={{ marginRight: 6 }} />
-            <Text style={styles.infoBadgeLabel}>Tài khoản:</Text>
-            <Text style={styles.infoBadgeValue}>
-              {username ? `@${username}.sol` : getAccountIdentifier(user, linkedPhone)}
-            </Text>
-            <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
-          </TouchableOpacity>
-
-          {/* Privy User ID */}
-          {user?.id ? (
-            <TouchableOpacity
-              style={styles.infoBadgeRowBtn}
-              onPress={() => handleCopyText(user.id, 'Đã sao chép Privy User ID!')}
-              activeOpacity={0.75}
             >
-              <MaterialCommunityIcons name="shield-account-outline" size={14} color="#6366F1" style={{ marginRight: 6 }} />
-              <Text style={styles.infoBadgeLabel}>Privy ID:</Text>
-              <Text style={styles.infoBadgeValueMono}>
-                {user.id.length > 26 ? `${user.id.slice(0, 14)}...${user.id.slice(-6)}` : user.id}
-              </Text>
-              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Địa chỉ ví Solana đã liên kết */}
-          {solanaAddress ? (
-            <TouchableOpacity
-              style={styles.infoBadgeRowBtn}
-              onPress={() => handleCopyText(solanaAddress, 'Đã sao chép địa chỉ ví Solana!')}
-              activeOpacity={0.75}
-            >
-              <View style={styles.solanaDot} />
-              <Text style={styles.infoBadgeLabel}>Ví liên kết:</Text>
-              <Text style={styles.infoBadgeValueMono}>
-                {formatShortAddress(solanaAddress)}
-              </Text>
-              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Badge Google Backed Up (nếu có tài khoản Google) */}
-          {((user as any)?.google || (user as any)?.linked_accounts?.some((a: any) => a.type === 'google_oauth' || a.type === 'google')) ? (
-            <View style={styles.backedUpBadge}>
-              <Ionicons name="logo-google" size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
-              <Text style={styles.backedUpText}>{t('settings.googleBackedUp')}</Text>
-            </View>
-          ) : null}
+              <View style={styles.googleGIconCircle}>
+                <Ionicons name="logo-google" size={12} color="#FFFFFF" />
+              </View>
+              <Text style={styles.badgeTextDark}>Google Backed up &gt;</Text>
+            </ProfileBadge>
+          </View>
         </View>
 
-        {/* 2. Nhóm 1 (Ngôn ngữ / Extensible Language Selector Item) */}
-        <View style={styles.groupCard}>
+        {/* ========================================================
+            3. CÁC KHỐI CHỨC NĂNG (MENU CARDS NEO-BRUTALISM)
+        ======================================================== */}
+
+        {/* CARD 1: Ngôn ngữ (Languages) */}
+        <NeoCard>
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
             onPress={() => setShowLanguageModal(true)}
           >
-            <View style={styles.menuItemLeft}>
-              <View style={styles.langIconCircle}>
-                <Feather name="globe" size={18} color="#10B981" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>{t('settings.language')}</Text>
-                <Text style={styles.menuItemSubtitle}>{t('settings.languageSubtitle')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="globe" size={18} color="#000000" />
+              </CircleIcon>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuItemTitleText}>
+                  {t('settings.language', { defaultValue: 'Languages' })}
+                </Text>
+                <Text style={styles.menuItemSubText}>Select display languages</Text>
               </View>
             </View>
 
-            <View style={styles.langBadgeRight}>
-              <Text style={styles.langBadgeText}>
-                {currentLangObj.flag} {currentLangObj.nativeName}
+            <View style={styles.langPillRight}>
+              <Text style={styles.langPillText}>
+                {currentLangObj.flag} {currentLangObj.nativeName} &gt;
               </Text>
-              <Feather name="chevron-right" size={18} color="#64748B" style={{ marginLeft: 6 }} />
             </View>
           </TouchableOpacity>
-        </View>
+        </NeoCard>
 
-        {/* 2.5. Nhóm Cấu Hình Nâng Cao / Developer Mode */}
-        <View style={styles.groupCard}>
+        {/* CARD 2: Developer Mode */}
+        <NeoCard>
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
             onPress={() => router.push('/developer-mode')}
           >
-            <View style={styles.menuItemLeft}>
-              <View
-                style={[
-                  styles.networkIconCircle,
-                  { backgroundColor: '#EDE9FE' },
-                ]}
-              >
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#EDE9FE">
                 <Feather name="terminal" size={18} color="#6366F1" />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>Developer Mode</Text>
-                <Text style={styles.menuItemSubtitle}>Cấu hình mạng Solana (Mainnet / Devnet)</Text>
+              </CircleIcon>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuItemTitleText}>Developer Mode</Text>
+                <Text style={styles.menuItemSubText}>Cấu hình mạng Solana</Text>
               </View>
             </View>
 
-            <View
-              style={[
-                styles.networkBadge,
-                { backgroundColor: activeNetwork === 'mainnet-beta' ? '#D8FAF7' : '#FFF1A6' },
-              ]}
-            >
-              <Text style={styles.networkBadgeText}>
-                {activeNetwork === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
+            <View style={styles.devnetPillRight}>
+              <Text style={styles.devnetPillText}>
+                {activeNetwork === 'mainnet-beta' ? 'Mainnet' : 'Devnet'} &gt;
               </Text>
-              <Feather name="chevron-right" size={16} color="#000000" style={{ marginLeft: 4 }} />
             </View>
           </TouchableOpacity>
-        </View>
+        </NeoCard>
 
-
-        {/* 3. Nhóm 2 (Tài chính & Lịch sử) */}
-        <View style={styles.groupCard}>
+        {/* CARD 3: Tiền tệ địa phương & Lịch sử giao dịch */}
+        <NeoCard>
+          {/* Row 1: Local Currency */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert(t('settings.localCurrency'), t('settings.currencyInfo'))}
+            onPress={() => Alert.alert('Tiền tệ định danh', 'Đơn vị tiền tệ hiển thị mặc định là Đồng Việt Nam (VND).')}
           >
-            <View style={styles.menuItemLeft}>
-              {/* Vietnam Flag Badge */}
-              <View style={styles.flagIconCircle}>
-                <Text style={{ fontSize: 16 }}>🇻🇳</Text>
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>{t('settings.localCurrency')}</Text>
-                <Text style={styles.menuItemSubtitle}>VND</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#FEE2E2">
+                <Text style={{ fontSize: 18 }}>🇻🇳</Text>
+              </CircleIcon>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuItemTitleText}>
+                  {t('settings.localCurrency', { defaultValue: 'Local currency' })}
+                </Text>
+                <Text style={styles.menuItemSubText}>VND</Text>
               </View>
             </View>
           </TouchableOpacity>
 
-          <View style={styles.dividerLine} />
+          <CardDivider />
 
-          {/* Transaction History */}
+          {/* Row 2: Transaction History */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
             onPress={() => router.push('/history')}
           >
-            <View style={styles.menuItemLeft}>
-              <Feather name="clock" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <View style={styles.menuItemTextCol}>
-                <Text style={styles.menuItemTitle}>{t('settings.transactionHistory')}</Text>
-                <Text style={styles.menuItemSubtitle}>{t('settings.viewTxDetails')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="clock" size={18} color="#000000" />
+              </CircleIcon>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuItemTitleText}>
+                  {t('settings.transactionHistory', { defaultValue: 'Transaction history' })}
+                </Text>
+                <Text style={styles.menuItemSubText}>View transaction details &gt;</Text>
               </View>
             </View>
-            <Feather name="chevron-right" size={18} color="#64748B" />
           </TouchableOpacity>
-        </View>
+        </NeoCard>
 
-        {/* 4. Nhóm 3 (Hiển thị & Chế độ riêng tư) */}
-        <View style={styles.groupCard}>
-          {/* Stealth Mode */}
-          <View style={styles.menuItemRow}>
-            <View style={styles.menuItemLeft}>
-              <Feather name="eye-off" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.stealthMode')}</Text>
+        {/* CARD 4: Các nút chuyển đổi (Toggles) */}
+        <NeoCard>
+          {/* Row 1: Stealth mode */}
+          <View style={styles.menuRowItem}>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="eye-off" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.stealthMode', { defaultValue: 'Stealth mode' })}
+              </Text>
             </View>
             <Switch
               value={stealthMode}
               onValueChange={setStealthMode}
-              trackColor={{ false: '#3B3D52', true: '#00A859' }}
+              trackColor={{ false: '#CBD5E1', true: '#7C3AED' }}
               thumbColor="#FFFFFF"
             />
           </View>
 
-          <View style={styles.dividerLine} />
+          <CardDivider />
 
-          {/* Show empty pockets */}
-          <View style={styles.menuItemRow}>
-            <View style={styles.menuItemLeft}>
-              <Feather name="briefcase" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.showEmptyPockets')}</Text>
+          {/* Row 2: Show empty pockets */}
+          <View style={styles.menuRowItem}>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="briefcase" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.showEmptyPockets', { defaultValue: 'Show empty pockets' })}
+              </Text>
             </View>
             <Switch
               value={showEmptyPockets}
               onValueChange={setShowEmptyPockets}
-              trackColor={{ false: '#3B3D52', true: '#00A859' }}
+              trackColor={{ false: '#CBD5E1', true: '#7C3AED' }}
               thumbColor="#FFFFFF"
             />
           </View>
-        </View>
+        </NeoCard>
 
-        {/* 5. Nhóm 4 (Hỗ trợ & Đăng xuất) */}
-        <View style={styles.groupCard}>
+        {/* CARD 5: Thông tin ứng dụng & Hỗ trợ */}
+        <NeoCard>
           {/* Invite friends */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert(t('settings.inviteFriends'), t('settings.shareInfo'))}
+            onPress={() => Alert.alert('Mời bạn bè 🎉', 'Chia sẻ ví N.E.D Wallet tới bạn bè để cùng trải nghiệm thanh toán Web3 Solana!')}
           >
-            <View style={styles.menuItemLeft}>
-              <Feather name="user-plus" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.inviteFriends')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="user-plus" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.inviteFriends', { defaultValue: 'Invite friends' })}
+              </Text>
             </View>
           </TouchableOpacity>
 
-          <View style={styles.dividerLine} />
+          <CardDivider />
 
-          {/* Frequently asked questions */}
+          {/* FAQ */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert(t('settings.faq'), t('settings.faqInfo'))}
+            onPress={() => Alert.alert('Câu hỏi thường gặp 💡', 'Truy cập trung tâm trợ giúp N.E.D để xem hướng dẫn sử dụng chi tiết.')}
           >
-            <View style={styles.menuItemLeft}>
-              <Feather name="book-open" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.faq')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="book-open" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.faq', { defaultValue: 'Frequently asked questions' })}
+              </Text>
             </View>
           </TouchableOpacity>
 
-          <View style={styles.dividerLine} />
+          <CardDivider />
 
           {/* Contact support */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert(t('settings.contactSupport'), t('settings.supportInfo'))}
+            onPress={() => Alert.alert('Hỗ trợ kỹ thuật 💬', 'Đội ngũ hỗ trợ N.E.D luôn sẵn sàng 24/7 qua cộng đồng Telegram & Discord.')}
           >
-            <View style={styles.menuItemLeft}>
-              <Feather name="message-square" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.contactSupport')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <MaterialCommunityIcons name="comment-question-outline" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.contactSupport', { defaultValue: 'Contact support' })}
+              </Text>
             </View>
           </TouchableOpacity>
 
-          <View style={styles.dividerLine} />
+          <CardDivider />
 
-          {/* About */}
+          {/* About N.E.D */}
           <TouchableOpacity
-            style={styles.menuItemRow}
+            style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert(t('settings.about'), t('settings.aboutInfo'))}
+            onPress={() => Alert.alert('Về N.E.D Wallet 🚀', 'N.E.D (Next Economy Decentralized) - Ví định danh Web3 tốc độ cao trên Solana Devnet.')}
           >
-            <View style={styles.menuItemLeft}>
-              <Feather name="help-circle" size={20} color="#94A3B8" style={styles.itemIcon} />
-              <Text style={styles.menuItemTitle}>{t('settings.about')}</Text>
+            <View style={styles.menuRowLeft}>
+              <CircleIcon backgroundColor="#F1F5F9">
+                <Feather name="info" size={18} color="#000000" />
+              </CircleIcon>
+              <Text style={styles.menuItemTitleText}>
+                {t('settings.about', { defaultValue: 'About N.E.D' })}
+              </Text>
             </View>
           </TouchableOpacity>
+        </NeoCard>
 
-        </View>
-
-        {/* 5. Nút Đăng Xuất (Duy nhất, rõ ràng, màu đỏ cảnh báo) */}
+        {/* ========================================================
+            4. VÙNG NGUY HIỂM: Nút Đăng Xuất Đỏ Đậm Neo-brutalism
+        ======================================================== */}
         <TouchableOpacity
-          style={styles.logoutBtnContainer}
-          activeOpacity={0.8}
+          style={styles.dangerLogoutBtn}
+          activeOpacity={0.85}
           onPress={handleLogout}
         >
-          <Feather name="log-out" size={18} color="#EF4444" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutBtnText}>
-            {t('settings.signOut', { defaultValue: 'Đăng xuất tài khoản' })}
-          </Text>
+          <Feather name="log-out" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Text style={styles.dangerLogoutBtnText}>ĐĂNG XUẤT</Text>
         </TouchableOpacity>
 
-        {/* Padding dưới cùng */}
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal Chọn Ngôn Ngữ Mở Rộng */}
+      {/* ========================================================
+          5. MODAL CHỌN NGÔN NGỮ NEO-BRUTALISM
+      ======================================================== */}
       <Modal
         visible={showLanguageModal}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowLanguageModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalBackdrop}>
           <TouchableOpacity
             style={styles.modalDismissArea}
             activeOpacity={1}
             onPress={() => setShowLanguageModal(false)}
           />
 
-          <View style={styles.langModalContainer}>
-            <View style={styles.modalDragHandle} />
+          <View style={styles.neoModalContainer}>
+            <View style={styles.modalHandleBar} />
 
             <View style={styles.modalHeaderRow}>
               <View>
-                <Text style={styles.modalTitleText}>
-                  {t('settings.selectLanguage', { defaultValue: 'Chọn Ngôn Ngữ' })}
+                <Text style={styles.neoModalTitleText}>
+                  {t('settings.selectLanguage', { defaultValue: 'Select Language' })}
                 </Text>
-                <Text style={styles.modalSubtitleText}>
-                  {t('settings.selectLanguageDesc', { defaultValue: 'Chọn ngôn ngữ hiển thị giao diện cho ứng dụng N.E.D' })}
+                <Text style={styles.neoModalSubText}>
+                  {t('settings.selectLanguageDesc', { defaultValue: 'Chọn ngôn ngữ hiển thị cho ứng dụng' })}
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={styles.modalCloseCircleBtn}
                 onPress={() => setShowLanguageModal(false)}
                 activeOpacity={0.7}
               >
-                <Feather name="x" size={20} color="#94A3B8" />
+                <Feather name="x" size={18} color="#000000" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.langListScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ marginTop: 16 }} showsVerticalScrollIndicator={false}>
               {SUPPORTED_LANGUAGES.map((langItem) => {
                 const isSelected = langItem.code === currentLang;
                 return (
                   <TouchableOpacity
                     key={langItem.code}
                     style={[
-                      styles.langOptionCard,
-                      isSelected && styles.langOptionCardActive,
-                      !langItem.available && styles.langOptionCardDisabled,
+                      styles.langOptionNeoCard,
+                      isSelected && styles.langOptionNeoCardActive,
+                      !langItem.available && styles.langOptionNeoCardDisabled,
                     ]}
                     onPress={() => handleSelectLanguage(langItem)}
-                    activeOpacity={0.75}
+                    activeOpacity={0.8}
                   >
                     <View style={styles.langCardLeft}>
-                      <Text style={styles.langFlagEmoji}>{langItem.flag}</Text>
-                      <View style={{ marginLeft: 12 }}>
-                        <Text
-                          style={[
-                            styles.langNativeName,
-                            isSelected && styles.langNativeNameActive,
-                          ]}
-                        >
-                          {langItem.nativeName}
-                        </Text>
-                        <Text style={styles.langIntlName}>{langItem.name}</Text>
+                      <Text style={{ fontSize: 24 }}>{langItem.flag}</Text>
+                      <View style={{ marginLeft: 14 }}>
+                        <Text style={styles.langNativeText}>{langItem.nativeName}</Text>
+                        <Text style={styles.langSubText}>{langItem.name}</Text>
                       </View>
                     </View>
 
                     <View style={styles.langCardRight}>
                       {isSelected ? (
-                        <View style={styles.activeCheckCircle}>
+                        <View style={styles.activeCheckPill}>
                           <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                         </View>
                       ) : !langItem.available ? (
-                        <View style={styles.comingSoonPill}>
-                          <Text style={styles.comingSoonPillText}>
-                            {t('miniapps.comingSoon', { defaultValue: 'Sắp có' })}
-                          </Text>
+                        <View style={styles.comingSoonBadge}>
+                          <Text style={styles.comingSoonText}>Sắp có</Text>
                         </View>
                       ) : (
-                        <View style={styles.inactiveRadioDot} />
+                        <View style={styles.inactiveRadioCircle} />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -678,487 +780,426 @@ export default function SettingsScreen() {
   );
 }
 
+// ==========================================
+// 💅 NEO-BRUTALISM STYLESHEET
+// ==========================================
+
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#1E1F2E',
+    backgroundColor: '#FDF8F0', // Nền kem sáng ấm áp chuẩn Neo-brutalism
   },
-  topNavBar: {
+
+  // 1. Header Bar
+  headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 12 : 6,
+    paddingBottom: 12,
   },
-  navTitleText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
+  headerTitleText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: -0.5,
+  },
+
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 10,
   },
 
-  // 1. Profile Header
-  profileHeaderSection: {
+  // 2. Profile Center Section
+  profileCenterSection: {
     alignItems: 'center',
-    marginBottom: 26,
-  },
-  avatarWrapper: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    overflow: 'hidden',
-    marginBottom: 12,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#34D399',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  avatarGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#00A859',
-  },
-  avatarSymbolText: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  userNameText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  snsBadgeRowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  snsHandleText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  snsHandleTextUnlinked: {
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-  phoneRowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
-    marginBottom: 8,
-  },
-  phoneText: {
-    fontSize: 13,
-    color: '#CBD5E1',
-    fontWeight: '500',
-  },
-  infoBadgeRowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  infoBadgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
-    marginRight: 4,
-  },
-  infoBadgeValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#E2E8F0',
-  },
-  infoBadgeValueMono: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F1F5F9',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  logoutBtnContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    marginTop: 8,
     marginBottom: 24,
   },
-  logoutBtnText: {
-    color: '#EF4444',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  walletAddressRowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+  avatarNeoBtn: {
+    position: 'relative',
     marginBottom: 10,
   },
-  solanaDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#14F195',
-    marginRight: 6,
-  },
-  walletAddressText: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontWeight: '600',
-  },
-  backedUpBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3B3D52',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginTop: 4,
-  },
-  backedUpText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
-  // 2. Group Cards & Items
-  groupCard: {
-    backgroundColor: '#27293D',
-    borderRadius: 18,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  menuItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  itemIcon: {
-    marginRight: 14,
-    width: 22,
-    textAlign: 'center',
-  },
-  langIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  avatarNeoCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#B49BFF', // Tím nhạt nổi bật
+    borderWidth: 2.5,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 3.5, height: 3.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+    overflow: 'hidden',
   },
-  menuItemTextCol: {
-    flex: 1,
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 38,
   },
-  menuItemTitle: {
-    fontSize: 14.5,
-    fontWeight: '600',
+  avatarLetterText: {
+    fontSize: 34,
+    fontWeight: '900',
     color: '#FFFFFF',
   },
-  menuItemSubtitle: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 38,
   },
-  flagIconCircle: {
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FEF08A', // Vàng nhạt Neo-brutalism
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 1.5, height: 1.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
-  langBadgeRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  langBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#34D399',
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginLeft: 52,
+  profileDisplayNameText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 
-  // 2.5. Network Environment Styles (Neo-brutalism Segmented Control)
-  networkHeaderRow: {
+  // Badges
+  badgesCol: {
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  profileBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  badgeTextDark: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  badgeBoldDark: {
+    fontWeight: '900',
+    color: '#000000',
+  },
+  activeGreenDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#00A859',
+    marginRight: 8,
+  },
+  googleGIconCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+
+  // 3. Menu Cards Neo-brutalism
+  neoCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 3.5, height: 3.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 14,
+  },
+  menuRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
-  networkIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  menuRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  circleIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
-  networkBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+  menuTextCol: {
+    flex: 1,
+  },
+  menuItemTitleText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  menuItemSubText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  cardDividerLine: {
+    height: 1.5,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 2,
+  },
+
+  // Badges in Menu Cards
+  langPillRight: {
+    backgroundColor: '#DDD6FE', // Tím nhạt
+    borderWidth: 1.8,
     borderColor: '#000000',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
-  networkBadgeText: {
+  langPillText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#000000',
   },
-  networkSegmentContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 10,
-    backgroundColor: '#1E1F2E',
-  },
-  networkSegmentBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: '#27293D',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  networkSegmentBtnActiveDevnet: {
+  devnetPillRight: {
+    backgroundColor: '#FEF08A', // Vàng nhạt
+    borderWidth: 1.8,
     borderColor: '#000000',
-    backgroundColor: '#FFF1A6',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 4,
+    elevation: 2,
   },
-  networkSegmentBtnActiveMainnet: {
-    borderColor: '#000000',
-    backgroundColor: '#D8FAF7',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  networkRadioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: '#64748B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  networkRadioCircleActive: {
-    borderColor: '#000000',
-  },
-  networkRadioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#000000',
-  },
-  networkSegmentTitle: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  networkSegmentTitleActive: {
-    color: '#000000',
+  devnetPillText: {
+    fontSize: 12,
     fontWeight: '800',
-  },
-  networkSegmentDesc: {
-    fontSize: 10.5,
-    color: '#64748B',
-    marginTop: 1,
-    fontWeight: '600',
+    color: '#000000',
   },
 
-  // Modal Styles
-  modalOverlay: {
+  // 4. Danger Zone: Logout Button
+  dangerLogoutBtn: {
+    backgroundColor: '#D32F2F', // Đỏ đậm cảnh báo
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    borderRadius: 20,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  dangerLogoutBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  // 5. Language Modal Styles
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalDismissArea: {
     flex: 1,
   },
-  langModalContainer: {
-    backgroundColor: '#1E1F2E',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingTop: 12,
+  neoModalContainer: {
+    backgroundColor: '#FDF8F0',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 3,
+    borderColor: '#000000',
     paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     maxHeight: '75%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 10,
   },
-  modalDragHandle: {
-    width: 42,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#475569',
+  modalHandleBar: {
+    width: 44,
+    height: 5,
+    backgroundColor: '#000000',
+    borderRadius: 2.5,
     alignSelf: 'center',
     marginBottom: 16,
   },
   modalHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    alignItems: 'flex-start',
   },
-  modalTitleText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  neoModalTitleText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
   },
-  modalSubtitleText: {
-    fontSize: 12,
-    color: '#94A3B8',
+  neoModalSubText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
     marginTop: 2,
   },
-  modalCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#27293D',
+  modalCloseCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
-  langListScroll: {
-    marginBottom: 16,
-  },
-  langOptionCard: {
+  langOptionNeoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#27293D',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     borderRadius: 16,
+    padding: 14,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
-  langOptionCardActive: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  langOptionNeoCardActive: {
+    backgroundColor: '#DDD6FE', // Nền tím pastel khi active
+    borderColor: '#000000',
   },
-  langOptionCardDisabled: {
-    opacity: 0.65,
+  langOptionNeoCardDisabled: {
+    opacity: 0.6,
   },
   langCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  langFlagEmoji: {
-    fontSize: 26,
+  langNativeText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000000',
   },
-  langNativeName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  langNativeNameActive: {
-    color: '#34D399',
-    fontWeight: '700',
-  },
-  langIntlName: {
+  langSubText: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 1,
   },
   langCardRight: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  activeCheckCircle: {
+  activeCheckPill: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#10B981',
+    backgroundColor: '#7C3AED',
+    borderWidth: 1.5,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  inactiveRadioDot: {
+  comingSoonBadge: {
+    backgroundColor: '#FEF08A',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  inactiveRadioCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#475569',
-  },
-  comingSoonPill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  comingSoonPillText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#F59E0B',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
   },
 });

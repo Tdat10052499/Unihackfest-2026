@@ -8,6 +8,7 @@ export interface UserProfile {
   privy_id?: string;
   wallet_address: string;
   username: string;
+  avatar_url?: string | null;
   phone_number?: string | null;
   phone_hash?: string | null;
   onboarding_status?: string | null;
@@ -468,3 +469,140 @@ export async function getUserProfileByWallet(walletAddress: string): Promise<Use
     return null;
   }
 }
+
+/**
+ * Upload ảnh đại diện lên Supabase Storage bucket 'avatars'
+ * @param params { userId, base64, mimeType }
+ */
+export async function uploadUserAvatarFile(params: {
+  userId: string;
+  base64: string;
+  mimeType?: string;
+}): Promise<{ success: boolean; avatarUrl?: string; error?: string }> {
+  const { userId, base64, mimeType = 'image/jpeg' } = params;
+
+  if (!userId || !base64) {
+    return { success: false, error: 'Thiếu userId hoặc dữ liệu ảnh base64.' };
+  }
+
+  try {
+    const client = getSupabaseClient();
+    const cleanId = userId.replace(/[^a-zA-Z0-9]/g, '_');
+    const extension = mimeType.includes('png') ? 'png' : 'jpg';
+    const filePath = `${cleanId}_${Date.now()}.${extension}`;
+
+    // Chuyển đổi chuỗi base64 sang Buffer
+    const fileBuffer = Buffer.from(base64, 'base64');
+
+    console.log('📤 [Supabase Storage] Đang upload avatar lên bucket "avatars":', filePath);
+    const { data: uploadData, error: uploadError } = await client.storage
+      .from('avatars')
+      .upload(filePath, fileBuffer, {
+        contentType: mimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn('⚠️ [Supabase Storage] Lỗi upload bucket avatars:', uploadError.message);
+      console.log('🔄 [Supabase Fallback] Đang tự động lưu avatar dạng Data URI vào cơ sở dữ liệu...');
+
+      const dataUri = `data:${mimeType};base64,${base64}`;
+      const dbRes = await updateUserAvatarInDB(userId, dataUri);
+      if (dbRes.success) {
+        return { success: true, avatarUrl: dataUri };
+      }
+
+      return {
+        success: false,
+        error: `Lỗi Storage (${uploadError.message}). Vui lòng tạo bucket "avatars" (Public) trên Supabase Dashboard hoặc thử lại.`,
+      };
+    }
+
+    // Lấy Public URL của ảnh vừa upload
+    const { data: urlData } = client.storage.from('avatars').getPublicUrl(filePath);
+    const publicUrl = urlData?.publicUrl;
+
+    if (!publicUrl) {
+      const dataUri = `data:${mimeType};base64,${base64}`;
+      await updateUserAvatarInDB(userId, dataUri);
+      return { success: true, avatarUrl: dataUri };
+    }
+
+    console.log('✅ [Supabase Storage] Upload thành công, Public URL:', publicUrl);
+
+    // Cập nhật URL vào bảng users
+    const dbRes = await updateUserAvatarInDB(userId, publicUrl);
+    if (!dbRes.success) {
+      console.warn('⚠️ [Supabase] Cảnh báo cập nhật DB:', dbRes.error);
+    }
+
+    return { success: true, avatarUrl: publicUrl };
+  } catch (err: any) {
+    console.error('❌ [Supabase Storage] Exception khi upload avatar:', err);
+    // Cố gắng lưu Data URI nếu exception xảy ra
+    try {
+      const dataUri = `data:${mimeType};base64,${base64}`;
+      await updateUserAvatarInDB(userId, dataUri);
+      return { success: true, avatarUrl: dataUri };
+    } catch {}
+    return { success: false, error: err?.message || 'Lỗi tải ảnh lên Supabase.' };
+  }
+}
+
+/**
+ * Cập nhật avatar_url vào bảng `users`
+ */
+export async function updateUserAvatarInDB(
+  userId: string,
+  avatarUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getSupabaseClient();
+    console.log('💾 [Supabase] Cập nhật avatar_url vào bảng users:', { userId, avatarLength: avatarUrl.length });
+
+    // 1. Cập nhật theo privy_id
+    let { data, error } = await client
+      .from('users')
+      .update({ avatar_url: avatarUrl })
+      .eq('privy_id', userId)
+      .select('id, username, avatar_url');
+
+    // 2. Nếu không tìm thấy hoặc có lỗi, thử update theo wallet_address
+    if (error || !data || data.length === 0) {
+      const { data: walletData, error: walletError } = await client
+        .from('users')
+        .update({ avatar_url: avatarUrl })
+        .eq('wallet_address', userId)
+        .select('id, username, avatar_url');
+
+      if (!walletError && walletData && walletData.length > 0) {
+        console.log('✅ [updateUserAvatarInDB] Đã cập nhật avatar_url theo wallet_address');
+        return { success: true };
+      }
+
+      // 3. Thử update theo username nếu userId là username
+      const { data: unameData, error: unameError } = await client
+        .from('users')
+        .update({ avatar_url: avatarUrl })
+        .eq('username', userId.toLowerCase().trim())
+        .select('id, username, avatar_url');
+
+      if (!unameError && unameData && unameData.length > 0) {
+        console.log('✅ [updateUserAvatarInDB] Đã cập nhật avatar_url theo username');
+        return { success: true };
+      }
+
+      if (error) {
+        console.warn('⚠️ [updateUserAvatarInDB] Cảnh báo update avatar_url:', error.message);
+      }
+    } else {
+      console.log('✅ [updateUserAvatarInDB] Đã cập nhật avatar_url theo privy_id');
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('❌ [updateUserAvatarInDB] Lỗi:', err);
+    return { success: false, error: err?.message };
+  }
+}
+
