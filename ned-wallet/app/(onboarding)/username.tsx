@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
@@ -35,6 +35,7 @@ const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
 
 export default function OnboardingUsernameScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ phone?: string }>();
   const privy = usePrivy();
   const user = privy?.user || null;
   const solanaWalletState = useEmbeddedSolanaWallet();
@@ -323,56 +324,56 @@ export default function OnboardingUsernameScreen() {
         relayerSuccess = true;
       }
 
-      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username)
+      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username, phone_number)
       setStatusMessage('Đang đồng bộ cơ sở dữ liệu...');
       const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
+
+      // Kéo dữ liệu số điện thoại từ Route Params, Global State Zustand hoặc AsyncStorage
+      let phoneNumber: string | null = params?.phone || useUserStore.getState().linkedPhone || null;
+      if (!phoneNumber) {
+        try {
+          const storedTempPhone = await AsyncStorage.getItem('temp_phone');
+          const storedLinkedPhone = await AsyncStorage.getItem('@ned_wallet_linked_phone');
+          phoneNumber = storedTempPhone || storedLinkedPhone || null;
+        } catch (storageErr) {
+          console.warn('⚠️ [Onboarding] Lỗi đọc SĐT từ AsyncStorage:', storageErr);
+        }
+      }
+
+      console.log('SĐT chuẩn bị gửi lên Supabase:', phoneNumber);
 
       try {
         console.log('💾 [Onboarding] Lưu dữ liệu user vào Supabase:', {
           privy_id: privyUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
+          phone_number: phoneNumber,
         });
         const dbRes = await upsertUserProfile({
           privy_id: privyUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
+          phone_number: phoneNumber,
         });
 
         if (!dbRes.success) {
           console.warn('⚠️ [Onboarding Supabase Sync Warning]:', dbRes.error);
-          if (
-            dbRes.error?.includes('duplicate key') ||
-            dbRes.error?.includes('unique') ||
-            dbRes.error?.includes('đã có người sử dụng') ||
-            dbRes.error?.includes('đã tồn tại')
-          ) {
-            setIsSubmitting(false);
-            setStatusMessage('');
-            setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
-            Alert.alert(
-              'Tên đã tồn tại',
-              `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
-            );
-            return;
-          }
+          setIsSubmitting(false);
+          setStatusMessage('');
+          const errText = dbRes.error || 'Không thể lưu thông tin tài khoản vào hệ thống.';
+          setErrorMessage(errText);
+          Alert.alert('Đăng ký không thành công', errText);
+          return;
         }
       } catch (dbErr: any) {
         console.warn('⚠️ [Onboarding Supabase Sync Exception]:', dbErr);
-        if (
-          dbErr?.message?.includes('duplicate key') ||
-          dbErr?.message?.includes('unique constraint')
-        ) {
-          setIsSubmitting(false);
-          setStatusMessage('');
-          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
-          Alert.alert(
-            'Tên đã tồn tại',
-            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
-          );
-          return;
-        }
+        setIsSubmitting(false);
+        setStatusMessage('');
+        const errText = dbErr?.message || 'Có lỗi xảy ra khi lưu dữ liệu vào hệ thống.';
+        setErrorMessage(errText);
+        Alert.alert('Đăng ký không thành công', errText);
+        return;
       }
 
       // 10. Cập nhật Global State (Zustand) và AsyncStorage để UI Settings & Dashboard reactive tức thì
@@ -380,14 +381,22 @@ export default function OnboardingUsernameScreen() {
         privy_id: privyUserId,
         wallet_address: walletAddrStr,
         username: trimmed,
+        phone_number: phoneNumber,
       });
       useUserStore.getState().setUsername(trimmed);
       useUserStore.getState().setWalletAddress(walletAddrStr);
       useUserStore.getState().setPrivyId(privyUserId);
+      if (phoneNumber) {
+        useUserStore.getState().setLinkedPhone(phoneNumber);
+      }
 
       await AsyncStorage.setItem('@ned_wallet_user_handle', trimmed);
       await AsyncStorage.setItem('@ned_wallet_full_sns', `@${trimmed}.sol`);
       await AsyncStorage.setItem('@ned_wallet_address', walletAddrStr);
+      if (phoneNumber) {
+        await AsyncStorage.setItem('@ned_wallet_linked_phone', phoneNumber);
+        await AsyncStorage.setItem('temp_phone', phoneNumber);
+      }
       if (txSignature) {
         await AsyncStorage.setItem('@ned_wallet_sns_tx', txSignature);
       }

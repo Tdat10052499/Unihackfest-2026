@@ -16,6 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import { usePrivy, useLinkSMS } from '@privy-io/expo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUserStore } from '../../stores/useUserStore';
+import { checkPhoneExists } from '../../services/supabase';
 
 export default function OnboardingPhoneScreen() {
   const router = useRouter();
@@ -27,6 +30,7 @@ export default function OnboardingPhoneScreen() {
   const [phone, setPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
   // Tích hợp hook useLinkSMS từ @privy-io/expo để LIÊN KẾT số điện thoại vào tài khoản hiện tại
   const linkSmsHook = useLinkSMS({
@@ -68,6 +72,22 @@ export default function OnboardingPhoneScreen() {
     return `+84${trimmed}`;
   };
 
+  /**
+   * Lưu số điện thoại vào Global State (Zustand) và AsyncStorage (temp_phone)
+   */
+  const savePhoneState = async (phoneToSave: string) => {
+    const formatted = formatPhoneNumber(phoneToSave);
+    if (!formatted) return;
+    try {
+      await AsyncStorage.setItem('temp_phone', formatted);
+      await AsyncStorage.setItem('@ned_wallet_linked_phone', formatted);
+      useUserStore.getState().setLinkedPhone(formatted);
+      console.log('📱 [Onboarding Phone] Đã lưu temp_phone vào AsyncStorage & Global State:', formatted);
+    } catch (err) {
+      console.warn('⚠️ [Onboarding Phone] Lỗi lưu temp_phone:', err);
+    }
+  };
+
   // Xử lý gửi mã OTP (Bước 1)
   const handleSendOtp = async () => {
     const formatted = formatPhoneNumber(phone);
@@ -78,6 +98,27 @@ export default function OnboardingPhoneScreen() {
     }
 
     setErrorMessage('');
+
+    // 1. Pre-check trùng lặp Số điện thoại trên Supabase
+    try {
+      setIsCheckingPhone(true);
+      const isDuplicate = await checkPhoneExists(formatted, user?.id);
+      setIsCheckingPhone(false);
+
+      if (isDuplicate) {
+        setErrorMessage('Số điện thoại này đã được liên kết với một ví N.E.D khác. Vui lòng sử dụng số khác hoặc đăng nhập.');
+        Alert.alert(
+          'Số điện thoại đã tồn tại',
+          'Số điện thoại này đã được liên kết với một ví N.E.D khác. Vui lòng sử dụng số khác hoặc đăng nhập.'
+        );
+        return;
+      }
+    } catch (checkErr) {
+      setIsCheckingPhone(false);
+      console.warn('⚠️ [Onboarding Phone] Lỗi pre-check số điện thoại:', checkErr);
+    }
+
+    await savePhoneState(formatted);
 
     if (!sendCode) {
       setErrorMessage('Hệ thống xác thực SMS chưa sẵn sàng.');
@@ -113,14 +154,16 @@ export default function OnboardingPhoneScreen() {
           [
             {
               text: 'Dùng số Test (+15555555555)',
-              onPress: () => {
+              onPress: async () => {
                 setPhone('+15555555555');
+                await savePhoneState('+15555555555');
                 setStep(2);
               },
             },
             {
               text: 'Tiếp tục chế độ Dev',
-              onPress: () => {
+              onPress: async () => {
+                await savePhoneState(phone || '+15555555555');
                 setStep(2);
               },
             },
@@ -151,10 +194,30 @@ export default function OnboardingPhoneScreen() {
 
     setErrorMessage('');
 
+    // Pre-check trùng lặp số điện thoại trước khi xác nhận
+    try {
+      const isDuplicate = await checkPhoneExists(formatted, user?.id);
+      if (isDuplicate) {
+        setErrorMessage('Số điện thoại này đã được liên kết với một ví N.E.D khác. Vui lòng sử dụng số khác hoặc đăng nhập.');
+        Alert.alert(
+          'Số điện thoại đã tồn tại',
+          'Số điện thoại này đã được liên kết với một ví N.E.D khác. Vui lòng sử dụng số khác hoặc đăng nhập.'
+        );
+        return;
+      }
+    } catch (checkErr) {
+      console.warn('⚠️ [Onboarding Phone] Lỗi pre-check số điện thoại:', checkErr);
+    }
+
+    await savePhoneState(formatted);
+
     // Nếu là mã test Dev 123456
     if (trimmedOtp === '123456' && (formatted === '+15555555555' || !linkWithCode)) {
       console.log('🎉 [Dev Mode] Xác thực mã test 123456 thành công! Chuyển tiếp sang Username...');
-      router.replace('/(onboarding)/username');
+      router.replace({
+        pathname: '/(onboarding)/username',
+        params: { phone: formatted },
+      });
       return;
     }
 
@@ -171,7 +234,10 @@ export default function OnboardingPhoneScreen() {
       });
 
       console.log('🎉 [Onboarding] Liên kết số điện thoại thành công! Chuyển tiếp sang Username...');
-      router.replace('/(onboarding)/username');
+      router.replace({
+        pathname: '/(onboarding)/username',
+        params: { phone: formatted },
+      });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
       console.warn('❌ [Onboarding Step 2 Error]:', errorMsg);
@@ -179,7 +245,10 @@ export default function OnboardingPhoneScreen() {
       // Nếu lỗi là do Dashboard Privy chưa bật SMS và user nhập OTP test
       if (trimmedOtp === '123456' || errorMsg.includes('SMS not allowed')) {
         console.log('🎉 [Dev Fallback] Bỏ qua lỗi SMS Privy trên Dashboard, chuyển sang Username...');
-        router.replace('/(onboarding)/username');
+        router.replace({
+          pathname: '/(onboarding)/username',
+          params: { phone: formatted },
+        });
         return;
       }
 
@@ -192,15 +261,23 @@ export default function OnboardingPhoneScreen() {
   };
 
   // Bỏ qua onboarding bước SĐT
-  const handleSkip = () => {
+  const handleSkip = async () => {
     console.log('⏩ [Onboarding] Người dùng chọn bỏ qua bước liên kết SĐT');
-    router.replace('/(onboarding)/username');
+    const formatted = phone ? formatPhoneNumber(phone) : '';
+    if (formatted) {
+      await savePhoneState(formatted);
+    }
+    router.replace({
+      pathname: '/(onboarding)/username',
+      params: formatted ? { phone: formatted } : undefined,
+    });
   };
 
   // Điền nhanh thông tin test cho Dev
   const handleFillDevPhone = () => {
     setPhone('+15555555555');
     setErrorMessage('');
+    savePhoneState('+15555555555');
   };
 
   const handleFillDevOtp = () => {
@@ -318,12 +395,12 @@ export default function OnboardingPhoneScreen() {
 
                 {/* Submit Button Step 1 */}
                 <TouchableOpacity
-                  style={[styles.primaryBtn, isSendingCode && styles.btnDisabled]}
+                  style={[styles.primaryBtn, (isSendingCode || isCheckingPhone) && styles.btnDisabled]}
                   onPress={handleSendOtp}
-                  disabled={isSendingCode}
+                  disabled={isSendingCode || isCheckingPhone}
                   activeOpacity={0.85}
                 >
-                  {isSendingCode ? (
+                  {isSendingCode || isCheckingPhone ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>

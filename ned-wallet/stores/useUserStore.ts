@@ -32,6 +32,7 @@ export interface UserState {
     privy_id: string;
     wallet_address: string;
     username: string;
+    phone_number?: string | null;
   }) => Promise<boolean>;
   resetUser: () => void;
 }
@@ -65,6 +66,10 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   setLinkedPhone: (linkedPhone: string | null) => {
     set({ linkedPhone });
+    if (linkedPhone) {
+      AsyncStorage.setItem('temp_phone', linkedPhone).catch(() => {});
+      AsyncStorage.setItem('@ned_wallet_linked_phone', linkedPhone).catch(() => {});
+    }
   },
 
   setUserProfile: (profile: Partial<UserProfile>) => {
@@ -75,19 +80,27 @@ export const useUserStore = create<UserState>((set, get) => ({
           ? profile.wallet_address
           : state.walletAddress,
       privyId: profile.privy_id !== undefined ? profile.privy_id : state.privyId,
+      linkedPhone:
+        profile.phone_number !== undefined
+          ? profile.phone_number
+          : state.linkedPhone,
     }));
   },
 
   loadFromStorage: async (): Promise<string | null> => {
     try {
       const storedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
+      const storedPhone = (await AsyncStorage.getItem('@ned_wallet_linked_phone')) || (await AsyncStorage.getItem('temp_phone'));
+      if (storedPhone && !get().linkedPhone) {
+        set({ linkedPhone: storedPhone });
+      }
       if (storedHandle) {
         set({ username: storedHandle });
         return storedHandle;
       }
       return null;
     } catch (e) {
-      console.warn('⚠️ [useUserStore] Không thể đọc username từ AsyncStorage:', e);
+      console.warn('⚠️ [useUserStore] Không thể đọc username/phone từ AsyncStorage:', e);
       return null;
     }
   },
@@ -109,11 +122,16 @@ export const useUserStore = create<UserState>((set, get) => ({
           username: dbProfile.username,
           walletAddress: dbProfile.wallet_address,
           privyId: dbProfile.privy_id,
+          linkedPhone: dbProfile.phone_number || get().linkedPhone,
           isLoading: false,
         });
         if (dbProfile.username) {
           await AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, dbProfile.username);
           await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${dbProfile.username}.sol`);
+        }
+        if (dbProfile.phone_number) {
+          await AsyncStorage.setItem('@ned_wallet_linked_phone', dbProfile.phone_number);
+          await AsyncStorage.setItem('temp_phone', dbProfile.phone_number);
         }
         return dbProfile;
       }
@@ -131,6 +149,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     privy_id: string;
     wallet_address: string;
     username: string;
+    phone_number?: string | null;
   }): Promise<boolean> => {
     try {
       set({ isLoading: true, error: null });
@@ -139,12 +158,17 @@ export const useUserStore = create<UserState>((set, get) => ({
         username: params.username,
         walletAddress: params.wallet_address,
         privyId: params.privy_id,
+        linkedPhone: params.phone_number !== undefined ? params.phone_number : get().linkedPhone,
       });
 
       // 2. Lưu vào AsyncStorage
       await AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, params.username);
       await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${params.username}.sol`);
       await AsyncStorage.setItem(STORAGE_KEYS.WALLET_ADDRESS, params.wallet_address);
+      if (params.phone_number) {
+        await AsyncStorage.setItem('temp_phone', params.phone_number);
+        await AsyncStorage.setItem('@ned_wallet_linked_phone', params.phone_number);
+      }
 
       // 3. Upsert vào Supabase
       const res = await upsertUserProfile(params);
