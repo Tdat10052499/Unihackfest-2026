@@ -12,17 +12,23 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { getLinkedPhone, setLinkedPhone as setLinkedPhoneStorage, executeHardReset } from '../services/storage';
+import {
+  getLinkedPhone,
+  setLinkedPhone as setLinkedPhoneStorage,
+  executeHardReset,
+  getCachedUsername,
+} from '../services/storage';
 import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useNetworkStore } from '../stores/useNetworkStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useUserStore } from '../stores/useUserStore';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -33,6 +39,9 @@ export default function SettingsScreen() {
   const user = privy?.user || null;
   const logout = privy?.logout || (async () => {});
   const solanaWalletState = useEmbeddedSolanaWallet();
+
+  // State định danh người dùng từ Global Store (Zustand)
+  const { username, fetchUserProfile, loadFromStorage } = useUserStore();
 
   // State thông tin người dùng & SĐT
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
@@ -79,6 +88,16 @@ export default function SettingsScreen() {
 
   const solanaAddress = getSolanaAddress();
 
+  // Đồng bộ User Profile & Username (Zustand + Supabase + AsyncStorage) khi vào màn hình Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFromStorage();
+      if (user?.id) {
+        fetchUserProfile(user.id);
+      }
+    }, [user?.id, loadFromStorage, fetchUserProfile])
+  );
+
   // Nạp SĐT đã liên kết (Ưu tiên Source of Truth Supabase)
   useEffect(() => {
     const loadPhone = async () => {
@@ -111,9 +130,15 @@ export default function SettingsScreen() {
     return 'Đạt Tuấn';
   };
 
+  // Định dạng hiển thị username định danh SNS (@username.sol)
+  const formatUsernameDisplay = (uname: string | null): string => {
+    if (!uname) return t('settings.unlinked', { defaultValue: 'Chưa liên kết' });
+    return `@${uname}.sol`;
+  };
+
   // Định dạng hiển thị số điện thoại
   const formatPhoneDisplay = (phone: string | null): string => {
-    if (!phone) return t('settings.unlinked');
+    if (!phone) return t('settings.unlinked', { defaultValue: 'Chưa liên kết' });
     return phone;
   };
 
@@ -251,12 +276,38 @@ export default function SettingsScreen() {
           {/* Tên Người Dùng */}
           <Text style={styles.userNameText}>{getUserDisplayName()}</Text>
 
+          {/* Tên Định Danh SNS (@username.sol) */}
+          <TouchableOpacity
+            style={styles.snsBadgeRowBtn}
+            onPress={() => {
+              if (username) {
+                handleCopyText(`@${username}.sol`, `Đã sao chép định danh @${username}.sol!`);
+              } else {
+                router.push('/(onboarding)/username');
+              }
+            }}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="at-circle" size={15} color={username ? '#10B981' : '#94A3B8'} style={{ marginRight: 6 }} />
+            <Text style={styles.infoBadgeLabel}>Tên định danh:</Text>
+            <Text style={[styles.snsHandleText, !username && styles.snsHandleTextUnlinked]}>
+              {formatUsernameDisplay(username)}
+            </Text>
+            {username ? (
+              <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
+            ) : (
+              <Feather name="plus-circle" size={12} color="#10B981" style={{ marginLeft: 6 }} />
+            )}
+          </TouchableOpacity>
+
           {/* Số Điện Thoại & Nút Chỉnh Sửa */}
           <TouchableOpacity
             style={styles.phoneRowBtn}
             onPress={() => setShowPhoneModal(true)}
             activeOpacity={0.75}
           >
+            <Feather name="phone" size={13} color="#94A3B8" style={{ marginRight: 6 }} />
+            <Text style={styles.infoBadgeLabel}>SĐT:</Text>
             <Text style={styles.phoneText}>
               {formatPhoneDisplay(linkedPhone)}
             </Text>
@@ -272,7 +323,7 @@ export default function SettingsScreen() {
             <MaterialCommunityIcons name="card-account-details-outline" size={14} color="#10B981" style={{ marginRight: 6 }} />
             <Text style={styles.infoBadgeLabel}>Tài khoản:</Text>
             <Text style={styles.infoBadgeValue}>
-              {getAccountIdentifier(user, linkedPhone)}
+              {username ? `@${username}.sol` : getAccountIdentifier(user, linkedPhone)}
             </Text>
             <Feather name="copy" size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
@@ -696,10 +747,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 4,
   },
+  snsBadgeRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderRadius: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  snsHandleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  snsHandleTextUnlinked: {
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
   phoneRowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 3,
+    paddingVertical: 4,
     paddingHorizontal: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 14,

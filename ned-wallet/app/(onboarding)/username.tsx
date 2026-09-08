@@ -27,6 +27,8 @@ import {
   RELAYER_FEE_PAYER,
   getConnection,
 } from '../../src/utils/anchorClient';
+import { upsertUserProfile } from '../../services/supabase';
+import { useUserStore } from '../../stores/useUserStore';
 
 // Quy chuẩn Regex: chỉ cho phép chữ thường (a-z) và số (0-9), độ dài từ 3 đến 15 ký tự
 const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
@@ -301,9 +303,39 @@ export default function OnboardingUsernameScreen() {
         relayerSuccess = true;
       }
 
-      // 9. Lưu vào AsyncStorage và chuyển tiếp sang màn hình Welcome
+      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username)
+      setStatusMessage('Đang đồng bộ cơ sở dữ liệu...');
+      const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
+      const walletAddrStr = userWallet.toBase58();
+
+      try {
+        console.log('💾 [Onboarding] Lưu dữ liệu user vào Supabase:', {
+          privy_id: privyUserId,
+          wallet_address: walletAddrStr,
+          username: trimmed,
+        });
+        await upsertUserProfile({
+          privy_id: privyUserId,
+          wallet_address: walletAddrStr,
+          username: trimmed,
+        });
+      } catch (dbErr) {
+        console.warn('⚠️ [Onboarding Supabase Sync Warning]:', dbErr);
+      }
+
+      // 10. Cập nhật Global State (Zustand) và AsyncStorage để UI Settings & Dashboard reactive tức thì
+      useUserStore.getState().setUserProfile({
+        privy_id: privyUserId,
+        wallet_address: walletAddrStr,
+        username: trimmed,
+      });
+      useUserStore.getState().setUsername(trimmed);
+      useUserStore.getState().setWalletAddress(walletAddrStr);
+      useUserStore.getState().setPrivyId(privyUserId);
+
       await AsyncStorage.setItem('@ned_wallet_user_handle', trimmed);
-      await AsyncStorage.setItem('@ned_wallet_full_sns', `${trimmed}.sol`);
+      await AsyncStorage.setItem('@ned_wallet_full_sns', `@${trimmed}.sol`);
+      await AsyncStorage.setItem('@ned_wallet_address', walletAddrStr);
       if (txSignature) {
         await AsyncStorage.setItem('@ned_wallet_sns_tx', txSignature);
       }

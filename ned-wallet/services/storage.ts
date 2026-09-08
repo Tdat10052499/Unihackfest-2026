@@ -9,6 +9,8 @@ const STORAGE_KEYS = {
   WALLET_ADDRESS: '@ned_wallet_address',
   HAS_SKIPPED_PHONE_LINK: '@ned_wallet_has_skipped_phone_link',
   LINKED_PHONE: '@ned_wallet_linked_phone',
+  USERNAME: '@ned_wallet_user_handle',
+  FULL_SNS: '@ned_wallet_full_sns',
 };
 
 /**
@@ -150,6 +152,52 @@ export const removeLinkedPhone = async (): Promise<void> => {
     await AsyncStorage.removeItem(STORAGE_KEYS.LINKED_PHONE);
   } catch (error) {
     console.error('Error removing linkedPhone from AsyncStorage:', error);
+  }
+};
+
+/**
+ * Lấy username đã liên kết từ AsyncStorage
+ */
+export const getCachedUsername = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(STORAGE_KEYS.USERNAME);
+  } catch (error) {
+    console.error('Error reading cached username:', error);
+    return null;
+  }
+};
+
+/**
+ * Lưu username đã liên kết vào AsyncStorage
+ */
+export const setCachedUsername = async (username: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username);
+  } catch (error) {
+    console.error('Error setting cached username:', error);
+  }
+};
+
+/**
+ * Lấy Full SNS handle (VD: @alex.sol) từ AsyncStorage
+ */
+export const getCachedFullSns = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(STORAGE_KEYS.FULL_SNS);
+  } catch (error) {
+    console.error('Error reading cached full SNS:', error);
+    return null;
+  }
+};
+
+/**
+ * Lưu Full SNS handle vào AsyncStorage
+ */
+export const setCachedFullSns = async (fullSns: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, fullSns);
+  } catch (error) {
+    console.error('Error setting cached full SNS:', error);
   }
 };
 
