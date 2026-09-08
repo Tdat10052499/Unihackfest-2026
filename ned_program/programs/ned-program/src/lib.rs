@@ -5,9 +5,15 @@ use anchor_spl::token_interface::{
 
 declare_id!("8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi");
 
+pub const IDENTITY_SEED: &[u8] = b"identity";
+
 #[program]
 pub mod ned_program {
     use super::*;
+
+    /// =========================================================================
+    /// 1. MODULE: USER PROFILE
+    /// =========================================================================
 
     /// Khởi tạo hồ sơ người dùng Web3 (UserProfile PDA)
     pub fn initialize_profile(
@@ -63,6 +69,10 @@ pub mod ned_program {
         Ok(())
     }
 
+    /// =========================================================================
+    /// 2. MODULE: STABLECOIN TRANSFERS
+    /// =========================================================================
+
     /// Chuyển Stablecoin (SPL Token / Token 2022) an toàn qua CPI TransferChecked
     pub fn transfer_stablecoin(
         ctx: Context<TransferStablecoin>,
@@ -92,7 +102,62 @@ pub mod ned_program {
 
         Ok(())
     }
+
+    /// =========================================================================
+    /// 3. MODULE: N.E.D ON-CHAIN IDENTITY (PDA MAPPING)
+    /// =========================================================================
+
+    /// Đăng ký danh tính mới (Username / Số điện thoại)
+    pub fn register_identity(
+        ctx: Context<RegisterIdentity>,
+        _hashed_identifier: [u8; 32],
+        identity_type: u8,
+    ) -> Result<()> {
+        let identity = &mut ctx.accounts.identity_account;
+        identity.wallet = ctx.accounts.target_wallet.key();
+        identity.authority = ctx.accounts.authority.key();
+        identity.identity_type = identity_type;
+        identity.bump = ctx.bumps.identity_account;
+        identity.created_at = Clock::get()?.unix_timestamp;
+
+        emit!(IdentityRegistered {
+            wallet: identity.wallet,
+            authority: identity.authority,
+            identity_type,
+            pda: identity.key(),
+        });
+
+        Ok(())
+    }
+
+    /// Cập nhật ví đích (Chỉ authority mới có quyền gọi)
+    pub fn update_wallet(
+        ctx: Context<UpdateWallet>,
+        new_wallet: Pubkey,
+    ) -> Result<()> {
+        let identity = &mut ctx.accounts.identity_account;
+        let old_wallet = identity.wallet;
+        identity.wallet = new_wallet;
+
+        emit!(IdentityWalletUpdated {
+            authority: identity.authority,
+            old_wallet,
+            new_wallet,
+            pda: identity.key(),
+        });
+
+        Ok(())
+    }
+
+    /// Đóng Account và hoàn tiền Rent về lại cho Recipient (Relayer / Sponsor)
+    pub fn close_identity(_ctx: Context<CloseIdentity>) -> Result<()> {
+        Ok(())
+    }
 }
+
+// =============================================================================
+// ACCOUNTS VALIDATION CONTEXTS
+// =============================================================================
 
 #[derive(Accounts)]
 pub struct InitializeProfile<'info> {
@@ -150,6 +215,62 @@ pub struct TransferStablecoin<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
+#[derive(Accounts)]
+#[instruction(hashed_identifier: [u8; 32], identity_type: u8)]
+pub struct RegisterIdentity<'info> {
+    #[account(
+        init,
+        payer = payer,
+        space = IdentityAccount::LEN,
+        seeds = [IDENTITY_SEED, hashed_identifier.as_ref()],
+        bump
+    )]
+    pub identity_account: Account<'info, IdentityAccount>,
+
+    /// CHECK: Ví đích thực tế nhận tiền (SystemAccount)
+    pub target_wallet: SystemAccount<'info>,
+
+    /// Chủ sở hữu định danh (User)
+    pub authority: Signer<'info>,
+
+    /// Ví trả phí Gas & Rent (N.E.D Hub Relayer hoặc chính user)
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateWallet<'info> {
+    #[account(
+        mut,
+        has_one = authority @ ErrorCode::Unauthorized
+    )]
+    pub identity_account: Account<'info, IdentityAccount>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CloseIdentity<'info> {
+    #[account(
+        mut,
+        has_one = authority @ ErrorCode::Unauthorized,
+        close = recipient
+    )]
+    pub identity_account: Account<'info, IdentityAccount>,
+
+    pub authority: Signer<'info>,
+
+    /// CHECK: Ví nhận lại tiền Rent đã ký quỹ (Payer/Relayer)
+    #[account(mut)]
+    pub recipient: SystemAccount<'info>,
+}
+
+// =============================================================================
+// STATE ACCOUNTS
+// =============================================================================
+
 #[account]
 #[derive(InitSpace)]
 pub struct UserProfile {
@@ -163,6 +284,29 @@ pub struct UserProfile {
 impl UserProfile {
     pub const MAX_FIAT_LEN: usize = 10;
 }
+
+#[account]
+pub struct IdentityAccount {
+    /// 1. Địa chỉ ví nhận tài sản thực tế (32 bytes)
+    pub wallet: Pubkey,
+    /// 2. Khóa ủy quyền quản trị định danh (32 bytes)
+    pub authority: Pubkey,
+    /// 3. Loại định danh: 0: Username, 1: Phone (1 byte)
+    pub identity_type: u8,
+    /// 4. Canonical Bump seed (1 byte)
+    pub bump: u8,
+    /// 5. Thời điểm tạo on-chain (8 bytes)
+    pub created_at: i64,
+}
+
+impl IdentityAccount {
+    /// 8 bytes Anchor discriminator + 32 + 32 + 1 + 1 + 8 = 82 bytes
+    pub const LEN: usize = 8 + 32 + 32 + 1 + 1 + 8;
+}
+
+// =============================================================================
+// EVENTS
+// =============================================================================
 
 #[event]
 pub struct ProfileInitialized {
@@ -188,12 +332,32 @@ pub struct StablecoinTransferred {
     pub decimals: u8,
 }
 
+#[event]
+pub struct IdentityRegistered {
+    pub wallet: Pubkey,
+    pub authority: Pubkey,
+    pub identity_type: u8,
+    pub pda: Pubkey,
+}
+
+#[event]
+pub struct IdentityWalletUpdated {
+    pub authority: Pubkey,
+    pub old_wallet: Pubkey,
+    pub new_wallet: Pubkey,
+    pub pda: Pubkey,
+}
+
+// =============================================================================
+// ERROR CODES
+// =============================================================================
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Chuỗi active_fiat vượt quá độ dài tối đa cho phép (10 ký tự).")]
     FiatCurrencyTooLong,
     #[msg("Số lượng token giao dịch phải lớn hơn 0.")]
     InvalidAmount,
-    #[msg("Bạn không có quyền thực hiện hành động này trên hồ sơ.")]
+    #[msg("Bạn không có quyền thực hiện hành động này trên hồ sơ hoặc định danh.")]
     Unauthorized,
 }

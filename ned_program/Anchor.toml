@@ -1,4 +1,4 @@
-skip_local_validator = true
+skip_local_validator = false
 
 [toolchain]
 
@@ -10,13 +10,13 @@ skip-lint = false
 ned_program = "8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi"
 
 [programs.localnet]
-ned_program = "FUTD1R2VbVLZ5Nd9BTypoW1rr69TybUtUJ1BiT9mENqB"
+ned_program = "8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cargo test"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [hooks]
