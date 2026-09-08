@@ -108,7 +108,7 @@ export function useInitProfile(wallet?: AnchorWallet | null): UseInitProfileRetu
         const [pda] = deriveUserProfilePda(wallet.publicKey, PROGRAM_ID);
 
         // 4. Gửi giao dịch lên Solana Devnet
-        const txHash = await program.methods
+        const txHash = await (program.methods as any)
           .initializeProfile(cleanFiat)
           .accounts({
             userProfile: pda,

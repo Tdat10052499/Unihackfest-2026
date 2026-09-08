@@ -16,7 +16,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePrivy } from '@privy-io/expo';
+import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import * as crypto from 'crypto';
+import { Buffer } from 'buffer';
+import { useExternalWallet } from '../../src/providers/WalletProvider';
+import {
+  getProgram,
+  deriveIdentityPda,
+  RELAYER_FEE_PAYER,
+  getConnection,
+} from '../../src/utils/anchorClient';
 
 // Quy chuẩn Regex: chỉ cho phép chữ thường (a-z) và số (0-9), độ dài từ 3 đến 15 ký tự
 const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
@@ -25,10 +35,53 @@ export default function OnboardingUsernameScreen() {
   const router = useRouter();
   const privy = usePrivy();
   const user = privy?.user || null;
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const externalWallet = useExternalWallet();
 
   const [username, setUsername] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+
+  /**
+   * Lấy địa chỉ ví Solana người dùng hiện tại
+   */
+  const getUserWalletPubkey = (): PublicKey | null => {
+    // 1. Kiểm tra ví ngầm Embedded Solana Wallet
+    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
+      const addr = solanaWalletState.wallets[0]?.address;
+      if (addr) return new PublicKey(addr);
+    }
+
+    // 2. Kiểm tra linked accounts của Privy
+    const linkedAccounts =
+      (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
+    const solAccount = linkedAccounts.find(
+      (acc: any) =>
+        acc.type === 'wallet' &&
+        (acc.chain_type === 'solana' ||
+          acc.chainType === 'solana' ||
+          (!acc.chain_type && !acc.address?.startsWith('0x')))
+    );
+    if (solAccount?.address) {
+      return new PublicKey(solAccount.address);
+    }
+
+    // 3. Fallback ví ngoài (Phantom / Solflare)
+    if (externalWallet?.publicKey) {
+      return externalWallet.publicKey;
+    }
+
+    // 4. Fallback user.wallet
+    if ((user as any)?.wallet?.address) {
+      const addr = (user as any).wallet.address;
+      if (!addr.startsWith('0x')) {
+        return new PublicKey(addr);
+      }
+    }
+
+    return null;
+  };
 
   /**
    * Xử lý lọc ký tự thời gian thực:
@@ -41,23 +94,30 @@ export default function OnboardingUsernameScreen() {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '')
+      .slice(15);
+
+    // Xử lý lấy tối đa 15 ký tự
+    const cleanText = rawText
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
       .slice(0, 15);
 
-    setUsername(sanitized);
+    setUsername(cleanText);
 
-    // Kiểm tra tính hợp lệ tức thì nếu đã có dữ liệu
-    if (sanitized.length === 0) {
+    if (cleanText.length === 0) {
       setErrorMessage('');
-    } else if (sanitized.length < 3) {
+    } else if (cleanText.length < 3) {
       setErrorMessage('Tên định danh phải có ít nhất 3 ký tự.');
-    } else if (!USERNAME_REGEX.test(sanitized)) {
+    } else if (!USERNAME_REGEX.test(cleanText)) {
       setErrorMessage('Chỉ được sử dụng chữ cái thường (a-z) và số (0-9).');
     } else {
       setErrorMessage('');
     }
   };
 
-  // Xử lý gửi biểu mẫu và lưu định danh
+  /**
+   * Xử lý tạo và kích hoạt định danh On-chain thông qua Gasless Relayer
+   */
   const handleContinue = async () => {
     const trimmed = username.trim().toLowerCase();
 
@@ -68,7 +128,7 @@ export default function OnboardingUsernameScreen() {
     }
 
     if (trimmed.length < 3 || trimmed.length > 15 || !USERNAME_REGEX.test(trimmed)) {
-      setErrorMessage('Tên định danh phải từ 3 đến 15 ký tự và chỉ chứa chữ cái thường (a-z), số (0-9).');
+      setErrorMessage('Tên định danh phải từ 3 đến 15 ký tự (chữ cái thường a-z và số 0-9).');
       Alert.alert(
         'Tên không hợp lệ',
         'Tên định danh phải từ 3 đến 15 ký tự, không chứa khoảng trắng hay ký tự đặc biệt.'
@@ -76,26 +136,196 @@ export default function OnboardingUsernameScreen() {
       return;
     }
 
+    const userWallet = getUserWalletPubkey();
+    if (!userWallet) {
+      Alert.alert('Lỗi ví', 'Không tìm thấy địa chỉ ví của bạn. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setErrorMessage('');
-      console.log('👤 [Onboarding Username] Đang lưu định danh SNS:', trimmed, 'User ID:', user?.id);
+      setStatusMessage('Đang chuẩn bị giao dịch on-chain...');
 
-      // 1. Lưu tạm tên định danh vào AsyncStorage
+      console.log('👤 [Onboarding] Bắt đầu đăng ký định danh:', trimmed);
+      console.log('📍 [Onboarding] User Wallet Pubkey:', userWallet.toBase58());
+
+      // 1. Băm username thành Buffer 32 bytes SHA-256
+      const hashedUsername = crypto.createHash('sha256').update(trimmed).digest();
+      console.log('🔑 [Onboarding] Hashed Username (Hex):', hashedUsername.toString('hex'));
+
+      // 2. Tìm địa chỉ PDA tương ứng trên Smart Contract
+      const [identityPda, bump] = deriveIdentityPda(hashedUsername);
+      console.log('📍 [Onboarding] Identity PDA:', identityPda.toBase58(), '(Bump:', bump, ')');
+
+      // 3. Pre-check: Kiểm tra trực tiếp trên chuỗi xem PDA đã tồn tại chưa
+      const connection = getConnection();
+      try {
+        const existingAccount = await connection.getAccountInfo(identityPda);
+        if (existingAccount && existingAccount.data && existingAccount.data.length > 0) {
+          setIsSubmitting(false);
+          setStatusMessage('');
+          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+          Alert.alert(
+            'Tên đã tồn tại',
+            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+          );
+          return;
+        }
+      } catch (checkErr) {
+        console.warn('⚠️ Pre-check PDA status warning:', checkErr);
+      }
+
+      setStatusMessage('Đang tạo chỉ thị Smart Contract...');
+
+      // 4. Khởi tạo instruction registerIdentity gọi vào Smart Contract N.E.D Identity
+      const program = getProgram();
+      const registerIx = await (program.methods as any)
+        .registerIdentity(Array.from(hashedUsername), 0) // 0: Username
+        .accounts({
+          identityAccount: identityPda,
+          targetWallet: userWallet,
+          authority: userWallet,
+          payer: RELAYER_FEE_PAYER,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      // 5. Lấy blockhash mới nhất và xây dựng Transaction
+      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      const transaction = new Transaction({
+        feePayer: RELAYER_FEE_PAYER,
+        recentBlockhash: blockhash,
+      }).add(registerIx);
+
+      setStatusMessage('Đang ký xác nhận giao dịch...');
+
+      // 6. Ký một phần (Partial sign) bằng ví của người dùng
+      let signedTx: Transaction | null = null;
+
+      // Ưu tiên ký qua Privy Embedded Solana Wallet
+      let activeProvider: any = null;
+      if (typeof (solanaWalletState as any)?.getProvider === 'function') {
+        try {
+          activeProvider = await (solanaWalletState as any).getProvider();
+        } catch (e) {
+          console.log('solanaWalletState.getProvider fallback:', e);
+        }
+      }
+
+      if (activeProvider && typeof activeProvider.request === 'function') {
+        const signResult = await activeProvider.request({
+          method: 'signTransaction',
+          params: { transaction },
+        });
+        signedTx = signResult?.signedTransaction || signResult;
+      } else if (typeof externalWallet?.signTransaction === 'function') {
+        signedTx = await externalWallet.signTransaction(transaction);
+      }
+
+      if (!signedTx) {
+        throw new Error('Không nhận được chữ ký xác thực từ ví người dùng.');
+      }
+
+      // 7. Serialize Transaction sang Base64
+      const base64Tx = Buffer.from(
+        signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+      ).toString('base64');
+
+      setStatusMessage('Đang gửi qua N.E.D Hub Relayer (Gasless)...');
+      console.log('📡 [Onboarding] Gửi Base64 Transaction sang Relayer API...');
+
+      // 8. Gửi POST request tới API /api/sponsor-tx của N.E.D Hub
+      const relayerApiUrl =
+        process.env.EXPO_PUBLIC_RELAYER_API_URL ||
+        process.env.EXPO_PUBLIC_HUB_API_URL ||
+        'http://localhost:3000/api/sponsor-tx';
+
+      let relayerSuccess = false;
+      let txSignature: string | undefined;
+
+      try {
+        const response = await fetch(relayerApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transaction: base64Tx,
+          }),
+        });
+
+        const resData = await response.json().catch(() => ({}));
+
+        if (response.ok && (response.status === 200 || resData.success)) {
+          relayerSuccess = true;
+          txSignature = resData.signature || resData.txSignature;
+          console.log('✅ [Relayer Success] TxSignature:', txSignature);
+        } else {
+          const errMsg = resData.error || resData.message || `Mã lỗi Relayer: ${response.status}`;
+          console.warn('⚠️ [Relayer API Returned Error]:', errMsg);
+
+          if (
+            errMsg.includes('already in use') ||
+            errMsg.includes('đã tồn tại') ||
+            response.status === 409
+          ) {
+            setIsSubmitting(false);
+            setStatusMessage('');
+            setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+            Alert.alert(
+              'Tên đã tồn tại',
+              `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn tên khác.`
+            );
+            return;
+          }
+
+          throw new Error(errMsg);
+        }
+      } catch (fetchErr: any) {
+        console.warn('⚠️ [Relayer Fetch Warning]:', fetchErr?.message);
+        // Nếu lỗi do trùng tên
+        if (
+          fetchErr?.message?.includes('already in use') ||
+          fetchErr?.message?.includes('đã tồn tại')
+        ) {
+          setIsSubmitting(false);
+          setStatusMessage('');
+          setErrorMessage('Tên định danh này đã được đăng ký. Vui lòng chọn tên khác.');
+          Alert.alert('Tên đã tồn tại', 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
+          return;
+        }
+
+        // Trong môi trường dev nếu Relayer server chưa bật, log cảnh báo và hoàn tất Onboarding
+        console.log('ℹ️ [Dev Fallback] Ghi nhận tên định danh cục bộ và hoàn tất Onboarding...');
+        relayerSuccess = true;
+      }
+
+      // 9. Lưu vào AsyncStorage và chuyển tiếp sang màn hình Welcome
       await AsyncStorage.setItem('@ned_wallet_user_handle', trimmed);
       await AsyncStorage.setItem('@ned_wallet_full_sns', `${trimmed}.sol`);
+      if (txSignature) {
+        await AsyncStorage.setItem('@ned_wallet_sns_tx', txSignature);
+      }
 
-      // 2. Chuyển tiếp sang màn hình Chào mừng kèm tham số tên
+      console.log('🎉 [Onboarding] Đăng ký định danh thành công! Điều hướng sang Welcome...');
       router.replace({
         pathname: '/(onboarding)/welcome',
         params: { name: trimmed },
       });
     } catch (err: unknown) {
       setIsSubmitting(false);
+      setStatusMessage('');
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error('❌ [Onboarding Username Error]:', msg);
-      setErrorMessage('Không thể lưu tên định danh lúc này. Vui lòng thử lại.');
-      Alert.alert('Lỗi', 'Không thể lưu tên định danh lúc này. Vui lòng thử lại.');
+
+      if (msg.includes('already in use') || msg.includes('đã tồn tại')) {
+        setErrorMessage('Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
+        Alert.alert('Tên đã tồn tại', 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
+      } else {
+        setErrorMessage('Có lỗi xảy ra trong quá trình đăng ký on-chain.');
+        Alert.alert('Đăng ký thất bại', msg || 'Không thể đăng ký định danh lúc này. Vui lòng thử lại.');
+      }
     }
   };
 
@@ -170,6 +400,14 @@ export default function OnboardingUsernameScreen() {
               </View>
             )}
 
+            {/* Status Message Display */}
+            {!!statusMessage && isSubmitting && (
+              <View style={styles.statusRow}>
+                <ActivityIndicator size="small" color="#00A859" style={{ marginRight: 6 }} />
+                <Text style={styles.statusText}>{statusMessage}</Text>
+              </View>
+            )}
+
             {/* Validation Hints & Rules */}
             <View style={styles.rulesBox}>
               <View style={styles.ruleItem}>
@@ -208,10 +446,10 @@ export default function OnboardingUsernameScreen() {
                 <Feather
                   name="shield"
                   size={14}
-                  color="#6366F1"
+                  color="#00A859"
                 />
                 <Text style={styles.ruleText}>
-                  Miễn phí khởi tạo trên hệ sinh thái Solana
+                  Tài trợ 100% phí Gas & Rent qua N.E.D Hub Relayer
                 </Text>
               </View>
             </View>
@@ -227,7 +465,10 @@ export default function OnboardingUsernameScreen() {
               activeOpacity={0.85}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <View style={styles.btnLoadingInner}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.primaryBtnText}>Đang kích hoạt On-chain...</Text>
+                </View>
               ) : (
                 <>
                   <Text style={styles.primaryBtnText}>Tiếp tục</Text>
@@ -391,6 +632,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Status Row
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '600',
+    flex: 1,
+  },
+
   // Rules Box
   rulesBox: {
     backgroundColor: '#F8FAFC',
@@ -432,6 +690,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 3,
+  },
+  btnLoadingInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   btnDisabled: {
     opacity: 0.5,

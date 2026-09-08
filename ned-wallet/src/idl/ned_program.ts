@@ -11,12 +11,44 @@ export type NedProgram = {
   };
   instructions: [
     {
+      name: 'closeIdentity';
+      discriminator: [158, 183, 97, 254, 215, 179, 139, 12];
+      accounts: [
+        {
+          name: 'identityAccount';
+          writable: true;
+        },
+        {
+          name: 'authority';
+          signer: true;
+          relations: ['identityAccount'];
+        },
+        {
+          name: 'recipient';
+          writable: true;
+        },
+      ];
+      args: [];
+    },
+    {
       name: 'initializeProfile';
       discriminator: [32, 145, 77, 213, 58, 39, 251, 234];
       accounts: [
         {
           name: 'userProfile';
           writable: true;
+          pda: {
+            seeds: [
+              {
+                kind: 'const';
+                value: [112, 114, 111, 102, 105, 108, 101];
+              },
+              {
+                kind: 'account';
+                path: 'signer';
+              },
+            ];
+          };
         },
         {
           name: 'signer';
@@ -25,12 +57,63 @@ export type NedProgram = {
         },
         {
           name: 'systemProgram';
+          address: '11111111111111111111111111111111';
         },
       ];
       args: [
         {
           name: 'defaultFiat';
           type: 'string';
+        },
+      ];
+    },
+    {
+      name: 'registerIdentity';
+      discriminator: [164, 118, 227, 177, 47, 176, 187, 248];
+      accounts: [
+        {
+          name: 'identityAccount';
+          writable: true;
+          pda: {
+            seeds: [
+              {
+                kind: 'const';
+                value: [105, 100, 101, 110, 116, 105, 116, 121];
+              },
+              {
+                kind: 'arg';
+                path: 'hashedIdentifier';
+              },
+            ];
+          };
+        },
+        {
+          name: 'targetWallet';
+        },
+        {
+          name: 'authority';
+          signer: true;
+        },
+        {
+          name: 'payer';
+          writable: true;
+          signer: true;
+        },
+        {
+          name: 'systemProgram';
+          address: '11111111111111111111111111111111';
+        },
+      ];
+      args: [
+        {
+          name: '_hashedIdentifier';
+          type: {
+            array: ['u8', 32];
+          };
+        },
+        {
+          name: 'identityType';
+          type: 'u8';
         },
       ];
     },
@@ -109,45 +192,67 @@ export type NedProgram = {
         },
       ];
     },
+    {
+      name: 'updateWallet';
+      discriminator: [30, 233, 126, 238, 58, 16, 215, 184];
+      accounts: [
+        {
+          name: 'identityAccount';
+          writable: true;
+        },
+        {
+          name: 'authority';
+          signer: true;
+          relations: ['identityAccount'];
+        },
+      ];
+      args: [
+        {
+          name: 'newWallet';
+          type: 'pubkey';
+        },
+      ];
+    },
   ];
   accounts: [
+    {
+      name: 'identityAccount';
+      discriminator: [194, 90, 181, 160, 182, 206, 116, 158];
+    },
     {
       name: 'userProfile';
       discriminator: [32, 37, 119, 205, 179, 180, 13, 194];
     },
   ];
-  events: [
-    {
-      name: 'ProfileInitialized';
-      discriminator: [1, 31, 122, 19, 193, 205, 23, 27];
-    },
-    {
-      name: 'ProfileUpdated';
-      discriminator: [186, 248, 62, 98, 112, 98, 161, 252];
-    },
-    {
-      name: 'StablecoinTransferred';
-      discriminator: [89, 52, 51, 248, 38, 227, 168, 70, 112];
-    },
-  ];
-  errors: [
-    {
-      code: 6000;
-      name: 'FiatCurrencyTooLong';
-      msg: 'Chuỗi active_fiat vượt quá độ dài tối đa cho phép (10 ký tự).';
-    },
-    {
-      code: 6001;
-      name: 'InvalidAmount';
-      msg: 'Số lượng token giao dịch phải lớn hơn 0.';
-    },
-    {
-      code: 6002;
-      name: 'Unauthorized';
-      msg: 'Bạn không có quyền thực hiện hành động này trên hồ sơ.';
-    },
-  ];
   types: [
+    {
+      name: 'identityAccount';
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'wallet';
+            type: 'pubkey';
+          },
+          {
+            name: 'authority';
+            type: 'pubkey';
+          },
+          {
+            name: 'identityType';
+            type: 'u8';
+          },
+          {
+            name: 'bump';
+            type: 'u8';
+          },
+          {
+            name: 'createdAt';
+            type: 'i64';
+          },
+        ];
+      };
+    },
     {
       name: 'userProfile';
       type: {
@@ -172,82 +277,10 @@ export type NedProgram = {
         ];
       };
     },
-    {
-      name: 'ProfileInitialized';
-      type: {
-        kind: 'struct';
-        fields: [
-          {
-            name: 'owner';
-            type: 'pubkey';
-          },
-          {
-            name: 'activeFiat';
-            type: 'string';
-          },
-          {
-            name: 'pda';
-            type: 'pubkey';
-          },
-        ];
-      };
-    },
-    {
-      name: 'ProfileUpdated';
-      type: {
-        kind: 'struct';
-        fields: [
-          {
-            name: 'owner';
-            type: 'pubkey';
-          },
-          {
-            name: 'activeFiat';
-            type: 'string';
-          },
-          {
-            name: 'preferredMint';
-            type: 'pubkey';
-          },
-        ];
-      };
-    },
-    {
-      name: 'StablecoinTransferred';
-      type: {
-        kind: 'struct';
-        fields: [
-          {
-            name: 'from';
-            type: 'pubkey';
-          },
-          {
-            name: 'fromTokenAccount';
-            type: 'pubkey';
-          },
-          {
-            name: 'toTokenAccount';
-            type: 'pubkey';
-          },
-          {
-            name: 'mint';
-            type: 'pubkey';
-          },
-          {
-            name: 'amount';
-            type: 'u64';
-          },
-          {
-            name: 'decimals';
-            type: 'u8';
-          },
-        ];
-      };
-    },
   ];
 };
 
-export const IDL: NedProgram = {
+export const IDL: Idl = {
   address: '8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi',
   metadata: {
     name: 'ned_program',
@@ -257,12 +290,44 @@ export const IDL: NedProgram = {
   },
   instructions: [
     {
-      name: 'initializeProfile',
+      name: 'close_identity',
+      discriminator: [158, 183, 97, 254, 215, 179, 139, 12],
+      accounts: [
+        {
+          name: 'identity_account',
+          writable: true,
+        },
+        {
+          name: 'authority',
+          signer: true,
+          relations: ['identity_account'],
+        },
+        {
+          name: 'recipient',
+          writable: true,
+        },
+      ],
+      args: [],
+    },
+    {
+      name: 'initialize_profile',
       discriminator: [32, 145, 77, 213, 58, 39, 251, 234],
       accounts: [
         {
-          name: 'userProfile',
+          name: 'user_profile',
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: 'const',
+                value: [112, 114, 111, 102, 105, 108, 101],
+              },
+              {
+                kind: 'account',
+                path: 'signer',
+              },
+            ],
+          },
         },
         {
           name: 'signer',
@@ -270,26 +335,77 @@ export const IDL: NedProgram = {
           signer: true,
         },
         {
-          name: 'systemProgram',
+          name: 'system_program',
+          address: '11111111111111111111111111111111',
         },
       ],
       args: [
         {
-          name: 'defaultFiat',
+          name: 'default_fiat',
           type: 'string',
         },
       ],
     },
     {
-      name: 'transferStablecoin',
+      name: 'register_identity',
+      discriminator: [164, 118, 227, 177, 47, 176, 187, 248],
+      accounts: [
+        {
+          name: 'identity_account',
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: 'const',
+                value: [105, 100, 101, 110, 116, 105, 116, 121],
+              },
+              {
+                kind: 'arg',
+                path: 'hashed_identifier',
+              },
+            ],
+          },
+        },
+        {
+          name: 'target_wallet',
+        },
+        {
+          name: 'authority',
+          signer: true,
+        },
+        {
+          name: 'payer',
+          writable: true,
+          signer: true,
+        },
+        {
+          name: 'system_program',
+          address: '11111111111111111111111111111111',
+        },
+      ],
+      args: [
+        {
+          name: '_hashed_identifier',
+          type: {
+            array: ['u8', 32],
+          },
+        },
+        {
+          name: 'identity_type',
+          type: 'u8',
+        },
+      ],
+    },
+    {
+      name: 'transfer_stablecoin',
       discriminator: [63, 40, 136, 145, 78, 236, 197, 210],
       accounts: [
         {
-          name: 'fromTokenAccount',
+          name: 'from_token_account',
           writable: true,
         },
         {
-          name: 'toTokenAccount',
+          name: 'to_token_account',
           writable: true,
         },
         {
@@ -301,7 +417,7 @@ export const IDL: NedProgram = {
           signer: true,
         },
         {
-          name: 'tokenProgram',
+          name: 'token_program',
         },
       ],
       args: [
@@ -312,11 +428,11 @@ export const IDL: NedProgram = {
       ],
     },
     {
-      name: 'updateProfile',
+      name: 'update_profile',
       discriminator: [98, 67, 99, 206, 86, 115, 175, 1],
       accounts: [
         {
-          name: 'userProfile',
+          name: 'user_profile',
           writable: true,
           pda: {
             seeds: [
@@ -337,65 +453,87 @@ export const IDL: NedProgram = {
         },
         {
           name: 'owner',
-          relations: ['userProfile'],
+          relations: ['user_profile'],
         },
       ],
       args: [
         {
-          name: 'newFiat',
+          name: 'new_fiat',
           type: {
             option: 'string',
           },
         },
         {
-          name: 'newMint',
+          name: 'new_mint',
           type: {
             option: 'pubkey',
           },
         },
       ],
     },
+    {
+      name: 'update_wallet',
+      discriminator: [30, 233, 126, 238, 58, 16, 215, 184],
+      accounts: [
+        {
+          name: 'identity_account',
+          writable: true,
+        },
+        {
+          name: 'authority',
+          signer: true,
+          relations: ['identity_account'],
+        },
+      ],
+      args: [
+        {
+          name: 'new_wallet',
+          type: 'pubkey',
+        },
+      ],
+    },
   ],
   accounts: [
     {
-      name: 'userProfile',
+      name: 'IdentityAccount',
+      discriminator: [194, 90, 181, 160, 182, 206, 116, 158],
+    },
+    {
+      name: 'UserProfile',
       discriminator: [32, 37, 119, 205, 179, 180, 13, 194],
-    },
-  ],
-  events: [
-    {
-      name: 'ProfileInitialized',
-      discriminator: [1, 31, 122, 19, 193, 205, 23, 27],
-    },
-    {
-      name: 'ProfileUpdated',
-      discriminator: [186, 248, 62, 98, 112, 98, 161, 252],
-    },
-    {
-      name: 'StablecoinTransferred',
-      discriminator: [89, 52, 51, 248, 38, 227, 168, 70, 112],
-    },
-  ],
-  errors: [
-    {
-      code: 6000,
-      name: 'FiatCurrencyTooLong',
-      msg: 'Chuỗi active_fiat vượt quá độ dài tối đa cho phép (10 ký tự).',
-    },
-    {
-      code: 6001,
-      name: 'InvalidAmount',
-      msg: 'Số lượng token giao dịch phải lớn hơn 0.',
-    },
-    {
-      code: 6002,
-      name: 'Unauthorized',
-      msg: 'Bạn không có quyền thực hiện hành động này trên hồ sơ.',
     },
   ],
   types: [
     {
-      name: 'userProfile',
+      name: 'IdentityAccount',
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'wallet',
+            type: 'pubkey',
+          },
+          {
+            name: 'authority',
+            type: 'pubkey',
+          },
+          {
+            name: 'identity_type',
+            type: 'u8',
+          },
+          {
+            name: 'bump',
+            type: 'u8',
+          },
+          {
+            name: 'created_at',
+            type: 'i64',
+          },
+        ],
+      },
+    },
+    {
+      name: 'UserProfile',
       type: {
         kind: 'struct',
         fields: [
@@ -404,7 +542,7 @@ export const IDL: NedProgram = {
             type: 'pubkey',
           },
           {
-            name: 'activeFiat',
+            name: 'active_fiat',
             type: 'string',
           },
           {
@@ -418,78 +556,6 @@ export const IDL: NedProgram = {
         ],
       },
     },
-    {
-      name: 'ProfileInitialized',
-      type: {
-        kind: 'struct',
-        fields: [
-          {
-            name: 'owner',
-            type: 'pubkey',
-          },
-          {
-            name: 'activeFiat',
-            type: 'string',
-          },
-          {
-            name: 'pda',
-            type: 'pubkey',
-          },
-        ],
-      },
-    },
-    {
-      name: 'ProfileUpdated',
-      type: {
-        kind: 'struct',
-        fields: [
-          {
-            name: 'owner',
-            type: 'pubkey',
-          },
-          {
-            name: 'activeFiat',
-            type: 'string',
-          },
-          {
-            name: 'preferredMint',
-            type: 'pubkey',
-          },
-        ],
-      },
-    },
-    {
-      name: 'StablecoinTransferred',
-      type: {
-        kind: 'struct',
-        fields: [
-          {
-            name: 'from',
-            type: 'pubkey',
-          },
-          {
-            name: 'fromTokenAccount',
-            type: 'pubkey',
-          },
-          {
-            name: 'toTokenAccount',
-            type: 'pubkey',
-          },
-          {
-            name: 'mint',
-            type: 'pubkey',
-          },
-          {
-            name: 'amount',
-            type: 'u64',
-          },
-          {
-            name: 'decimals',
-            type: 'u8',
-          },
-        ],
-      },
-    },
   ],
 };
 
@@ -498,6 +564,14 @@ export interface UserProfileData {
   activeFiat: string;
   preferredMint?: PublicKey;
   bump?: number;
+}
+
+export interface IdentityAccountData {
+  wallet: PublicKey;
+  authority: PublicKey;
+  identityType: number;
+  bump: number;
+  createdAt: number;
 }
 
 export default IDL;

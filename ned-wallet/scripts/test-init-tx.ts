@@ -80,7 +80,7 @@ async function main() {
   console.log('\n⚡ Đang gọi Smart Contract: initializeProfile("VND")...');
   const program = getProgram(userWallet);
 
-  const txHash = await program.methods
+  const txHash = await (program.methods as any)
     .initializeProfile('VND')
     .accounts({
       userProfile: pda,

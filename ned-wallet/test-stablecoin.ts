@@ -53,7 +53,7 @@ async function runStablecoinTest() {
     console.log("\n⚡ 6. Thử nghiệm cấu trúc hàm khởi tạo với preferred_mint...");
     try {
         // Mô phỏng việc build instruction (chưa gửi thực tế vì dummyUser không có SOL)
-        const ix = await program.methods
+        const ix = await (program.methods as any)
             .initializeProfile("USD")
             .accounts({
                 userProfile: pda,

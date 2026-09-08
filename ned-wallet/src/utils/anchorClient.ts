@@ -191,10 +191,10 @@ export function getProgram(
 
   const baseIdl = IDL || nedProgramIdl;
   // Khởi tạo Program với IDL đã đồng bộ và target Program ID
-  const idlWithAddress: NedProgram = {
+  const idlWithAddress = {
     ...baseIdl,
     address: targetProgramId.toBase58(),
-  };
+  } as unknown as NedProgram;
 
   return new Program<NedProgram>(idlWithAddress, provider);
 }
@@ -209,6 +209,32 @@ export function deriveUserProfilePda(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from('profile'), owner.toBuffer()],
+    programId
+  );
+}
+
+/**
+ * Hạt giống PDA Identity
+ */
+export const IDENTITY_SEED = Buffer.from('identity');
+
+/**
+ * Địa chỉ ví Relayer của N.E.D Hub (Tài trợ phí Gas)
+ */
+export const RELAYER_FEE_PAYER = new PublicKey(
+  process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER || 'b7TFMuVZzZneuHSMuoWiV3d52yRF7pLTLVF7HDKNWqz'
+);
+
+/**
+ * Helper: Tính toán địa chỉ PDA cho `IdentityAccount`
+ * Seeds: [b"identity", hashedIdentifier]
+ */
+export function deriveIdentityPda(
+  hashedIdentifier: Buffer,
+  programId: PublicKey = PROGRAM_ID
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [IDENTITY_SEED, hashedIdentifier],
     programId
   );
 }
