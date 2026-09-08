@@ -117,7 +117,32 @@ export async function upsertUserProfile(params: {
 
     const client = getSupabaseClient();
 
-    // 1. Thử upsert với payload đầy đủ
+    // 1. Kiểm tra xem username này đã có ai khác sở hữu chưa
+    try {
+      const { data: existingUser, error: checkError } = await client
+        .from('users')
+        .select('*')
+        .eq('username', cleanUsername)
+        .maybeSingle();
+
+      if (!checkError && existingUser) {
+        const isSameUser =
+          (privy_id && existingUser.privy_id && existingUser.privy_id === privy_id) ||
+          (existingUser.wallet_address && existingUser.wallet_address === wallet_address);
+
+        if (!isSameUser) {
+          console.warn('⚠️ [Supabase] Username đã được tài khoản khác đăng ký:', cleanUsername);
+          return {
+            success: false,
+            error: 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.',
+          };
+        }
+      }
+    } catch (checkEx) {
+      console.warn('⚠️ [Supabase] Warning checking existing username:', checkEx);
+    }
+
+    // 2. Chuẩn bị payload
     const fullPayload: any = {
       wallet_address,
       username: cleanUsername,
@@ -126,34 +151,53 @@ export async function upsertUserProfile(params: {
       fullPayload.privy_id = privy_id;
     }
 
+    // Ưu tiên onConflict theo privy_id nếu có, fallback wallet_address
+    const onConflictField = privy_id ? 'privy_id' : 'wallet_address';
+
     const { data, error } = await client
       .from('users')
-      .upsert(fullPayload, { onConflict: 'wallet_address' })
+      .upsert(fullPayload, { onConflict: onConflictField })
       .select()
       .maybeSingle();
 
     if (error) {
-      // Nếu bảng chưa có column privy_id, fallback chỉ dùng wallet_address & username
-      if (error.message?.includes('privy_id')) {
-        console.log('ℹ️ [Supabase] Schema chưa có privy_id, thử lại với wallet_address & username...');
+      if (
+        error.code === '23505' ||
+        error.message?.includes('duplicate key') ||
+        error.message?.includes('users_username_key')
+      ) {
+        return {
+          success: false,
+          error: 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.',
+        };
+      }
+
+      // Nếu onConflict theo privy_id gặp lỗi schema, fallback onConflict theo wallet_address
+      if (onConflictField === 'privy_id') {
+        console.log('ℹ️ [Supabase] Thử lại upsert onConflict: wallet_address...');
         const { data: retryData, error: retryError } = await client
           .from('users')
-          .upsert(
-            {
-              wallet_address,
-              username: cleanUsername,
-            },
-            { onConflict: 'wallet_address' }
-          )
+          .upsert(fullPayload, { onConflict: 'wallet_address' })
           .select()
           .maybeSingle();
 
-        if (retryError) {
-          throw retryError;
+        if (!retryError) {
+          console.log('✅ [Supabase] UPSERT thành công (fallback wallet_address):', retryData || cleanUsername);
+          return { success: true, data: retryData as UserProfile };
         }
 
-        console.log('✅ [Supabase] UPSERT thành công (fallback):', retryData || cleanUsername);
-        return { success: true, data: retryData as UserProfile };
+        if (
+          retryError.code === '23505' ||
+          retryError.message?.includes('duplicate key') ||
+          retryError.message?.includes('users_username_key')
+        ) {
+          return {
+            success: false,
+            error: 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.',
+          };
+        }
+
+        throw retryError;
       }
 
       throw error;

@@ -27,7 +27,7 @@ import {
   RELAYER_FEE_PAYER,
   getConnection,
 } from '../../src/utils/anchorClient';
-import { upsertUserProfile } from '../../services/supabase';
+import { upsertUserProfile, getUserProfileByUsername } from '../../services/supabase';
 import { useUserStore } from '../../stores/useUserStore';
 
 // Quy chuẩn Regex: chỉ cho phép chữ thường (a-z) và số (0-9), độ dài từ 3 đến 15 ký tự
@@ -160,9 +160,29 @@ export default function OnboardingUsernameScreen() {
       const [identityPda, bump] = deriveIdentityPda(hashedUsername);
       console.log('📍 [Onboarding] Identity PDA:', identityPda.toBase58(), '(Bump:', bump, ')');
 
-      // 3. Pre-check: Kiểm tra trực tiếp trên chuỗi xem PDA đã tồn tại chưa
+      // 3. Pre-check: Kiểm tra xem tên định danh đã có người sở hữu trên Supabase hoặc On-chain chưa
       const connection = getConnection();
       try {
+        // a. Kiểm tra trên Supabase DB trước
+        const existingDbUser = await getUserProfileByUsername(trimmed);
+        const myPrivyId = user?.id;
+        const myWallet = userWallet.toBase58();
+        if (
+          existingDbUser &&
+          ((myPrivyId && existingDbUser.privy_id && existingDbUser.privy_id !== myPrivyId) ||
+            (existingDbUser.wallet_address && existingDbUser.wallet_address !== myWallet))
+        ) {
+          setIsSubmitting(false);
+          setStatusMessage('');
+          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+          Alert.alert(
+            'Tên đã tồn tại',
+            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+          );
+          return;
+        }
+
+        // b. Kiểm tra trên Solana PDA
         const existingAccount = await connection.getAccountInfo(identityPda);
         if (existingAccount && existingAccount.data && existingAccount.data.length > 0) {
           setIsSubmitting(false);
@@ -175,7 +195,7 @@ export default function OnboardingUsernameScreen() {
           return;
         }
       } catch (checkErr) {
-        console.warn('⚠️ Pre-check PDA status warning:', checkErr);
+        console.warn('⚠️ Pre-check PDA/DB status warning:', checkErr);
       }
 
       setStatusMessage('Đang tạo chỉ thị Smart Contract...');
@@ -314,13 +334,45 @@ export default function OnboardingUsernameScreen() {
           wallet_address: walletAddrStr,
           username: trimmed,
         });
-        await upsertUserProfile({
+        const dbRes = await upsertUserProfile({
           privy_id: privyUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
         });
-      } catch (dbErr) {
-        console.warn('⚠️ [Onboarding Supabase Sync Warning]:', dbErr);
+
+        if (!dbRes.success) {
+          console.warn('⚠️ [Onboarding Supabase Sync Warning]:', dbRes.error);
+          if (
+            dbRes.error?.includes('duplicate key') ||
+            dbRes.error?.includes('unique') ||
+            dbRes.error?.includes('đã có người sử dụng') ||
+            dbRes.error?.includes('đã tồn tại')
+          ) {
+            setIsSubmitting(false);
+            setStatusMessage('');
+            setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+            Alert.alert(
+              'Tên đã tồn tại',
+              `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+            );
+            return;
+          }
+        }
+      } catch (dbErr: any) {
+        console.warn('⚠️ [Onboarding Supabase Sync Exception]:', dbErr);
+        if (
+          dbErr?.message?.includes('duplicate key') ||
+          dbErr?.message?.includes('unique constraint')
+        ) {
+          setIsSubmitting(false);
+          setStatusMessage('');
+          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+          Alert.alert(
+            'Tên đã tồn tại',
+            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+          );
+          return;
+        }
       }
 
       // 10. Cập nhật Global State (Zustand) và AsyncStorage để UI Settings & Dashboard reactive tức thì
