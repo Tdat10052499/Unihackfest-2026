@@ -15,7 +15,17 @@ import {
   Keyboard,
   Platform,
   Share,
+  Image,
 } from 'react-native';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +35,7 @@ import { Accelerometer } from 'expo-sensors';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { ActivityItem, formatFiatBalance, USD_TO_VND_RATE } from '@/services/solana';
+import { supabase } from '@/services/supabase';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
@@ -131,11 +142,12 @@ export default function ShakeRoomScreen() {
   const { nearbyUsers, broadcastInvite, currentUserProfile } = useGlobalPresence();
 
   // Xác định vai trò: Host hay Guest
-  const isHost = Boolean(
-    searchParams.isHost === 'true' ||
-    !hostId ||
-    (user?.id && hostId && user.id === hostId)
-  );
+  const isHost =
+    searchParams.isHost === 'false'
+      ? false
+      : searchParams.isHost === 'true'
+        ? true
+        : Boolean(!hostId || (user?.id && hostId && user.id === hostId));
 
   // Lưu địa chỉ ví On-chain của Host
   const [hostWalletAddress, setHostWalletAddress] = useState<string>(
@@ -145,12 +157,8 @@ export default function ShakeRoomScreen() {
   // Host Phases: 'SETUP' (Nhập tiền & Quét/Lắc) | 'WAITING' (Quản lý chờ thành viên thanh toán)
   const [hostPhase, setHostPhase] = useState<'SETUP' | 'WAITING'>('SETUP');
 
-  // Guest Phases: 'WAITING_FOR_HOST' (Chờ Host lắc) | 'READY_TO_PAY' (Đã nhận trigger chia tiền)
-  const [guestPhase, setGuestPhase] = useState<'WAITING_FOR_HOST' | 'READY_TO_PAY'>(
-    searchParams.splitAmount && parseFloat(searchParams.splitAmount) > 0
-      ? 'READY_TO_PAY'
-      : 'WAITING_FOR_HOST'
-  );
+  // Guest Phases: 'WAITING_FOR_HOST' (Chờ Host lắc và chốt hóa đơn) | 'READY_TO_PAY' (Đã nhận trigger chia tiền)
+  const [guestPhase, setGuestPhase] = useState<'WAITING_FOR_HOST' | 'READY_TO_PAY'>('WAITING_FOR_HOST');
 
   // State Hóa đơn (Định dạng Dollar USD theo yêu cầu: TextInput tự do, không nút cố định)
   const [totalBill, setTotalBill] = useState(searchParams.totalBill || '100');
@@ -176,6 +184,7 @@ export default function ShakeRoomScreen() {
   const radarWaveAnim = useRef(new Animated.Value(1)).current;
   const radarRotateAnim = useRef(new Animated.Value(0)).current;
 
+
   // Lấy địa chỉ ví Solana On-chain (Base58)
   const getSolanaAddress = (): string | null => {
     if (!user) return null;
@@ -195,9 +204,9 @@ export default function ShakeRoomScreen() {
 
   const mySolanaAddress = getSolanaAddress();
 
-  // Lọc bạn bè thực tế trong bán kính 20m từ Global Presence
+  // Lọc bạn bè thực tế trong bán kính 50m từ Global Presence
   const candidateNearbyUsers = nearbyUsers.filter(
-    (u) => u.distanceMeters !== undefined && u.distanceMeters <= 20
+    (u) => u.distanceMeters === undefined || u.distanceMeters <= 50
   );
 
   // Tự động đồng bộ danh sách đã chọn khi có thiết bị mới
@@ -268,6 +277,86 @@ export default function ShakeRoomScreen() {
     };
   }, [roomId, user, isHost, mySolanaAddress, hostId]);
 
+  // Kênh Realtime Đồng Bộ Phòng (room_${roomId})
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    console.log(`📡 [ShakeRoom] Đăng ký kênh phòng: room_${roomId}`);
+    const roomChannel = supabase.channel(`room_${roomId}`, {
+      config: {
+        broadcast: { ack: true },
+      },
+    });
+
+    roomChannel
+      .on('broadcast', { event: 'room_join' }, ({ payload }) => {
+        console.log('👋 [ShakeRoom Realtime] Thành viên tham gia:', payload);
+        if (payload?.user_id && payload.user_id !== user.id) {
+          setMembers((prev) => {
+            const exists = prev.some((m) => m.user_id === payload.user_id);
+            if (exists) return prev;
+            return [
+              ...prev,
+              {
+                user_id: payload.user_id,
+                name: payload.name || 'Bạn mới',
+                avatar: payload.avatar || 'U',
+                wallet_address: payload.wallet_address,
+                isHost: false,
+                status: 'pending',
+              },
+            ];
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      })
+      .on('broadcast', { event: 'room_split' }, ({ payload }) => {
+        console.log('⚡ [ShakeRoom Realtime] Host đã chốt chia tiền:', payload);
+        if (!isHost && payload?.split_amount) {
+          setSplitAmount(String(payload.split_amount));
+          if (payload.total_bill) setTotalBill(String(payload.total_bill));
+          if (payload.note) setBillNote(payload.note);
+          setGuestPhase('READY_TO_PAY');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      })
+      .on('broadcast', { event: 'room_paid' }, ({ payload }) => {
+        console.log('💰 [ShakeRoom Realtime] Thành viên đã thanh toán:', payload);
+        if (payload?.user_id) {
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.user_id === payload.user_id
+                ? { ...m, status: 'paid', tx_signature: payload.tx_signature }
+                : m
+            )
+          );
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      })
+      .subscribe((status) => {
+        console.log(`📡 [ShakeRoom] Trạng thái phòng room_${roomId}:`, status);
+        if (status === 'SUBSCRIBED' && !isHost) {
+          // Báo cho Host biết Guest đã vào phòng
+          roomChannel.send({
+            type: 'broadcast',
+            event: 'room_join',
+            payload: {
+              room_id: roomId,
+              user_id: user.id,
+              name: currentUserProfile.name,
+              avatar: currentUserProfile.avatar,
+              wallet_address: mySolanaAddress,
+            },
+          });
+        }
+      });
+
+    return () => {
+      console.log(`🧹 [ShakeRoom] Hủy kênh room_${roomId}`);
+      supabase.removeChannel(roomChannel);
+    };
+  }, [roomId, user?.id, isHost, mySolanaAddress, currentUserProfile]);
+
   // Logic Kích hoạt Chia Tiền (Shake Trigger / Nút bấm)
   const handleHostTriggerSplit = async () => {
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
@@ -287,6 +376,23 @@ export default function ShakeRoomScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setHostPhase('WAITING');
+
+    // Bắn broadcast kích hoạt chia tiền đến tất cả thành viên trong phòng
+    try {
+      const roomChannel = supabase.channel(`room_${roomId}`);
+      roomChannel.send({
+        type: 'broadcast',
+        event: 'room_split',
+        payload: {
+          room_id: roomId,
+          total_bill: bill,
+          split_amount: calculatedSplit,
+          note: billNote,
+        },
+      });
+    } catch (err) {
+      console.log('Error broadcasting room split:', err);
+    }
 
     if (accelerometerSubRef.current) {
       accelerometerSubRef.current.remove();
@@ -328,7 +434,12 @@ export default function ShakeRoomScreen() {
 
   // Host: Mời bạn bè qua Global Presence
   const handleInviteNearbyFriends = async () => {
-    if (selectedUserIds.length === 0) {
+    const targetIds =
+      selectedUserIds.length > 0
+        ? selectedUserIds
+        : candidateNearbyUsers.map((u) => u.user_id);
+
+    if (targetIds.length === 0) {
       handleShareRoomCode();
       return;
     }
@@ -336,16 +447,42 @@ export default function ShakeRoomScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsInvitingNearby(true);
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
+    const totalParticipants = Math.max(targetIds.length + 1, 2);
+    const calculatedSplit = Number((bill / totalParticipants).toFixed(2));
 
     try {
-      await broadcastInvite(roomId, selectedUserIds, {
+      await broadcastInvite(roomId, targetIds, {
         totalBill: bill,
+        splitAmount: calculatedSplit,
         note: billNote,
       });
+
+      // Tự động thêm các bạn bè được mời vào danh sách thành viên với trạng thái 'pending'
+      const invitedFriends = candidateNearbyUsers.filter((u) =>
+        targetIds.includes(u.user_id)
+      );
+
+      if (invitedFriends.length > 0) {
+        setMembers((prev) => {
+          const existingIds = new Set(prev.map((m) => m.user_id));
+          const newMembers: RoomMember[] = invitedFriends
+            .filter((u) => !existingIds.has(u.user_id))
+            .map((u) => ({
+              user_id: u.user_id,
+              name: u.name,
+              avatar: u.avatar,
+              wallet_address: u.wallet_address,
+              isHost: false,
+              status: 'pending',
+            }));
+          return [...prev, ...newMembers];
+        });
+      }
+
       setIsInvitingNearby(false);
       Alert.alert(
         'Đã gửi lời mời 🎉',
-        `Đã gửi lời mời tham gia phòng đến ${selectedUserIds.length} người bạn gần bạn!`
+        `Đã gửi lời mời tham gia phòng đến ${targetIds.length} người bạn gần bạn!`
       );
     } catch (e) {
       setIsInvitingNearby(false);
@@ -463,6 +600,22 @@ export default function ShakeRoomScreen() {
       setIsGuestPaying(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+      // Báo cho Host biết Guest đã thanh toán onchain
+      try {
+        const roomChannel = supabase.channel(`room_${roomId}`);
+        roomChannel.send({
+          type: 'broadcast',
+          event: 'room_paid',
+          payload: {
+            room_id: roomId,
+            user_id: user.id,
+            tx_signature: txSignature,
+          },
+        });
+      } catch (err) {
+        console.log('Error broadcasting room paid:', err);
+      }
+
       Alert.alert('Thành công! 🎉', `Đã thanh toán on-chain thành công!\nTx: ${txSignature.slice(0, 16)}...`);
     } catch (e: any) {
       setIsGuestPaying(false);
@@ -485,6 +638,10 @@ export default function ShakeRoomScreen() {
 
   const displayRoomCode = roomId ? (roomId.length > 12 ? roomId.slice(0, 8).toUpperCase() : roomId) : 'Room_MTH';
 
+  const displayHostName = hostName
+    ? decodeURIComponent(hostName)
+    : (searchParams.hostName ? decodeURIComponent(searchParams.hostName) : 'Đạt Tuấn');
+
   if (!isReady) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -498,7 +655,7 @@ export default function ShakeRoomScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#BFA3EC" />
+      <StatusBar barStyle="dark-content" backgroundColor="#CDB4DB" />
 
       {/* Loading Overlay khi giao dịch đang xử lý */}
       {(isGuestPaying || isExecutingTransfer) && (
@@ -571,235 +728,288 @@ export default function ShakeRoomScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Scrollable Content */}
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {/* ========================================================= */}
-              {/* 2. KHU VỰC NHẬP HÓA ĐƠN (TEXTINPUT LỚN + GHI CHÚ VIÊN THUỐC) */}
-              {/* ========================================================= */}
-              <View style={styles.amountSection}>
-                {/* Ô nhập tiền cực lớn ở trung tâm */}
-                <View style={styles.amountInputRow}>
-                  <Text style={styles.amountDollarSign}>$</Text>
-                  <TextInput
-                    style={styles.amountBigTextInput}
-                    value={totalBill}
-                    onChangeText={setTotalBill}
-                    keyboardType="decimal-pad"
-                    placeholder="0.00"
-                    placeholderTextColor="#6D28D9"
-                    editable={isHost && hostPhase === 'SETUP'}
-                    selectTextOnFocus
+            {/* ========================================================= */}
+            {/* 2. CHẾ ĐỘ PHÒNG CHỜ DÀNH CHO GUEST (GUEST WAITING ROOM) */}
+            {/* ========================================================= */}
+            {!isHost && guestPhase === 'WAITING_FOR_HOST' ? (
+              <View style={styles.guestWaitingWrapper}>
+                {/* Mascot Section */}
+                <View style={styles.mascotCenterArea}>
+                  <Image
+                    source={require('@/assets/images/mascot-sleepy.png')}
+                    style={styles.mascotImage}
+                    resizeMode="contain"
                   />
-                  <Text style={styles.amountCurrencySuffix}>USD</Text>
                 </View>
 
-                {/* Ô nhập lý do chia tiền dạng viên thuốc kèm icon edit */}
-                <View style={styles.notePillContainer}>
-                  <TextInput
-                    style={styles.notePillInput}
-                    value={billNote}
-                    onChangeText={setBillNote}
-                    placeholder="Group Lunch"
-                    placeholderTextColor="#64748B"
-                    editable={isHost && hostPhase === 'SETUP'}
-                  />
-                  <Feather name="edit-2" size={14} color="#000000" style={{ marginLeft: 6 }} />
+                {/* Center Notice Section */}
+                <View style={styles.guestNoticeContainer}>
+                  <Text style={styles.guestWaitingHeading}>Phòng chờ chia tiền</Text>
+                  <Text style={styles.guestWaitingSubtext}>
+                    Đang chờ người chủ trì{' '}
+                    <Text style={styles.hostNameHighlight}>{displayHostName}</Text>{' '}
+                    chốt hóa đơn và lắc thiết bị... ⏳
+                  </Text>
+                </View>
+
+                {/* Spacer đẩy card xuống dưới cùng */}
+                <View style={{ flex: 1 }} />
+
+                {/* Bottom Guide Card (Thẻ Hướng Dẫn) */}
+                <View style={styles.guestBottomSection}>
+                  <NeoCard
+                    backgroundColor="#FFFFFF"
+                    shadowColor="#000000"
+                    borderColor="#000000"
+                    borderWidth={2.5}
+                    borderRadius={20}
+                    offset={4}
+                    containerStyle={styles.guideCardContainer}
+                    style={styles.guideCardContent}
+                  >
+                    <View style={styles.infoCircleBadge}>
+                      <Text style={styles.infoLetterText}>i</Text>
+                    </View>
+                    <Text style={styles.guideCardMessage}>
+                      Khi người chủ trì lắc điện thoại, số tiền chia đều của bạn sẽ xuất hiện ở đây.
+                    </Text>
+                  </NeoCard>
+
+                  {/* Icon Chevron-up tinh tế phía dưới card */}
+                  <View style={styles.bottomChevronContainer}>
+                    <Feather name="chevron-up" size={20} color="#334155" />
+                  </View>
                 </View>
               </View>
-
-              {/* ========================================================= */}
-              {/* 3. THẺ RADAR & THÀNH VIÊN (KHỐI TRUNG TÂM LỚN #FDF8F0) */}
-              {/* ========================================================= */}
-              <NeoCard
-                backgroundColor="#FDF8F0"
-                shadowColor="#000000"
-                borderColor="#000000"
-                borderWidth={2.5}
-                borderRadius={24}
-                offset={4}
-                containerStyle={styles.centerCardContainer}
-                style={styles.centerCardInner}
+            ) : (
+              /* ========================================================= */
+              /* 3. CHẾ ĐỘ HOST SETUP / WAITING & GUEST READY TO PAY */
+              /* ========================================================= */
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                {/* Phần trên của Card: Tiêu đề + Nút Share */}
-                <View style={styles.cardTopRow}>
-                  <Text style={styles.cardTopTitle}>Bạn bè ở gần (20m)</Text>
+                {/* 2. KHU VỰC NHẬP HÓA ĐƠN (TEXTINPUT LỚN + GHI CHÚ VIÊN THUỐC) */}
+                <View style={styles.amountSection}>
+                  {/* Ô nhập tiền cực lớn ở trung tâm */}
+                  <View style={styles.amountInputRow}>
+                    <Text style={styles.amountDollarSign}>$</Text>
+                    <TextInput
+                      style={styles.amountBigTextInput}
+                      value={totalBill}
+                      onChangeText={setTotalBill}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor="#6D28D9"
+                      editable={isHost && hostPhase === 'SETUP'}
+                      selectTextOnFocus
+                    />
+                    <Text style={styles.amountCurrencySuffix}>USD</Text>
+                  </View>
 
-                  <TouchableOpacity
-                    style={styles.sharePillBtn}
-                    onPress={handleShareRoomCode}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="share-social-outline" size={14} color="#000000" />
-                    <Text style={styles.sharePillText}>Share</Text>
-                  </TouchableOpacity>
+                  {/* Ô nhập lý do chia tiền dạng viên thuốc kèm icon edit */}
+                  <View style={styles.notePillContainer}>
+                    <TextInput
+                      style={styles.notePillInput}
+                      value={billNote}
+                      onChangeText={setBillNote}
+                      placeholder="Group Lunch"
+                      placeholderTextColor="#64748B"
+                      editable={isHost && hostPhase === 'SETUP'}
+                    />
+                    <Feather name="edit-2" size={14} color="#000000" style={{ marginLeft: 6 }} />
+                  </View>
                 </View>
 
-                {/* Phần giữa của Card: Icon Radar / Vòng tròn đồng tâm nghệ thuật */}
-                <View style={styles.radarSection}>
-                  <TouchableOpacity
-                    style={styles.radarTouchable}
-                    onPress={isHost && hostPhase === 'SETUP' ? handleHostTriggerSplit : undefined}
-                    activeOpacity={0.9}
-                  >
-                    <Animated.View
-                      style={[
-                        styles.radarConcentricOuter,
-                        { transform: [{ scale: radarWaveAnim }] },
-                      ]}
+                {/* 3. THẺ RADAR & THÀNH VIÊN (KHỐI TRUNG TÂM LỚN #FDF8F0) */}
+                <NeoCard
+                  backgroundColor="#FDF8F0"
+                  shadowColor="#000000"
+                  borderColor="#000000"
+                  borderWidth={2.5}
+                  borderRadius={24}
+                  offset={4}
+                  containerStyle={styles.centerCardContainer}
+                  style={styles.centerCardInner}
+                >
+                  {/* Phần trên của Card: Tiêu đề + Nút Share */}
+                  <View style={styles.cardTopRow}>
+                    <Text style={styles.cardTopTitle}>Bạn bè ở gần (20m)</Text>
+
+                    <TouchableOpacity
+                      style={styles.sharePillBtn}
+                      onPress={handleShareRoomCode}
+                      activeOpacity={0.8}
                     >
-                      <View style={styles.radarConcentricMiddle}>
-                        <View style={styles.radarConcentricInner}>
-                          <View style={styles.radarCenterTarget}>
-                            {/* Icon Target / Radar đồng tâm theo chuẩn thiết kế */}
-                            <MaterialCommunityIcons
-                              name="target"
-                              size={36}
-                              color="#6B4F3A"
-                            />
+                      <Ionicons name="share-social-outline" size={14} color="#000000" />
+                      <Text style={styles.sharePillText}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Phần giữa của Card: Icon Radar / Vòng tròn đồng tâm nghệ thuật */}
+                  <View style={styles.radarSection}>
+                    <TouchableOpacity
+                      style={styles.radarTouchable}
+                      onPress={isHost && hostPhase === 'SETUP' ? handleHostTriggerSplit : undefined}
+                      activeOpacity={0.9}
+                    >
+                      <Animated.View
+                        style={[
+                          styles.radarConcentricOuter,
+                          { transform: [{ scale: radarWaveAnim }] },
+                        ]}
+                      >
+                        <View style={styles.radarConcentricMiddle}>
+                          <View style={styles.radarConcentricInner}>
+                            <View style={styles.radarCenterTarget}>
+                              {/* Icon Target / Radar đồng tâm theo chuẩn thiết kế */}
+                              <MaterialCommunityIcons
+                                name="target"
+                                size={36}
+                                color="#6B4F3A"
+                              />
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    </Animated.View>
-                  </TouchableOpacity>
+                      </Animated.View>
+                    </TouchableOpacity>
 
-                  <Text style={styles.scanningText}>
-                    {candidateNearbyUsers.length > 0
-                      ? `Đã tìm thấy ${candidateNearbyUsers.length} bạn bè ở gần`
-                      : 'Scanning for friends ...'}
-                  </Text>
+                    <Text style={styles.scanningText}>
+                      {candidateNearbyUsers.length > 0
+                        ? `Đã tìm thấy ${candidateNearbyUsers.length} bạn bè ở gần`
+                        : 'Scanning for friends ...'}
+                    </Text>
 
-                  {/* Danh sách người ở gần (nếu tìm thấy) */}
-                  {candidateNearbyUsers.length > 0 && isHost && hostPhase === 'SETUP' && (
-                    <View style={styles.nearbyListRow}>
-                      {candidateNearbyUsers.map((u) => {
-                        const isSelected = selectedUserIds.includes(u.user_id);
-                        return (
-                          <TouchableOpacity
-                            key={u.user_id}
-                            style={[
-                              styles.nearbySelectPill,
-                              isSelected && styles.nearbySelectPillActive,
-                            ]}
-                            onPress={() => toggleUserSelection(u.user_id)}
-                            activeOpacity={0.75}
-                          >
-                            <Text
+                    {/* Danh sách người ở gần (nếu tìm thấy) */}
+                    {candidateNearbyUsers.length > 0 && isHost && hostPhase === 'SETUP' && (
+                      <View style={styles.nearbyListRow}>
+                        {candidateNearbyUsers.map((u) => {
+                          const isSelected = selectedUserIds.includes(u.user_id);
+                          return (
+                            <TouchableOpacity
+                              key={u.user_id}
                               style={[
-                                styles.nearbySelectText,
-                                isSelected && styles.nearbySelectTextActive,
+                                styles.nearbySelectPill,
+                                isSelected && styles.nearbySelectPillActive,
                               ]}
+                              onPress={() => toggleUserSelection(u.user_id)}
+                              activeOpacity={0.75}
                             >
-                              {u.name} {isSelected ? '✓' : '+'}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                              <Text
+                                style={[
+                                  styles.nearbySelectText,
+                                  isSelected && styles.nearbySelectTextActive,
+                                ]}
+                              >
+                                {u.name} {u.distanceMeters !== undefined ? `(${Math.round(u.distanceMeters)}m)` : ''} {isSelected ? '✓' : '+'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Dải phân cách (Divider) mỏng */}
+                  <View style={styles.cardDivider} />
+
+                  {/* Phần dưới của Card: Room members & Avatars */}
+                  <View style={styles.membersSection}>
+                    <Text style={styles.membersCountTitle}>
+                      Room members ({members.length})
+                    </Text>
+
+                    <View style={styles.avatarListRow}>
+                      {/* 1. Host Avatar (Viền đỏ, chữ H in đậm) */}
+                      <View style={styles.avatarItemCol}>
+                        <View style={styles.hostAvatarCircle}>
+                          <Text style={styles.hostAvatarLetter}>
+                            {currentUserProfile?.avatar || 'H'}
+                          </Text>
+                        </View>
+                        <Text style={styles.avatarSubLabel}>Host</Text>
+                      </View>
+
+                      {/* 2. Danh sách các khách đã tham gia */}
+                      {guests.map((g) => (
+                        <View key={g.user_id} style={styles.avatarItemCol}>
+                          <View
+                            style={[
+                              styles.guestAvatarCircle,
+                              g.status === 'paid' && styles.guestAvatarPaid,
+                            ]}
+                          >
+                            <Text style={styles.guestAvatarLetter}>{g.avatar || 'U'}</Text>
+                          </View>
+                          <Text style={styles.avatarSubLabel} numberOfLines={1}>
+                            {g.name.split(' ').pop()}
+                          </Text>
+                        </View>
+                      ))}
+
+                      {/* 3. Nút "+ Invite" (Viền nét đứt) */}
+                      <TouchableOpacity
+                        style={styles.avatarItemCol}
+                        onPress={handleInviteNearbyFriends}
+                        activeOpacity={0.75}
+                      >
+                        <View style={styles.inviteDashedCircle}>
+                          <Feather name="plus" size={18} color="#000000" />
+                        </View>
+                        <Text style={styles.avatarSubLabel}>+ Invite</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Phía Guest: Nút Thanh Toán Onchain nếu đã nhận Trigger */}
+                  {!isHost && guestPhase === 'READY_TO_PAY' && (
+                    <View style={{ marginTop: 14 }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.guestPayActionBtn,
+                          hasGuestPaid && styles.guestPayActionBtnPaid,
+                        ]}
+                        onPress={handleGuestPay}
+                        disabled={hasGuestPaid || isGuestPaying}
+                        activeOpacity={0.88}
+                      >
+                        {isGuestPaying ? (
+                          <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                          <Text style={styles.guestPayActionBtnText}>
+                            {hasGuestPaid
+                              ? '✓ Đã thanh toán thành công'
+                              : `⚡ Thanh toán $${parsedSplitAmount.toFixed(2)} USD`}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   )}
-                </View>
 
-                {/* Dải phân cách (Divider) mỏng */}
-                <View style={styles.cardDivider} />
-
-                {/* Phần dưới của Card: Room members & Avatars */}
-                <View style={styles.membersSection}>
-                  <Text style={styles.membersCountTitle}>
-                    Room members ({members.length})
-                  </Text>
-
-                  <View style={styles.avatarListRow}>
-                    {/* 1. Host Avatar (Viền đỏ, chữ H in đậm) */}
-                    <View style={styles.avatarItemCol}>
-                      <View style={styles.hostAvatarCircle}>
-                        <Text style={styles.hostAvatarLetter}>
-                          {currentUserProfile?.avatar || 'H'}
+                  {/* Phía Host: Nút chốt tiền nếu đang ở giai đoạn WAITING */}
+                  {isHost && hostPhase === 'WAITING' && (
+                    <View style={{ marginTop: 14 }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.hostFinishActionBtn,
+                          !isAllPaid && styles.hostFinishActionBtnPending,
+                        ]}
+                        onPress={handleHostClaimAndClose}
+                        disabled={!isAllPaid || isHostClaiming}
+                        activeOpacity={0.88}
+                      >
+                        <Text style={styles.hostFinishActionBtnText}>
+                          {isAllPaid
+                            ? `Hoàn tất & Nhận +$${totalCollectedSoFar.toFixed(2)}`
+                            : `Đang chờ thành viên (${paidGuestsCount}/${guests.length})`}
                         </Text>
-                      </View>
-                      <Text style={styles.avatarSubLabel}>Host</Text>
+                      </TouchableOpacity>
                     </View>
-
-                    {/* 2. Danh sách các khách đã tham gia */}
-                    {guests.map((g) => (
-                      <View key={g.user_id} style={styles.avatarItemCol}>
-                        <View
-                          style={[
-                            styles.guestAvatarCircle,
-                            g.status === 'paid' && styles.guestAvatarPaid,
-                          ]}
-                        >
-                          <Text style={styles.guestAvatarLetter}>{g.avatar || 'U'}</Text>
-                        </View>
-                        <Text style={styles.avatarSubLabel} numberOfLines={1}>
-                          {g.name.split(' ').pop()}
-                        </Text>
-                      </View>
-                    ))}
-
-                    {/* 3. Nút "+ Invite" (Viền nét đứt) */}
-                    <TouchableOpacity
-                      style={styles.avatarItemCol}
-                      onPress={handleInviteNearbyFriends}
-                      activeOpacity={0.75}
-                    >
-                      <View style={styles.inviteDashedCircle}>
-                        <Feather name="plus" size={18} color="#000000" />
-                      </View>
-                      <Text style={styles.avatarSubLabel}>+ Invite</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Phía Guest: Nút Thanh Toán Onchain nếu đã nhận Trigger */}
-                {!isHost && guestPhase === 'READY_TO_PAY' && (
-                  <View style={{ marginTop: 14 }}>
-                    <TouchableOpacity
-                      style={[
-                        styles.guestPayActionBtn,
-                        hasGuestPaid && styles.guestPayActionBtnPaid,
-                      ]}
-                      onPress={handleGuestPay}
-                      disabled={hasGuestPaid || isGuestPaying}
-                      activeOpacity={0.88}
-                    >
-                      {isGuestPaying ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
-                      ) : (
-                        <Text style={styles.guestPayActionBtnText}>
-                          {hasGuestPaid
-                            ? '✓ Đã thanh toán thành công'
-                            : `⚡ Thanh toán $${parsedSplitAmount.toFixed(2)} USD`}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Phía Host: Nút chốt tiền nếu đang ở giai đoạn WAITING */}
-                {isHost && hostPhase === 'WAITING' && (
-                  <View style={{ marginTop: 14 }}>
-                    <TouchableOpacity
-                      style={[
-                        styles.hostFinishActionBtn,
-                        !isAllPaid && styles.hostFinishActionBtnPending,
-                      ]}
-                      onPress={handleHostClaimAndClose}
-                      disabled={!isAllPaid || isHostClaiming}
-                      activeOpacity={0.88}
-                    >
-                      <Text style={styles.hostFinishActionBtnText}>
-                        {isAllPaid
-                          ? `Hoàn tất & Nhận +$${totalCollectedSoFar.toFixed(2)}`
-                          : `Đang chờ thành viên (${paidGuestsCount}/${guests.length})`}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </NeoCard>
-            </ScrollView>
+                  )}
+                </NeoCard>
+              </ScrollView>
+            )}
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -1218,4 +1428,95 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
+  // 4. Guest Waiting Room (Phòng chờ chia tiền) Styles
+  guestWaitingWrapper: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mascotCenterArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 6,
+    width: '100%',
+  },
+  mascotImage: {
+    width: 320,
+    height: 220,
+  },
+  guestNoticeContainer: {
+    alignItems: 'center',
+    marginTop: 14,
+    paddingHorizontal: 12,
+  },
+  guestWaitingHeading: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#000000',
+    textAlign: 'center',
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  guestWaitingSubtext: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 320,
+  },
+  hostNameHighlight: {
+    color: '#6D28D9',
+    fontWeight: '900',
+  },
+  guestBottomSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  guideCardContainer: {
+    width: '100%',
+  },
+  guideCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  infoCircleBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#8B5CF6',
+    borderWidth: 2.2,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  infoLetterText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  guideCardMessage: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#000000',
+    lineHeight: 19,
+  },
+  bottomChevronContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
