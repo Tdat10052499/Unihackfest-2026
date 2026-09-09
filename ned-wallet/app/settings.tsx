@@ -25,7 +25,7 @@ import {
   setLinkedPhone as setLinkedPhoneStorage,
   executeHardReset,
 } from '../services/storage';
-import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
+import { getUserPhoneNumberFromDB, getAccountIdentifier, resolveActiveSolanaAddress } from '../services/identity';
 import { uploadUserAvatarFile } from '../services/supabase';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
@@ -118,33 +118,14 @@ export default function SettingsScreen() {
   // State cấu hình mạng lưới (Solana Network - Helius RPC)
   const { activeNetwork } = useNetworkStore();
 
-  // Lấy địa chỉ ví Solana đã liên kết
+  // Lấy địa chỉ ví Solana đã liên kết (Ưu tiên Privy Embedded Solana Wallet)
   const getSolanaAddress = (): string | null => {
-    if (!user) return null;
-
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' ||
-          acc.chainType === 'solana' ||
-          (!acc.chain_type && !acc.address?.startsWith('0x')))
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    if (solAccount?.address) return solAccount.address;
-
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-
-    if ((user as any)?.wallet?.address) {
-      const addr = (user as any).wallet.address;
-      if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
-        return addr;
-      }
-    }
-
-    return null;
   };
 
   const solanaAddress = getSolanaAddress();

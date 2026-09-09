@@ -55,7 +55,9 @@ import {
   lookupWalletByPhone,
   getAccountIdentifier,
   getMaskedPhone,
+  resolveActiveSolanaAddress,
 } from '@/services/identity';
+import { useUserStore } from '@/stores/useUserStore';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { useTranslation } from '@/services/i18n';
 import { DepositModal } from '@/components/DepositModal';
@@ -125,44 +127,14 @@ export default function HomeScreen() {
     activitiesRef.current = activities;
   }, [activities]);
 
-  // Trích xuất địa chỉ ví Solana dạng Base58
+  // Trích xuất địa chỉ ví Solana dạng Base58 theo độ ưu tiên: External Wallet (Phantom) -> Store -> Linked Accounts -> Embedded Wallet
   const getSolanaWalletAddress = (): string | null => {
-    if (!user) {
-      if (externalWallet?.publicKey) {
-        return externalWallet.publicKey.toBase58();
-      }
-      return null;
-    }
-
-    // 1. Ưu tiên kiểm tra danh sách tài khoản ví liên kết trong Privy User (Google OAuth / Linked Wallet)
-    const linkedAccounts =
-      (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x')))
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    if (solanaAccount?.address) {
-      return solanaAccount.address;
-    }
-
-    // 2. Kiểm tra ví ngầm Embedded Solana Wallet của Privy
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-      if (solWallet?.publicKey) return solWallet.publicKey;
-    }
-
-    // 3. Fallback kiểm tra user.wallet
-    if ((user as any)?.wallet?.address) {
-      const addr = (user as any).wallet.address;
-      if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
-        return addr;
-      }
-    }
-
-    return null;
   };
 
   const solanaAddress = getSolanaWalletAddress();

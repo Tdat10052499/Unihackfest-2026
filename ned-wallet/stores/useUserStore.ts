@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   USER_HANDLE: '@ned_wallet_user_handle',
   FULL_SNS: '@ned_wallet_full_sns',
   WALLET_ADDRESS: '@ned_wallet_address',
+  LINKED_EXTERNAL_WALLET: '@ned_wallet_linked_external_wallet',
   AVATAR_URL: '@ned_wallet_avatar_url',
 };
 
@@ -18,6 +19,7 @@ export interface UserState {
   walletAddress: string | null;
   privyId: string | null;
   linkedPhone: string | null;
+  linkedExternalWallet: string | null;
   avatarUrl: string | null;
   isLoading: boolean;
   error: string | null;
@@ -27,6 +29,7 @@ export interface UserState {
   setWalletAddress: (address: string | null) => void;
   setPrivyId: (privyId: string | null) => void;
   setLinkedPhone: (phone: string | null) => void;
+  setLinkedExternalWallet: (address: string | null) => void;
   setAvatarUrl: (url: string | null) => void;
   setUserProfile: (profile: Partial<UserProfile>) => void;
   loadFromStorage: () => Promise<string | null>;
@@ -37,6 +40,7 @@ export interface UserState {
     username: string;
     avatar_url?: string | null;
     phone_number?: string | null;
+    linked_external_wallet?: string | null;
   }) => Promise<boolean>;
   resetUser: () => void;
 }
@@ -46,6 +50,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   walletAddress: null,
   privyId: null,
   linkedPhone: null,
+  linkedExternalWallet: null,
   avatarUrl: null,
   isLoading: false,
   error: null,
@@ -77,6 +82,15 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
+  setLinkedExternalWallet: (linkedExternalWallet: string | null) => {
+    set({ linkedExternalWallet });
+    if (linkedExternalWallet) {
+      AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, linkedExternalWallet).catch(() => {});
+    } else {
+      AsyncStorage.removeItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET).catch(() => {});
+    }
+  },
+
   setAvatarUrl: (avatarUrl: string | null) => {
     set({ avatarUrl });
     if (avatarUrl) {
@@ -98,6 +112,10 @@ export const useUserStore = create<UserState>((set, get) => ({
         profile.phone_number !== undefined
           ? profile.phone_number
           : state.linkedPhone,
+      linkedExternalWallet:
+        profile.linked_external_wallet !== undefined
+          ? profile.linked_external_wallet
+          : state.linkedExternalWallet,
       avatarUrl:
         profile.avatar_url !== undefined
           ? profile.avatar_url
@@ -106,6 +124,9 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (profile.avatar_url) {
       AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, profile.avatar_url).catch(() => {});
     }
+    if (profile.linked_external_wallet) {
+      AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, profile.linked_external_wallet).catch(() => {});
+    }
   },
 
   loadFromStorage: async (): Promise<string | null> => {
@@ -113,6 +134,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const storedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
       const storedPhone = (await AsyncStorage.getItem('@ned_wallet_linked_phone')) || (await AsyncStorage.getItem('temp_phone'));
       const storedAvatar = await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
+      const storedExternal = await AsyncStorage.getItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET);
 
       if (storedPhone && !get().linkedPhone) {
         set({ linkedPhone: storedPhone });
@@ -120,13 +142,16 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (storedAvatar && !get().avatarUrl) {
         set({ avatarUrl: storedAvatar });
       }
+      if (storedExternal && !get().linkedExternalWallet) {
+        set({ linkedExternalWallet: storedExternal });
+      }
       if (storedHandle) {
         set({ username: storedHandle });
         return storedHandle;
       }
       return null;
     } catch (e) {
-      console.warn('⚠️ [useUserStore] Không thể đọc username/phone/avatar từ AsyncStorage:', e);
+      console.warn('⚠️ [useUserStore] Không thể đọc username/phone/avatar/externalWallet từ AsyncStorage:', e);
       return null;
     }
   },
@@ -138,11 +163,15 @@ export const useUserStore = create<UserState>((set, get) => ({
       // 1. Kiểm tra cache AsyncStorage trước để render tức thì
       const cachedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
       const cachedAvatar = await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
+      const cachedExternal = await AsyncStorage.getItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET);
       if (cachedHandle && !get().username) {
         set({ username: cachedHandle });
       }
       if (cachedAvatar && !get().avatarUrl) {
         set({ avatarUrl: cachedAvatar });
+      }
+      if (cachedExternal && !get().linkedExternalWallet) {
+        set({ linkedExternalWallet: cachedExternal });
       }
 
       // 2. Fetch Source of Truth từ Supabase DB
@@ -153,6 +182,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           walletAddress: dbProfile.wallet_address,
           privyId: dbProfile.privy_id,
           linkedPhone: dbProfile.phone_number || get().linkedPhone,
+          linkedExternalWallet: dbProfile.linked_external_wallet || get().linkedExternalWallet,
           avatarUrl: dbProfile.avatar_url || get().avatarUrl,
           isLoading: false,
         });
@@ -163,6 +193,9 @@ export const useUserStore = create<UserState>((set, get) => ({
         if (dbProfile.phone_number) {
           await AsyncStorage.setItem('@ned_wallet_linked_phone', dbProfile.phone_number);
           await AsyncStorage.setItem('temp_phone', dbProfile.phone_number);
+        }
+        if (dbProfile.linked_external_wallet) {
+          await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, dbProfile.linked_external_wallet);
         }
         if (dbProfile.avatar_url) {
           await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, dbProfile.avatar_url);
@@ -185,15 +218,19 @@ export const useUserStore = create<UserState>((set, get) => ({
     username: string;
     avatar_url?: string | null;
     phone_number?: string | null;
+    linked_external_wallet?: string | null;
   }): Promise<boolean> => {
     try {
       set({ isLoading: true, error: null });
+      const externalWalletToSave = params.linked_external_wallet !== undefined ? params.linked_external_wallet : get().linkedExternalWallet;
+
       // 1. Cập nhật state nội bộ ngay lập tức (Zero-latency UI)
       set({
         username: params.username,
         walletAddress: params.wallet_address,
         privyId: params.privy_id,
         linkedPhone: params.phone_number !== undefined ? params.phone_number : get().linkedPhone,
+        linkedExternalWallet: externalWalletToSave,
         avatarUrl: params.avatar_url !== undefined ? params.avatar_url : get().avatarUrl,
       });
 
@@ -205,12 +242,18 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem('temp_phone', params.phone_number);
         await AsyncStorage.setItem('@ned_wallet_linked_phone', params.phone_number);
       }
+      if (externalWalletToSave) {
+        await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, externalWalletToSave);
+      }
       if (params.avatar_url) {
         await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, params.avatar_url);
       }
 
       // 3. Upsert vào Supabase
-      const res = await upsertUserProfile(params);
+      const res = await upsertUserProfile({
+        ...params,
+        linked_external_wallet: externalWalletToSave,
+      });
       set({ isLoading: false });
       return res.success;
     } catch (err: any) {
@@ -226,6 +269,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       walletAddress: null,
       privyId: null,
       linkedPhone: null,
+      linkedExternalWallet: null,
       avatarUrl: null,
       isLoading: false,
       error: null,

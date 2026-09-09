@@ -25,15 +25,19 @@ import {
   fetchActiveGeoRedPackets,
   claimGeoRedPacketViaBackend,
   GeoRedPacket,
+  resolveActiveSolanaAddress,
 } from '../services/identity';
 import { GEO_REDPACKET_TREASURY, getSolanaBalance } from '../services/solana';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useUserStore } from '../stores/useUserStore';
 
 type ActiveTab = 'drop' | 'scan';
 
 export default function GeoRedPacketScreen() {
   const router = useRouter();
   const { user, isReady, logout } = usePrivy();
+  const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const {
     transfer,
@@ -71,16 +75,12 @@ export default function GeoRedPacketScreen() {
 
   // Lấy địa chỉ ví người dùng hiện tại
   const getMySolanaAddress = (): string | null => {
-    if (!user) return null;
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    return solanaAccount?.address || null;
   };
 
   const myAddress = getMySolanaAddress();

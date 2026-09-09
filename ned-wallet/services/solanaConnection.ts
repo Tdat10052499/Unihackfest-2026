@@ -125,8 +125,30 @@ export async function fetchUsdcBalance(
 
     if (parsedAccounts.value && parsedAccounts.value.length > 0) {
       const tokenAmount = parsedAccounts.value[0].account.data.parsed.info.tokenAmount;
-      return tokenAmount.uiAmount || 0;
+      if (tokenAmount.uiAmount && tokenAmount.uiAmount > 0) {
+        return tokenAmount.uiAmount;
+      }
     }
+
+    // 4. Quét toàn bộ token accounts thuộc sở hữu của ví (hỗ trợ cả USDT, Devnet test mints)
+    try {
+      const allAccounts = await connection.getParsedTokenAccountsByOwner(
+        ownerPubkey,
+        { programId: TOKEN_PROGRAM_ID },
+        'confirmed'
+      );
+
+      let total = 0;
+      if (allAccounts?.value && allAccounts.value.length > 0) {
+        for (const it of allAccounts.value) {
+          const amt = it.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof amt === 'number' && amt > 0) {
+            total += amt;
+          }
+        }
+      }
+      return total;
+    } catch (_) {}
 
     return 0;
   } catch (err: any) {

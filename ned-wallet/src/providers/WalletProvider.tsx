@@ -13,12 +13,14 @@ import React, {
 } from 'react';
 import { Linking, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 
 import { AnchorWallet } from '../utils/anchorClient';
 import { useNetworkStore } from '../../stores/useNetworkStore';
+import { useUserStore } from '../../stores/useUserStore';
 
 if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
@@ -49,8 +51,15 @@ export interface WalletProviderProps {
   defaultCluster?: 'devnet' | 'mainnet-beta';
 }
 
+const PHANTOM_STORAGE_KEYS = {
+  PUBKEY: '@ned_phantom_pubkey',
+  SESSION: '@ned_phantom_session',
+  SHARED_SECRET: '@ned_phantom_shared_secret',
+  DAPP_SECRET_KEY: '@ned_phantom_dapp_secret_key',
+};
+
 /**
- * Phase 2 & 3: Handshake, Kết nối Phantom & Ký thông điệp SIWS
+ * Phase 2 & 3: Handshake, Kết nối Phantom & Ký thông điệp SIWS / Giao dịch On-chain
  */
 export const WalletProvider: React.FC<WalletProviderProps> = ({
   children,
@@ -81,8 +90,47 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     reject: (error: Error) => void;
   } | null>(null);
 
+  // Ref lưu trữ Promise resolution cho SignTransaction
+  const pendingSignTransactionRef = useRef<{
+    resolve: (tx: any) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
   // Ref lưu trữ URL cuối cùng đã xử lý để tránh duplicate event giữa Linking.addEventListener và getInitialURL
   const lastHandledUrlRef = useRef<string | null>(null);
+
+  // Khôi phục phiên kết nối Phantom đã lưu từ AsyncStorage khi khởi động app
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const [storedPubkey, storedSession, storedSecret, storedDappKey] = await Promise.all([
+          AsyncStorage.getItem(PHANTOM_STORAGE_KEYS.PUBKEY),
+          AsyncStorage.getItem(PHANTOM_STORAGE_KEYS.SESSION),
+          AsyncStorage.getItem(PHANTOM_STORAGE_KEYS.SHARED_SECRET),
+          AsyncStorage.getItem(PHANTOM_STORAGE_KEYS.DAPP_SECRET_KEY),
+        ]);
+
+        if (storedPubkey && storedSession && storedSecret && storedDappKey) {
+          const userPub = new PublicKey(storedPubkey);
+          publicKeyRef.current = userPub;
+          sessionTokenRef.current = storedSession;
+          sharedSecretRef.current = bs58.decode(storedSecret);
+
+          const dappSecret = bs58.decode(storedDappKey);
+          const dappKeyPair = nacl.box.keyPair.fromSecretKey(dappSecret);
+          dappKeyPairRef.current = dappKeyPair;
+
+          setPublicKey(userPub);
+          setWalletType('phantom');
+          console.log('🔄 [WalletProvider] Đã khôi phục phiên ví Phantom:', userPub.toBase58());
+        }
+      } catch (err) {
+        console.warn('⚠️ [WalletProvider] Không thể khôi phục phiên ví Phantom:', err);
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   // Lắng nghe callback Deep Link từ Phantom (onConnect & onSignMessage)
   useEffect(() => {
@@ -185,7 +233,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
 
           const userPubkey = new PublicKey(decoded.public_key);
 
-          // Lưu session, sharedSecret, và public_key vào useRef và State
+          // Lưu session, sharedSecret, và public_key vào useRef, State và AsyncStorage
           sharedSecretRef.current = sharedSec;
           sessionTokenRef.current = decoded.session;
           publicKeyRef.current = userPubkey;
@@ -193,6 +241,19 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
           setPublicKey(userPubkey);
           setConnecting(false);
           setWalletType('phantom');
+
+          // Lưu vào AsyncStorage để duy trì kết nối xuyên suốt các màn hình
+          AsyncStorage.multiSet([
+            [PHANTOM_STORAGE_KEYS.PUBKEY, userPubkey.toBase58()],
+            [PHANTOM_STORAGE_KEYS.SESSION, decoded.session],
+            [PHANTOM_STORAGE_KEYS.SHARED_SECRET, bs58.encode(sharedSec)],
+            [PHANTOM_STORAGE_KEYS.DAPP_SECRET_KEY, bs58.encode(dappKeyPairRef.current.secretKey)],
+          ]).catch((err) => console.warn('⚠️ [WalletProvider] Lỗi lưu session ví Phantom:', err));
+
+          // Đồng bộ vào useUserStore
+          try {
+            useUserStore.getState().setWalletAddress(userPubkey.toBase58());
+          } catch {}
 
           console.log('✅ [Phase 2] Handshake thành công! Public Key:', userPubkey.toBase58());
 
@@ -243,6 +304,54 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
             pendingSignMessageRef.current = null;
           }
         }
+
+        // 3. Bắt Deep Link Callback (onSignTransaction - Ký giao dịch Phantom)
+        if (event.url.includes('onSignTransaction') || parsed.path?.includes('onSignTransaction')) {
+          const nonce = getParam('nonce');
+          const data = getParam('data');
+
+          console.log('📥 [Phantom onSignTransaction] Nhận callback với nonce:', nonce);
+
+          if (!nonce || !data) {
+            console.warn('⚠️ [Phantom onSignTransaction] Callback thiếu tham số nonce hoặc data, bỏ qua.');
+            return;
+          }
+
+          const sec = sharedSecretRef.current;
+          if (!sec) {
+            throw new Error('Không tìm thấy sharedSecret của phiên kết nối Phantom. Vui lòng kết nối lại ví.');
+          }
+
+          // Giải mã payload trả về để thu được transaction đã ký
+          const decrypted = nacl.box.open.after(
+            bs58.decode(data),
+            bs58.decode(nonce),
+            sec
+          );
+
+          if (!decrypted) {
+            throw new Error('Không thể giải mã giao dịch trả về từ ví Phantom.');
+          }
+
+          const decoded: { transaction: string } = JSON.parse(
+            Buffer.from(decrypted).toString('utf8')
+          );
+
+          const txBuffer = bs58.decode(decoded.transaction);
+          let signedTx: any;
+          try {
+            signedTx = Transaction.from(txBuffer);
+          } catch {
+            signedTx = VersionedTransaction.deserialize(txBuffer);
+          }
+
+          console.log('✅ [Phantom onSignTransaction] Giải mã giao dịch đã ký thành công!');
+
+          if (pendingSignTransactionRef.current) {
+            pendingSignTransactionRef.current.resolve(signedTx);
+            pendingSignTransactionRef.current = null;
+          }
+        }
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
         console.warn('⚠️ [WalletProvider Error Callback]:', errorMsg);
@@ -254,6 +363,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         if (pendingSignMessageRef.current) {
           pendingSignMessageRef.current.reject(new Error(errorMsg));
           pendingSignMessageRef.current = null;
+        }
+        if (pendingSignTransactionRef.current) {
+          pendingSignTransactionRef.current.reject(new Error(errorMsg));
+          pendingSignTransactionRef.current = null;
         }
       }
     };
@@ -370,6 +483,72 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     []
   );
 
+  // Hàm mã hóa & gửi Transaction sang Phantom để ký
+  const signTransaction = useCallback(
+    async <T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> => {
+      const sec = sharedSecretRef.current;
+      const sess = sessionTokenRef.current;
+      const keyPair = dappKeyPairRef.current;
+
+      if (!sec || !sess || !keyPair) {
+        throw new Error('Chưa thiết lập phiên kết nối với ví Phantom (thiếu secret/session). Vui lòng kết nối lại ví.');
+      }
+
+      const serialized = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
+      const encodedTx = bs58.encode(Buffer.from(serialized));
+
+      const payload = {
+        session: sess,
+        transaction: encodedTx,
+      };
+
+      const nonce = nacl.randomBytes(24);
+      const encrypted = nacl.box.after(
+        Buffer.from(JSON.stringify(payload)),
+        nonce,
+        sec
+      );
+
+      const dappEncryptionPubKey = bs58.encode(keyPair.publicKey);
+      const redirectLink = LinkingExpo.createURL('onSignTransaction');
+      const params = new URLSearchParams({
+        dapp_encryption_public_key: dappEncryptionPubKey,
+        nonce: bs58.encode(nonce),
+        redirect_link: redirectLink,
+        payload: bs58.encode(encrypted),
+      });
+
+      const fullUrl = `https://phantom.app/ul/v1/signTransaction?${params.toString()}`;
+      console.log('🔗 [Phantom signTransaction] Mở URL ký giao dịch:', fullUrl);
+
+      try {
+        await Linking.openURL(fullUrl);
+      } catch (openErr) {
+        console.error('❌ [Phantom signTransaction] Không thể mở ví Phantom:', openErr);
+        throw new Error('Không thể mở ứng dụng ví Phantom để xác nhận giao dịch.');
+      }
+
+      return new Promise<T>((resolve, reject) => {
+        pendingSignTransactionRef.current = { resolve: resolve as any, reject };
+      });
+    },
+    []
+  );
+
+  const signAllTransactions = useCallback(
+    async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
+      const signed: T[] = [];
+      for (const tx of txs) {
+        signed.push(await signTransaction(tx));
+      }
+      return signed;
+    },
+    [signTransaction]
+  );
+
   const cancelConnecting = useCallback(() => {
     setConnecting(false);
     if (pendingConnectRef.current) {
@@ -379,6 +558,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (pendingSignMessageRef.current) {
       pendingSignMessageRef.current.reject(new Error('Đã hủy yêu cầu ký thông điệp.'));
       pendingSignMessageRef.current = null;
+    }
+    if (pendingSignTransactionRef.current) {
+      pendingSignTransactionRef.current.reject(new Error('Đã hủy yêu cầu ký giao dịch.'));
+      pendingSignTransactionRef.current = null;
     }
   }, []);
 
@@ -424,9 +607,22 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         pendingSignMessageRef.current.reject(new Error('Phiên kết nối ví đã kết thúc.'));
         pendingSignMessageRef.current = null;
       }
+      if (pendingSignTransactionRef.current) {
+        pendingSignTransactionRef.current.reject(new Error('Phiên kết nối ví đã kết thúc.'));
+        pendingSignTransactionRef.current = null;
+      }
       setPublicKey(null);
       setConnecting(false);
       setWalletType(null);
+
+      // Xóa bộ nhớ AsyncStorage
+      AsyncStorage.multiRemove([
+        PHANTOM_STORAGE_KEYS.PUBKEY,
+        PHANTOM_STORAGE_KEYS.SESSION,
+        PHANTOM_STORAGE_KEYS.SHARED_SECRET,
+        PHANTOM_STORAGE_KEYS.DAPP_SECRET_KEY,
+      ]).catch(() => {});
+
       console.log('🧹 [WalletProvider] Đã dọn dẹp sạch toàn bộ State & Secret ví Phantom');
     }
   }, []);
@@ -435,10 +631,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (!publicKey) return null;
     return {
       publicKey,
-      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
-      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
+      signTransaction,
+      signAllTransactions,
     };
-  }, [publicKey]);
+  }, [publicKey, signTransaction, signAllTransactions]);
 
   const contextValue: WalletContextState = useMemo(
     () => ({
@@ -453,10 +649,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       cancelConnecting,
       disconnect,
       signMessage,
-      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
-      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
+      signTransaction,
+      signAllTransactions,
     }),
-    [publicKey, connecting, walletType, anchorWallet, currentCluster, connect, cancelConnecting, disconnect, signMessage]
+    [publicKey, connecting, walletType, anchorWallet, currentCluster, connect, cancelConnecting, disconnect, signMessage, signTransaction, signAllTransactions]
   );
 
   return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;

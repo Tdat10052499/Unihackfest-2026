@@ -89,13 +89,20 @@ export function createPrivyAnchorWallet(solanaWalletState: any): AnchorWallet | 
       publicKey,
       signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
         let activeProvider: any = null;
-        if (typeof solanaWalletState?.getProvider === 'function') {
+        if (typeof activeWallet?.getProvider === 'function') {
+          try {
+            activeProvider = await activeWallet.getProvider();
+          } catch (e) {}
+        }
+        if (!activeProvider && typeof solanaWalletState?.getProvider === 'function') {
           try {
             activeProvider = await solanaWalletState.getProvider();
           } catch (e) {}
         }
-        if (!activeProvider && typeof activeWallet?.getProvider === 'function') {
-          activeProvider = await activeWallet.getProvider();
+        if (!activeProvider && typeof solanaWalletState?.create === 'function') {
+          try {
+            activeProvider = await solanaWalletState.create();
+          } catch (e) {}
         }
         if (!activeProvider) {
           activeProvider = activeWallet;
@@ -106,11 +113,11 @@ export function createPrivyAnchorWallet(solanaWalletState: any): AnchorWallet | 
             method: 'signTransaction',
             params: { transaction: tx },
           });
-          return (signResult?.signedTransaction || tx) as T;
+          return (signResult?.signedTransaction || signResult || tx) as T;
         }
 
-        if (typeof activeWallet?.signTransaction === 'function') {
-          return (await activeWallet.signTransaction(tx)) as T;
+        if (typeof activeProvider?.signTransaction === 'function') {
+          return (await activeProvider.signTransaction(tx)) as T;
         }
 
         throw new Error('Không thể khởi tạo provider để ký giao dịch.');

@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -21,15 +22,20 @@ import {
   getAccountIdentifier,
   getMaskedPhone,
 } from '../services/identity';
+import {
+  searchUsersOffchain,
+  UserSearchResult,
+} from '../services/supabase';
 import { getLinkedPhone } from '../services/storage';
-import { formatFiatBalance, USD_TO_VND_RATE } from '../services/solana';
+import { formatFiatBalance, USD_TO_VND_RATE, getAccountDisplayBalance } from '../services/solana';
 import { useTranslation } from '../services/i18n';
 
 interface SendModalProps {
   visible: boolean;
   onClose: () => void;
   solanaAddress: string | null;
-  solBalance: number | null;
+  solBalance?: number | null;
+  availableBalanceUsd?: number | null;
   initialRecipient?: string;
   onOpenScanner?: () => void;
   onConfirmSend: (recipientAddress: string, amountUsd: number) => Promise<void>;
@@ -43,6 +49,7 @@ export const SendModal: React.FC<SendModalProps> = ({
   onClose,
   solanaAddress,
   solBalance,
+  availableBalanceUsd,
   initialRecipient = '',
   onOpenScanner,
   onConfirmSend,
@@ -53,16 +60,21 @@ export const SendModal: React.FC<SendModalProps> = ({
   const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState(initialRecipient);
   const [debouncedInput, setDebouncedInput] = useState(initialRecipient);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [isLockedRecipient, setIsLockedRecipient] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [resolvedPhone, setResolvedPhone] = useState<string | null>(null);
   const [resolvedIdentity, setResolvedIdentity] = useState<{
     type: 'wallet' | 'phone' | 'username';
     label: string;
     maskedWallet: string;
+    avatarUrl?: string | null;
   } | null>(null);
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [amount, setAmount] = useState('5');
+  const [availableUsd, setAvailableUsd] = useState<number>(availableBalanceUsd ?? 0);
   const [myPhone, setMyPhone] = useState<string | null>(null);
 
   // Nạp SĐT của chính người dùng từ local cache
@@ -72,15 +84,31 @@ export const SendModal: React.FC<SendModalProps> = ({
     });
   }, [visible]);
 
+  // Nạp số dư on-chain thực tế (USDT/USDC/SOL)
+  useEffect(() => {
+    if (visible && solanaAddress) {
+      getAccountDisplayBalance(solanaAddress, true)
+        .then((bal) => {
+          setAvailableUsd(bal.usdBalance);
+        })
+        .catch(console.warn);
+    } else if (availableBalanceUsd !== undefined && availableBalanceUsd !== null) {
+      setAvailableUsd(availableBalanceUsd);
+    }
+  }, [visible, solanaAddress, availableBalanceUsd]);
+
   // Cập nhật khi initialRecipient thay đổi (ví dụ sau khi quét QR)
   useEffect(() => {
     if (initialRecipient) {
       setSearchInput(initialRecipient);
+      setIsLockedRecipient(false);
     }
   }, [initialRecipient]);
 
-  // 1. Cơ chế Debounce 500ms
+  // 1. Cơ chế Debounce 500ms chống spam
   useEffect(() => {
+    if (isLockedRecipient) return;
+
     const handler = setTimeout(() => {
       setDebouncedInput(searchInput.trim());
     }, 500);
@@ -88,14 +116,18 @@ export const SendModal: React.FC<SendModalProps> = ({
     return () => {
       clearTimeout(handler);
     };
-  }, [searchInput]);
+  }, [searchInput, isLockedRecipient]);
 
-  // 2. Logic phân loại định dạng, Chặn tự chuyển tiền & Tra cứu ví On-chain PDA
+  // 2. Tra cứu danh tính Off-chain qua Supabase với Fallback On-chain
   useEffect(() => {
+    if (isLockedRecipient) return;
+
     if (!debouncedInput) {
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
+      setSelectedUser(null);
       setSearchError('');
       setIsLoadingLookup(false);
       return;
@@ -108,6 +140,7 @@ export const SendModal: React.FC<SendModalProps> = ({
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
@@ -118,6 +151,7 @@ export const SendModal: React.FC<SendModalProps> = ({
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
@@ -127,6 +161,7 @@ export const SendModal: React.FC<SendModalProps> = ({
     if (parsed.type === 'wallet') {
       setResolvedAddress(parsed.normalized);
       setResolvedPhone(null);
+      setSearchResults([]);
       setResolvedIdentity({
         type: 'wallet',
         label: 'Địa chỉ ví Solana',
@@ -137,63 +172,136 @@ export const SendModal: React.FC<SendModalProps> = ({
       return;
     }
 
-    // Trường hợp 2: Tra cứu Username hoặc SĐT 100% On-chain PDA
+    // Trường hợp 2: Tra cứu Off-chain qua Supabase Database
     let isMounted = true;
     setIsLoadingLookup(true);
     setSearchError('');
-    setResolvedAddress(null);
-    setResolvedPhone(null);
-    setResolvedIdentity(null);
 
-    resolveIdentityOnchain(debouncedInput)
-      .then((res) => {
+    searchUsersOffchain(debouncedInput)
+      .then(async (users) => {
         if (!isMounted) return;
-        setIsLoadingLookup(false);
 
-        if (res.success && res.walletAddress) {
-          if (solanaAddress && res.walletAddress.toLowerCase() === solanaAddress.toLowerCase()) {
+        if (users && users.length > 0) {
+          // Lọc bỏ chính tài khoản của người dùng nếu có trong kết quả
+          const filtered = users.filter((u) => {
+            if (solanaAddress && u.wallet_address.toLowerCase() === solanaAddress.toLowerCase()) {
+              return false;
+            }
+            if (myPhone && u.phone_number && isSamePhoneNumber(u.phone_number, myPhone)) {
+              return false;
+            }
+            return true;
+          });
+
+          if (filtered.length > 0) {
+            setSearchResults(filtered);
+            setSearchError('');
+            setIsLoadingLookup(false);
+            return;
+          }
+        }
+
+        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu Supabase chưa có bản ghi
+        console.log('ℹ️ [Off-chain Search] Thử fallback tra cứu On-chain PDA:', debouncedInput);
+        try {
+          const onchainRes = await resolveIdentityOnchain(debouncedInput);
+          if (!isMounted) return;
+          setIsLoadingLookup(false);
+
+          if (onchainRes.success && onchainRes.walletAddress) {
+            if (solanaAddress && onchainRes.walletAddress.toLowerCase() === solanaAddress.toLowerCase()) {
+              setResolvedAddress(null);
+              setResolvedPhone(null);
+              setResolvedIdentity(null);
+              setSearchResults([]);
+              setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+            } else {
+              setResolvedAddress(onchainRes.walletAddress);
+              setSearchResults([]);
+              if (onchainRes.type === 'phone') {
+                setResolvedPhone(onchainRes.normalized || debouncedInput);
+              }
+              const label = onchainRes.type === 'phone'
+                ? getMaskedPhone(onchainRes.normalized)
+                : `@${onchainRes.normalized}.sol`;
+              const maskedWallet = `${onchainRes.walletAddress.slice(0, 4)}...${onchainRes.walletAddress.slice(-4)}`;
+
+              setResolvedIdentity({
+                type: onchainRes.type || 'username',
+                label,
+                maskedWallet,
+              });
+              setSearchError('');
+            }
+          } else {
             setResolvedAddress(null);
             setResolvedPhone(null);
             setResolvedIdentity(null);
-            setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
-          } else {
-            setResolvedAddress(res.walletAddress);
-            if (res.type === 'phone') {
-              setResolvedPhone(res.normalized || debouncedInput);
-            }
-            const label = res.type === 'phone'
-              ? getMaskedPhone(res.normalized)
-              : `@${res.normalized}.sol`;
-            const maskedWallet = `${res.walletAddress.slice(0, 4)}...${res.walletAddress.slice(-4)}`;
-
-            setResolvedIdentity({
-              type: res.type || 'username',
-              label,
-              maskedWallet,
-            });
-            setSearchError('');
+            setSearchResults([]);
+            setSearchError(t('send.notFound', { defaultValue: 'Không tìm thấy người dùng định danh này' }));
           }
-        } else {
+        } catch (onchainErr) {
+          if (!isMounted) return;
+          setIsLoadingLookup(false);
           setResolvedAddress(null);
           setResolvedPhone(null);
           setResolvedIdentity(null);
+          setSearchResults([]);
           setSearchError(t('send.notFound', { defaultValue: 'Không tìm thấy người dùng định danh này' }));
         }
       })
       .catch((err) => {
         if (!isMounted) return;
         setIsLoadingLookup(false);
-        setResolvedAddress(null);
-        setResolvedPhone(null);
-        setResolvedIdentity(null);
-        setSearchError('Không tìm thấy người dùng định danh này');
-        console.error('Identity on-chain lookup error:', err);
+        setSearchResults([]);
+        setSearchError('Lỗi kết nối khi tìm kiếm người nhận');
+        console.error('Off-chain search error:', err);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [debouncedInput, solanaAddress, myPhone, t]);
+  }, [debouncedInput, solanaAddress, myPhone, isLockedRecipient, t]);
+
+  // Xử lý khi người dùng chọn 1 kết quả từ Autocomplete Dropdown
+  const handleSelectUser = (item: UserSearchResult) => {
+    setIsLoadingLookup(false);
+    if (solanaAddress && item.wallet_address.toLowerCase() === solanaAddress.toLowerCase()) {
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      return;
+    }
+    if (myPhone && item.phone_number && isSamePhoneNumber(item.phone_number, myPhone)) {
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      return;
+    }
+
+    const masked = `${item.wallet_address.slice(0, 4)}...${item.wallet_address.slice(-4)}`;
+    setResolvedAddress(item.wallet_address);
+    setSelectedUser(item);
+    setIsLockedRecipient(true);
+    setSearchResults([]);
+    setSearchError('');
+    setSearchInput(`@${item.username}.sol`);
+    setResolvedIdentity({
+      type: 'username',
+      label: `@${item.username}.sol`,
+      maskedWallet: masked,
+      avatarUrl: item.avatar_url,
+    });
+  };
+
+  // Mở khóa ô nhập liệu để tìm kiếm lại người nhận khác
+  const handleResetRecipient = () => {
+    setIsLoadingLookup(false);
+    setIsLockedRecipient(false);
+    setSelectedUser(null);
+    setResolvedAddress(null);
+    setResolvedPhone(null);
+    setResolvedIdentity(null);
+    setSearchResults([]);
+    setSearchInput('');
+    setSearchError('');
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -281,7 +389,6 @@ export const SendModal: React.FC<SendModalProps> = ({
 
   const parsedAmount = parseFloat(amount) || 0;
   const vndEquivalent = Math.round(parsedAmount * USD_TO_VND_RATE);
-  const availableUsd = solBalance !== null ? solBalance * 150 : 0;
 
   if (!visible) return null;
 
@@ -324,30 +431,50 @@ export const SendModal: React.FC<SendModalProps> = ({
                 <View
                   style={[
                     styles.searchBox,
-                    resolvedAddress && styles.searchBoxSuccess,
+                    (resolvedAddress || isLockedRecipient) && styles.searchBoxSuccess,
                     searchError && styles.searchBoxError,
+                    isLockedRecipient && styles.searchBoxLocked,
                   ]}
                 >
-                  <Feather
-                    name="search"
-                    size={18}
-                    color="#64748B"
-                    style={{ marginRight: 8 }}
-                  />
+                  {isLockedRecipient ? (
+                    <Ionicons name="lock-closed" size={18} color="#00A859" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Feather
+                      name="search"
+                      size={18}
+                      color="#64748B"
+                      style={{ marginRight: 8 }}
+                    />
+                  )}
                   <TextInput
-                    style={styles.searchInput}
+                    style={[styles.searchInput, isLockedRecipient && styles.searchInputLocked]}
                     placeholder={t('send.recipientPlaceholder', { defaultValue: 'Nhập @username, SĐT hoặc ví Solana...' })}
                     placeholderTextColor="#94A3B8"
                     value={searchInput}
                     onChangeText={setSearchInput}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    editable={!isLockedRecipient}
                   />
 
-                  {/* Vùng bên phải ô nhập: Spinner hoặc Nút quét QR */}
+                  {/* Vùng bên phải ô nhập: Spinner, Nút Xóa / Nút quét QR */}
                   <View style={styles.rightActionBox}>
                     {isLoadingLookup ? (
                       <ActivityIndicator size="small" color="#00A859" />
+                    ) : isLockedRecipient ? (
+                      <TouchableOpacity
+                        onPress={handleResetRecipient}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="close-circle" size={20} color="#00A859" />
+                      </TouchableOpacity>
+                    ) : searchInput.length > 0 ? (
+                      <TouchableOpacity
+                        onPress={handleResetRecipient}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                      </TouchableOpacity>
                     ) : onOpenScanner ? (
                       <TouchableOpacity
                         onPress={onOpenScanner}
@@ -364,8 +491,113 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               </View>
 
-              {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Tài Khoản On-chain) */}
-              {resolvedAddress && (
+              {/* 2. Autocomplete Dropdown Danh Sách Kết Quả từ Supabase */}
+              {searchResults.length > 0 && !isLockedRecipient && (
+                <View style={styles.dropdownContainer}>
+                  <View style={styles.dropdownHeader}>
+                    <Feather name="users" size={13} color="#64748B" style={{ marginRight: 5 }} />
+                    <Text style={styles.dropdownHeaderText}>Gợi ý người nhận ({searchResults.length})</Text>
+                  </View>
+                  {searchResults.map((item, idx) => {
+                    const masked = `${item.wallet_address.slice(0, 4)}...${item.wallet_address.slice(-4)}`;
+                    const initial = (item.username || '?').charAt(0).toUpperCase();
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id || item.wallet_address || idx}
+                        style={[
+                          styles.dropdownItem,
+                          idx === searchResults.length - 1 && styles.dropdownItemLast,
+                        ]}
+                        onPress={() => handleSelectUser(item)}
+                        activeOpacity={0.7}
+                      >
+                        {/* Avatar */}
+                        <View style={styles.dropdownAvatarContainer}>
+                          {item.avatar_url ? (
+                            <Image source={{ uri: item.avatar_url }} style={styles.dropdownAvatarImg} />
+                          ) : (
+                            <View style={styles.dropdownAvatarFallback}>
+                              <Text style={styles.dropdownAvatarLetter}>{initial}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Details */}
+                        <View style={styles.dropdownDetailsCol}>
+                          <View style={styles.dropdownNameRow}>
+                            <Text style={styles.dropdownUsername}>@{item.username}.sol</Text>
+                            <Ionicons name="checkmark-circle" size={14} color="#00A859" style={{ marginLeft: 4 }} />
+                          </View>
+                          <View style={styles.dropdownSubRow}>
+                            <Text style={styles.dropdownWalletText}>Ví: {masked}</Text>
+                            {item.phone_number ? (
+                              <Text style={styles.dropdownPhoneText}> • {getMaskedPhone(item.phone_number)}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        {/* Arrow */}
+                        <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* 3. Thẻ Người Nhận Đã Chọn Kèm Tích Xanh (Locked Recipient Card) */}
+              {isLockedRecipient && resolvedAddress && (
+                <View style={styles.lockedRecipientCard}>
+                  <View style={styles.lockedHeaderRow}>
+                    <View style={styles.lockedStatusBadge}>
+                      <Ionicons name="checkmark-circle" size={16} color="#00A859" />
+                      <Text style={styles.lockedStatusText}>Đã xác thực người nhận</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.changePillBtn}
+                      onPress={handleResetRecipient}
+                    >
+                      <Feather name="edit-2" size={12} color="#00A859" style={{ marginRight: 4 }} />
+                      <Text style={styles.changePillText}>Đổi người nhận</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.lockedUserRow}>
+                    <View style={styles.lockedAvatarBox}>
+                      {resolvedIdentity?.avatarUrl || selectedUser?.avatar_url ? (
+                        <Image
+                          source={{ uri: (resolvedIdentity?.avatarUrl || selectedUser?.avatar_url)! }}
+                          style={styles.lockedAvatarImg}
+                        />
+                      ) : (
+                        <View style={styles.lockedAvatarFallback}>
+                          <Text style={styles.lockedAvatarLetter}>
+                            {(resolvedIdentity?.label || selectedUser?.username || 'U').replace('@', '').charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.lockedUserInfoCol}>
+                      <Text style={styles.lockedUserName}>
+                        {resolvedIdentity?.label || `@${selectedUser?.username}.sol`}
+                      </Text>
+                      <Text style={styles.lockedUserAddress}>
+                        Ví: {resolvedIdentity?.maskedWallet || `${resolvedAddress.slice(0, 4)}...${resolvedAddress.slice(-4)}`}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.copyPillBtn}
+                      onPress={() => copyToClipboard(resolvedAddress)}
+                    >
+                      <Ionicons name="copy-outline" size={12} color="#15803D" style={{ marginRight: 3 }} />
+                      <Text style={styles.copyPillText}>{t('deposit.copyAddress', { defaultValue: 'Sao chép' })}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* 4. Trạng Thái UI: Base58 Address Trực Tiếp */}
+              {!isLockedRecipient && resolvedAddress && (
                 <View style={styles.successCard}>
                   <View style={styles.successIconBox}>
                     <Ionicons
@@ -391,7 +623,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               )}
 
-              {/* 3. Trạng Thái UI Phản Hồi: Thất Bại (Báo Lỗi Chữ Đỏ) */}
+              {/* 5. Trạng Thái UI: Báo Lỗi Chữ Đỏ */}
               {searchError ? (
                 <View style={styles.errorBox}>
                   <Feather
@@ -404,7 +636,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               ) : null}
 
-              {/* 4. Nhập Số Tiền USD / VND */}
+              {/* 6. Nhập Số Tiền USD / VND */}
               <View style={[styles.inputSection, { marginTop: 14 }]}>
                 <View style={styles.amountHeaderRow}>
                   <Text style={styles.fieldLabel}>{t('send.amountLabel', { defaultValue: 'Số tiền chuyển:' })}</Text>
@@ -463,7 +695,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               </View>
 
-              {/* 5. Nút Xác Nhận Chuyển Tiền / Khôi phục ví */}
+              {/* 7. Nút Xác Nhận Chuyển Tiền / Khôi phục ví */}
               <TouchableOpacity
                 style={[
                   styles.sendBtn,
@@ -574,23 +806,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputSection: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#CBD5E1',
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 48,
+    height: 50,
   },
   searchBoxSuccess: {
     borderColor: '#00A859',
@@ -600,11 +832,19 @@ const styles = StyleSheet.create({
     borderColor: '#DC2626',
     backgroundColor: '#FEF2F2',
   },
+  searchBoxLocked: {
+    borderColor: '#86EFAC',
+    backgroundColor: '#F0FDF4',
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: '#0F172A',
     paddingVertical: 8,
+  },
+  searchInputLocked: {
+    fontWeight: '600',
+    color: '#15803D',
   },
   rightActionBox: {
     width: 32,
@@ -615,6 +855,190 @@ const styles = StyleSheet.create({
   },
   qrScanBtn: {
     padding: 4,
+  },
+  dropdownContainer: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingVertical: 6,
+    marginTop: 4,
+    marginBottom: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownAvatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  dropdownAvatarImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  dropdownAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  dropdownAvatarLetter: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  dropdownDetailsCol: {
+    flex: 1,
+  },
+  dropdownNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropdownUsername: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  dropdownSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  dropdownWalletText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  dropdownPhoneText: {
+    fontSize: 11.5,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  lockedRecipientCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+    marginTop: 4,
+    shadowColor: '#00A859',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  lockedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCFCE7',
+  },
+  lockedStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lockedStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+    marginLeft: 5,
+  },
+  changePillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  changePillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  lockedUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lockedAvatarBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  lockedAvatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  lockedAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#C4B5FD',
+  },
+  lockedAvatarLetter: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  lockedUserInfoCol: {
+    flex: 1,
+  },
+  lockedUserName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  lockedUserAddress: {
+    fontSize: 11.5,
+    color: '#166534',
+    marginTop: 2,
   },
   successCard: {
     flexDirection: 'row',
@@ -643,6 +1067,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   copyPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 10,
     paddingVertical: 5,

@@ -11,6 +11,7 @@ export interface UserProfile {
   avatar_url?: string | null;
   phone_number?: string | null;
   phone_hash?: string | null;
+  linked_external_wallet?: string | null;
   onboarding_status?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -198,15 +199,16 @@ export async function checkPhoneExists(
 
 /**
  * Thực hiện UPSERT bản ghi người dùng vào bảng `users`
- * @param params { privy_id, wallet_address, username, phone_number }
+ * @param params { privy_id, wallet_address, username, phone_number, linked_external_wallet }
  */
 export async function upsertUserProfile(params: {
   privy_id?: string;
   wallet_address: string;
   username: string;
   phone_number?: string | null;
+  linked_external_wallet?: string | null;
 }): Promise<{ success: boolean; data?: UserProfile; error?: string }> {
-  const { privy_id, wallet_address, username, phone_number } = params;
+  const { privy_id, wallet_address, username, phone_number, linked_external_wallet } = params;
 
   if (!username || !wallet_address) {
     return {
@@ -218,6 +220,7 @@ export async function upsertUserProfile(params: {
   const cleanUsername = username.trim().toLowerCase();
   const cleanPhone = phone_number ? phone_number.trim() : null;
   const phoneHash = cleanPhone ? hashPhoneNumber(cleanPhone) : null;
+  const cleanExternalWallet = linked_external_wallet ? linked_external_wallet.trim() : null;
 
   try {
     console.log('💾 [Supabase] Bắt đầu UPSERT user profile:', {
@@ -226,6 +229,7 @@ export async function upsertUserProfile(params: {
       username: cleanUsername,
       phone_number: cleanPhone,
       phone_hash: phoneHash,
+      linked_external_wallet: cleanExternalWallet,
     });
 
     const client = getSupabaseClient();
@@ -267,7 +271,7 @@ export async function upsertUserProfile(params: {
       }
     }
 
-    // 3. Chuẩn bị payload tương thích cả bảng users có phone_hash và phone_number
+    // 3. Chuẩn bị payload tương thích cả bảng users có phone_hash, phone_number, linked_external_wallet
     const basePayload: any = {
       wallet_address,
       username: cleanUsername,
@@ -280,12 +284,15 @@ export async function upsertUserProfile(params: {
       basePayload.phone_hash = phoneHash;
     }
 
-    // Payload đầy đủ truyền cả phone_number nếu DB hỗ trợ
+    // Payload đầy đủ truyền cả phone_number và linked_external_wallet nếu DB hỗ trợ
     const fullPayload: any = {
       ...basePayload,
     };
     if (cleanPhone) {
       fullPayload.phone_number = cleanPhone;
+    }
+    if (cleanExternalWallet) {
+      fullPayload.linked_external_wallet = cleanExternalWallet;
     }
 
     // Helper thực hiện upsert với cơ chế tự động fallback khi schema chưa có cột phone_number
@@ -603,6 +610,91 @@ export async function updateUserAvatarInDB(
   } catch (err: any) {
     console.error('❌ [updateUserAvatarInDB] Lỗi:', err);
     return { success: false, error: err?.message };
+  }
+}
+
+export interface UserSearchResult {
+  id?: string;
+  username: string;
+  wallet_address: string;
+  phone_number?: string | null;
+  phone_hash?: string | null;
+  avatar_url?: string | null;
+  privy_id?: string | null;
+}
+
+/**
+ * Tìm kiếm người dùng nhanh qua Supabase (Off-chain Autocomplete Search)
+ * Hỗ trợ tìm kiếm theo @username, username, số điện thoại hoặc địa chỉ ví
+ */
+export async function searchUsersOffchain(query: string): Promise<UserSearchResult[]> {
+  if (!query || !query.trim()) return [];
+
+  let clean = query.trim().toLowerCase().replace(/\s+/g, '');
+  if (clean.startsWith('@')) {
+    clean = clean.slice(1);
+  }
+  if (clean.endsWith('.sol')) {
+    clean = clean.slice(0, -4);
+  }
+
+  if (!clean) return [];
+
+  // Nếu chuỗi query bắt đầu bằng số (0... hoặc 84...), format về +84
+  let phoneQuery = clean;
+  if (phoneQuery.startsWith('0')) {
+    phoneQuery = '+84' + phoneQuery.slice(1);
+  } else if (phoneQuery.startsWith('84') && !phoneQuery.startsWith('+')) {
+    phoneQuery = '+' + phoneQuery;
+  }
+
+  const phoneHash = hashPhoneNumber(phoneQuery);
+  const cleanPhoneHash = hashPhoneNumber(clean);
+  const isDigits = /^[0-9+]+$/.test(clean);
+
+  try {
+    const client = getSupabaseClient();
+    console.log('🔍 [Supabase Search] Đang tìm kiếm user với query:', { clean, phoneQuery });
+
+    // 1. Tìm kiếm theo username, phone_number hoặc wallet_address
+    let data: any = null;
+    let error: any = null;
+
+    const initialRes = await client
+      .from('users')
+      .select('id, username, wallet_address, phone_number, avatar_url, privy_id, phone_hash')
+      .or(`username.ilike.%${clean}%,phone_number.ilike.%${phoneQuery}%,phone_number.ilike.%${clean}%,wallet_address.ilike.%${clean}%`)
+      .limit(5);
+
+    data = initialRes.data;
+    error = initialRes.error;
+
+    // 2. Fallback nếu schema cache chưa nhận diện cột phone_number
+    if (error && (error.message?.includes('phone_number') || error.message?.includes('schema cache'))) {
+      const orConditions = [`username.ilike.%${clean}%`, `wallet_address.ilike.%${clean}%`];
+      if (isDigits) {
+        orConditions.push(`phone_hash.eq.${phoneHash}`);
+        orConditions.push(`phone_hash.eq.${cleanPhoneHash}`);
+      }
+
+      const fallbackRes = await client
+        .from('users')
+        .select('id, username, wallet_address, avatar_url, privy_id, phone_hash')
+        .or(orConditions.join(','))
+        .limit(5);
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
+
+    if (error) {
+      console.warn('⚠️ [Supabase Search] Lỗi query:', error.message);
+      return [];
+    }
+
+    return (data || []) as UserSearchResult[];
+  } catch (err) {
+    console.error('❌ [Supabase Search] Exception:', err);
+    return [];
   }
 }
 

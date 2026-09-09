@@ -10,12 +10,14 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { usePrivy, useLoginWithSiws } from '@privy-io/expo';
+import { usePrivy, useLoginWithSiws, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { useRouter } from 'expo-router';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { Buffer } from 'buffer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useUserStore } from '../stores/useUserStore';
 
 if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
@@ -41,6 +43,8 @@ export interface PhantomAuthButtonProps {
 
 /**
  * Component đóng gói độc lập (Hộp đen) toàn bộ logic Phase 1 -> Phase 4 của Phantom SIWS
+ * - Phantom: Chỉ dùng làm phương thức xác thực quyền sở hữu (SIWS).
+ * - Privy: Kích hoạt / Khởi tạo Ví nhúng (Embedded Wallet) trên Solana làm wallet_address chính.
  */
 export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
   mode = 'login',
@@ -52,6 +56,7 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
 }) => {
   const router = useRouter();
   const privy = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
   const { connect, signMessage } = useExternalWallet();
   const siwsAuth = useLoginWithSiws();
 
@@ -78,7 +83,12 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
         setIsSigning(false);
         return;
       }
-      console.log('🎯 [Phase 2] Handshake thành công. Public Key:', userPub.toBase58());
+      const phantomAddress = userPub.toBase58();
+      console.log('🎯 [Phase 2] Handshake thành công. Phantom Address:', phantomAddress);
+
+      // Lưu địa chỉ Phantom làm ví ngoài liên kết (Reference Only)
+      useUserStore.getState().setLinkedExternalWallet(phantomAddress);
+      await AsyncStorage.setItem('@ned_wallet_linked_external_wallet', phantomAddress);
 
       // 3. Giai đoạn 3: Sinh thông điệp SIWS từ Privy SDK
       if (!siwsAuth || typeof siwsAuth.generateMessage !== 'function') {
@@ -87,7 +97,7 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
 
       const { message: rawMessage } = await siwsAuth.generateMessage({
         wallet: {
-          address: userPub.toBase58(),
+          address: phantomAddress,
         },
         from: {
           domain: 'com.anonymous.nedwallet', // Định danh Mobile đã đăng ký trên Privy
@@ -131,6 +141,49 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
       });
 
       console.log('🎉 [Phase 4] Đăng nhập Privy SIWS thành công! User ID:', loggedInUser.id);
+
+      // 6. Khởi tạo / Đồng bộ Ví Nhúng (Privy Embedded Solana Wallet)
+      let embeddedAddress: string | null = null;
+      const currentWallets = solanaWalletState?.wallets || [];
+      if (currentWallets.length > 0 && currentWallets[0]?.address) {
+        embeddedAddress = currentWallets[0].address;
+      } else if (typeof (solanaWalletState as any)?.create === 'function') {
+        try {
+          console.log('🔄 [PhantomAuthButton] Khởi tạo Embedded Solana Wallet cho tài khoản...');
+          const created = await (solanaWalletState as any).create();
+          if (created?.address) {
+            embeddedAddress = created.address;
+          } else if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
+            embeddedAddress = solanaWalletState.wallets[0].address;
+          }
+        } catch (createErr) {
+          console.warn('⚠️ [PhantomAuthButton] create embedded wallet warning:', createErr);
+        }
+      }
+
+      // Fallback kiểm tra trong linked_accounts của loggedInUser
+      if (!embeddedAddress) {
+        const linked = (loggedInUser as any)?.linked_accounts || (loggedInUser as any)?.linkedAccounts || [];
+        const solEmbedded = linked.find(
+          (acc: any) =>
+            acc.type === 'wallet' &&
+            (acc.chain_type === 'solana' || acc.chainType === 'solana') &&
+            acc.wallet_client_type === 'privy'
+        ) || linked.find(
+          (acc: any) =>
+            acc.type === 'wallet' &&
+            (acc.chain_type === 'solana' || acc.chainType === 'solana')
+        );
+        if (solEmbedded?.address) {
+          embeddedAddress = solEmbedded.address;
+        }
+      }
+
+      if (embeddedAddress) {
+        console.log('🔑 [PhantomAuthButton] Đã gán Ví nhúng (Embedded Wallet) chính:', embeddedAddress);
+        useUserStore.getState().setWalletAddress(embeddedAddress);
+        await AsyncStorage.setItem('@ned_wallet_address', embeddedAddress);
+      }
 
       const isNewUser =
         mode === 'signup' ||

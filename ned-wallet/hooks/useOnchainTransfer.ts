@@ -9,7 +9,7 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { lookupWalletByPhone, resolveIdentityOnchain } from '../services/identity';
+import { lookupWalletByPhone, resolveIdentityOnchain, resolveActiveSolanaAddress } from '../services/identity';
 import {
   solanaConnection,
   USDC_DEVNET_MINT,
@@ -18,7 +18,10 @@ import {
   createSplTokenTransferInstruction,
   getUsdcTokenBalance,
   getSolanaBalance,
+  TOKEN_PROGRAM_ID,
 } from '../services/solana';
+import { useUserStore } from '../stores/useUserStore';
+import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export interface OnchainTransferParams {
   recipientAddressOrPhone: string;
@@ -56,6 +59,7 @@ export interface UseOnchainTransferReturn {
  */
 export function useOnchainTransfer(): UseOnchainTransferReturn {
   const { isReady, user, getAccessToken, logout } = usePrivy();
+  const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const embeddedWalletState = useEmbeddedWallet();
 
@@ -73,28 +77,24 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
     (embeddedWalletState as any)?.needsRecovery === true
   );
 
-  const isWalletReady = Boolean(
-    isReady &&
-    user &&
-    !needsRecovery &&
-    (status === 'connected' || wallets.length > 0) &&
-    wallets.length > 0
-  );
-
   const getSenderAddress = useCallback((): string | null => {
-    if (!user) return null;
-    if (wallets.length > 0 && wallets[0]?.address) {
-      return wallets[0].address;
-    }
-    const linkedAccounts =
-      (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana')
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    return solanaAccount?.address || null;
-  }, [user, wallets]);
+  }, [user, externalWallet, solanaWalletState]);
+
+  const senderAddr = getSenderAddress();
+
+  const isWalletReady = Boolean(
+    (externalWallet?.connected && Boolean(externalWallet?.publicKey)) ||
+    (isReady &&
+      user &&
+      !needsRecovery &&
+      (status === 'connected' || wallets.length > 0 || Boolean(senderAddr)))
+  );
 
   const transfer = useCallback(
     async (params: OnchainTransferParams): Promise<OnchainTransferResult> => {
@@ -104,18 +104,34 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
       const from = params.fromAddress || getSenderAddress();
 
       // 1. Kiểm tra tính sẵn sàng của phiên người dùng
-      if (!isReady || !user) {
-        const err = 'Tài khoản chưa sẵn sàng. Vui lòng đăng nhập lại.';
+      const isExternalSender = Boolean(
+        externalWallet?.connected &&
+        externalWallet?.publicKey &&
+        (from === externalWallet.publicKey.toBase58() || !user)
+      );
+
+      if (!isReady && !externalWallet?.connected) {
+        const err = 'Tài khoản chưa sẵn sàng. Vui lòng kết nối ví hoặc đăng nhập.';
         setError(err);
         return { success: false, error: err };
       }
 
-      // 2. Bắt buộc kiểm tra Access Token hợp lệ của Privy trước khi ký
-      try {
-        const token =
-          typeof getAccessToken === 'function' ? await getAccessToken() : null;
-        if (!token) {
-          console.warn('⚠️ [useOnchainTransfer] Missing access token, calling logout...');
+      // 2. Nếu dùng ví Privy Embedded, kiểm tra Access Token hợp lệ trước khi ký
+      if (!isExternalSender && user) {
+        try {
+          const token =
+            typeof getAccessToken === 'function' ? await getAccessToken() : null;
+          if (!token) {
+            console.warn('⚠️ [useOnchainTransfer] Missing access token, calling logout...');
+            if (typeof logout === 'function') {
+              await logout().catch((e) => console.log('Logout error ignored:', e));
+            }
+            const err = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại';
+            setError(err);
+            return { success: false, error: err };
+          }
+        } catch (tokenErr: any) {
+          console.error('⚠️ [useOnchainTransfer] Token check failed:', tokenErr);
           if (typeof logout === 'function') {
             await logout().catch((e) => console.log('Logout error ignored:', e));
           }
@@ -123,14 +139,6 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           setError(err);
           return { success: false, error: err };
         }
-      } catch (tokenErr: any) {
-        console.error('⚠️ [useOnchainTransfer] Token check failed:', tokenErr);
-        if (typeof logout === 'function') {
-          await logout().catch((e) => console.log('Logout error ignored:', e));
-        }
-        const err = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại';
-        setError(err);
-        return { success: false, error: err };
       }
 
       if (!from) {
@@ -139,10 +147,20 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         return { success: false, error: err };
       }
 
+      let createdProvider: any = null;
+      // Nếu wallets rỗng, thử gọi create / connect embedded wallet
       if (wallets.length === 0) {
-        const err = `Tài khoản đang ở trạng thái (${status}). Vui lòng chờ vài giây để hoàn tất kết nối!`;
-        setError(err);
-        return { success: false, error: err };
+        if (typeof (solanaWalletState as any)?.create === 'function') {
+          try {
+            console.log('🔄 Đang khởi tạo/kết nối embedded solana wallet...');
+            createdProvider = await (solanaWalletState as any).create();
+            if (createdProvider) {
+              console.log('✅ Khởi tạo provider thành công từ create()');
+            }
+          } catch (createErr) {
+            console.log('create wallet fallback warning:', createErr);
+          }
+        }
       }
 
       const inputRecipient = params.recipientAddressOrPhone.trim();
@@ -206,29 +224,95 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         setStatusMessage('Đang chuẩn bị lệnh chuyển On-chain...');
 
         // 5. Kiểm tra số dư on-chain của người gửi (USDC token vs SOL)
-        const [senderUsdcBal, senderSolBal] = await Promise.all([
+        let [senderUsdcBal, senderSolBal] = await Promise.all([
           getUsdcTokenBalance(from).catch(() => 0),
           getSolanaBalance(from).catch(() => 0),
         ]);
+
+        console.log(`💰 [useOnchainTransfer] Sender: ${from} | USDC Bal: ${senderUsdcBal} | SOL Bal: ${senderSolBal}`);
+
+        // Tự động cấp gas Devnet SOL nếu ví chưa có phí mạng
+        if (senderSolBal < 0.003 && process.env.EXPO_PUBLIC_SOLANA_CLUSTER !== 'mainnet-beta') {
+          console.log('ℹ️ [Gas Sponsor] Tự động cấp gas Devnet SOL cho ví người gửi...');
+          try {
+            const airdropSig = await solanaConnection.requestAirdrop(fromPubkey, 0.05 * LAMPORTS_PER_SOL);
+            await solanaConnection.confirmTransaction(airdropSig, 'confirmed');
+            senderSolBal = await getSolanaBalance(from, true);
+            console.log('✅ [Gas Sponsor] Cấp gas thành công, số dư SOL mới:', senderSolBal);
+          } catch (gasErr) {
+            console.warn('⚠️ [Gas Sponsor Devnet Notice]:', gasErr);
+          }
+        }
 
         const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
         const transaction = new Transaction();
 
         if (senderUsdcBal > 0 && senderUsdcBal >= rawAmount) {
-          // Trường hợp 1: Người gửi có số dư token USDC -> Chuyển SPL Token USDC
-          const sendUnits = Math.round(rawAmount * 1_000_000);
-          const fromATA = getAssociatedTokenAddress(USDC_DEVNET_MINT, fromPubkey);
-          const toATA = getAssociatedTokenAddress(USDC_DEVNET_MINT, toPubkey);
+          // Trường hợp 1: Người gửi có số dư token SPL (USDC / USDT / Devnet tokens)
+          let mintPubkey = USDC_DEVNET_MINT;
+          let fromATA = getAssociatedTokenAddress(USDC_DEVNET_MINT, fromPubkey);
+          let tokenProgramId = TOKEN_PROGRAM_ID;
+          let decimals = 6;
+
+          try {
+            const [splAccounts, spl2022Accounts] = await Promise.all([
+              solanaConnection.getParsedTokenAccountsByOwner(
+                fromPubkey,
+                { programId: TOKEN_PROGRAM_ID },
+                'confirmed'
+              ).catch(() => ({ value: [] })),
+              solanaConnection.getParsedTokenAccountsByOwner(
+                fromPubkey,
+                { programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') },
+                'confirmed'
+              ).catch(() => ({ value: [] })),
+            ]);
+
+            const allParsed = [
+              ...(splAccounts.value || []).map((v) => ({ ...v, programId: TOKEN_PROGRAM_ID })),
+              ...(spl2022Accounts.value || []).map((v) => ({ ...v, programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') })),
+            ];
+
+            const matched = allParsed.find((acc) => {
+              const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+              return typeof uiAmt === 'number' && uiAmt >= rawAmount;
+            }) || allParsed.find((acc) => {
+              const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+              return typeof uiAmt === 'number' && uiAmt > 0;
+            });
+
+            if (matched) {
+              const info = matched.account?.data?.parsed?.info;
+              if (info?.mint) {
+                mintPubkey = new PublicKey(info.mint);
+              }
+              if (matched.pubkey) {
+                fromATA = matched.pubkey;
+              }
+              if (typeof info?.tokenAmount?.decimals === 'number') {
+                decimals = info.tokenAmount.decimals;
+              }
+              if (matched.programId) {
+                tokenProgramId = matched.programId;
+              }
+            }
+          } catch (scanErr) {
+            console.warn('⚠️ Lỗi scan token accounts, dùng USDC Devnet mặc định:', scanErr);
+          }
+
+          const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
+          const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
 
           const toAtaInfo = await solanaConnection.getAccountInfo(toATA, 'confirmed');
           if (!toAtaInfo) {
-            console.log('ℹ️ [ATA] Tạo Associated Token Account cho người nhận...');
+            console.log('ℹ️ [ATA] Tạo Associated Token Account cho người nhận:', toATA.toBase58());
             transaction.add(
               createAssociatedTokenAccountInstruction(
                 fromPubkey,
                 toATA,
                 toPubkey,
-                USDC_DEVNET_MINT
+                mintPubkey,
+                tokenProgramId
               )
             );
           }
@@ -238,7 +322,8 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
               fromATA,
               toATA,
               fromPubkey,
-              sendUnits
+              sendUnits,
+              tokenProgramId
             )
           );
         } else {
@@ -276,33 +361,64 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         });
 
         setStatusMessage('Đang xác nhận trên thiết bị...');
-        const activeWallet = wallets[0];
-        let activeProvider: any = null;
-        if (typeof (solanaWalletState as any)?.getProvider === 'function') {
+        let activeProvider: any = createdProvider || null;
+
+        // Ưu tiên 1: Lấy provider từ ví embedded kết nối hiện tại
+        if (!activeProvider) {
+          const currentWallets = solanaWalletState?.wallets || [];
+          if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
+            try {
+              activeProvider = await currentWallets[0].getProvider();
+            } catch (e) {
+              console.log('currentWallets[0].getProvider error:', e);
+            }
+          }
+        }
+
+        // Ưu tiên 2: Gọi getProvider() trực tiếp từ hook solanaWalletState
+        if (!activeProvider && typeof (solanaWalletState as any)?.getProvider === 'function') {
           try {
             activeProvider = await (solanaWalletState as any).getProvider();
           } catch (e) {
-            console.log('solanaWalletState.getProvider fallback to activeWallet:', e);
+            console.log('solanaWalletState.getProvider error:', e);
           }
         }
-        if (!activeProvider && typeof (activeWallet as any)?.getProvider === 'function') {
-          activeProvider = await (activeWallet as any).getProvider();
-        }
-        if (!activeProvider) {
-          activeProvider = activeWallet;
+
+        // Ưu tiên 3: Tự động khởi tạo embedded wallet nếu chưa có
+        if (!activeProvider && typeof (solanaWalletState as any)?.create === 'function') {
+          try {
+            console.log('🔄 Đang tạo embedded wallet on-the-fly...');
+            activeProvider = await (solanaWalletState as any).create();
+          } catch (e) {
+            console.log('solanaWalletState.create fallback error:', e);
+          }
         }
 
-        if (!activeProvider || typeof activeProvider.request !== 'function') {
+        // Fallback: Nếu không có Privy session và người dùng dùng ví ngoài (Phantom)
+        if (
+          !activeProvider &&
+          externalWallet?.connected &&
+          externalWallet?.publicKey &&
+          from === externalWallet.publicKey.toBase58()
+        ) {
+          activeProvider = externalWallet;
+        }
+
+        if (!activeProvider || (typeof activeProvider.request !== 'function' && typeof activeProvider.signTransaction !== 'function')) {
           throw new Error('Không thể khởi tạo provider để xác nhận giao dịch.');
         }
 
         // 7. Người dùng ký xác nhận giao dịch
         let signResult: any = null;
         try {
-          signResult = await activeProvider.request({
-            method: 'signTransaction',
-            params: { transaction },
-          });
+          if (typeof activeProvider.request === 'function') {
+            signResult = await activeProvider.request({
+              method: 'signTransaction',
+              params: { transaction },
+            });
+          } else if (typeof activeProvider.signTransaction === 'function') {
+            signResult = await activeProvider.signTransaction(transaction);
+          }
         } catch (signErr: any) {
           console.warn('⚠️ Lần xác nhận thứ nhất gặp sự cố, thử lại:', signErr?.message);
           if (
@@ -317,22 +433,23 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
                 activeProvider = await (solanaWalletState as any).getProvider();
               } catch (_) {}
             }
-            if (!activeProvider && typeof (activeWallet as any)?.getProvider === 'function') {
-              activeProvider = await (activeWallet as any).getProvider();
-            }
             const freshBlock = await solanaConnection.getLatestBlockhash('confirmed');
             transaction.recentBlockhash = freshBlock.blockhash;
-            signResult = await activeProvider.request({
-              method: 'signTransaction',
-              params: { transaction },
-            });
+            if (typeof activeProvider.request === 'function') {
+              signResult = await activeProvider.request({
+                method: 'signTransaction',
+                params: { transaction },
+              });
+            } else if (typeof activeProvider.signTransaction === 'function') {
+              signResult = await activeProvider.signTransaction(transaction);
+            }
           } else {
             throw signErr;
           }
         }
 
-        const signedTransaction = signResult?.signedTransaction;
-        if (!signedTransaction) {
+        const signedTransaction = signResult?.signedTransaction || signResult;
+        if (!signedTransaction || typeof signedTransaction.serialize !== 'function') {
           throw new Error('Không nhận được chữ ký xác nhận từ tài khoản.');
         }
 
@@ -360,6 +477,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           recipientAddress: finalToAddress,
         };
       } catch (err: any) {
+        console.error('❌ [useOnchainTransfer Error]:', err);
         setIsTransferring(false);
         setStatusMessage('');
         const errStr = err?.message || 'Chuyển tiền không thành công.';
@@ -370,7 +488,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         };
       }
     },
-    [isReady, user, wallets, status, getSenderAddress, getAccessToken, logout]
+    [isReady, user, wallets, status, getSenderAddress, getAccessToken, logout, externalWallet, solanaWalletState]
   );
 
   return {

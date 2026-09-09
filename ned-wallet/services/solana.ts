@@ -11,6 +11,7 @@ import { Buffer } from 'buffer';
 import { lookupWalletByPhone } from './identity';
 
 export const SOLANA_DEVNET_RPC =
+  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
   process.env.EXPO_PUBLIC_SOLANA_RPC ||
   process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
   'https://api.devnet.solana.com';
@@ -198,7 +199,8 @@ const usdcBalanceCache = new Map<string, { timestamp: number; balance: number }>
 const inFlightUsdcMap = new Map<string, Promise<number>>();
 
 /**
- * Lấy số dư USDC SPL Token thực tế từ on-chain Associated Token Account (ATA)
+ * Lấy số dư USDC/USDT/SPL Token thực tế từ on-chain Associated Token Account (ATA)
+ * Tự động quét toàn bộ Token Accounts thuộc sở hữu của ví (hỗ trợ cả USDT, USDC devnet mint)
  * Tích hợp Cache 10 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
  * @param address Địa chỉ ví Solana của người dùng
  */
@@ -217,19 +219,63 @@ export async function getUsdcTokenBalance(address: string, force: boolean = fals
   const promise = (async () => {
     try {
       const ownerPubkey = new PublicKey(address);
-      const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
-      const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
 
-      if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
-        const parsedData = (tokenAccountInfo.value.data as any).parsed;
-        const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
-        if (typeof amountUi === 'number') {
-          usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
-          return amountUi;
+      // 1. Kiểm tra ATA chuẩn của USDC Devnet trước
+      try {
+        const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
+        const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
+
+        if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
+          const parsedData = (tokenAccountInfo.value.data as any).parsed;
+          const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
+          if (typeof amountUi === 'number' && amountUi > 0) {
+            usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
+            return amountUi;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Tra cứu tất cả SPL Token accounts thuộc sở hữu của ví (hỗ trợ cả USDT, devnet test tokens)
+      const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+        ownerPubkey,
+        { programId: TOKEN_PROGRAM_ID },
+        'confirmed'
+      );
+
+      let totalTokenAmount = 0;
+      if (tokenAccounts?.value && tokenAccounts.value.length > 0) {
+        for (const item of tokenAccounts.value) {
+          const parsed = item.account?.data?.parsed;
+          const uiAmount = parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof uiAmount === 'number' && uiAmount > 0) {
+            totalTokenAmount += uiAmount;
+          }
         }
       }
-      usdcBalanceCache.set(address, { timestamp: Date.now(), balance: 0 });
-      return 0;
+
+      // 3. Tra cứu thêm Token-2022 program accounts nếu cần
+      if (totalTokenAmount === 0) {
+        try {
+          const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
+          const token2022Accounts = await solanaConnection.getParsedTokenAccountsByOwner(
+            ownerPubkey,
+            { programId: TOKEN_2022_PROGRAM_ID },
+            'confirmed'
+          );
+          if (token2022Accounts?.value && token2022Accounts.value.length > 0) {
+            for (const item of token2022Accounts.value) {
+              const parsed = item.account?.data?.parsed;
+              const uiAmount = parsed?.info?.tokenAmount?.uiAmount;
+              if (typeof uiAmount === 'number' && uiAmount > 0) {
+                totalTokenAmount += uiAmount;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      usdcBalanceCache.set(address, { timestamp: Date.now(), balance: totalTokenAmount });
+      return totalTokenAmount;
     } catch (e: any) {
       if (e?.message?.includes('429') || e?.toString()?.includes('429')) {
         console.warn('⚠️ [Solana USDC RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');

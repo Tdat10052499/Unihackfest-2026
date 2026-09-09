@@ -47,18 +47,38 @@ export default function OnboardingUsernameScreen() {
   const [statusMessage, setStatusMessage] = useState('');
 
   /**
-   * Lấy địa chỉ ví Solana người dùng hiện tại
+   * Lấy địa chỉ ví Solana người dùng hiện tại (Ưu tiên Privy Embedded Solana Wallet)
    */
-  const getUserWalletPubkey = (): PublicKey | null => {
+  const getUserWalletPubkey = async (): Promise<PublicKey | null> => {
     // 1. Kiểm tra ví ngầm Embedded Solana Wallet
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
       const addr = solanaWalletState.wallets[0]?.address;
       if (addr) return new PublicKey(addr);
     }
 
-    // 2. Kiểm tra linked accounts của Privy
+    // Tự động khởi tạo Embedded Wallet nếu chưa tồn tại
+    if (typeof (solanaWalletState as any)?.create === 'function') {
+      try {
+        const created = await (solanaWalletState as any).create();
+        if (created?.address) return new PublicKey(created.address);
+      } catch (createErr) {
+        console.log('solanaWalletState.create in username.tsx warning:', createErr);
+      }
+    }
+
+    // 2. Kiểm tra linked accounts của Privy (Ưu tiên embedded/privy wallet)
     const linkedAccounts =
       (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
+    const privySolAccount = linkedAccounts.find(
+      (acc: any) =>
+        acc.type === 'wallet' &&
+        (acc.wallet_client_type === 'privy' || acc.walletClientType === 'privy') &&
+        (acc.chain_type === 'solana' || acc.chainType === 'solana' || !acc.address?.startsWith('0x'))
+    );
+    if (privySolAccount?.address) {
+      return new PublicKey(privySolAccount.address);
+    }
+
     const solAccount = linkedAccounts.find(
       (acc: any) =>
         acc.type === 'wallet' &&
@@ -70,9 +90,12 @@ export default function OnboardingUsernameScreen() {
       return new PublicKey(solAccount.address);
     }
 
-    // 3. Fallback ví ngoài (Phantom / Solflare)
-    if (externalWallet?.publicKey) {
-      return externalWallet.publicKey;
+    // 3. Kiểm tra stored wallet address trong Global Store
+    const storedWallet = useUserStore.getState().walletAddress;
+    if (storedWallet && !storedWallet.startsWith('0x')) {
+      try {
+        return new PublicKey(storedWallet);
+      } catch (_) {}
     }
 
     // 4. Fallback user.wallet
@@ -81,6 +104,11 @@ export default function OnboardingUsernameScreen() {
       if (!addr.startsWith('0x')) {
         return new PublicKey(addr);
       }
+    }
+
+    // 5. Fallback ví ngoài (Phantom / Solflare)
+    if (externalWallet?.publicKey) {
+      return externalWallet.publicKey;
     }
 
     return null;
@@ -139,7 +167,7 @@ export default function OnboardingUsernameScreen() {
       return;
     }
 
-    const userWallet = getUserWalletPubkey();
+    const userWallet = await getUserWalletPubkey();
     if (!userWallet) {
       Alert.alert('Lỗi ví', 'Không tìm thấy địa chỉ ví của bạn. Vui lòng đăng nhập lại.');
       return;
@@ -228,7 +256,16 @@ export default function OnboardingUsernameScreen() {
 
       // Ưu tiên ký qua Privy Embedded Solana Wallet
       let activeProvider: any = null;
-      if (typeof (solanaWalletState as any)?.getProvider === 'function') {
+      const currentWallets = solanaWalletState?.wallets || [];
+      if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
+        try {
+          activeProvider = await currentWallets[0].getProvider();
+        } catch (e) {
+          console.log('currentWallets[0].getProvider fallback:', e);
+        }
+      }
+
+      if (!activeProvider && typeof (solanaWalletState as any)?.getProvider === 'function') {
         try {
           activeProvider = await (solanaWalletState as any).getProvider();
         } catch (e) {
@@ -324,10 +361,11 @@ export default function OnboardingUsernameScreen() {
         relayerSuccess = true;
       }
 
-      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username, phone_number)
+      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username, phone_number, linked_external_wallet)
       setStatusMessage('Đang đồng bộ cơ sở dữ liệu...');
       const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
+      const externalWalletAddr = useUserStore.getState().linkedExternalWallet;
 
       // Kéo dữ liệu số điện thoại từ Route Params, Global State Zustand hoặc AsyncStorage
       let phoneNumber: string | null = params?.phone || useUserStore.getState().linkedPhone || null;
@@ -349,12 +387,14 @@ export default function OnboardingUsernameScreen() {
           wallet_address: walletAddrStr,
           username: trimmed,
           phone_number: phoneNumber,
+          linked_external_wallet: externalWalletAddr,
         });
         const dbRes = await upsertUserProfile({
           privy_id: privyUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
           phone_number: phoneNumber,
+          linked_external_wallet: externalWalletAddr,
         });
 
         if (!dbRes.success) {
@@ -382,6 +422,7 @@ export default function OnboardingUsernameScreen() {
         wallet_address: walletAddrStr,
         username: trimmed,
         phone_number: phoneNumber,
+        linked_external_wallet: externalWalletAddr,
       });
       useUserStore.getState().setUsername(trimmed);
       useUserStore.getState().setWalletAddress(walletAddrStr);

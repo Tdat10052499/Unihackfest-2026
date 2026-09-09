@@ -3,11 +3,14 @@ allowBuilds:
   unrs-resolver: true
   utf-8-validate: true
 minimumReleaseAgeExclude:
-  - '@expo/cli@57.0.22'
-  - expo-modules-core@57.0.16
-  - expo-modules-jsi@57.0.8
-  - expo@57.0.20
-  - '@expo/ui@57.0.16'
+  - '@expo/cli@57.0.22 || 57.0.23'
+  - expo-modules-core@57.0.16 || 57.0.17
+  - expo-modules-jsi@57.0.8 || 57.1.0
+  - expo@57.0.20 || 57.0.21
+  - '@expo/ui@57.0.16 || 57.0.17'
   - expo-build-properties@57.0.17
   - expo-location@57.0.16
-  - expo-router@57.0.19
+  - expo-router@57.0.19 || 57.0.20
+  - '@expo/metro-file-map@57.0.3'
+  - babel-preset-expo@57.0.11
+  - expo-glass-effect@57.0.2

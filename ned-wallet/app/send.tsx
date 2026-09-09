@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   StatusBar,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -25,9 +26,16 @@ import {
   isSamePhoneNumber,
   getAccountIdentifier,
   getMaskedPhone,
+  resolveActiveSolanaAddress,
 } from '../services/identity';
 import {
+  searchUsersOffchain,
+  UserSearchResult,
+} from '../services/supabase';
+import {
   getSolanaBalance,
+  getAccountDisplayBalance,
+  AccountDisplayBalance,
   ActivityItem,
   formatFiatBalance,
   USD_TO_VND_RATE,
@@ -36,12 +44,15 @@ import { cacheActivities, getCachedActivities, getLinkedPhone } from '../service
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { useTranslation } from '../services/i18n';
+import { useUserStore } from '../stores/useUserStore';
+import { useExternalWallet } from '../src/providers/WalletProvider';
 
 export default function SendScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
   const { user, isReady, logout } = usePrivy();
+  const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const {
     transfer,
@@ -55,53 +66,78 @@ export default function SendScreen() {
 
   const [searchInput, setSearchInput] = useState((params.recipient as string) || '');
   const [debouncedInput, setDebouncedInput] = useState((params.recipient as string) || '');
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [isLockedRecipient, setIsLockedRecipient] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [resolvedPhone, setResolvedPhone] = useState<string | null>(null);
   const [resolvedIdentity, setResolvedIdentity] = useState<{
     type: 'wallet' | 'phone' | 'username';
     label: string;
     maskedWallet: string;
+    avatarUrl?: string | null;
   } | null>(null);
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [amount, setAmount] = useState('5');
+  const [availableUsd, setAvailableUsd] = useState<number>(0);
   const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
   const [myPhone, setMyPhone] = useState<string | null>(null);
 
-  // Lấy địa chỉ ví người dùng hiện tại
+  // Lấy địa chỉ ví người dùng hiện tại theo độ ưu tiên: External Wallet (Phantom) -> Store -> Linked Accounts -> Embedded Wallet
   const getMySolanaAddress = (): string | null => {
-    if (!user) return null;
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    return solanaAccount?.address || null;
   };
 
   const myAddress = getMySolanaAddress();
 
-  // Nạp SĐT và số dư của chính người dùng
+  // Nạp SĐT và số dư on-chain (USDT/USDC/SOL) của chính người dùng
+  const refreshUserData = async () => {
+    if (myAddress) {
+      try {
+        const displayBal = await getAccountDisplayBalance(myAddress, true);
+        setAvailableUsd(displayBal.usdBalance);
+        setSolBalance(displayBal.solBalance);
+        setAccountBalanceState(displayBal);
+      } catch (e) {
+        console.log('Error fetching display balance in send:', e);
+      }
+    }
+    const cachedPhone = await getLinkedPhone();
+    if (cachedPhone) setMyPhone(cachedPhone);
+    if (user?.id) {
+      const dbPhone = await getUserPhoneNumberFromDB(user.id);
+      if (dbPhone) setMyPhone(dbPhone);
+    }
+  };
+
   useEffect(() => {
-    const loadUserData = async () => {
+    refreshUserData();
+
+    // Tự động đồng bộ số dư mỗi 8 giây
+    const interval = setInterval(() => {
       if (myAddress) {
-        getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
+        getAccountDisplayBalance(myAddress).then((bal) => {
+          setAvailableUsd(bal.usdBalance);
+          setSolBalance(bal.solBalance);
+          setAccountBalanceState(bal);
+        }).catch(() => {});
       }
-      const cachedPhone = await getLinkedPhone();
-      if (cachedPhone) setMyPhone(cachedPhone);
-      if (user?.id) {
-        const dbPhone = await getUserPhoneNumberFromDB(user.id);
-        if (dbPhone) setMyPhone(dbPhone);
-      }
-    };
-    loadUserData();
+    }, 8000);
+
+    return () => clearInterval(interval);
   }, [myAddress, user]);
 
-  // 1. Debounce 500ms
+  // 1. Debounce 500ms chống spam RPC / API
   useEffect(() => {
+    if (isLockedRecipient) return;
+
     const handler = setTimeout(() => {
       setDebouncedInput(searchInput.trim());
     }, 500);
@@ -109,14 +145,18 @@ export default function SendScreen() {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchInput]);
+  }, [searchInput, isLockedRecipient]);
 
-  // 2. Logic phân loại định dạng, Chặn tự chuyển tiền & Tra cứu ví On-chain PDA
+  // 2. Tra cứu danh tính Off-chain qua Supabase với Fallback On-chain
   useEffect(() => {
+    if (isLockedRecipient) return;
+
     if (!debouncedInput) {
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
+      setSelectedUser(null);
       setSearchError('');
       setIsLoadingLookup(false);
       return;
@@ -129,6 +169,7 @@ export default function SendScreen() {
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
@@ -139,6 +180,7 @@ export default function SendScreen() {
       setResolvedAddress(null);
       setResolvedPhone(null);
       setResolvedIdentity(null);
+      setSearchResults([]);
       setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
       setIsLoadingLookup(false);
       return;
@@ -148,6 +190,7 @@ export default function SendScreen() {
     if (parsed.type === 'wallet') {
       setResolvedAddress(parsed.normalized);
       setResolvedPhone(null);
+      setSearchResults([]);
       setResolvedIdentity({
         type: 'wallet',
         label: 'Địa chỉ ví Solana',
@@ -158,63 +201,136 @@ export default function SendScreen() {
       return;
     }
 
-    // Trường hợp 2: Tra cứu Username hoặc SĐT 100% On-chain PDA
+    // Trường hợp 2: Tra cứu Off-chain qua Supabase Database
     let isMounted = true;
     setIsLoadingLookup(true);
     setSearchError('');
-    setResolvedAddress(null);
-    setResolvedPhone(null);
-    setResolvedIdentity(null);
 
-    resolveIdentityOnchain(debouncedInput)
-      .then((res) => {
+    searchUsersOffchain(debouncedInput)
+      .then(async (users) => {
         if (!isMounted) return;
-        setIsLoadingLookup(false);
 
-        if (res.success && res.walletAddress) {
-          if (myAddress && res.walletAddress.toLowerCase() === myAddress.toLowerCase()) {
+        if (users && users.length > 0) {
+          // Lọc bỏ chính tài khoản của người dùng nếu có trong kết quả
+          const filtered = users.filter((u) => {
+            if (myAddress && u.wallet_address.toLowerCase() === myAddress.toLowerCase()) {
+              return false;
+            }
+            if (myPhone && u.phone_number && isSamePhoneNumber(u.phone_number, myPhone)) {
+              return false;
+            }
+            return true;
+          });
+
+          if (filtered.length > 0) {
+            setSearchResults(filtered);
+            setSearchError('');
+            setIsLoadingLookup(false);
+            return;
+          }
+        }
+
+        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu Supabase chưa có bản ghi
+        console.log('ℹ️ [Off-chain Search] Thử fallback tra cứu On-chain PDA:', debouncedInput);
+        try {
+          const onchainRes = await resolveIdentityOnchain(debouncedInput);
+          if (!isMounted) return;
+          setIsLoadingLookup(false);
+
+          if (onchainRes.success && onchainRes.walletAddress) {
+            if (myAddress && onchainRes.walletAddress.toLowerCase() === myAddress.toLowerCase()) {
+              setResolvedAddress(null);
+              setResolvedPhone(null);
+              setResolvedIdentity(null);
+              setSearchResults([]);
+              setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+            } else {
+              setResolvedAddress(onchainRes.walletAddress);
+              setSearchResults([]);
+              if (onchainRes.type === 'phone') {
+                setResolvedPhone(onchainRes.normalized || debouncedInput);
+              }
+              const label = onchainRes.type === 'phone'
+                ? getMaskedPhone(onchainRes.normalized)
+                : `@${onchainRes.normalized}.sol`;
+              const maskedWallet = `${onchainRes.walletAddress.slice(0, 4)}...${onchainRes.walletAddress.slice(-4)}`;
+
+              setResolvedIdentity({
+                type: onchainRes.type || 'username',
+                label,
+                maskedWallet,
+              });
+              setSearchError('');
+            }
+          } else {
             setResolvedAddress(null);
             setResolvedPhone(null);
             setResolvedIdentity(null);
-            setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
-          } else {
-            setResolvedAddress(res.walletAddress);
-            if (res.type === 'phone') {
-              setResolvedPhone(res.normalized || debouncedInput);
-            }
-            const label = res.type === 'phone'
-              ? getMaskedPhone(res.normalized)
-              : `@${res.normalized}.sol`;
-            const maskedWallet = `${res.walletAddress.slice(0, 4)}...${res.walletAddress.slice(-4)}`;
-
-            setResolvedIdentity({
-              type: res.type || 'username',
-              label,
-              maskedWallet,
-            });
-            setSearchError('');
+            setSearchResults([]);
+            setSearchError(t('send.notFound', { defaultValue: 'Không tìm thấy người dùng định danh này' }));
           }
-        } else {
+        } catch (onchainErr) {
+          if (!isMounted) return;
+          setIsLoadingLookup(false);
           setResolvedAddress(null);
           setResolvedPhone(null);
           setResolvedIdentity(null);
+          setSearchResults([]);
           setSearchError(t('send.notFound', { defaultValue: 'Không tìm thấy người dùng định danh này' }));
         }
       })
       .catch((err) => {
         if (!isMounted) return;
         setIsLoadingLookup(false);
-        setResolvedAddress(null);
-        setResolvedPhone(null);
-        setResolvedIdentity(null);
-        setSearchError('Không tìm thấy người dùng định danh này');
-        console.error('Identity on-chain lookup error:', err);
+        setSearchResults([]);
+        setSearchError('Lỗi kết nối khi tìm kiếm người nhận');
+        console.error('Off-chain search error:', err);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [debouncedInput, myAddress, myPhone, t]);
+  }, [debouncedInput, myAddress, myPhone, isLockedRecipient, t]);
+
+  // Xử lý khi người dùng chọn 1 kết quả từ Autocomplete Dropdown
+  const handleSelectUser = (item: UserSearchResult) => {
+    setIsLoadingLookup(false);
+    if (myAddress && item.wallet_address.toLowerCase() === myAddress.toLowerCase()) {
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      return;
+    }
+    if (myPhone && item.phone_number && isSamePhoneNumber(item.phone_number, myPhone)) {
+      setSearchError(t('send.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình' }));
+      return;
+    }
+
+    const masked = `${item.wallet_address.slice(0, 4)}...${item.wallet_address.slice(-4)}`;
+    setResolvedAddress(item.wallet_address);
+    setSelectedUser(item);
+    setIsLockedRecipient(true);
+    setSearchResults([]);
+    setSearchError('');
+    setSearchInput(`@${item.username}.sol`);
+    setResolvedIdentity({
+      type: 'username',
+      label: `@${item.username}.sol`,
+      maskedWallet: masked,
+      avatarUrl: item.avatar_url,
+    });
+  };
+
+  // Mở khóa ô nhập liệu để tìm kiếm lại người nhận khác
+  const handleResetRecipient = () => {
+    setIsLoadingLookup(false);
+    setIsLockedRecipient(false);
+    setSelectedUser(null);
+    setResolvedAddress(null);
+    setResolvedPhone(null);
+    setResolvedIdentity(null);
+    setSearchResults([]);
+    setSearchInput('');
+    setSearchError('');
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -230,6 +346,11 @@ export default function SendScreen() {
 
   // THỰC THI GIAO DỊCH 100% ON-CHAIN GASLESS
   const handleSendTransaction = async () => {
+    if (needsRecovery) {
+      setShowRecoveryModal(true);
+      return;
+    }
+
     if (!myAddress) {
       Alert.alert(
         t('settings.title', { defaultValue: 'Thông báo' }),
@@ -269,14 +390,6 @@ export default function SendScreen() {
       Alert.alert(
         t('settings.title', { defaultValue: 'Thông báo' }),
         t('send.invalidAmount', { defaultValue: 'Vui lòng nhập số tiền hợp lệ (lớn hơn 0).' })
-      );
-      return;
-    }
-
-    if (!isWalletReady) {
-      Alert.alert(
-        t('settings.title', { defaultValue: 'Tài khoản đang kết nối' }),
-        `Tài khoản đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để hoàn tất kết nối!`
       );
       return;
     }
@@ -336,9 +449,14 @@ export default function SendScreen() {
       };
       await cacheActivities([newAct, ...currentActs]);
 
-      const recipientDisplayName = resolvedPhone
+      const recipientDisplayName = resolvedIdentity?.label
+        ? resolvedIdentity.label
+        : resolvedPhone
         ? getMaskedPhone(resolvedPhone)
         : getAccountIdentifier(null, finalRecipient);
+
+      // Cập nhật lại số dư ngay lập tức sau khi chuyển thành công
+      refreshUserData();
 
       Alert.alert(
         t('send.successTitle', { defaultValue: 'Chuyển Tiền Thành Công! ⚡' }),
@@ -353,10 +471,10 @@ export default function SendScreen() {
 
   const parsedAmount = parseFloat(amount) || 0;
   const vndEquivalent = Math.round(parsedAmount * USD_TO_VND_RATE);
-  const availableUsd = solBalance !== null ? solBalance * 150 : 0;
 
-  // Bảo vệ giao diện: Chỉ render khi ví và tài khoản đã sẵn sàng
-  if (!user) {
+  // Bảo vệ giao diện: Chỉ render khi ví hoặc tài khoản đã sẵn sàng
+  const isAuthenticated = Boolean(user || externalWallet?.connected || externalWallet?.publicKey || useUserStore.getState().walletAddress);
+  if (!isAuthenticated && !isReady) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#00A859" />
@@ -394,31 +512,40 @@ export default function SendScreen() {
             <View
               style={[
                 styles.searchBox,
-                resolvedAddress && styles.searchBoxSuccess,
+                (resolvedAddress || isLockedRecipient) && styles.searchBoxSuccess,
                 searchError && styles.searchBoxError,
+                isLockedRecipient && styles.searchBoxLocked,
               ]}
             >
-              <Feather name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
+              {isLockedRecipient ? (
+                <Ionicons name="lock-closed" size={18} color="#00A859" style={{ marginRight: 8 }} />
+              ) : (
+                <Feather name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
+              )}
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, isLockedRecipient && styles.searchInputLocked]}
                 placeholder={t('send.recipientPlaceholder', { defaultValue: 'Nhập @username, SĐT hoặc ví Solana...' })}
                 placeholderTextColor="#94A3B8"
                 value={searchInput}
                 onChangeText={setSearchInput}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!isLockedRecipient}
               />
               <View style={styles.rightActionBox}>
                 {isLoadingLookup ? (
                   <ActivityIndicator size="small" color="#00A859" />
+                ) : isLockedRecipient ? (
+                  <TouchableOpacity
+                    onPress={handleResetRecipient}
+                    style={styles.changeActionBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#00A859" />
+                  </TouchableOpacity>
                 ) : searchInput.length > 0 ? (
                   <TouchableOpacity
-                    onPress={() => {
-                      setSearchInput('');
-                      setResolvedAddress(null);
-                      setResolvedIdentity(null);
-                      setSearchError('');
-                    }}
+                    onPress={handleResetRecipient}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Ionicons name="close-circle" size={18} color="#94A3B8" />
@@ -428,8 +555,113 @@ export default function SendScreen() {
             </View>
           </View>
 
-          {/* 2. Trạng Thái UI Phản Hồi: Thành Công (Tìm Thấy Tài Khoản On-chain) */}
-          {resolvedAddress && (
+          {/* 2. Autocomplete Dropdown Danh Sách Kết Quả từ Supabase */}
+          {searchResults.length > 0 && !isLockedRecipient && (
+            <View style={styles.dropdownContainer}>
+              <View style={styles.dropdownHeader}>
+                <Feather name="users" size={13} color="#64748B" style={{ marginRight: 5 }} />
+                <Text style={styles.dropdownHeaderText}>Gợi ý người nhận ({searchResults.length})</Text>
+              </View>
+              {searchResults.map((item, idx) => {
+                const masked = `${item.wallet_address.slice(0, 4)}...${item.wallet_address.slice(-4)}`;
+                const initial = (item.username || '?').charAt(0).toUpperCase();
+
+                return (
+                  <TouchableOpacity
+                    key={item.id || item.wallet_address || idx}
+                    style={[
+                      styles.dropdownItem,
+                      idx === searchResults.length - 1 && styles.dropdownItemLast,
+                    ]}
+                    onPress={() => handleSelectUser(item)}
+                    activeOpacity={0.7}
+                  >
+                    {/* Avatar */}
+                    <View style={styles.dropdownAvatarContainer}>
+                      {item.avatar_url ? (
+                        <Image source={{ uri: item.avatar_url }} style={styles.dropdownAvatarImg} />
+                      ) : (
+                        <View style={styles.dropdownAvatarFallback}>
+                          <Text style={styles.dropdownAvatarLetter}>{initial}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Details */}
+                    <View style={styles.dropdownDetailsCol}>
+                      <View style={styles.dropdownNameRow}>
+                        <Text style={styles.dropdownUsername}>@{item.username}.sol</Text>
+                        <Ionicons name="checkmark-circle" size={14} color="#00A859" style={{ marginLeft: 4 }} />
+                      </View>
+                      <View style={styles.dropdownSubRow}>
+                        <Text style={styles.dropdownWalletText}>Ví: {masked}</Text>
+                        {item.phone_number ? (
+                          <Text style={styles.dropdownPhoneText}> • {getMaskedPhone(item.phone_number)}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    {/* Arrow */}
+                    <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* 3. Thẻ Người Nhận Đã Chọn Kèm Tích Xanh (Locked Recipient Card) */}
+          {isLockedRecipient && resolvedAddress && (
+            <View style={styles.lockedRecipientCard}>
+              <View style={styles.lockedHeaderRow}>
+                <View style={styles.lockedStatusBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#00A859" />
+                  <Text style={styles.lockedStatusText}>Đã xác thực người nhận</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.changePillBtn}
+                  onPress={handleResetRecipient}
+                >
+                  <Feather name="edit-2" size={12} color="#00A859" style={{ marginRight: 4 }} />
+                  <Text style={styles.changePillText}>Đổi người nhận</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.lockedUserRow}>
+                <View style={styles.lockedAvatarBox}>
+                  {resolvedIdentity?.avatarUrl || selectedUser?.avatar_url ? (
+                    <Image
+                      source={{ uri: (resolvedIdentity?.avatarUrl || selectedUser?.avatar_url)! }}
+                      style={styles.lockedAvatarImg}
+                    />
+                  ) : (
+                    <View style={styles.lockedAvatarFallback}>
+                      <Text style={styles.lockedAvatarLetter}>
+                        {(resolvedIdentity?.label || selectedUser?.username || 'U').replace('@', '').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.lockedUserInfoCol}>
+                  <Text style={styles.lockedUserName}>
+                    {resolvedIdentity?.label || `@${selectedUser?.username}.sol`}
+                  </Text>
+                  <Text style={styles.lockedUserAddress}>
+                    Ví: {resolvedIdentity?.maskedWallet || `${resolvedAddress.slice(0, 4)}...${resolvedAddress.slice(-4)}`}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.copyPillBtn}
+                  onPress={() => copyToClipboard(resolvedAddress)}
+                >
+                  <Ionicons name="copy-outline" size={12} color="#15803D" style={{ marginRight: 3 }} />
+                  <Text style={styles.copyPillText}>{t('deposit.copyAddress', { defaultValue: 'Sao chép' })}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* 4. Trạng Thái UI: Base58 Address Trực Tiếp */}
+          {!isLockedRecipient && resolvedAddress && (
             <View style={styles.successCard}>
               <View style={styles.successIconBox}>
                 <Ionicons name="checkmark-circle" size={22} color="#00A859" />
@@ -451,7 +683,7 @@ export default function SendScreen() {
             </View>
           )}
 
-          {/* 3. Trạng Thái UI Phản Hồi: Thất Bại (Báo Lỗi Chữ Đỏ) */}
+          {/* 5. Trạng Thái UI: Báo Lỗi Chữ Đỏ */}
           {searchError ? (
             <View style={styles.errorBox}>
               <Feather name="alert-circle" size={16} color="#DC2626" style={{ marginRight: 6 }} />
@@ -459,7 +691,7 @@ export default function SendScreen() {
             </View>
           ) : null}
 
-          {/* 4. Nhập Số Tiền USD / VND */}
+          {/* 6. Nhập Số Tiền USD / VND */}
           <View style={[styles.inputSection, { marginTop: 18 }]}>
             <View style={styles.amountHeaderRow}>
               <Text style={styles.fieldLabel}>{t('send.amountLabel', { defaultValue: 'Số tiền chuyển:' })}</Text>
@@ -510,24 +742,32 @@ export default function SendScreen() {
             </View>
           </View>
 
-          {/* 5. Nút Xác Nhận Chuyển Tiền */}
+          {/* 7. Nút Xác Nhận Chuyển Tiền */}
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              (!resolvedAddress || !!searchError || isTransferring || isLoadingLookup || !isReady || !user || !isWalletReady) && styles.sendBtnDisabled,
+              (!resolvedAddress || !!searchError || isTransferring || isLoadingLookup || !isWalletReady) && styles.sendBtnDisabled,
             ]}
             onPress={() => {
               handleSendTransaction();
             }}
-            disabled={!isReady || !user || !resolvedAddress || !!searchError || isTransferring || isLoadingLookup || !isWalletReady}
+            disabled={!isWalletReady || !resolvedAddress || !!searchError || isTransferring || isLoadingLookup}
             activeOpacity={0.85}
           >
             {isTransferring ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (!isWalletReady || !isReady || !user) ? (
+              <View style={styles.sendBtnInner}>
+                <ActivityIndicator color="#FFFFFF" size="small" style={{ marginRight: 8 }} />
+                <Text style={styles.sendBtnText}>{t('send.sendingButton', { defaultValue: 'Đang thực hiện chuyển tiền...' })}</Text>
+              </View>
+            ) : isLoadingLookup ? (
               <View style={styles.sendBtnInner}>
                 <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.sendBtnText}>{t('send.lookupButton', { defaultValue: 'Đang kết nối tài khoản...' })}</Text>
+                <Text style={styles.sendBtnText}>Đang tra cứu...</Text>
+              </View>
+            ) : !resolvedAddress ? (
+              <View style={styles.sendBtnInner}>
+                <Feather name="user-check" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.sendBtnText}>{t('send.noRecipientButton', { defaultValue: 'Vui lòng chọn người nhận' })}</Text>
               </View>
             ) : (
               <View style={styles.sendBtnInner}>
@@ -604,13 +844,208 @@ const styles = StyleSheet.create({
   searchBoxError: {
     borderColor: '#EF4444',
   },
+  searchBoxLocked: {
+    borderColor: '#86EFAC',
+    backgroundColor: '#F0FDF4',
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: '#0F172A',
   },
+  searchInputLocked: {
+    fontWeight: '600',
+    color: '#15803D',
+  },
   rightActionBox: {
     marginLeft: 6,
+  },
+  changeActionBtn: {
+    padding: 2,
+  },
+  dropdownContainer: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingVertical: 6,
+    marginTop: 4,
+    marginBottom: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownAvatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  dropdownAvatarImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  dropdownAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  dropdownAvatarLetter: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  dropdownDetailsCol: {
+    flex: 1,
+  },
+  dropdownNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropdownUsername: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  dropdownSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  dropdownWalletText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  dropdownPhoneText: {
+    fontSize: 11.5,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  lockedRecipientCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    marginTop: 4,
+    shadowColor: '#00A859',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  lockedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCFCE7',
+  },
+  lockedStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lockedStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+    marginLeft: 5,
+  },
+  changePillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  changePillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  lockedUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lockedAvatarBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  lockedAvatarImg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  lockedAvatarFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#C4B5FD',
+  },
+  lockedAvatarLetter: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  lockedUserInfoCol: {
+    flex: 1,
+  },
+  lockedUserName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  lockedUserAddress: {
+    fontSize: 12,
+    color: '#166534',
+    marginTop: 2,
   },
   successCard: {
     flexDirection: 'row',
@@ -639,6 +1074,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   copyPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 10,
     paddingVertical: 5,

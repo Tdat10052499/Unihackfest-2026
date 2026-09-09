@@ -35,9 +35,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { getSolanaBalance } from '../services/solana';
+import { resolveActiveSolanaAddress } from '../services/identity';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { useGlobalPresence } from '../contexts/GlobalPresenceContext';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useUserStore } from '../stores/useUserStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +61,7 @@ export default function CoinTossRoomScreen() {
   const isHost = String(params.isHost) === 'true';
 
   const { user } = usePrivy();
+  const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const { nearbyUsers, broadcastInvite } = useGlobalPresence();
 
@@ -98,16 +102,12 @@ export default function CoinTossRoomScreen() {
 
   // Lấy địa chỉ ví người dùng
   const getMySolanaAddress = (): string | null => {
-    if (!user) return null;
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    return solanaAccount?.address || null;
   };
 
   const myAddress = getMySolanaAddress();

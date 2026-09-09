@@ -126,7 +126,14 @@ export interface GeoRedPacket {
 import { PublicKey, Connection } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import * as crypto from 'crypto';
-import { solanaConnection } from './solana';
+
+const IDENTITY_DEVNET_RPC =
+  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
+  process.env.EXPO_PUBLIC_SOLANA_RPC ||
+  process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
+  'https://api.devnet.solana.com';
+
+export const identitySolanaConnection = new Connection(IDENTITY_DEVNET_RPC, 'confirmed');
 
 export const NED_IDENTITY_PROGRAM_ID = new PublicKey(
   process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID || '8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi'
@@ -212,7 +219,7 @@ export function findIdentityPDA(
  */
 export async function resolveIdentityOnchain(
   input: string,
-  connection: Connection = solanaConnection,
+  connection: Connection = identitySolanaConnection,
   programId: PublicKey = NED_IDENTITY_PROGRAM_ID
 ): Promise<{
   success: boolean;
@@ -372,4 +379,79 @@ export async function claimGeoRedPacketViaBackend(_params: {
     success: false,
     error: 'Tính năng đang chuyển đổi sang On-chain Anchor Program.',
   };
+}
+
+/**
+ * Trích xuất địa chỉ ví Solana hoạt động chính xác từ tất cả các nguồn theo độ ưu tiên:
+ * 1. Ví ngầm Embedded Solana Wallet của Privy (solanaWalletState.wallets[0])
+ * 2. Ví Solana nhúng trong Privy Session (linked_accounts có chain_type === 'solana')
+ * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage / Supabase)
+ * 4. user.wallet
+ * 5. Ví ngoài Phantom (Chỉ làm fallback cuối cùng khi không có ví Privy)
+ */
+export function resolveActiveSolanaAddress(
+  user?: any,
+  externalWallet?: { publicKey?: { toBase58: () => string } | string | null; connected?: boolean } | null,
+  solanaWalletState?: { wallets?: Array<{ address?: string; publicKey?: string }> } | null,
+  storeAddressOverride?: string | null
+): string | null {
+  // 1. Ưu tiên 1: Ví ngầm Embedded Solana Wallet của Privy
+  if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
+    const solWallet = solanaWalletState.wallets[0];
+    if (solWallet?.address) return solWallet.address;
+    if (solWallet?.publicKey) return solWallet.publicKey;
+  }
+
+  // 2. Ưu tiên 2: Ví Solana nhúng trong Privy Session (linked_accounts)
+  if (user) {
+    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
+
+    // 2a. Ưu tiên ví nhúng Privy
+    const privyEmbedded = linkedAccounts.find(
+      (acc: any) =>
+        acc.type === 'wallet' &&
+        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x'))) &&
+        acc.wallet_client_type === 'privy'
+    );
+    if (privyEmbedded?.address) {
+      return privyEmbedded.address;
+    }
+
+    // 2b. Mọi ví Solana trong linked_accounts
+    const solanaAccount = linkedAccounts.find(
+      (acc: any) =>
+        acc.type === 'wallet' &&
+        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x')))
+    );
+    if (solanaAccount?.address) {
+      return solanaAccount.address;
+    }
+
+    // 2c. user.wallet
+    if ((user as any)?.wallet?.address) {
+      const addr = (user as any).wallet.address;
+      if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
+        return addr;
+      }
+    }
+  }
+
+  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (Profile đăng ký trên Supabase / AsyncStorage)
+  if (storeAddressOverride && typeof storeAddressOverride === 'string' && storeAddressOverride.length >= 32) {
+    return storeAddressOverride;
+  }
+
+  // 4. Ưu tiên 4 (Fallback): Ví ngoài (Phantom / Solflare)
+  if (externalWallet?.publicKey) {
+    try {
+      const extAddr = typeof (externalWallet.publicKey as any)?.toBase58 === 'function'
+        ? (externalWallet.publicKey as any).toBase58()
+        : String(externalWallet.publicKey);
+      if (extAddr && extAddr !== '11111111111111111111111111111111' && extAddr.length >= 32) {
+        return extAddr;
+      }
+    } catch {}
+  }
+
+  return null;
 }
