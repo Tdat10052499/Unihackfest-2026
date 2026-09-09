@@ -247,106 +247,92 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
         const transaction = new Transaction();
 
-        if (senderUsdcBal > 0 && senderUsdcBal >= rawAmount) {
-          // Trường hợp 1: Người gửi có số dư token SPL (USDC / USDT / Devnet tokens)
-          let mintPubkey = USDC_DEVNET_MINT;
-          let fromATA = getAssociatedTokenAddress(USDC_DEVNET_MINT, fromPubkey);
-          let tokenProgramId = TOKEN_PROGRAM_ID;
-          let decimals = 6;
+        if (senderUsdcBal < rawAmount) {
+          setIsTransferring(false);
+          setStatusMessage('');
+          const err = `Số dư khả dụng không đủ (Hiện có: $${senderUsdcBal.toFixed(2)}, Cần: $${rawAmount.toFixed(2)}).`;
+          setError(err);
+          return { success: false, error: err };
+        }
 
-          try {
-            const [splAccounts, spl2022Accounts] = await Promise.all([
-              solanaConnection.getParsedTokenAccountsByOwner(
-                fromPubkey,
-                { programId: TOKEN_PROGRAM_ID },
-                'confirmed'
-              ).catch(() => ({ value: [] })),
-              solanaConnection.getParsedTokenAccountsByOwner(
-                fromPubkey,
-                { programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') },
-                'confirmed'
-              ).catch(() => ({ value: [] })),
-            ]);
+        // Thực hiện chuyển SPL Token (USDC / USDT)
+        let mintPubkey = USDC_DEVNET_MINT;
+        let fromATA = getAssociatedTokenAddress(USDC_DEVNET_MINT, fromPubkey);
+        let tokenProgramId = TOKEN_PROGRAM_ID;
+        let decimals = 6;
 
-            const allParsed = [
-              ...(splAccounts.value || []).map((v) => ({ ...v, programId: TOKEN_PROGRAM_ID })),
-              ...(spl2022Accounts.value || []).map((v) => ({ ...v, programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') })),
-            ];
-
-            const matched = allParsed.find((acc) => {
-              const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
-              return typeof uiAmt === 'number' && uiAmt >= rawAmount;
-            }) || allParsed.find((acc) => {
-              const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
-              return typeof uiAmt === 'number' && uiAmt > 0;
-            });
-
-            if (matched) {
-              const info = matched.account?.data?.parsed?.info;
-              if (info?.mint) {
-                mintPubkey = new PublicKey(info.mint);
-              }
-              if (matched.pubkey) {
-                fromATA = matched.pubkey;
-              }
-              if (typeof info?.tokenAmount?.decimals === 'number') {
-                decimals = info.tokenAmount.decimals;
-              }
-              if (matched.programId) {
-                tokenProgramId = matched.programId;
-              }
-            }
-          } catch (scanErr) {
-            console.warn('⚠️ Lỗi scan token accounts, dùng USDC Devnet mặc định:', scanErr);
-          }
-
-          const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
-          const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
-
-          const toAtaInfo = await solanaConnection.getAccountInfo(toATA, 'confirmed');
-          if (!toAtaInfo) {
-            console.log('ℹ️ [ATA] Tạo Associated Token Account cho người nhận:', toATA.toBase58());
-            transaction.add(
-              createAssociatedTokenAccountInstruction(
-                fromPubkey,
-                toATA,
-                toPubkey,
-                mintPubkey,
-                tokenProgramId
-              )
-            );
-          }
-
-          transaction.add(
-            createSplTokenTransferInstruction(
-              fromATA,
-              toATA,
+        try {
+          const [splAccounts, spl2022Accounts] = await Promise.all([
+            solanaConnection.getParsedTokenAccountsByOwner(
               fromPubkey,
-              sendUnits,
+              { programId: TOKEN_PROGRAM_ID },
+              'confirmed'
+            ).catch(() => ({ value: [] })),
+            solanaConnection.getParsedTokenAccountsByOwner(
+              fromPubkey,
+              { programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') },
+              'confirmed'
+            ).catch(() => ({ value: [] })),
+          ]);
+
+          const allParsed = [
+            ...(splAccounts.value || []).map((v) => ({ ...v, programId: TOKEN_PROGRAM_ID })),
+            ...(spl2022Accounts.value || []).map((v) => ({ ...v, programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') })),
+          ];
+
+          const matched = allParsed.find((acc) => {
+            const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+            return typeof uiAmt === 'number' && uiAmt >= rawAmount;
+          }) || allParsed.find((acc) => {
+            const uiAmt = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+            return typeof uiAmt === 'number' && uiAmt > 0;
+          });
+
+          if (matched) {
+            const info = matched.account?.data?.parsed?.info;
+            if (info?.mint) {
+              mintPubkey = new PublicKey(info.mint);
+            }
+            if (matched.pubkey) {
+              fromATA = matched.pubkey;
+            }
+            if (typeof info?.tokenAmount?.decimals === 'number') {
+              decimals = info.tokenAmount.decimals;
+            }
+            if (matched.programId) {
+              tokenProgramId = matched.programId;
+            }
+          }
+        } catch (scanErr) {
+          console.warn('⚠️ Lỗi scan token accounts, dùng USDC Devnet mặc định:', scanErr);
+        }
+
+        const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
+        const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
+
+        const toAtaInfo = await solanaConnection.getAccountInfo(toATA, 'confirmed');
+        if (!toAtaInfo) {
+          console.log('ℹ️ [ATA] Khởi tạo Associated Token Account cho người nhận:', toATA.toBase58());
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              fromPubkey,
+              toATA,
+              toPubkey,
+              mintPubkey,
               tokenProgramId
             )
           );
-        } else {
-          // Trường hợp 2: Chuyển Native SOL tương đương
-          const solToSend = params.amountSol !== undefined ? params.amountSol : (rawAmount / 150);
-          const sendLamports = Math.round(solToSend * LAMPORTS_PER_SOL);
-
-          if (senderSolBal < solToSend) {
-            setIsTransferring(false);
-            setStatusMessage('');
-            const err = 'Số dư tài khoản không đủ để thực hiện chuyển tiền.';
-            setError(err);
-            return { success: false, error: err };
-          }
-
-          transaction.add(
-            SystemProgram.transfer({
-              fromPubkey,
-              toPubkey,
-              lamports: sendLamports,
-            })
-          );
         }
+
+        transaction.add(
+          createSplTokenTransferInstruction(
+            fromATA,
+            toATA,
+            fromPubkey,
+            sendUnits,
+            tokenProgramId
+          )
+        );
 
         transaction.feePayer = fromPubkey;
         transaction.recentBlockhash = blockhash;

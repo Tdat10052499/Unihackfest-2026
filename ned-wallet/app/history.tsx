@@ -29,12 +29,16 @@ import {
   cacheActivities,
 } from '../services/storage';
 import { useTranslation } from '../services/i18n';
+import { resolveActiveSolanaAddress } from '../services/identity';
+import { useUserStore } from '../stores/useUserStore';
+import { useExternalWallet } from '../src/providers/WalletProvider';
 
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const externalWallet = useExternalWallet();
 
   let privy: any = null;
   try {
@@ -57,18 +61,14 @@ export default function HistoryScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Trích xuất địa chỉ ví Solana
+  // Trích xuất địa chỉ ví Solana theo chuẩn ưu tiên đồng nhất
   const getSolanaAddress = (): string | null => {
-    if (!user) return null;
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
     );
-    return solAccount?.address || null;
   };
 
   const solanaAddress = getSolanaAddress();

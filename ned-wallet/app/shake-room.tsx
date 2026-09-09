@@ -10,7 +10,11 @@ import {
   ActivityIndicator,
   StatusBar,
   Animated,
-  Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,26 +23,74 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { Accelerometer } from 'expo-sensors';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import {
-  cacheBalance,
-  getCachedBalance,
-  cacheActivities,
-  getCachedActivities,
-} from '@/services/storage';
-import {
-  solanaConnection,
-  getSolanaBalance,
-  ActivityItem,
-  executeSolanaTransfer,
-} from '@/services/solana';
+import { cacheActivities, getCachedActivities } from '@/services/storage';
+import { ActivityItem, formatFiatBalance, USD_TO_VND_RATE } from '@/services/solana';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
+import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 
-// Tỷ giá quy đổi ngầm: 1 SOL = $150 USD
+// Tỷ giá quy đổi giả định: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
 
-import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+/**
+ * 🎨 Component NeoCard: Tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
+ * Chuẩn Neo-brutalism 0 blur trên cả Android, iOS & Web.
+ */
+interface NeoCardProps {
+  children: React.ReactNode;
+  shadowColor?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  offset?: number;
+  style?: any;
+  containerStyle?: any;
+}
+
+const NeoCard: React.FC<NeoCardProps> = ({
+  children,
+  shadowColor = '#000000',
+  backgroundColor = '#FDF8F0',
+  borderColor = '#000000',
+  borderWidth = 2.5,
+  borderRadius = 24,
+  offset = 4,
+  style,
+  containerStyle,
+}) => {
+  return (
+    <View style={[{ position: 'relative' }, containerStyle]}>
+      {/* Hard Shadow Layer */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: shadowColor,
+            borderRadius,
+            top: offset,
+            left: offset,
+          },
+        ]}
+      />
+      {/* Main Card Layer */}
+      <View
+        style={[
+          {
+            backgroundColor,
+            borderColor,
+            borderWidth,
+            borderRadius,
+            padding: 18,
+          },
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    </View>
+  );
+};
 
 interface RoomMember {
   user_id: string;
@@ -76,10 +128,9 @@ export default function ShakeRoomScreen() {
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-
   const { nearbyUsers, broadcastInvite, currentUserProfile } = useGlobalPresence();
 
-  // Xác định người dùng là Host hay Guest
+  // Xác định vai trò: Host hay Guest
   const isHost = Boolean(
     searchParams.isHost === 'true' ||
     !hostId ||
@@ -91,18 +142,18 @@ export default function ShakeRoomScreen() {
     searchParams.hostWallet ? decodeURIComponent(searchParams.hostWallet) : ''
   );
 
-  // Host Phases: 'SETUP' (Nhập tiền, mời bạn bè & lắc) | 'WAITING' (Quản lý chờ thanh toán)
+  // Host Phases: 'SETUP' (Nhập tiền & Quét/Lắc) | 'WAITING' (Quản lý chờ thành viên thanh toán)
   const [hostPhase, setHostPhase] = useState<'SETUP' | 'WAITING'>('SETUP');
 
-  // Guest Phases: 'WAITING_FOR_HOST' (Chờ Host lắc) | 'READY_TO_PAY' (Đã nhận trigger_split)
+  // Guest Phases: 'WAITING_FOR_HOST' (Chờ Host lắc) | 'READY_TO_PAY' (Đã nhận trigger chia tiền)
   const [guestPhase, setGuestPhase] = useState<'WAITING_FOR_HOST' | 'READY_TO_PAY'>(
     searchParams.splitAmount && parseFloat(searchParams.splitAmount) > 0
       ? 'READY_TO_PAY'
       : 'WAITING_FOR_HOST'
   );
 
-  // State Hóa đơn (Định dạng Dollar USD)
-  const [totalBill, setTotalBill] = useState(searchParams.totalBill || '20');
+  // State Hóa đơn (Định dạng Dollar USD theo yêu cầu: TextInput tự do, không nút cố định)
+  const [totalBill, setTotalBill] = useState(searchParams.totalBill || '100');
   const [splitAmount, setSplitAmount] = useState(searchParams.splitAmount || '0');
   const [billNote, setBillNote] = useState(
     searchParams.note ? decodeURIComponent(searchParams.note) : 'Group Lunch'
@@ -111,11 +162,9 @@ export default function ShakeRoomScreen() {
   // State Thành viên phòng
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [isInvitingNearby, setIsInvitingNearby] = useState(false);
-
-  // State Quét Radar & Tích chọn từng Guest để mời
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // State Thanh toán của Guest & Nhận tiền Host
+  // State Thanh toán phía Guest & Nhận tiền phía Host
   const [isGuestPaying, setIsGuestPaying] = useState(false);
   const [hasGuestPaid, setHasGuestPaid] = useState(false);
   const [isHostClaiming, setIsHostClaiming] = useState(false);
@@ -123,24 +172,11 @@ export default function ShakeRoomScreen() {
   // Refs & Animations
   const accelerometerSubRef = useRef<any>(null);
   const lastShakeTimeRef = useRef(0);
-
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const radarWaveAnim = useRef(new Animated.Value(1)).current;
+  const radarRotateAnim = useRef(new Animated.Value(0)).current;
 
-  // Debug State của Ví khi Mount theo yêu cầu
-  useEffect(() => {
-    console.log('🔍 [ShakeRoom Mount Check]', {
-      isReady,
-      authenticated: Boolean(user),
-      userId: user?.id,
-      walletsCount: solanaWalletState?.wallets?.length || 0,
-      walletStatus: solanaWalletState?.status,
-      firstWalletAddress: solanaWalletState?.wallets?.[0]?.address || 'none',
-      isWalletReady,
-    });
-  }, [isReady, user, solanaWalletState?.status, solanaWalletState?.wallets?.length, isWalletReady]);
-
-  // Lấy địa chỉ ví Solana On-chain (Base58) của người dùng hiện tại
+  // Lấy địa chỉ ví Solana On-chain (Base58)
   const getSolanaAddress = (): string | null => {
     if (!user) return null;
     if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
@@ -159,12 +195,12 @@ export default function ShakeRoomScreen() {
 
   const mySolanaAddress = getSolanaAddress();
 
-  // 100% Realtime: Lọc bạn bè thực tế trong bán kính 20m từ global_radar
+  // Lọc bạn bè thực tế trong bán kính 20m từ Global Presence
   const candidateNearbyUsers = nearbyUsers.filter(
     (u) => u.distanceMeters !== undefined && u.distanceMeters <= 20
   );
 
-  // Đồng bộ selectedUserIds khi có thiết bị mới xuất hiện
+  // Tự động đồng bộ danh sách đã chọn khi có thiết bị mới
   useEffect(() => {
     if (candidateNearbyUsers.length > 0) {
       const validIds = candidateNearbyUsers.map((u) => u.user_id);
@@ -177,7 +213,6 @@ export default function ShakeRoomScreen() {
     }
   }, [candidateNearbyUsers.length]);
 
-  // Toggle chọn từng người dùng
   const toggleUserSelection = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedUserIds((prev) =>
@@ -185,31 +220,39 @@ export default function ShakeRoomScreen() {
     );
   };
 
-  // Animations loop
+  // Vòng lặp Animations: Pulse & Radar sóng quét
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.25, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
     ).start();
 
     Animated.loop(
       Animated.sequence([
-        Animated.timing(radarWaveAnim, { toValue: 1.35, duration: 1200, useNativeDriver: true }),
+        Animated.timing(radarWaveAnim, { toValue: 1.18, duration: 1200, useNativeDriver: true }),
         Animated.timing(radarWaveAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
       ])
     ).start();
+
+    Animated.loop(
+      Animated.timing(radarRotateAnim, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: true,
+      })
+    ).start();
   }, []);
 
-  // 1. Khởi tạo phòng & Dọn dẹp sensor
+  // Khởi tạo phòng
   useEffect(() => {
     if (!roomId || !user) return;
 
     const myProfile: RoomMember = {
       user_id: user.id,
-      name: currentUserProfile.name || 'User',
-      avatar: currentUserProfile.avatar || 'U',
+      name: currentUserProfile.name || 'Host',
+      avatar: currentUserProfile.avatar || 'H',
       wallet_address: mySolanaAddress || undefined,
       isHost,
       status: isHost ? 'paid' : 'pending',
@@ -225,23 +268,7 @@ export default function ShakeRoomScreen() {
     };
   }, [roomId, user, isHost, mySolanaAddress, hostId]);
 
-  // Khởi tạo thành viên cơ bản
-  useEffect(() => {
-    if (user && members.length === 0) {
-      setMembers([
-        {
-          user_id: user.id,
-          name: currentUserProfile.name || (isHost ? 'Host' : 'Me'),
-          avatar: currentUserProfile.avatar || 'U',
-          wallet_address: mySolanaAddress || undefined,
-          isHost,
-          status: isHost ? 'paid' : 'pending',
-        },
-      ]);
-    }
-  }, [user, isHost, mySolanaAddress]);
-
-  // 2. Logic Lắc thiết bị (Shake Trigger) cho Host trong Phase SETUP
+  // Logic Kích hoạt Chia Tiền (Shake Trigger / Nút bấm)
   const handleHostTriggerSplit = async () => {
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
     if (bill <= 0) {
@@ -259,13 +286,6 @@ export default function ShakeRoomScreen() {
     setSplitAmount(calculatedSplit.toString());
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    console.log('🚀 [Host] Chốt chia tiền:', {
-      totalBill: bill,
-      splitAmount: calculatedSplit,
-      invitedGuestCount,
-      totalParticipants,
-    });
-
     setHostPhase('WAITING');
 
     if (accelerometerSubRef.current) {
@@ -274,7 +294,7 @@ export default function ShakeRoomScreen() {
     }
   };
 
-  // 3. Quản lý cảm biến gia tốc Accelerometer trong Phase SETUP của Host
+  // Quản lý cảm biến Lắc (Accelerometer)
   useEffect(() => {
     if (!isHost || hostPhase !== 'SETUP') {
       if (accelerometerSubRef.current) {
@@ -306,16 +326,15 @@ export default function ShakeRoomScreen() {
     };
   }, [isHost, hostPhase, totalBill, members, billNote, selectedUserIds, mySolanaAddress]);
 
-  // Host: Mời các bạn bè ĐÃ TÍCH CHỌN vào phòng qua global_radar
+  // Host: Mời bạn bè qua Global Presence
   const handleInviteNearbyFriends = async () => {
     if (selectedUserIds.length === 0) {
-      Alert.alert('Chưa chọn bạn bè', 'Vui lòng tích chọn ít nhất 1 người bạn để gửi lời mời.');
+      handleShareRoomCode();
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsInvitingNearby(true);
-
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
 
     try {
@@ -334,19 +353,35 @@ export default function ShakeRoomScreen() {
     }
   };
 
-  // 4. Phía Host: 'Xác nhận & Nhận tiền' -> Đóng phòng và ghi nhận hoạt động
+  // Sao chép và Chia sẻ Mã Phòng
+  const copyRoomId = async () => {
+    if (!roomId) return;
+    await Clipboard.setStringAsync(roomId);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Đã sao chép mã phòng', `Mã phòng: ${roomId}`);
+  };
+
+  const handleShareRoomCode = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Share.share({
+        message: `Tham gia phòng chia tiền "${billNote}" trên N.E.D Wallet! Mã phòng: ${roomId}`,
+        title: 'Mời chia tiền Shake & Split',
+      });
+    } catch (error) {
+      console.log('Share error:', error);
+    }
+  };
+
+  // Phía Host: Xác nhận & Hoàn tất thu tiền
   const handleHostClaimAndClose = async () => {
     if (!isHost || isHostClaiming) return;
-    if (!user) {
-      Alert.alert('Thông báo', 'Không tìm thấy thông tin tài khoản.');
-      return;
-    }
+    if (!user) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsHostClaiming(true);
 
     try {
-      // Ghi nhận Lịch Sử Hoạt Động (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
       const newActivity: ActivityItem = {
         id: `split_income_${Date.now()}`,
@@ -355,7 +390,7 @@ export default function ShakeRoomScreen() {
         time: 'Vừa xong',
         amount: `+$${totalCollectedSoFar.toFixed(2)}`,
         isPositive: true,
-        iconBg: '#00A859',
+        iconBg: '#8B5CF6',
       };
       await cacheActivities([newActivity, ...currentActs]);
 
@@ -365,57 +400,28 @@ export default function ShakeRoomScreen() {
       Alert.alert(
         'Thu tiền hoàn tất 🎉',
         `Đã thu đủ $${totalCollectedSoFar.toFixed(2)} từ các thành viên!`,
-        [
-          {
-            text: 'Hoàn tất',
-            onPress: () => router.replace('/(tabs)/transfer-hub'),
-          },
-        ],
+        [{ text: 'Hoàn tất', onPress: () => router.replace('/(tabs)/transfer-hub') }],
         { cancelable: false }
       );
     } catch (e) {
       setIsHostClaiming(false);
-      console.error('Lỗi khi Host nhận tiền:', e);
       Alert.alert('Thông báo', 'Không thể hoàn tất lúc này. Vui lòng thử lại.');
     }
   };
 
-  // 5. Phía Guest: THỰC THI GIAO DỊCH ON-CHAIN 100% TRÊN SOLANA DEVNET
+  // Phía Guest: Thanh toán On-chain gasless
   const handleGuestPay = async () => {
     if (isGuestPaying || isExecutingTransfer || hasGuestPaid) return;
-    if (!user) {
-      Alert.alert('Thông báo', 'Vui lòng đăng nhập để tiếp tục.');
-      return;
-    }
-
-    if (!isWalletReady) {
-      Alert.alert(
-        'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất rồi thử lại!`
-      );
-      return;
-    }
+    if (!user) return;
 
     const guestSolAddress = mySolanaAddress;
-    if (!guestSolAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy thông tin ví tài khoản.');
-      return;
-    }
-
     const recipientAddress = hostWalletAddress || searchParams.hostWallet;
-    if (!recipientAddress) {
-      Alert.alert('Thông báo', 'Đang kết nối với người chủ trì, vui lòng thử lại sau giây lát.');
-      return;
-    }
-
     const paymentAmountUSD = parseFloat(splitAmount) || 0;
-    if (paymentAmountUSD <= 0) {
-      Alert.alert('Thông báo', 'Số tiền thanh toán chưa hợp lệ.');
+
+    if (!guestSolAddress || !recipientAddress || paymentAmountUSD <= 0) {
+      Alert.alert('Thông báo', 'Thông tin thanh toán chưa sẵn sàng.');
       return;
     }
-
-    // Quy đổi Dollar sang SOL: 1 SOL = $150 USD
-    const solAmount = Math.max(0.0001, Number((paymentAmountUSD / SOL_USD_RATE).toFixed(6)));
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsGuestPaying(true);
@@ -424,57 +430,16 @@ export default function ShakeRoomScreen() {
       const result = await executeTokenTransfer({
         fromAddress: guestSolAddress,
         recipientAddressOrPhone: recipientAddress,
-        amountSol: solAmount,
+        amountUsd: paymentAmountUSD,
       });
 
       if (!result.success || !result.transactionHash) {
         setIsGuestPaying(false);
-        const errorMsg = result.error || 'Giao dịch on-chain không thành công.';
-        if (
-          errorMsg.includes('timeout') ||
-          errorMsg.includes('user-signer') ||
-          errorMsg.includes('WebView')
-        ) {
-          Alert.alert(
-            'Phiên làm việc bị gián đoạn ⚠️',
-            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
-            [
-              { text: 'Đóng', style: 'cancel' },
-              {
-                text: 'Làm mới ngay',
-                style: 'destructive',
-                onPress: async () => {
-                  const { executeHardReset } = await import('@/services/storage');
-                  await executeHardReset(logout);
-                  router.replace('/login');
-                },
-              },
-            ]
-          );
-          return;
-        }
-
-        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
-          Alert.alert(
-            'Phiên hết hạn ⚠️',
-            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
-            [
-              {
-                text: 'Đăng nhập lại',
-                onPress: () => router.replace('/login'),
-              },
-            ]
-          );
-          return;
-        }
-
-        Alert.alert('Thanh toán chưa hoàn tất ❌', errorMsg);
+        Alert.alert('Thanh toán chưa hoàn tất ❌', result.error || 'Giao dịch không thành công.');
         return;
       }
 
       const txSignature = result.transactionHash;
-
-      // 4. Ghi Log Lịch Sử Hoạt Động On-Chain (Recent Activity)
       const currentActs = (await getCachedActivities()) || [];
       const newActivity: ActivityItem = {
         id: txSignature,
@@ -488,7 +453,6 @@ export default function ShakeRoomScreen() {
       };
       await cacheActivities([newActivity, ...currentActs]);
 
-      // 5. Cập nhật trạng thái thành viên cục bộ
       setMembers((prev) =>
         prev.map((m) =>
           m.user_id === user.id ? { ...m, status: 'paid', tx_signature: txSignature } : m
@@ -499,25 +463,14 @@ export default function ShakeRoomScreen() {
       setIsGuestPaying(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      Alert.alert('Thành công! 🎉', `Thanh toán on-chain thành công!\nChữ ký: ${txSignature.slice(0, 16)}...`);
+      Alert.alert('Thành công! 🎉', `Đã thanh toán on-chain thành công!\nTx: ${txSignature.slice(0, 16)}...`);
     } catch (e: any) {
-      console.error('Lỗi khi thực hiện giao dịch:', e);
       setIsGuestPaying(false);
-      Alert.alert(
-        'Giao dịch thất bại',
-        e?.message || 'Không thể hoàn tất thanh toán lúc này. Vui lòng thử lại sau.'
-      );
+      Alert.alert('Giao dịch thất bại', e?.message || 'Không thể thanh toán lúc này.');
     }
   };
 
-  const copyRoomId = async () => {
-    if (!roomId) return;
-    await Clipboard.setStringAsync(roomId);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Đã sao chép mã phòng', roomId);
-  };
-
-  // Tính toán số lượng và số tiền phía Host (USD)
+  // Tính toán
   const guests = members.filter((m) => !m.isHost);
   const paidGuests = guests.filter((m) => m.status === 'paid');
   const paidGuestsCount = paidGuests.length;
@@ -527,577 +480,330 @@ export default function ShakeRoomScreen() {
   const parsedSplitAmount =
     parseFloat(splitAmount.replace(/,/g, '')) ||
     Number((parsedTotalBill / (Math.max(guests.length, 1) + 1)).toFixed(2));
-
-  // Tổng tiền Host cần thu = Tiền mỗi người * Số lượng Guest
   const totalExpectedFromGuests = Number((parsedSplitAmount * guests.length).toFixed(2));
-  // Tổng tiền Host đã thu được realtime = Tiền mỗi người * Số lượng Guest đã thanh toán
   const totalCollectedSoFar = Number((parsedSplitAmount * paidGuestsCount).toFixed(2));
 
-  const displayRoomCode = roomId ? roomId.slice(0, 8).toUpperCase() : 'LOBBY';
+  const displayRoomCode = roomId ? (roomId.length > 12 ? roomId.slice(0, 8).toUpperCase() : roomId) : 'Room_MTH';
 
-  // Bảo vệ State Giao diện: Chỉ hiển thị khi ví và tài khoản đã sẵn sàng
   if (!isReady) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#00A859" />
-        <Text style={{ marginTop: 12, color: '#94A3B8', fontWeight: '600' }}>
-          Đang khởi tạo phòng giao dịch...
-        </Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#00A859" />
-        <Text style={{ marginTop: 12, color: '#94A3B8', fontWeight: '600' }}>
-          Phiên đăng nhập đã hết hạn. Đang chuyển hướng...
+        <ActivityIndicator size="large" color="#000000" />
+        <Text style={{ marginTop: 12, color: '#1F2937', fontWeight: '800' }}>
+          Đang khởi tạo phòng Shake & Split...
         </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#BFA3EC" />
 
-      {/* Loading Overlay Toàn Màn Hình Khi Thanh Toán (Dùng View Absolute để không tạo Window hierarchy mới làm pause WebView của Privy) */}
+      {/* Loading Overlay khi giao dịch đang xử lý */}
       {(isGuestPaying || isExecutingTransfer) && (
         <View style={[StyleSheet.absoluteFill, styles.loadingOverlay, { zIndex: 9999 }]}>
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#00A859" />
+          <NeoCard
+            backgroundColor="#FFFFFF"
+            shadowColor="#000000"
+            borderRadius={22}
+            borderWidth={2.5}
+            offset={4}
+            containerStyle={{ width: '85%' }}
+            style={{ alignItems: 'center', padding: 24 }}
+          >
+            <ActivityIndicator size="large" color="#8B5CF6" />
             <Text style={styles.loadingCardTitle}>
-              {transferStatusMessage || 'Đang xử lý thanh toán...'}
+              {transferStatusMessage || 'Đang xử lý thanh toán on-chain...'}
             </Text>
             <Text style={styles.loadingCardSubtitle}>
-              Vui lòng giữ ứng dụng và chờ trong giây lát
+              Vui lòng giữ ứng dụng và không đóng màn hình
             </Text>
-          </View>
+          </NeoCard>
         </View>
       )}
 
-      {/* Header Bar */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={24} color="#F8FAFC" />
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Shake to Split</Text>
-          <TouchableOpacity
-            style={styles.roomIdBadge}
-            onPress={copyRoomId}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.roomIdText}>MÃ PHÒNG: #{displayRoomCode}</Text>
-            <Feather name="copy" size={12} color="#94A3B8" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.liveIndicator}>
-          <Animated.View
-            style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]}
-          />
-          <Text style={styles.liveText}>TRỰC TIẾP</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
       >
-        {/* ================================================================= */}
-        {/* 🅰️ KHÔNG GIAN HOST (NGƯỜI CHỦ TRÌ) */}
-        {/* ================================================================= */}
-        {isHost ? (
-          hostPhase === 'SETUP' ? (
-            /* 1. HOST GIAI ĐOẠN SETUP: Nhập tiền Dollar, Tích chọn bạn bè & Lắc */
-            <View style={styles.hostSetupContainer}>
-              {/* Thẻ Nhập Tiền Hóa Đơn (Dollar USD) */}
-              <View style={styles.billInputCard}>
-                <View style={styles.cardHeaderRow}>
-                  <MaterialCommunityIcons name="receipt" size={22} color="#8B5CF6" />
-                  <Text style={styles.cardHeaderTitle}>Tổng tiền hóa đơn</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{ flex: 1 }}>
+            {/* ========================================================= */}
+            {/* 1. HEADER & ROOM INFO */}
+            {/* ========================================================= */}
+            <View style={styles.header}>
+              {/* Circular Neo-Brutalism Back Button */}
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={styles.backBtnWrapper}
+                activeOpacity={0.8}
+              >
+                <View style={styles.backBtnShadow} />
+                <View style={styles.backBtnInner}>
+                  <Ionicons name="chevron-back" size={20} color="#000000" />
                 </View>
+              </TouchableOpacity>
 
+              {/* Title with Neo-brutalism Text Shadow */}
+              <Text style={styles.headerTitle}>Shake & Split</Text>
+
+              {/* Live Pill Badge */}
+              <View style={styles.liveBadge}>
+                <Animated.View
+                  style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]}
+                />
+                <Text style={styles.liveText}>Live</Text>
+              </View>
+            </View>
+
+            {/* Room Code Pill Badge */}
+            <View style={styles.roomCodeContainer}>
+              <TouchableOpacity
+                onPress={copyRoomId}
+                style={styles.roomCodePill}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.roomCodeText}>
+                  Room Code # {displayRoomCode}
+                </Text>
+                <Feather name="copy" size={13} color="#000000" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable Content */}
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* ========================================================= */}
+              {/* 2. KHU VỰC NHẬP HÓA ĐƠN (TEXTINPUT LỚN + GHI CHÚ VIÊN THUỐC) */}
+              {/* ========================================================= */}
+              <View style={styles.amountSection}>
+                {/* Ô nhập tiền cực lớn ở trung tâm */}
                 <View style={styles.amountInputRow}>
-                  <Text style={styles.currencyPrefix}>$</Text>
+                  <Text style={styles.amountDollarSign}>$</Text>
                   <TextInput
-                    style={styles.amountInput}
+                    style={styles.amountBigTextInput}
                     value={totalBill}
                     onChangeText={setTotalBill}
+                    keyboardType="decimal-pad"
                     placeholder="0.00"
-                    placeholderTextColor="#64748B"
-                    keyboardType="numeric"
+                    placeholderTextColor="#6D28D9"
+                    editable={isHost && hostPhase === 'SETUP'}
+                    selectTextOnFocus
                   />
-                  <Text style={styles.currencySuffix}>USD</Text>
+                  <Text style={styles.amountCurrencySuffix}>USD</Text>
                 </View>
 
-                {/* Phím preset nhanh (Dollar USD) */}
-                <View style={styles.presetRow}>
-                  {['5', '10', '20', '50', '100'].map((preset) => (
-                    <TouchableOpacity
-                      key={preset}
-                      style={[
-                        styles.presetPill,
-                        totalBill === preset && styles.presetPillActive,
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setTotalBill(preset);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.presetText,
-                          totalBill === preset && styles.presetTextActive,
-                        ]}
-                      >
-                        ${preset}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Ghi chú */}
-                <View style={styles.noteInputRow}>
-                  <Feather name="edit-2" size={14} color="#94A3B8" />
+                {/* Ô nhập lý do chia tiền dạng viên thuốc kèm icon edit */}
+                <View style={styles.notePillContainer}>
                   <TextInput
-                    style={styles.noteInput}
+                    style={styles.notePillInput}
                     value={billNote}
                     onChangeText={setBillNote}
-                    placeholder="Ghi chú (ví dụ: Ăn trưa cùng nhóm)"
+                    placeholder="Group Lunch"
                     placeholderTextColor="#64748B"
+                    editable={isHost && hostPhase === 'SETUP'}
                   />
+                  <Feather name="edit-2" size={14} color="#000000" style={{ marginLeft: 6 }} />
                 </View>
               </View>
 
-              {/* Thẻ Quét & TÍCH CHỌN Bạn Bè Xung Quanh (20m) */}
-              <View style={styles.nearbySectionCard}>
-                <View style={styles.sectionHeaderBetween}>
-                  <View>
-                    <Text style={styles.nearbyTitle}>
-                      Bạn bè ở gần (20m)
-                    </Text>
-                    <Text style={styles.nearbySubtitle}>
-                      {candidateNearbyUsers.length > 0
-                        ? `Đã chọn ${selectedUserIds.length}/${candidateNearbyUsers.length} người`
-                        : 'Đang quét tự động xung quanh'}
-                    </Text>
-                  </View>
+              {/* ========================================================= */}
+              {/* 3. THẺ RADAR & THÀNH VIÊN (KHỐI TRUNG TÂM LỚN #FDF8F0) */}
+              {/* ========================================================= */}
+              <NeoCard
+                backgroundColor="#FDF8F0"
+                shadowColor="#000000"
+                borderColor="#000000"
+                borderWidth={2.5}
+                borderRadius={24}
+                offset={4}
+                containerStyle={styles.centerCardContainer}
+                style={styles.centerCardInner}
+              >
+                {/* Phần trên của Card: Tiêu đề + Nút Share */}
+                <View style={styles.cardTopRow}>
+                  <Text style={styles.cardTopTitle}>Bạn bè ở gần (20m)</Text>
 
                   <TouchableOpacity
-                    style={[
-                      styles.inviteActionBtn,
-                      (selectedUserIds.length === 0 || isInvitingNearby) &&
-                        styles.inviteActionBtnDisabled,
-                    ]}
-                    onPress={handleInviteNearbyFriends}
-                    disabled={isInvitingNearby || selectedUserIds.length === 0}
+                    style={styles.sharePillBtn}
+                    onPress={handleShareRoomCode}
                     activeOpacity={0.8}
                   >
-                    {isInvitingNearby ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="paper-plane" size={14} color="#FFFFFF" />
-                        <Text style={styles.inviteActionBtnText}>
-                          {selectedUserIds.length > 0
-                            ? `Mời (${selectedUserIds.length})`
-                            : 'Mời'}
-                        </Text>
-                      </>
-                    )}
+                    <Ionicons name="share-social-outline" size={14} color="#000000" />
+                    <Text style={styles.sharePillText}>Share</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Danh sách người dùng lân cận hoặc EMPTY STATE */}
-                {candidateNearbyUsers.length === 0 ? (
-                  <View style={styles.emptyRadarContainer}>
-                    <View style={styles.emptyRadarIconCircle}>
-                      <MaterialCommunityIcons name="radar" size={36} color="#64748B" />
-                    </View>
-                    <Text style={styles.emptyRadarTitle}>Chưa tìm thấy ai ở gần</Text>
-                    <Text style={styles.emptyRadarSubtitle}>
-                      Đang liên tục rà quét thiết bị trong bán kính 20m...
-                    </Text>
-                    <ActivityIndicator
-                      size="small"
-                      color="#8B5CF6"
-                      style={{ marginTop: 12 }}
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.nearbyList}>
-                    {candidateNearbyUsers.map((u) => {
-                      const isSelected = selectedUserIds.includes(u.user_id);
-                      return (
-                        <TouchableOpacity
-                          key={u.user_id}
-                          style={[
-                            styles.nearbyItem,
-                            isSelected && styles.nearbyItemSelected,
-                          ]}
-                          onPress={() => toggleUserSelection(u.user_id)}
-                          activeOpacity={0.75}
-                        >
-                          <View
-                            style={[
-                              styles.nearbyAvatar,
-                              isSelected && styles.nearbyAvatarSelected,
-                            ]}
-                          >
-                            <Text style={styles.nearbyAvatarText}>{u.avatar}</Text>
-                          </View>
-
-                          <View style={{ flex: 1 }}>
-                            <Text
-                              style={[
-                                styles.nearbyName,
-                                isSelected && styles.nearbyNameSelected,
-                              ]}
-                            >
-                              {u.name}
-                            </Text>
-                            <Text style={styles.nearbyDist}>
-                              Cách ~{u.distanceMeters ?? 5}m
-                            </Text>
-                          </View>
-
-                          {/* Checkbox Icon */}
-                          <View style={styles.checkboxWrapper}>
-                            <Ionicons
-                              name={isSelected ? 'checkbox' : 'square-outline'}
-                              size={22}
-                              color={isSelected ? '#00A859' : '#64748B'}
+                {/* Phần giữa của Card: Icon Radar / Vòng tròn đồng tâm nghệ thuật */}
+                <View style={styles.radarSection}>
+                  <TouchableOpacity
+                    style={styles.radarTouchable}
+                    onPress={isHost && hostPhase === 'SETUP' ? handleHostTriggerSplit : undefined}
+                    activeOpacity={0.9}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.radarConcentricOuter,
+                        { transform: [{ scale: radarWaveAnim }] },
+                      ]}
+                    >
+                      <View style={styles.radarConcentricMiddle}>
+                        <View style={styles.radarConcentricInner}>
+                          <View style={styles.radarCenterTarget}>
+                            {/* Icon Target / Radar đồng tâm theo chuẩn thiết kế */}
+                            <MaterialCommunityIcons
+                              name="target"
+                              size={36}
+                              color="#6B4F3A"
                             />
                           </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              {/* Danh sách thành viên đã vào phòng chờ */}
-              <View style={styles.roomMembersCard}>
-                <Text style={styles.roomMembersTitle}>
-                  Thành viên trong phòng ({members.length})
-                </Text>
-                <View style={styles.avatarRow}>
-                  {members.map((m) => (
-                    <View key={m.user_id} style={styles.memberAvatarBadge}>
-                      <View
-                        style={[
-                          styles.memberAvatarCircle,
-                          m.isHost && styles.hostAvatarBorder,
-                        ]}
-                      >
-                        <Text style={styles.memberAvatarText}>{m.avatar}</Text>
+                        </View>
                       </View>
-                      <Text style={styles.memberAvatarName} numberOfLines={1}>
-                        {m.isHost ? 'Chủ phòng' : m.name.split(' ').pop()}
-                      </Text>
+                    </Animated.View>
+                  </TouchableOpacity>
+
+                  <Text style={styles.scanningText}>
+                    {candidateNearbyUsers.length > 0
+                      ? `Đã tìm thấy ${candidateNearbyUsers.length} bạn bè ở gần`
+                      : 'Scanning for friends ...'}
+                  </Text>
+
+                  {/* Danh sách người ở gần (nếu tìm thấy) */}
+                  {candidateNearbyUsers.length > 0 && isHost && hostPhase === 'SETUP' && (
+                    <View style={styles.nearbyListRow}>
+                      {candidateNearbyUsers.map((u) => {
+                        const isSelected = selectedUserIds.includes(u.user_id);
+                        return (
+                          <TouchableOpacity
+                            key={u.user_id}
+                            style={[
+                              styles.nearbySelectPill,
+                              isSelected && styles.nearbySelectPillActive,
+                            ]}
+                            onPress={() => toggleUserSelection(u.user_id)}
+                            activeOpacity={0.75}
+                          >
+                            <Text
+                              style={[
+                                styles.nearbySelectText,
+                                isSelected && styles.nearbySelectTextActive,
+                              ]}
+                            >
+                              {u.name} {isSelected ? '✓' : '+'}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* Hướng Dẫn & Nút Lắc Kích Hoạt Chia Tiền */}
-              <View style={styles.shakeActionBox}>
-                <Animated.View
-                  style={[
-                    styles.shakeRadarPulse,
-                    { transform: [{ scale: radarWaveAnim }] },
-                  ]}
-                />
-                <TouchableOpacity
-                  style={styles.shakeBigBtn}
-                  onPress={handleHostTriggerSplit}
-                  activeOpacity={0.85}
-                >
-                  <MaterialCommunityIcons name="vibrate" size={26} color="#FFFFFF" />
-                  <Text style={styles.shakeBigBtnTitle}>
-                    LẮC ĐIỆN THOẠI ĐỂ CHIA TIỀN
-                  </Text>
-                  <Text style={styles.shakeBigBtnSubtitle}>
-                    Mỗi người thanh toán: ~${parsedSplitAmount.toFixed(2)}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            /* 2. HOST GIAI ĐOẠN WAITING: Quản lý trạng thái & Xác nhận thu tiền */
-            <View style={styles.hostWaitingContainer}>
-              {/* Thẻ Card Tổng Hợp Nổi Bật Thu Tiền Realtime */}
-              <View style={styles.hostWaitingCard}>
-                <View style={styles.hostRoleBadge}>
-                  <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
-                  <Text style={styles.hostRoleText}>BẢNG QUẢN LÝ CHỦ PHÒNG</Text>
+                  )}
                 </View>
 
-                {/* Số tiền đã thu được Realtime (USD) */}
-                <View style={styles.collectedSummaryBox}>
-                  <Text style={styles.collectedLabel}>ĐÃ THU ĐƯỢC</Text>
-                  <Text style={styles.collectedAmount}>
-                    ${totalCollectedSoFar.toFixed(2)}{' '}
-                    <Text style={styles.collectedCurrency}>USD</Text>
+                {/* Dải phân cách (Divider) mỏng */}
+                <View style={styles.cardDivider} />
+
+                {/* Phần dưới của Card: Room members & Avatars */}
+                <View style={styles.membersSection}>
+                  <Text style={styles.membersCountTitle}>
+                    Room members ({members.length})
                   </Text>
-                  <View style={styles.expectedTargetRow}>
-                    <Text style={styles.expectedTargetText}>
-                      Tổng cần thu:{' '}
-                      <Text style={styles.expectedTargetBold}>
-                        ${totalExpectedFromGuests.toFixed(2)}
-                      </Text>
-                    </Text>
+
+                  <View style={styles.avatarListRow}>
+                    {/* 1. Host Avatar (Viền đỏ, chữ H in đậm) */}
+                    <View style={styles.avatarItemCol}>
+                      <View style={styles.hostAvatarCircle}>
+                        <Text style={styles.hostAvatarLetter}>
+                          {currentUserProfile?.avatar || 'H'}
+                        </Text>
+                      </View>
+                      <Text style={styles.avatarSubLabel}>Host</Text>
+                    </View>
+
+                    {/* 2. Danh sách các khách đã tham gia */}
+                    {guests.map((g) => (
+                      <View key={g.user_id} style={styles.avatarItemCol}>
+                        <View
+                          style={[
+                            styles.guestAvatarCircle,
+                            g.status === 'paid' && styles.guestAvatarPaid,
+                          ]}
+                        >
+                          <Text style={styles.guestAvatarLetter}>{g.avatar || 'U'}</Text>
+                        </View>
+                        <Text style={styles.avatarSubLabel} numberOfLines={1}>
+                          {g.name.split(' ').pop()}
+                        </Text>
+                      </View>
+                    ))}
+
+                    {/* 3. Nút "+ Invite" (Viền nét đứt) */}
+                    <TouchableOpacity
+                      style={styles.avatarItemCol}
+                      onPress={handleInviteNearbyFriends}
+                      activeOpacity={0.75}
+                    >
+                      <View style={styles.inviteDashedCircle}>
+                        <Feather name="plus" size={18} color="#000000" />
+                      </View>
+                      <Text style={styles.avatarSubLabel}>+ Invite</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
-                {/* Thanh Tiến độ thanh toán */}
-                <View style={styles.progressBox}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Tiến độ thanh toán:</Text>
-                    <Text style={styles.progressValue}>
-                      {paidGuestsCount}/{guests.length} người đã trả
-                    </Text>
-                  </View>
-                  <View style={styles.progressBarBg}>
-                    <View
+                {/* Phía Guest: Nút Thanh Toán Onchain nếu đã nhận Trigger */}
+                {!isHost && guestPhase === 'READY_TO_PAY' && (
+                  <View style={{ marginTop: 14 }}>
+                    <TouchableOpacity
                       style={[
-                        styles.progressBarFill,
-                        {
-                          width: `${
-                            guests.length > 0
-                              ? (paidGuestsCount / guests.length) * 100
-                              : 0
-                          }%`,
-                        },
+                        styles.guestPayActionBtn,
+                        hasGuestPaid && styles.guestPayActionBtnPaid,
                       ]}
-                    />
+                      onPress={handleGuestPay}
+                      disabled={hasGuestPaid || isGuestPaying}
+                      activeOpacity={0.88}
+                    >
+                      {isGuestPaying ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <Text style={styles.guestPayActionBtnText}>
+                          {hasGuestPaid
+                            ? '✓ Đã thanh toán thành công'
+                            : `⚡ Thanh toán $${parsedSplitAmount.toFixed(2)} USD`}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
                   </View>
-                </View>
+                )}
 
-                {/* Chi tiết chia tiền */}
-                <View style={styles.billDetailsGrid}>
-                  <View style={styles.detailCol}>
-                    <Text style={styles.detailColLabel}>Tổng hóa đơn</Text>
-                    <Text style={styles.detailColValue}>
-                      ${parsedTotalBill.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.detailDivider} />
-                  <View style={styles.detailCol}>
-                    <Text style={styles.detailColLabel}>Phần mỗi người</Text>
-                    <Text style={styles.detailColValueGreen}>
-                      ${parsedSplitAmount.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Danh sách Guest & Trạng thái (Pending/Paid) */}
-              <View style={styles.membersSection}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>
-                    Danh sách thành viên ({guests.length})
-                  </Text>
-                  <Text style={styles.sectionSubtitle}>
-                    Đồng bộ trạng thái trực tiếp
-                  </Text>
-                </View>
-
-                {guests.map((g) => (
-                  <View key={g.user_id} style={styles.guestCard}>
-                    <View style={styles.avatarCircle}>
-                      <Text style={styles.avatarText}>{g.avatar || 'U'}</Text>
-                    </View>
-
-                    <View style={styles.guestInfo}>
-                      <Text style={styles.guestName}>{g.name}</Text>
-                      <Text style={styles.guestShare}>
-                        Số tiền: ${parsedSplitAmount.toFixed(2)}
+                {/* Phía Host: Nút chốt tiền nếu đang ở giai đoạn WAITING */}
+                {isHost && hostPhase === 'WAITING' && (
+                  <View style={{ marginTop: 14 }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.hostFinishActionBtn,
+                        !isAllPaid && styles.hostFinishActionBtnPending,
+                      ]}
+                      onPress={handleHostClaimAndClose}
+                      disabled={!isAllPaid || isHostClaiming}
+                      activeOpacity={0.88}
+                    >
+                      <Text style={styles.hostFinishActionBtnText}>
+                        {isAllPaid
+                          ? `Hoàn tất & Nhận +$${totalCollectedSoFar.toFixed(2)}`
+                          : `Đang chờ thành viên (${paidGuestsCount}/${guests.length})`}
                       </Text>
-                    </View>
-
-                    {g.status === 'paid' ? (
-                      <View style={styles.paidBadge}>
-                        <Ionicons name="checkmark-circle" size={16} color="#00A859" />
-                        <Text style={styles.paidText}>Đã trả</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.pendingBadge}>
-                        <Ionicons name="time-outline" size={15} color="#F59E0B" />
-                        <Text style={styles.pendingText}>Đang chờ</Text>
-                      </View>
-                    )}
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-
-              {/* Nút 'Xác nhận & Nhận tiền' (Chỉ bật khi toàn bộ Guest đã thanh toán) */}
-              <TouchableOpacity
-                style={[
-                  styles.claimMoneyBtn,
-                  !isAllPaid && styles.claimMoneyBtnDisabled,
-                  isHostClaiming && styles.claimMoneyBtnLoading,
-                ]}
-                onPress={handleHostClaimAndClose}
-                disabled={!isAllPaid || isHostClaiming}
-                activeOpacity={0.85}
-              >
-                {isHostClaiming ? (
-                  <View style={styles.payingLoadingRow}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.claimMoneyBtnText}>Đang hoàn tất...</Text>
-                  </View>
-                ) : (
-                  <>
-                    <MaterialCommunityIcons
-                      name={isAllPaid ? 'cash-check' : 'cash-clock'}
-                      size={24}
-                      color="#FFFFFF"
-                    />
-                    <Text style={styles.claimMoneyBtnText}>
-                      {isAllPaid
-                        ? `Xác nhận & Hoàn tất (+$${totalCollectedSoFar.toFixed(2)})`
-                        : `Đang chờ thanh toán (${paidGuestsCount}/${guests.length})`}
-                    </Text>
-                  </>
                 )}
-              </TouchableOpacity>
-            </View>
-          )
-        ) : (
-          /* ================================================================= */
-          /* 🅱️ KHÔNG GIAN GUEST (NGƯỜI THAM GIA) */
-          /* ================================================================= */
-          guestPhase === 'WAITING_FOR_HOST' ? (
-            /* 1. GUEST: Chờ Host chốt tiền và lắc */
-            <View style={styles.guestWaitingContainer}>
-              <View style={styles.guestWaitingCard}>
-                <View style={styles.waitingRadarWrapper}>
-                  <Animated.View
-                    style={[
-                      styles.guestRadarPulse,
-                      { transform: [{ scale: radarWaveAnim }] },
-                    ]}
-                  />
-                  <View style={styles.guestRadarCenter}>
-                    <MaterialCommunityIcons name="cellphone-nfc" size={32} color="#FFFFFF" />
-                  </View>
-                </View>
+              </NeoCard>
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
-                <Text style={styles.guestWaitingTitle}>Phòng chờ chia tiền</Text>
-                <Text style={styles.guestWaitingDesc}>
-                  Đang chờ người chủ trì{' '}
-                  <Text style={styles.hostHighlightName}>
-                    {hostName ? decodeURIComponent(hostName) : ''}
-                  </Text>{' '}
-                  chốt hóa đơn và lắc thiết bị... ⏳
-                </Text>
-
-                <View style={styles.guestNoteBox}>
-                  <Ionicons name="information-circle-outline" size={18} color="#8B5CF6" />
-                  <Text style={styles.guestNoteText}>
-                    Khi người chủ trì lắc điện thoại, số tiền chia đều của bạn sẽ xuất hiện tại đây.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : (
-            /* 2. GUEST: Đã nhận trigger_split -> Hiển thị số tiền & Nút Thanh Toán */
-            <View style={styles.guestPayContainer}>
-              <View style={styles.guestBillCard}>
-                <View style={styles.guestCardHeader}>
-                  <MaterialCommunityIcons
-                    name="receipt-text-check-outline"
-                    size={28}
-                    color="#8B5CF6"
-                  />
-                  <Text style={styles.guestCardTitle}>Chi tiết hóa đơn</Text>
-                </View>
-
-                <Text style={styles.guestInvitedBy}>
-                  Người chủ trì{' '}
-                  <Text style={styles.hostHighlightName}>
-                    {hostName ? decodeURIComponent(hostName) : ''}
-                  </Text>{' '}
-                  đã chốt số tiền
-                </Text>
-
-                {/* Số tiền chính xác (USD) */}
-                <View style={styles.exactAmountBox}>
-                  <Text style={styles.exactAmountLabel}>Số tiền bạn cần thanh toán:</Text>
-                  <Text style={styles.exactAmountValue}>
-                    ${parsedSplitAmount.toFixed(2)}{' '}
-                    <Text style={styles.exactCurrency}>USD</Text>
-                  </Text>
-                  <Text style={styles.noteDesc}>
-                    Ghi chú: {billNote || 'Ăn uống nhóm'}
-                  </Text>
-                </View>
-
-                <View style={styles.totalContextBox}>
-                  <Text style={styles.totalContextText}>
-                    Tổng hóa đơn phòng: ${parsedTotalBill.toFixed(2)} USD
-                  </Text>
-                </View>
-              </View>
-
-              {/* Nút Thanh toán nổi bật */}
-              <TouchableOpacity
-                style={[
-                  styles.guestPayBtn,
-                  hasGuestPaid && styles.guestPayBtnPaid,
-                  ((!isWalletReady && !hasGuestPaid) || isGuestPaying || !isReady || !user) && styles.guestPayBtnLoading,
-                ]}
-                onPress={() => {
-                  handleGuestPay();
-                }}
-                disabled={!isReady || !user || isGuestPaying || hasGuestPaid || !isWalletReady}
-                activeOpacity={0.85}
-              >
-                {hasGuestPaid ? (
-                  <>
-                    <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" />
-                    <Text style={styles.guestPayBtnText}>Đã thanh toán thành công</Text>
-                  </>
-                ) : (!isWalletReady || !isReady || !user) ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.guestPayBtnText}>Đang kết nối ví...</Text>
-                  </>
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="lightning-bolt" size={22} color="#FFFFFF" />
-                    <Text style={styles.guestPayBtnText}>
-                      Thanh toán ${parsedSplitAmount.toFixed(2)}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {hasGuestPaid && (
-                <View style={styles.paidConfirmationBox}>
-                  <Ionicons name="shield-checkmark" size={18} color="#00A859" />
-                  <Text style={styles.paidConfirmationText}>
-                    Đã hoàn tất thanh toán và đồng bộ đến người chủ trì!
-                  </Text>
-                </View>
-              )}
-            </View>
-          )
-        )}
-      </ScrollView>
-
-      {/* Modal Khôi phục Ví Bảo Mật khi cần (Needs Recovery) */}
       <WalletRecoveryModal
         visible={showRecoveryModal || needsRecovery}
         onClose={() => setShowRecoveryModal(false)}
@@ -1107,849 +813,409 @@ export default function ShakeRoomScreen() {
   );
 }
 
+// ==========================================
+// 🎨 NEO-BRUTALISM STYLESHEET
+// ==========================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#BFA3EC', // Tím pastel đậm đà theo thiết kế (#BFA3EC / #BCA1E6)
   },
   loadingOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-  },
-  loadingCard: {
-    width: '100%',
-    maxWidth: 320,
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#334155',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    padding: 20,
   },
   loadingCardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 18,
+    color: '#000000',
+    marginTop: 14,
     textAlign: 'center',
   },
   loadingCardSubtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginTop: 8,
+    fontSize: 12.5,
+    color: '#64748B',
+    marginTop: 6,
     textAlign: 'center',
-    lineHeight: 19,
   },
+
+  // 1. Header & Room Info
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  backBtn: {
+  backBtnWrapper: {
+    position: 'relative',
+    width: 42,
+    height: 42,
+  },
+  backBtnShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#000000',
   },
-  headerTitleContainer: {
+  backBtnInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.2,
+    borderColor: '#000000',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#F8FAFC',
+    fontSize: 25,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
-  roomIdBadge: {
+  liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginTop: 2,
-  },
-  roomIdText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.8,
+    borderColor: '#000000',
+    borderRadius: 14,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#EF4444',
+    marginRight: 5,
   },
   liveText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#EF4444',
   },
-  scrollView: {
-    flex: 1,
+
+  // Room Code Pill
+  roomCodeContainer: {
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  // Host SETUP Styles
-  hostSetupContainer: {
-    gap: 16,
-  },
-  billInputCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-  },
-  cardHeaderRow: {
+  roomCodePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
+    backgroundColor: '#FDF8F0',
+    borderWidth: 1.8,
+    borderColor: '#000000',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
-  cardHeaderTitle: {
-    fontSize: 15,
+  roomCodeText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#000000',
+    letterSpacing: -0.2,
+  },
+
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 28,
+  },
+
+  // 2. Amount Section
+  amountSection: {
+    alignItems: 'center',
+    marginVertical: 10,
   },
   amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-    marginBottom: 10,
-  },
-  currencyPrefix: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#8B5CF6',
-    marginRight: 6,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#00A859',
-    padding: 0,
-  },
-  currencySuffix: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  presetRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  presetPill: {
-    flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  presetPillActive: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
-  },
-  presetText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  presetTextActive: {
-    color: '#FFFFFF',
-  },
-  noteInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  noteInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#F8FAFC',
-    padding: 0,
-  },
-  nearbySectionCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  sectionHeaderBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  nearbyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  nearbySubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  inviteActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  inviteActionBtnDisabled: {
-    opacity: 0.4,
-    backgroundColor: '#475569',
-  },
-  inviteActionBtnText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  emptyRadarContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-  },
-  emptyRadarIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  emptyRadarTitle: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: '#F8FAFC',
-    marginBottom: 4,
-  },
-  emptyRadarSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  nearbyList: {
-    gap: 8,
-  },
-  nearbyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0F172A',
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-  },
-  nearbyItemSelected: {
-    borderColor: '#00A859',
-    backgroundColor: 'rgba(0, 168, 89, 0.08)',
-  },
-  nearbyAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#475569',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  nearbyAvatarSelected: {
-    backgroundColor: '#00A859',
-  },
-  nearbyAvatarText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  nearbyName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  nearbyNameSelected: {
-    color: '#F8FAFC',
-    fontWeight: '700',
-  },
-  nearbyDist: {
-    fontSize: 11.5,
-    color: '#00A859',
-    marginTop: 2,
-  },
-  checkboxWrapper: {
-    paddingLeft: 8,
-  },
-  roomMembersCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  roomMembersTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 12,
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  memberAvatarBadge: {
-    alignItems: 'center',
-    width: 54,
-  },
-  memberAvatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#00A859',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  hostAvatarBorder: {
-    borderWidth: 2,
-    borderColor: '#F59E0B',
-  },
-  memberAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  memberAvatarName: {
-    fontSize: 11,
-    color: '#CBD5E1',
-    textAlign: 'center',
-  },
-  shakeActionBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  shakeRadarPulse: {
-    position: 'absolute',
-    width: '100%',
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-  },
-  shakeBigBtn: {
-    width: '100%',
-    backgroundColor: '#8B5CF6',
-    borderRadius: 20,
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  shakeBigBtnTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    marginTop: 4,
-  },
-  shakeBigBtnSubtitle: {
-    fontSize: 13,
-    color: '#EDE9FE',
-    marginTop: 2,
-    fontWeight: '600',
-  },
-  // Host WAITING Styles
-  hostWaitingContainer: {
-    gap: 16,
-  },
-  hostWaitingCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-    alignItems: 'center',
-  },
-  hostRoleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginBottom: 14,
-  },
-  hostRoleText: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#F59E0B',
-  },
-  collectedSummaryBox: {
-    width: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 168, 89, 0.3)',
-    marginBottom: 16,
-  },
-  collectedLabel: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  collectedAmount: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#00A859',
-  },
-  collectedCurrency: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  expectedTargetRow: {
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    backgroundColor: '#1E293B',
-  },
-  expectedTargetText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  expectedTargetBold: {
-    color: '#F8FAFC',
-    fontWeight: '700',
-  },
-  progressBox: {
-    width: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  progressLabel: {
-    fontSize: 12.5,
-    color: '#94A3B8',
+  amountDollarSign: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#000000',
+    marginRight: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
   },
-  progressValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#00A859',
+  amountBigTextInput: {
+    fontSize: 44,
+    fontWeight: '900',
+    color: '#000000',
+    minWidth: 80,
+    textAlign: 'center',
+    padding: 0,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
   },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: '#334155',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#00A859',
-    borderRadius: 4,
-  },
-  billDetailsGrid: {
-    flexDirection: 'row',
-    width: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  detailCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  detailColLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  detailColValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  detailColValueGreen: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#00A859',
-  },
-  detailDivider: {
-    width: 1,
-    backgroundColor: '#334155',
-  },
-  membersSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  guestCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  avatarCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#00A859',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  guestInfo: {
-    flex: 1,
-  },
-  guestName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  guestShare: {
-    fontSize: 12.5,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  paidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0, 168, 89, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 168, 89, 0.4)',
-  },
-  paidText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#00A859',
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-  },
-  pendingText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#F59E0B',
-  },
-  claimMoneyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#00A859',
-    borderRadius: 18,
-    paddingVertical: 18,
-    marginTop: 6,
-    marginBottom: 24,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  claimMoneyBtnDisabled: {
-    backgroundColor: '#334155',
-    opacity: 0.6,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  claimMoneyBtnLoading: {
-    opacity: 0.8,
-  },
-  claimMoneyBtnText: {
-    fontSize: 15.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  payingLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  // Guest WAITING Styles
-  guestWaitingContainer: {
-    paddingTop: 20,
-  },
-  guestWaitingCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 26,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#334155',
-  },
-  waitingRadarWrapper: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  guestRadarPulse: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-  },
-  guestRadarCenter: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#8B5CF6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guestWaitingTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#F8FAFC',
+  amountCurrencySuffix: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000000',
+    marginLeft: 6,
+    alignSelf: 'flex-end',
     marginBottom: 8,
   },
-  guestWaitingDesc: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
+  notePillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF8F0',
+    borderWidth: 1.8,
+    borderColor: '#000000',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
   },
-  hostHighlightName: {
-    color: '#8B5CF6',
+  notePillInput: {
+    fontSize: 13.5,
     fontWeight: '700',
-  },
-  guestNoteBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  guestNoteText: {
-    flex: 1,
-    fontSize: 12.5,
-    color: '#CBD5E1',
-    lineHeight: 18,
-  },
-  // Guest PAY Styles
-  guestPayContainer: {
-    paddingTop: 8,
-  },
-  guestBillCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  guestCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  guestCardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  guestInvitedBy: {
-    fontSize: 13,
-    color: '#94A3B8',
+    color: '#4B5563',
+    padding: 0,
+    minWidth: 90,
     textAlign: 'center',
-    marginBottom: 18,
   },
-  exactAmountBox: {
-    width: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 18,
+
+  // 3. Central Radar & Members Card (#FDF8F0)
+  centerCardContainer: {
+    marginTop: 10,
+  },
+  centerCardInner: {
     padding: 20,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    marginBottom: 14,
   },
-  exactAmountLabel: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 6,
-  },
-  exactAmountValue: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#8B5CF6',
-  },
-  exactCurrency: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  noteDesc: {
-    fontSize: 13,
-    color: '#CBD5E1',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  totalContextBox: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  totalContextText: {
-    fontSize: 12.5,
-    color: '#64748B',
-  },
-  guestPayBtn: {
+  cardTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#00A859',
-    borderRadius: 18,
-    paddingVertical: 16,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  guestPayBtnPaid: {
-    backgroundColor: '#10B981',
-    opacity: 0.8,
-  },
-  guestPayBtnRecovery: {
-    backgroundColor: '#F59E0B',
-    shadowColor: '#F59E0B',
-  },
-  guestPayBtnLoading: {
-    opacity: 0.8,
-  },
-  guestPayBtnText: {
+  cardTopTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '800',
+    color: '#1F2937',
+    letterSpacing: -0.2,
   },
-  paidConfirmationBox: {
+  sharePillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0, 168, 89, 0.12)',
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.8,
+    borderColor: '#000000',
     borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  sharePillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  // Radar Art
+  radarSection: {
+    alignItems: 'center',
+    paddingVertical: 22,
+  },
+  radarTouchable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarConcentricOuter: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 2,
+    borderColor: 'rgba(107, 79, 58, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarConcentricMiddle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2.2,
+    borderColor: 'rgba(107, 79, 58, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarConcentricInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+    borderColor: '#6B4F3A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarCenterTarget: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanningText: {
+    fontSize: 12.5,
+    color: '#78716C',
+    fontWeight: '600',
     marginTop: 14,
   },
-  paidConfirmationText: {
-    fontSize: 13,
-    color: '#00A859',
+  nearbyListRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  nearbySelectPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  nearbySelectPillActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  nearbySelectText: {
+    fontSize: 11.5,
     fontWeight: '700',
+    color: '#000000',
+  },
+  nearbySelectTextActive: {
+    color: '#FFFFFF',
+  },
+
+  cardDivider: {
+    height: 1.5,
+    backgroundColor: '#E7E0D6',
+    marginVertical: 14,
+  },
+
+  // Room Members
+  membersSection: {
+    marginTop: 2,
+  },
+  membersCountTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  avatarListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  avatarItemCol: {
+    alignItems: 'center',
+    width: 52,
+  },
+  hostAvatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hostAvatarLetter: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  guestAvatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#E0E7FF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guestAvatarPaid: {
+    backgroundColor: '#D1FAE5',
+    borderColor: '#10B981',
+  },
+  guestAvatarLetter: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  inviteDashedCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FDF8F0',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarSubLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 6,
     textAlign: 'center',
   },
+
+  guestPayActionBtn: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#000000',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestPayActionBtnPaid: {
+    backgroundColor: '#10B981',
+  },
+  guestPayActionBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  hostFinishActionBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#000000',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hostFinishActionBtnPending: {
+    backgroundColor: '#6B7280',
+    opacity: 0.8,
+  },
+  hostFinishActionBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
 });

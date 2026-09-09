@@ -192,7 +192,7 @@ export default function HomeScreen() {
     const checkPhoneLinkingPrompt = async () => {
       if (!user) return;
       try {
-        // Bắt buộc gọi API Supabase kiểm tra xem user_id này đã có SĐT trong DB chưa
+        // Kiểm tra xem user_id này đã có SĐT trong DB chưa
         const dbPhone = await getUserPhoneNumberFromDB(user.id);
         if (dbPhone) {
           console.log('✅ [Home] Đã tìm thấy SĐT trong Supabase DB:', dbPhone);
@@ -201,11 +201,7 @@ export default function HomeScreen() {
           return;
         }
 
-        // Nếu DB chưa có bản ghi, lập tức kích hoạt luồng Form nhập SĐT -> INSERT bản ghi mới
         setLinkedPhoneState(null);
-        setTimeout(() => {
-          setShowPhoneLinkingModal(true);
-        }, 600);
       } catch (err) {
         console.error('Error checking phone link prompt:', err);
       }
@@ -504,15 +500,15 @@ export default function HomeScreen() {
       setIsSendingTx(false);
 
       Alert.alert(
-        'Giao Dịch Thành Công! ⚡',
-        `Đã chuyển ${numAmount} SOL đến:\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\nChữ ký: ${txSignature.slice(0, 16)}...`
+        'Chuyển Tiền Thành Công! ⚡',
+        `Đã chuyển $${numAmount.toFixed(2)} đến:\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\nMã giao dịch: ${txSignature.slice(0, 16)}...`
       );
     } catch (err: any) {
       setIsSendingTx(false);
-      console.error('Solana Transaction Error:', err);
+      console.error('Send Transaction Error:', err);
       Alert.alert(
         'Lỗi Giao Dịch',
-        err?.message || 'Không thể broadcast giao dịch lên Devnet.'
+        err?.message || 'Không thể thực hiện chuyển tiền lúc này.'
       );
     }
   };
@@ -774,11 +770,7 @@ export default function HomeScreen() {
                     </View>
                     <View style={styles.activityDetailCol}>
                       <Text style={styles.activityItemTitle}>
-                        {item.type === 'sent'
-                          ? 'Sent'
-                          : item.type === 'received'
-                          ? 'Received'
-                          : getActivityTitle(item, t)}
+                        {getActivityTitle(item, t)}
                       </Text>
                       <Text style={styles.activityItemTime}>
                         {formatLocalizedRelativeTime(item.blockTime, t)}

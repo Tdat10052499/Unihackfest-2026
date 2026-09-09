@@ -65,7 +65,15 @@ export const getCachedActivities = async (): Promise<any[] | null> => {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.filter(
+          (a) =>
+            a &&
+            a.amount !== '$0.00' &&
+            a.amount !== '-$0.00' &&
+            a.amount !== '+$0.00' &&
+            !a.amount?.includes?.('SOL') &&
+            !a.title?.includes?.('Web3')
+        );
       }
     }
     return null;
