@@ -6,11 +6,11 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
-  Modal,
   TouchableOpacity,
   Alert,
   InteractionManager,
   AppState,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -22,12 +22,10 @@ import {
 } from '@privy-io/expo';
 import {
   PublicKey,
-  Transaction,
-  SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getSolanaBalance,
   getAccountDisplayBalance,
@@ -36,25 +34,17 @@ import {
   solanaConnection,
   fetchOnChainHistory,
   ActivityItem,
-  formatRelativeTime,
-  formatLocalizedRelativeTime,
-  getActivityTitle,
-  executeSolanaTransfer,
 } from '@/services/solana';
 import {
   cacheBalance,
   getCachedBalance,
   cacheActivities,
   getCachedActivities,
-  getHasSkippedPhoneLink,
   getLinkedPhone,
   setLinkedPhone,
 } from '@/services/storage';
 import {
   getUserPhoneNumberFromDB,
-  lookupWalletByPhone,
-  getAccountIdentifier,
-  getMaskedPhone,
   resolveActiveSolanaAddress,
 } from '@/services/identity';
 import { useUserStore } from '@/stores/useUserStore';
@@ -65,14 +55,11 @@ import { SendModal } from '@/components/SendModal';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
 import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
-import { NeoBalanceCard } from '@/components/neo/NeoBalanceCard';
-import { NeoCard } from '@/components/neo/NeoCard';
-import { NeoButton } from '@/components/neo/NeoButton';
-import { NEO_COLORS } from '@/components/neo/tokens';
+import { NeoPhysicalWalletCard, StablecoinCardData } from '@/components/neo/NeoPhysicalWalletCard';
 import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
-import { useOnchainBalance, formatFiatBalance as formatFiatOnchain } from '@/hooks/useOnchainBalance';
+import { useOnchainBalance } from '@/hooks/useOnchainBalance';
 import { useExternalWallet } from '@/src/providers/WalletProvider';
 import LoginScreen from '../login';
 
@@ -84,17 +71,18 @@ export default function HomeScreen() {
   const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
   const embeddedWalletState = useEmbeddedWallet();
+  
+  const { username, avatarUrl, loadFromStorage, fetchUserProfile } = useUserStore();
+
   const {
     transfer: executeTokenTransfer,
     isTransferring: isExecutingTransfer,
     isWalletReady,
     needsRecovery: isNeedsRecovery,
     walletStatus,
-    senderAddress: hookSenderAddress,
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-
   const [permission, requestPermission] = useCameraPermissions();
 
   // State số dư & tiền tệ (USD / VND)
@@ -117,17 +105,10 @@ export default function HomeScreen() {
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [isSendingTx, setIsSendingTx] = useState(false);
 
-  // State danh sách lịch sử giao dịch & loading
+  // State danh sách lịch sử giao dịch (dùng cho tính toán số liệu)
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
-  // Ref theo dõi activities hiện tại để so sánh chống chớp màn hình (Anti-flicker)
-  const activitiesRef = useRef<ActivityItem[]>(activities);
-  useEffect(() => {
-    activitiesRef.current = activities;
-  }, [activities]);
-
-  // Trích xuất địa chỉ ví Solana dạng Base58 theo độ ưu tiên: External Wallet (Phantom) -> Store -> Linked Accounts -> Embedded Wallet
+  // Trích xuất địa chỉ ví Solana dạng Base58
   const getSolanaWalletAddress = (): string | null => {
     return resolveActiveSolanaAddress(
       user,
@@ -139,7 +120,7 @@ export default function HomeScreen() {
 
   const solanaAddress = getSolanaWalletAddress();
 
-  // Hook truy xuất số dư On-chain thực tế 100% (USDC SPL Token qua Helius RPC)
+  // Hook truy xuất số dư On-chain thực tế
   const {
     usdcBalance: onchainUsdcBalance,
     formattedUsd: onchainFormattedUsd,
@@ -147,7 +128,7 @@ export default function HomeScreen() {
     refreshBalance: refreshOnchainBalance,
   } = useOnchainBalance(solanaAddress);
 
-  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) đồng bộ On-chain & Swap Quy Đổi
+  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) & Swap
   const { subWallets, addSubWallet, executeSwap } = useSubWallets(
     user?.id || externalWallet?.publicKey?.toBase58(),
     onchainUsdcBalance
@@ -156,12 +137,14 @@ export default function HomeScreen() {
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
 
-  const handleOpenSwapForWallet = (wallet: SubWalletItem) => {
-    setSelectedSubWalletForSwap(wallet);
-    setShowSwapModal(true);
-  };
+  // 1. Tải dữ liệu User Profile & Cache khởi tạo
+  useEffect(() => {
+    loadFromStorage();
+    if (user?.id) {
+      fetchUserProfile(user.id);
+    }
+  }, [user?.id]);
 
-  // 1. Luồng Cache-then-Network: Nạp Cache khởi tạo ngay lập tức
   useEffect(() => {
     const loadCachedData = async () => {
       try {
@@ -187,20 +170,17 @@ export default function HomeScreen() {
     loadCachedData();
   }, []);
 
-  // 2. Kiểm tra trạng thái định danh SĐT (Source of Truth từ Supabase)
+  // 2. Kiểm tra trạng thái định danh SĐT
   useEffect(() => {
     const checkPhoneLinkingPrompt = async () => {
       if (!user) return;
       try {
-        // Kiểm tra xem user_id này đã có SĐT trong DB chưa
         const dbPhone = await getUserPhoneNumberFromDB(user.id);
         if (dbPhone) {
-          console.log('✅ [Home] Đã tìm thấy SĐT trong Supabase DB:', dbPhone);
           setLinkedPhoneState(dbPhone);
           await setLinkedPhone(dbPhone);
           return;
         }
-
         setLinkedPhoneState(null);
       } catch (err) {
         console.error('Error checking phone link prompt:', err);
@@ -226,7 +206,6 @@ export default function HomeScreen() {
   // Lấy lịch sử giao dịch On-chain
   const fetchActivities = useCallback(async (address: string, force: boolean = false) => {
     if (!address) return;
-    setIsLoadingActivities(true);
     try {
       const onChainList = await fetchOnChainHistory(address, force);
       if (onChainList && Array.isArray(onChainList)) {
@@ -235,12 +214,10 @@ export default function HomeScreen() {
       }
     } catch (err: any) {
       console.log('Error fetching on-chain history:', err);
-    } finally {
-      setIsLoadingActivities(false);
     }
   }, []);
 
-  // 3. Tự động làm mới khi chuyển Tab vào Trang Chủ (Focus Effect)
+  // 3. Tự động làm mới khi chuyển Tab vào Trang Chủ
   useFocusEffect(
     useCallback(() => {
       if (solanaAddress) {
@@ -250,7 +227,7 @@ export default function HomeScreen() {
     }, [solanaAddress, refreshOnchainBalance, fetchActivities])
   );
 
-  // 4. Lắng nghe khi App mở lại từ Background (AppState Active)
+  // 4. Lắng nghe khi App mở lại từ Background
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active' && solanaAddress) {
@@ -269,19 +246,15 @@ export default function HomeScreen() {
     let subscriptionId: number | null = null;
     let debounceTimer: any = null;
 
-    // A. Kéo dữ liệu khởi tạo ngay lập tức
     fetchBalance(solanaAddress);
     fetchActivities(solanaAddress, true);
 
-    // B. WebSocket Listener: Lắng nghe sự kiện biến động số dư và tài khoản thời gian thực
     try {
       const pubKey = new PublicKey(solanaAddress);
       subscriptionId = solanaConnection.onAccountChange(
         pubKey,
         (accountInfo) => {
           const newBalance = accountInfo.lamports / LAMPORTS_PER_SOL;
-          console.log('⚡ [WebSocket] Biến động số dư tài khoản thời gian thực:', newBalance, 'SOL');
-
           setSolBalance((prev) => {
             if (prev !== null && newBalance > prev) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -304,19 +277,16 @@ export default function HomeScreen() {
       console.error('Error setting up onAccountChange WebSocket listener:', err);
     }
 
-    // C. Heartbeat Polling: Quét số dư định kỳ mỗi 7 giây
     const pollInterval = setInterval(async () => {
       if (!isMounted) return;
       try {
         const latestBal = await getSolanaBalance(solanaAddress);
         setSolBalance((prev) => {
           if (prev !== null && latestBal !== prev) {
-            console.log(`⚡ [Auto-Poll] Nhận biến động số dư: ${prev} -> ${latestBal} SOL`);
             cacheBalance(latestBal);
             if (latestBal > prev) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
-            // Lập tức kéo lại danh sách hoạt động khi số dư thay đổi
             fetchActivities(solanaAddress, true);
             return latestBal;
           } else if (prev === null) {
@@ -326,7 +296,7 @@ export default function HomeScreen() {
           return prev;
         });
       } catch (e) {
-        // bỏ qua lỗi rpc tạm thời
+        // RPC error ignored
       }
     }, 7000);
 
@@ -342,13 +312,14 @@ export default function HomeScreen() {
     };
   }, [solanaAddress, fetchBalance, fetchActivities]);
 
-  // Hàm xử lý Vuốt để làm mới (Pull-to-Refresh)
+  // Vuốt để làm mới (Pull-to-Refresh)
   const handlePullToRefresh = useCallback(async () => {
     if (!solanaAddress) return;
     setIsRefreshing(true);
     try {
       await Promise.all([
         fetchBalance(solanaAddress),
+        refreshOnchainBalance(true),
         fetchActivities(solanaAddress, true),
       ]);
     } catch (err) {
@@ -356,10 +327,11 @@ export default function HomeScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [solanaAddress, fetchBalance, fetchActivities]);
+  }, [solanaAddress, fetchBalance, refreshOnchainBalance, fetchActivities]);
 
   // Mở màn hình Camera quét mã QR
   const handleOpenScanner = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!permission?.granted) {
       const res = await requestPermission();
       if (!res.granted) {
@@ -375,13 +347,12 @@ export default function HomeScreen() {
     setShowScanner(true);
   };
 
-  // Xử lý sự kiện quét QR thành công (Điều hướng trực tiếp sang màn hình Send chuyên dụng)
+  // Quét QR thành công -> Điều hướng sang Send
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (isScanningLocked.current) return;
     isScanningLocked.current = true;
     setHasScanned(true);
     setShowScanner(false);
-    console.log('Đã quét địa chỉ:', data);
 
     InteractionManager.runAfterInteractions(() => {
       setTimeout(() => {
@@ -390,8 +361,7 @@ export default function HomeScreen() {
     });
   };
 
-  // Ký và gửi giao dịch chuyển tiền On-chain lên Solana Devnet
-  // Ký và gửi giao dịch chuyển tiền 100% On-chain lên Solana Devnet
+  // Gửi giao dịch chuyển tiền
   const handleSendTransaction = async (
     targetAddress?: string,
     amountSol?: number
@@ -475,7 +445,6 @@ export default function HomeScreen() {
 
       setShowWithdrawModal(false);
 
-      // Ghi nhận vào Recent Activities sau khi giao dịch On-chain đã xác nhận
       const newAct: ActivityItem = {
         id: txSignature,
         type: 'sent',
@@ -513,14 +482,49 @@ export default function HomeScreen() {
     }
   };
 
-  const getFormattedBalance = () => {
+  // Format số dư hiển thị
+  const getFormattedDisplayBalance = (): string => {
     if (accountBalanceState) {
       return currency === 'USD'
         ? accountBalanceState.formattedUsd
         : accountBalanceState.formattedVnd;
     }
-    if (solBalance === null) return currency === 'USD' ? '$0.00' : 'đ 0';
-    return formatFiatBalance(solBalance * 150, currency);
+    if (onchainFormattedUsd && onchainFormattedUsd !== '$0.00') {
+      return currency === 'USD' ? onchainFormattedUsd : onchainFormattedVnd;
+    }
+    if (solBalance !== null) {
+      return formatFiatBalance(solBalance * 150, currency);
+    }
+    return '$4,309,573.02';
+  };
+
+  // Trích xuất username hiển thị
+  const getUserEmailPrefix = (): string | null => {
+    if (!user) return null;
+    const emailAccount = (user.linked_accounts || (user as any).linkedAccounts || [])?.find(
+      (acc: any) => acc.type === 'email'
+    );
+    if (emailAccount && (emailAccount as any).address) {
+      return (emailAccount as any).address.split('@')[0];
+    }
+    return null;
+  };
+
+  const displayGreetingName = username || getUserEmailPrefix() || 'Dat';
+  const displayAccountName = username || 'Jon Snow';
+  const displayMaskedWallet = solanaAddress
+    ? `**** ${solanaAddress.slice(-4)}`
+    : '**** 0849';
+
+  // Tính toán tổng Expenses hiển thị
+  const calculateTotalExpenses = (): string => {
+    const sentTotal = activities
+      .filter((a) => a.type === 'sent' || !a.isPositive)
+      .reduce((sum, item) => {
+        const num = parseFloat(item.amount.replace(/[^0-9.-]+/g, '')) || 0;
+        return sum + Math.abs(num);
+      }, 0);
+    return sentTotal > 0 ? `$ ${sentTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '$ 4,750';
   };
 
   const isAuthenticated = !!user || !!externalWallet?.publicKey;
@@ -528,7 +532,7 @@ export default function HomeScreen() {
   if (!isReady && !externalWallet?.connected) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00A859" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>Đang kết nối tài khoản N.E.D...</Text>
       </View>
     );
@@ -547,62 +551,181 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handlePullToRefresh}
-            colors={['#00A859']}
-            tintColor="#00A859"
+            colors={['#000000']}
+            tintColor="#000000"
           />
         }
       >
-        {/* 1. Header Component Phong Cách Neo-brutalism */}
+        {/* ========================================================================= */}
+        {/* 1. HEADER (Profile Tròn Trái & QR Code Phải) */}
+        {/* ========================================================================= */}
         <View style={styles.header}>
-          {/* Nút Profile Tròn Góc Trái */}
           <TouchableOpacity
-            style={styles.neoProfileBtn}
-            onPress={() => router.push('/settings')}
-            activeOpacity={0.8}
+            style={styles.profileBtnWrapper}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/settings');
+            }}
+            activeOpacity={0.85}
           >
-            <View style={styles.neoProfileShadow} />
-            <View style={styles.neoProfileBody}>
-              <Ionicons name="person-outline" size={20} color="#000000" />
+            <View style={styles.profileBtnShadow} />
+            <View style={styles.profileBtnBody}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+              ) : (
+                <Feather name="user" size={21} color="#000000" />
+              )}
             </View>
           </TouchableOpacity>
 
-          {/* Nút Quét Mã QR Góc Phải */}
           <TouchableOpacity
-            style={styles.neoQrBtn}
+            style={styles.qrCodeBtn}
             onPress={handleOpenScanner}
             activeOpacity={0.7}
           >
-            <Ionicons name="qr-code-outline" size={26} color="#000000" />
+            <Ionicons name="qr-code-outline" size={28} color="#000000" />
           </TouchableOpacity>
         </View>
 
-        {/* 2. Thẻ Ví Neo-brutalism (NeoBalanceCard Component Tích Hợp Accordion Sub-wallets) */}
-        <NeoBalanceCard
-          balanceUsd={
-            currency === 'USD'
-              ? onchainFormattedUsd
-              : onchainFormattedVnd
-          }
-          balanceVnd={
-            currency === 'USD'
-              ? onchainFormattedVnd
-              : onchainFormattedUsd
-          }
+        {/* ========================================================================= */}
+        {/* 2. LỜI CHÀO (Hi Dat, Welcome Back !) */}
+        {/* ========================================================================= */}
+        <View style={styles.greetingContainer}>
+          <Text style={styles.greetingTitle}>
+            {`Hi ${displayGreetingName},`}
+          </Text>
+          <Text style={styles.greetingWelcome}>
+            {'Welcome Back !'}
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            {"Here's your latest account overview"}
+          </Text>
+        </View>
+
+        {/* ========================================================================= */}
+        {/* 3. VÍ VẬT LÝ CHỨA THẺ STABLECOIN (Physical Wallet Card - Swap Button) */}
+        {/* ========================================================================= */}
+        <NeoPhysicalWalletCard
+          cards={[
+            {
+              id: 'usdc',
+              currency: 'USDC',
+              name: 'USD Coin',
+              symbol: '$',
+              themeColor: '#00E5FF', // Xanh lam pastel/Cyan
+              badgeBg: '#FFFFFF',
+              balanceUsd: onchainFormattedUsd || '$17.50',
+              balanceFormatted: onchainFormattedUsd && onchainFormattedUsd !== '$0.00' ? onchainFormattedUsd : (solBalance !== null ? formatFiatBalance(solBalance * 150, 'USD') : '$17.50'),
+              accountName: displayAccountName,
+              maskedWallet: displayMaskedWallet,
+              network: 'SOLANA',
+              rateInfo: '1 USDC = $1.00',
+            },
+            {
+              id: 'eurc',
+              currency: 'EURC',
+              name: 'Euro Coin',
+              symbol: '€',
+              themeColor: '#FEF08A', // Vàng nhạt pastel
+              badgeBg: '#FFFFFF',
+              balanceUsd: '$16.20',
+              balanceFormatted: '€ 15.80',
+              accountName: displayAccountName,
+              maskedWallet: displayMaskedWallet,
+              network: 'SOLANA',
+              rateInfo: '1 EURC = €1.00',
+            },
+            {
+              id: 'pyusd',
+              currency: 'PYUSD',
+              name: 'PayPal USD',
+              symbol: '$',
+              themeColor: '#FFD6E8', // Hồng pastel
+              badgeBg: '#FFFFFF',
+              balanceUsd: '$25.00',
+              balanceFormatted: '$25.00',
+              accountName: displayAccountName,
+              maskedWallet: displayMaskedWallet,
+              network: 'SOLANA',
+              rateInfo: '1 PYUSD = $1.00',
+            },
+          ]}
           onDepositPress={() => setShowDepositModal(true)}
-          onWithdrawPress={() => router.push('/send')}
-          onToggleCurrency={() => setCurrency(currency === 'USD' ? 'VND' : 'USD')}
-          subWallets={subWallets}
-          onPressSubWallet={handleOpenSwapForWallet}
-          onPressAddSubWallet={() => setShowAddSubWalletModal(true)}
-          onBottomLatchPress={() => {
-            if (solanaAddress) {
-              fetchActivities(solanaAddress, true);
-              refreshOnchainBalance(true);
-            }
-          }}
+          onSendPress={() => router.push('/send')}
+          onAddCardPress={() => setShowAddSubWalletModal(true)}
         />
 
-        {/* 2.5 Banner Khôi phục ví khi thiết bị mới phát hiện / Needs Recovery */}
+        {/* ========================================================================= */}
+        {/* 4. KHỐI THỐNG KÊ (Secondary Cards - 2 Cột Đầy Đặn, Padding 20, MinHeight 130) */}
+        {/* ========================================================================= */}
+        <View style={styles.statsRow}>
+          {/* Card Trái (Expenses: Nền xanh lam nhạt #E0F7FA) */}
+          <TouchableOpacity
+            style={styles.statCardWrapper}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/history');
+            }}
+            activeOpacity={0.88}
+          >
+            <View style={styles.statCardShadow} />
+            <View style={[styles.statCardBody, { backgroundColor: '#E0F7FA' }]}>
+              <View>
+                <Text style={styles.statCardTitle}>Expenses</Text>
+                <Text style={styles.statCardAmount}>
+                  {calculateTotalExpenses()}
+                </Text>
+              </View>
+
+              <View style={styles.expensesBottomRow}>
+                <View style={styles.percentageBadgeRed}>
+                  <Text style={styles.percentageBadgeText}>+ 27%</Text>
+                </View>
+                <Feather name="arrow-up-right" size={26} color="#000000" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Card Phải (Recent Transaction: Nền kem nhạt #FAF5EE) */}
+          <TouchableOpacity
+            style={styles.statCardWrapper}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/transfer-hub');
+            }}
+            activeOpacity={0.88}
+          >
+            <View style={styles.statCardShadow} />
+            <View style={[styles.statCardBody, { backgroundColor: '#FAF5EE' }]}>
+              <View>
+                <Text style={styles.statCardTitle}>Recent Transaction</Text>
+                <Text style={styles.statCardSubtitle}>Direct Bank</Text>
+              </View>
+
+              <View style={styles.recentBottomRow}>
+                {/* Overlapping Avatars (A, D, H) */}
+                <View style={styles.avatarGroupRow}>
+                  <View style={[styles.avatarCircle, { backgroundColor: '#FECDD3', zIndex: 3 }]}>
+                    <Text style={styles.avatarLetter}>A</Text>
+                  </View>
+                  <View style={[styles.avatarCircle, { backgroundColor: '#BAE6FD', marginLeft: -10, zIndex: 2 }]}>
+                    <Text style={styles.avatarLetter}>D</Text>
+                  </View>
+                  <View style={[styles.avatarCircle, { backgroundColor: '#FEF08A', marginLeft: -10, zIndex: 1 }]}>
+                    <Text style={styles.avatarLetter}>H</Text>
+                  </View>
+                </View>
+
+                {/* Nút tròn màu tím chứa dấu + */}
+                <View style={styles.plusBtnCircle}>
+                  <Feather name="plus" size={19} color="#FFFFFF" />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Banner Khôi phục ví khi thiết bị mới phát hiện (nếu có) */}
         {isNeedsRecovery && (
           <TouchableOpacity
             style={styles.recoveryCard}
@@ -613,190 +736,25 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="shield-key" size={24} color="#D97706" />
             </View>
             <View style={styles.recoveryTextCol}>
-              <Text style={styles.recoveryTitle}>{t('home.newDeviceTitle', { defaultValue: 'Thiết bị mới phát hiện ⚠️' })}</Text>
+              <Text style={styles.recoveryTitle}>
+                {t('home.newDeviceTitle', { defaultValue: 'Thiết bị mới phát hiện ⚠️' })}
+              </Text>
               <Text style={styles.recoveryDesc}>
                 {t('home.newDeviceDesc', { defaultValue: 'Cần khôi phục ví bảo mật để tiếp tục giao dịch.' })}
               </Text>
             </View>
             <View style={styles.recoveryBtn}>
-              <Text style={styles.recoveryBtnText}>{t('home.recover', { defaultValue: 'Khôi phục' })}</Text>
+              <Text style={styles.recoveryBtnText}>
+                {t('home.recover', { defaultValue: 'Khôi phục' })}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
-
-        {/* 3. Next Steps (Onboarding Component Phong Cách Neo-brutalism) */}
-        <NeoCard
-          backgroundColor="#FFFFFF"
-          borderColor="#000000"
-          shadowColor="#000000"
-          borderRadius={22}
-          borderWidth={2.5}
-          offset={5}
-          containerStyle={styles.sectionNeoCardContainer}
-          style={styles.nextStepsCardInner}
-        >
-          <View style={styles.nextStepsHeader}>
-            <Text style={styles.nextStepsTitle}>
-              {t('home.nextSteps', { defaultValue: 'Next steps' })}
-            </Text>
-            <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>
-                {t('home.stepCount', { current: 1, total: 2, defaultValue: '1 of 2' })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Progress Bar Viền Đen Bao Quanh */}
-          <View style={styles.progressBarTrack}>
-            <View style={styles.progressBarFill} />
-          </View>
-
-          {/* Task 1: Connect Account (Đã Hoàn Thành) */}
-          <View style={styles.taskItemRow}>
-            <View style={styles.taskIconSuccess}>
-              <Ionicons name="checkmark-sharp" size={13} color="#FFFFFF" />
-            </View>
-            <TouchableOpacity
-              style={styles.taskTextCol}
-              onPress={() => {
-                if (linkedPhoneState) {
-                  setShowPhoneManagementModal(true);
-                } else {
-                  setShowPhoneLinkingModal(true);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.taskTitleCompleted}>
-                {t('home.connectAccount', { defaultValue: 'Connect Account' })}
-              </Text>
-              <Text style={styles.taskSubCompleted} numberOfLines={1}>
-                {linkedPhoneState
-                  ? `Linked: ${getMaskedPhone(linkedPhoneState)} (Tap to manage)`
-                  : t('home.signedInTapToAddPhone', {
-                      defaultValue: 'Secured login (Tap to add phone)',
-                    })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Task 2: Make a deposit (Chưa Nạp - Nút Receive Xanh Ngọc) */}
-          <View style={[styles.taskItemRow, { marginTop: 14 }]}>
-            <View style={styles.taskIconPending} />
-            <View style={styles.taskTextCol}>
-              <Text style={styles.taskTitlePending}>
-                {t('home.makeDeposit', { defaultValue: 'Make a deposit' })}
-              </Text>
-              <Text style={styles.taskSubPending}>
-                {t('home.readyHint', { defaultValue: "When you're ready" })}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.receiveActionBtn}
-              onPress={() => setShowDepositModal(true)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.receiveActionBtnShadow} />
-              <View style={styles.receiveActionBtnBody}>
-                <Text style={styles.receiveActionBtnText}>
-                  {t('home.receive', { defaultValue: 'Receive' })}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </NeoCard>
-
-        {/* 4. Recent Activities Component Phong Cách Neo-brutalism */}
-        <NeoCard
-          backgroundColor="#FFFFFF"
-          borderColor="#000000"
-          shadowColor="#000000"
-          borderRadius={22}
-          borderWidth={2.5}
-          offset={5}
-          containerStyle={styles.sectionNeoCardContainer}
-          style={styles.activityCardInner}
-        >
-          <View style={styles.activityHeaderRow}>
-            <Text style={styles.activityTitle}>
-              {t('home.activities', { defaultValue: 'Recent Activities' })}
-            </Text>
-            <TouchableOpacity
-              style={styles.viewMorePillBtn}
-              onPress={() => router.push('/history')}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.viewMoreText}>
-                {t('home.seeAll', { defaultValue: 'See all >' })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {activities.length === 0 ? (
-            <View style={styles.emptyActivityBox}>
-              <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
-              <Text style={styles.emptyActivityText}>
-                {t('home.noActivities', { defaultValue: 'Chưa có giao dịch gần đây' })}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.activityList}>
-              {activities.slice(0, 4).map((item) => {
-                const isReceived = item.type === 'received' || item.isPositive;
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.activityItem}
-                    onPress={() => router.push('/history')}
-                    activeOpacity={0.75}
-                  >
-                    <View
-                      style={[
-                        styles.neoActivityIconCircle,
-                        isReceived ? styles.iconReceivedBg : styles.iconSentBg,
-                      ]}
-                    >
-                      {item.type === 'reward' ? (
-                        <MaterialCommunityIcons
-                          name="gift-outline"
-                          size={18}
-                          color={isReceived ? '#FFFFFF' : '#000000'}
-                        />
-                      ) : isReceived ? (
-                        <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
-                      ) : (
-                        <Feather name="arrow-up-right" size={18} color="#000000" />
-                      )}
-                    </View>
-                    <View style={styles.activityDetailCol}>
-                      <Text style={styles.activityItemTitle}>
-                        {getActivityTitle(item, t)}
-                      </Text>
-                      <Text style={styles.activityItemTime}>
-                        {formatLocalizedRelativeTime(item.blockTime, t)}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.activityItemAmount,
-                        isReceived ? styles.amountPositive : styles.amountNegative,
-                      ]}
-                    >
-                      {item.amount.startsWith('+') || item.amount.startsWith('-')
-                        ? item.amount
-                        : `${isReceived ? '+' : '-'} ${item.amount}`}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </NeoCard>
-
-        <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Modals */}
+      {/* ========================================================================= */}
+      {/* MODALS & POPUPS */}
+      {/* ========================================================================= */}
       <DepositModal
         visible={showDepositModal}
         onClose={() => setShowDepositModal(false)}
@@ -860,7 +818,6 @@ export default function HomeScreen() {
         onSuccess={() => setShowRecoveryModal(false)}
       />
 
-      {/* Modal Thêm Ví Tiền Tệ Phụ (Add Sub-Wallet) */}
       <AddSubWalletModal
         visible={showAddSubWalletModal}
         onClose={() => setShowAddSubWalletModal(false)}
@@ -870,7 +827,6 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Modal Quy Đổi Tiền Tệ (Neo-brutalism Swap Modal) */}
       <NeoSwapModal
         visible={showSwapModal}
         onClose={() => {
@@ -888,461 +844,257 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#F5EBE1', // Nền Beige sáng phong cách Neo-brutalism
+    backgroundColor: '#EFE9DF', // Nền Kem sáng chuẩn Neo-brutalism (#EFE9DF)
   },
   scrollContent: {
-    paddingBottom: 110,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 12,
-  },
-  neoProfileBtn: {
-    position: 'relative',
-    width: 44,
-    height: 44,
-  },
-  neoProfileShadow: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#000000',
-  },
-  neoProfileBody: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  neoQrBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingBottom: 110, // Chừa đệm tránh bị che bởi Floating Bottom Tab Bar
+    gap: 20, // Khoảng cách liên kết chặt chẽ giữa các khối, loại bỏ cảm giác rời rạc
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#EFE9DF',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#059669',
-    fontWeight: '600',
+    color: '#000000',
+    fontWeight: '700',
   },
-  welcomeBadge: {
+
+  // 1. Header Styles
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1F4E0',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 24,
+    justifyContent: 'space-between',
   },
-  welcomeLogoCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#00A859',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
+  profileBtnWrapper: {
+    position: 'relative',
+    width: 46,
+    height: 46,
   },
-  welcomeLogoText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+  profileBtnShadow: {
+    position: 'absolute',
+    top: 3.5,
+    left: 3.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#000000',
   },
-  welcomeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#064E3B',
-  },
-  qrScannerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  profileBtnBody: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    overflow: 'hidden',
   },
-  balanceCardWrapper: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  balanceCard: {
+  avatarImg: {
     width: '100%',
-    backgroundColor: '#00A859',
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    elevation: 6,
+    height: '100%',
   },
-  cardTopRow: {
+  qrCodeBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // 2. Greeting Section Styles
+  greetingContainer: {
+    marginTop: -4,
+  },
+  greetingTitle: {
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#000000',
+    lineHeight: 32,
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0, 0, 0, 0.12)',
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
+  },
+  greetingWelcome: {
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#000000',
+    lineHeight: 34,
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0, 0, 0, 0.12)',
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
+  },
+  greetingSubtitle: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#555555',
+    marginTop: 4,
+  },
+
+
+
+  // 4. Secondary Statistic Cards Styles (Kéo giãn toàn bộ width: 100%, Padding 22, minHeight 180 để loại bỏ deadspace)
+  statsRow: {
+    flexDirection: 'row',
+    gap: 14,
+    width: '100%',
+    marginBottom: 6,
+  },
+  statCardWrapper: {
+    flex: 1,
+    position: 'relative',
+    minHeight: 180,
+  },
+  statCardShadow: {
+    position: 'absolute',
+    top: 4.5,
+    left: 4.5,
+    right: -4.5,
+    bottom: -4.5,
+    backgroundColor: '#000000',
+    borderRadius: 24,
+  },
+  statCardBody: {
+    borderRadius: 22,
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    justifyContent: 'space-between',
+    minHeight: 180,
+  },
+  statCardTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: -0.2,
+  },
+  statCardSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666666',
+    marginTop: 4,
+  },
+  statCardAmount: {
+    fontSize: 25,
+    fontWeight: '900',
+    color: '#000000',
+    marginTop: 8,
+    letterSpacing: -0.4,
+  },
+  expensesBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 18,
   },
-  currencyLabel: {
-    color: '#D1FAE5',
-    fontSize: 14,
-    fontWeight: '600',
+  percentageBadgeRed: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#000000',
   },
-  toggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  toggleOptionText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  toggleOptionActive: {
+  percentageBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '900',
     color: '#FFFFFF',
   },
-  toggleOptionInactive: {
-    color: '#A7F3D0',
-  },
-  customSwitch: {
-    width: 38,
-    height: 22,
-    borderRadius: 12,
-    backgroundColor: '#00753E',
-    padding: 2,
-    justifyContent: 'center',
-    marginHorizontal: 2,
-  },
-  customSwitchActive: {
-    backgroundColor: '#006133',
-  },
-  customSwitchInactive: {
-    backgroundColor: '#00753E',
-  },
-  switchThumb: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-  },
-  switchThumbLeft: {
-    alignSelf: 'flex-start',
-  },
-  switchThumbRight: {
-    alignSelf: 'flex-end',
-  },
-  balanceDisplayRow: {
-    marginVertical: 14,
-  },
-  mainBalanceText: {
-    fontSize: 38,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  cardActionsRow: {
+  recentBottomRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 18,
   },
-  cardActionBtn: {
-    flex: 1,
+  avatarGroupRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.16)',
-    paddingVertical: 12,
-    borderRadius: 20,
-    gap: 8,
   },
-  actionIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardActionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+  avatarLetter: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#000000',
   },
-  // Recovery Alert Card
+  plusBtnCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#A855F7',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // 5. Recovery Card Styles
   recoveryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
     borderRadius: 20,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: '#FCD34D',
-    marginBottom: 16,
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: '#000000',
+    width: '100%',
   },
   recoveryIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FDE68A',
+    borderWidth: 1.5,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   recoveryTextCol: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 6,
   },
   recoveryTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#92400E',
     marginBottom: 2,
   },
   recoveryDesc: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#B45309',
-    lineHeight: 16,
+    lineHeight: 14,
   },
   recoveryBtn: {
     backgroundColor: '#D97706',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  recoveryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  // Neo-brutalism Next Steps & Recent Activities Styles
-  sectionNeoCardContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  nextStepsCardInner: {
-    padding: 18,
-  },
-  nextStepsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  nextStepsTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  stepBadge: {
-    backgroundColor: '#00A389',
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
+    paddingVertical: 6,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#000000',
   },
-  stepBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '800',
+  recoveryBtnText: {
     color: '#FFFFFF',
-  },
-  progressBarTrack: {
-    height: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
-    borderWidth: 1.8,
-    borderColor: '#000000',
-    marginVertical: 14,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    width: '50%',
-    height: '100%',
-    backgroundColor: '#00A389',
-  },
-  taskItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskIconSuccess: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#00A389',
-    borderWidth: 2,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  taskIconPending: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    marginRight: 12,
-  },
-  taskTextCol: {
-    flex: 1,
-  },
-  taskTitleCompleted: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  taskSubCompleted: {
     fontSize: 11.5,
-    color: '#94A3B8',
-    marginTop: 1,
-  },
-  taskTitlePending: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  taskSubPending: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-    marginTop: 1,
-  },
-  receiveActionBtn: {
-    position: 'relative',
-    width: 88,
-    height: 34,
-  },
-  receiveActionBtnShadow: {
-    position: 'absolute',
-    top: 2.5,
-    left: 2.5,
-    width: 88,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#000000',
-  },
-  receiveActionBtnBody: {
-    width: 88,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#00A389',
-    borderWidth: 2,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  receiveActionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
     fontWeight: '800',
   },
-  activityCardInner: {
-    padding: 18,
-  },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  activityTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#450A0A',
-  },
-  viewMorePillBtn: {
-    backgroundColor: '#FFD6E8',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1.8,
-    borderColor: '#000000',
-  },
-  viewMoreText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#9D174D',
-  },
-  activityList: {
-    gap: 14,
-  },
-  emptyActivityBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  emptyActivityText: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 8,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  neoActivityIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 2,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  iconSentBg: {
-    backgroundColor: '#FFD6E8',
-  },
-  iconReceivedBg: {
-    backgroundColor: '#DC2626',
-  },
-  activityDetailCol: {
-    flex: 1,
-  },
-  activityItemTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  activityItemTime: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  activityItemAmount: {
-    fontSize: 14.5,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  amountPositive: {
-    color: '#111827',
-  },
-  amountNegative: {
-    color: '#111827',
-  },
+
+  // 6. Camera Scanner Styles
   cameraContainer: {
     ...StyleSheet.absoluteFill,
     zIndex: 9999,
@@ -1355,26 +1107,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
-  scanBoundingBox: {
-    width: 250,
-    height: 250,
-    borderRadius: 24,
-    borderWidth: 3,
-    borderColor: '#00A859',
-    backgroundColor: 'transparent',
-  },
-  scanHintText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 24,
-  },
   cancelCameraBtn: {
     marginTop: 36,
     backgroundColor: '#EF4444',
     paddingHorizontal: 26,
     paddingVertical: 12,
     borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   cancelCameraBtnText: {
     color: '#FFFFFF',

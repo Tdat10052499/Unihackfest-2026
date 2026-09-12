@@ -380,15 +380,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 7,
     borderRadius: 999,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#000000',
     gap: 8,
     // Solid offset shadow phong cách Neo-brutalism
     shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 6,
+    elevation: 8,
   },
   tabItemBase: {
     flexDirection: 'row',

@@ -3,6 +3,7 @@ import '../services/i18n';
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { sepolia, mainnet } from 'viem/chains';
@@ -42,49 +43,51 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SafeAreaProvider style={styles.root}>
-      <View style={styles.root}>
-        <PrivyProvider
-          appId={process.env.EXPO_PUBLIC_PRIVY_APP_ID || PRIVY_APP_ID}
-          clientId={process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || PRIVY_CLIENT_ID}
-          supportedChains={PRIVY_SUPPORTED_CHAINS as any}
-          config={PRIVY_CONFIG}
-        >
-          <MwaProvider>
-            <WalletProvider
-              defaultCluster={
-                process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet-beta' ||
-                process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet'
-                  ? 'mainnet-beta'
-                  : 'devnet'
-              }
-            >
-              <GlobalPresenceProvider>
-                <View style={styles.root}>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-                    <Stack.Screen name="home" options={{ headerShown: false }} />
-                    <Stack.Screen name="history" options={{ headerShown: false }} />
-                    <Stack.Screen name="settings" options={{ headerShown: false }} />
-                    <Stack.Screen name="developer-mode" options={{ headerShown: false }} />
-                    <Stack.Screen name="login" options={{ headerShown: false }} />
-                    <Stack.Screen name="shake-room" options={{ headerShown: false }} />
-                    <Stack.Screen name="send" options={{ headerShown: false }} />
-                    <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
-                    <Stack.Screen name="onConnect" options={{ headerShown: false }} />
-                    <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
-                    <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
-                    <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-                  </Stack>
-                </View>
-              </GlobalPresenceProvider>
-            </WalletProvider>
-          </MwaProvider>
-        </PrivyProvider>
-      </View>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider style={styles.root}>
+        <View style={styles.root}>
+          <PrivyProvider
+            appId={process.env.EXPO_PUBLIC_PRIVY_APP_ID || PRIVY_APP_ID}
+            clientId={process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || PRIVY_CLIENT_ID}
+            supportedChains={PRIVY_SUPPORTED_CHAINS as any}
+            config={PRIVY_CONFIG}
+          >
+            <MwaProvider>
+              <WalletProvider
+                defaultCluster={
+                  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet-beta' ||
+                  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet'
+                    ? 'mainnet-beta'
+                    : 'devnet'
+                }
+              >
+                <GlobalPresenceProvider>
+                  <View style={styles.root}>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+                      <Stack.Screen name="home" options={{ headerShown: false }} />
+                      <Stack.Screen name="history" options={{ headerShown: false }} />
+                      <Stack.Screen name="settings" options={{ headerShown: false }} />
+                      <Stack.Screen name="developer-mode" options={{ headerShown: false }} />
+                      <Stack.Screen name="login" options={{ headerShown: false }} />
+                      <Stack.Screen name="shake-room" options={{ headerShown: false }} />
+                      <Stack.Screen name="send" options={{ headerShown: false }} />
+                      <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
+                      <Stack.Screen name="onConnect" options={{ headerShown: false }} />
+                      <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
+                      <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
+                      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+                    </Stack>
+                  </View>
+                </GlobalPresenceProvider>
+              </WalletProvider>
+            </MwaProvider>
+          </PrivyProvider>
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

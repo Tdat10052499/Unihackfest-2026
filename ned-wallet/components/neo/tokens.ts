@@ -5,8 +5,11 @@
 
 export const NEO_COLORS = {
   light: {
-    background: '#F5EBE1', // Nền chính Beige sáng (#EEDFCC / #F5EBE1)
-    cardPurple: '#9E77DC', // Màu tím thẻ ví chính
+    background: '#EFE9DF', // Nền chính Kem sáng (#EFE9DF / #F5F0E6)
+    cardCyan: '#00E5FF', // Màu xanh ngọc thẻ ví chính (Header Card)
+    cardExpenses: '#E0F7FA', // Màu xanh lam nhạt thẻ Expenses
+    cardRecent: '#FAF5EE', // Màu kem nhạt thẻ Recent Transaction
+    cardPurple: '#9E77DC', // Màu tím thẻ ví phụ
     cardPurpleDark: '#855CC7',
     cardWhite: '#FFFFFF', // Nền thẻ trắng
     cardLavender: '#F3EBFF', // Nền thẻ tím nhạt (Shake & Split)
@@ -16,16 +19,16 @@ export const NEO_COLORS = {
     pinkPastel: '#FFD6E8', // Hồng nhạt (See all button & Sent icon)
     pinkText: '#9D174D', // Chữ hồng đậm (See all)
     crimson: '#DC2626', // Đỏ thẫm (Received icon)
-    buttonYellow: '#FFF1A6', // Màu vàng nút Deposit
-    buttonCyan: '#D8FAF7', // Màu xanh mint nút Withdraw
-    tabBarBg: '#E3F7F7', // Nền thanh tab bar (Light Mode)
-    tabActiveBg: '#111827', // Nền tab active (Viên thuốc đen)
-    tabActiveText: '#FFFFFF', // Chữ/Icon tab active
-    tabInactiveCircle: '#D8BCFA', // Nền tròn tab inactive (Tím nhạt)
-    tabInactiveIcon: '#111827', // Icon nét viền đen
+    buttonYellow: '#FFF3A8', // Màu vàng nhạt nút Deposit
+    buttonCyan: '#CCFBF1', // Màu xanh mint nhạt nút Withdraw
+    tabBarBg: '#FFFFFF', // Nền trắng thanh tab bar nổi
+    tabActiveBg: '#000000', // Nền tab active (Viên thuốc đen)
+    tabActiveText: '#FFFFFF', // Chữ/Icon tab active màu trắng
+    tabInactiveCircle: '#DDD6FE', // Nền tròn tab inactive (Tím nhạt)
+    tabInactiveIcon: '#000000', // Icon nét viền đen
     border: '#000000', // Viền đen đặc trưng
     shadow: '#000000', // Bóng đổ đen đặc
-    textDark: '#111827', // Chữ tối
+    textDark: '#000000', // Chữ tối đen
     textMuted: '#64748B', // Chữ phụ mờ
     textWhite: '#FFFFFF', // Chữ sáng
     textSubtlePurple: '#E2D4FD', // Chữ phụ trên nền tím
