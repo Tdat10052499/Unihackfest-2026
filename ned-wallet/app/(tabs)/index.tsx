@@ -703,7 +703,7 @@ export default function HomeScreen() {
             style={styles.statCardWrapper}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/history');
+              router.push('/(tabs)/overview');
             }}
             activeOpacity={0.88}
           >

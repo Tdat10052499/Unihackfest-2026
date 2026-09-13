@@ -24,7 +24,7 @@ import Animated, {
 import { useTranslation } from '../../services/i18n';
 import { NEO_COLORS } from '../../components/neo/tokens';
 
-const TAB_ROUTES = ['index', 'card', 'transfer-hub', 'miniapps'];
+const TAB_ROUTES = ['index', 'overview', 'transfer-hub', 'miniapps'];
 
 // Cấu hình vật lý cơ học dứt khoát và nhanh (Snappy & Mechanical Spring)
 const SPRING_CONFIG = {
@@ -130,10 +130,10 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
       );
     }
 
-    if (route.name === 'card') {
+    if (route.name === 'overview' || route.name === 'card') {
       return (
         <Ionicons
-          name={isFocused ? 'card' : 'card-outline'}
+          name={isFocused ? 'stats-chart' : 'stats-chart-outline'}
           size={iconSize}
           color={iconColor}
         />
@@ -254,17 +254,6 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
 
-            // Đánh chặn tab Card đang phát triển
-            if (route.name === 'card') {
-              Alert.alert(
-                t('tabs.cardInDev', { defaultValue: 'Đang phát triển' }),
-                t('tabs.cardInDevMsg', {
-                  defaultValue: 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!',
-                })
-              );
-              return;
-            }
-
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -285,7 +274,7 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
 
           const getTabLabel = () => {
             if (route.name === 'index') return 'Home';
-            if (route.name === 'card') return t('tabs.card', { defaultValue: 'Thẻ' });
+            if (route.name === 'overview' || route.name === 'card') return 'Overview';
             if (route.name === 'transfer-hub') return t('tabs.transfer', { defaultValue: 'Chuyển' });
             if (route.name === 'miniapps') return t('tabs.miniapps', { defaultValue: 'Tiện ích' });
             return options.title || 'Tab';
@@ -329,21 +318,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="card"
+        name="overview"
         options={{
-          title: t('tabs.card', { defaultValue: 'Thẻ' }),
-          tabBarLabel: t('tabs.card', { defaultValue: 'Thẻ' }),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            Alert.alert(
-              t('tabs.cardInDev', { defaultValue: 'Đang phát triển' }),
-              t('tabs.cardInDevMsg', {
-                defaultValue: 'Tính năng quản lý Thẻ N.E.D sẽ ra mắt trong bản cập nhật tới. Cùng đón chờ nhé!',
-              })
-            );
-          },
+          title: 'Overview',
+          tabBarLabel: 'Overview',
         }}
       />
       <Tabs.Screen
