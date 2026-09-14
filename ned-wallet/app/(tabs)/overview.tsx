@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,54 +15,19 @@ import Animated, {
   interpolate 
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, G, Text as SvgText } from 'react-native-svg';
 import { Ionicons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useUserStore } from '../../stores/useUserStore';
+import { resolveActiveSolanaAddress } from '../../services/identity';
+import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
+import { useExternalWallet } from '../../src/providers/WalletProvider';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// 1. Tổng quan Dòng tiền (Hero Stats)
-const cashFlowStats = {
-  totalBalance: 12540.50, // Tổng tài sản định giá
-  metrics: [
-    { id: 'available', label: 'Available', amount: 8182.00, color: '#00E5FF' }, // Cyan - Tiền sẵn sàng thanh toán trong Main Wallet
-    { id: 'savings', label: 'Savings/Vault', amount: 4358.50, color: '#CDB4DB' }, // Tím - Tiền trong các Sub-wallets
-    { id: 'earned', label: 'Earned (In)', amount: 2450.00, color: '#CCFF00' }, // Vàng chanh - Nhận tiền, Host thu tiền, Nhặt Lì xì
-    { id: 'spent', label: 'Spent (Out)', amount: -1200.00, color: '#FF6B6B' } // Đỏ - Chuyển đi, Guest trả tiền, Thả Lì xì
-  ]
-};
-
-// 1.5. Danh sách các thẻ chi tiêu Stablecoin
-const walletCards = [
-  { id: 'usdt', name: 'USDT', network: 'Solana', balance: 8182.00, color: '#10B981', icon: 'dollar-sign' },
-  { id: 'eurc', name: 'EURC', network: 'Solana', balance: 4358.50, color: '#3B82F6', icon: 'euro-sign' },
-  { id: 'usdc', name: 'USDC', network: 'Solana', balance: 0.00, color: '#8B5CF6', icon: 'coins' },
-];
-
-// 2. Phân bổ Giao dịch theo Tính năng (Category Grid)
-const categoryData = [
-  { id: 'c1', title: 'Transfers', subtitle: 'Send & Receive', items: 24, amount: 850.00, icon: 'paper-plane', bgColor: '#FFF' },
-  { id: 'c2', title: 'Shake to Split', subtitle: 'Group Bills', items: 8, amount: -320.00, icon: 'users', bgColor: '#FFF' },
-  { id: 'c3', title: 'Social & Fun', subtitle: 'RedPackets & Toss', items: 15, amount: 120.00, icon: 'gift', bgColor: '#FFF' },
-  { id: 'c4', title: 'Gateway', subtitle: 'Deposit & Withdraw', items: 3, amount: 1500.00, icon: 'building', bgColor: '#FFF' }
-];
-
-// 3. Biểu đồ Xu hướng (Trend Data)
-const trendData = [
-  { month: 'Jan', earned: 3200, spent: 1500 },
-  { month: 'Feb', earned: 4100, spent: 2100 },
-  { month: 'Mar', earned: 2450, spent: 1200 },
-];
-
-// 4. Bảng xếp hạng Top Drainers
-const topDrainers = [
-  { id: 'd1', title: 'Social Pay', amount: -450.00 },
-  { id: 'd2', title: 'Weekend Shake', amount: -320.00 },
-  { id: 'd3', title: 'Gas Fees (Solana)', amount: -85.50 },
-];
-
-const DropdownItem = ({ card, index, isLast, onSelect, isOpen }: any) => {
+const DropdownItem = ({ card, index, isLast, onSelect, isOpen, isLoading }: any) => {
   const itemStyle = useAnimatedStyle(() => {
     const delay = index * 45;
     return {
@@ -88,7 +53,7 @@ const DropdownItem = ({ card, index, isLast, onSelect, isOpen }: any) => {
           <Text style={[styles.walletCardName, { color: '#000', fontSize: 16 }]}>{card.name}</Text>
         </View>
         <Text style={[styles.walletCardName, { color: '#000', fontWeight: '900' }]}>
-          {card.id === 'eurc' ? '€' : '$'}{card.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}
+          {isLoading ? '...' : `${card.id === 'eurc' ? '€' : '$'}${card.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
         </Text>
       </Animated.View>
     </TouchableOpacity>
@@ -98,8 +63,136 @@ const DropdownItem = ({ card, index, isLast, onSelect, isOpen }: any) => {
 export default function AnalyticsScreen() {
   const router = useRouter();
   
-  const [selectedWalletId, setSelectedWalletId] = useState('usdt');
-  const selectedWallet = walletCards.find(c => c.id === selectedWalletId) || walletCards[0];
+  let privy: any = null;
+  try { privy = usePrivy(); } catch (e) {}
+  const user = privy?.user || null;
+
+  let solanaWalletState: any = null;
+  try { solanaWalletState = useEmbeddedSolanaWallet(); } catch (e) {}
+  const externalWallet = useExternalWallet();
+
+  const getSolanaAddress = (): string | null => {
+    return resolveActiveSolanaAddress(
+      user,
+      externalWallet,
+      solanaWalletState,
+      useUserStore.getState().walletAddress
+    );
+  };
+  const solanaAddress = getSolanaAddress();
+
+  const [transactions, setTransactions] = useState<ActivityItem[]>([]);
+  const [solBalance, setSolBalance] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      const loadData = async () => {
+        if (!solanaAddress) {
+          if (isMounted) setIsLoading(false);
+          return;
+        }
+        setIsLoading(true);
+        try {
+          const [txData, bal] = await Promise.all([
+            fetchOnChainHistory(solanaAddress),
+            getSolanaBalance(solanaAddress)
+          ]);
+          if (isMounted) {
+            setTransactions(txData || []);
+            setSolBalance(bal || 0);
+          }
+        } catch (error) {
+          console.error("Error fetching overview data", error);
+        } finally {
+          if (isMounted) setIsLoading(false);
+        }
+      };
+      loadData();
+      return () => { isMounted = false; };
+    }, [solanaAddress])
+  );
+
+  const walletCards = useMemo(() => [
+    { id: 'sol', name: 'SOL', network: 'Solana', balance: solBalance, color: '#9945FF', icon: 'wallet' },
+    { id: 'usdc', name: 'USDC', network: 'Solana', balance: 0.00, color: '#8B5CF6', icon: 'coins' },
+  ], [solBalance]);
+
+  const cashFlowStats = useMemo(() => {
+    let earned = 0;
+    let spent = 0;
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    transactions.forEach(tx => {
+      if (tx.blockTime) {
+         const date = new Date(tx.blockTime * 1000);
+         if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+           const amt = parseFloat(tx.amount) || 0;
+           if (tx.isPositive) {
+             earned += amt;
+           } else {
+             spent += amt;
+           }
+         }
+      }
+    });
+
+    return {
+      totalBalance: solBalance,
+      metrics: [
+        { id: 'available', label: 'Available', amount: solBalance, color: '#00E5FF' },
+        { id: 'savings', label: 'Savings/Vault', amount: 0, color: '#CDB4DB' },
+        { id: 'earned', label: 'Earned (In)', amount: earned, color: '#CCFF00' },
+        { id: 'spent', label: 'Spent (Out)', amount: spent, color: '#FF6B6B' }
+      ]
+    };
+  }, [transactions, solBalance]);
+
+  const trendData = useMemo(() => {
+     const map = new Map<string, { month: string, earned: number, spent: number, ts: number }>();
+     transactions.forEach(tx => {
+        if (!tx.blockTime) return;
+        const d = new Date(tx.blockTime * 1000);
+        const month = d.toLocaleString('en-US', { month: 'short' });
+        const year = d.getFullYear();
+        const key = `${month} ${year}`;
+        
+        if (!map.has(key)) {
+           map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
+        }
+        const amt = parseFloat(tx.amount) || 0;
+        if (tx.isPositive) {
+           map.get(key)!.earned += amt;
+        } else {
+           map.get(key)!.spent += amt;
+        }
+     });
+     const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
+     const last3 = sorted.slice(-3);
+     if (last3.length === 0) {
+       return [
+         { month: 'Jan', earned: 0, spent: 0 },
+         { month: 'Feb', earned: 0, spent: 0 },
+         { month: 'Mar', earned: 0, spent: 0 },
+       ];
+     }
+     return last3;
+  }, [transactions]);
+
+  const topDrainers = useMemo(() => {
+     const sent = transactions.filter(tx => !tx.isPositive && parseFloat(tx.amount) > 0);
+     sent.sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+     return sent.slice(0, 3).map((tx, idx) => ({
+        id: tx.id || `d${idx}`,
+        title: tx.title || 'Unknown',
+        amount: -parseFloat(tx.amount)
+     }));
+  }, [transactions]);
+
+  const [selectedWalletId, setSelectedWalletId] = useState('sol');
+  const selectedWallet = walletCards.find((c: any) => c.id === selectedWalletId) || walletCards[0];
 
   const isOpen = useSharedValue(0);
 
@@ -177,9 +270,9 @@ export default function AnalyticsScreen() {
   };
 
   // Tính toán góc cho Donut Chart dựa trên giá trị tuyệt đối
-  const totalAmountForChart = cashFlowStats.metrics.reduce((acc, curr) => acc + Math.abs(curr.amount), 0);
+  const totalAmountForChart = cashFlowStats.metrics.reduce((acc: number, curr: any) => acc + Math.abs(curr.amount), 0);
   let currentAngle = 0;
-  const chartSegments = cashFlowStats.metrics.map((metric) => {
+  const chartSegments = cashFlowStats.metrics.map((metric: any) => {
     const segmentAngle = (Math.abs(metric.amount) / totalAmountForChart) * 360;
     const startAngle = currentAngle;
     const endAngle = currentAngle + segmentAngle;
@@ -194,7 +287,7 @@ export default function AnalyticsScreen() {
 
   // Tính toán thanh Budget
   const spendingLimit = 2000;
-  const absoluteSpent = Math.abs(cashFlowStats.metrics.find(m => m.id === 'spent')?.amount || 0);
+  const absoluteSpent = Math.abs(cashFlowStats.metrics.find((m: any) => m.id === 'spent')?.amount || 0);
   const budgetPercentage = Math.min((absoluteSpent / spendingLimit) * 100, 100);
 
   return (
@@ -241,27 +334,30 @@ export default function AnalyticsScreen() {
               </View>
               <View style={styles.walletCardBottom}>
                 <Text style={styles.walletCardBalance}>
-                  {selectedWallet.id === 'eurc' ? '€' : '$'}{selectedWallet.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                  {isLoading ? '...' : `${selectedWallet.id === 'eurc' ? '€' : '$'}${selectedWallet.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                 </Text>
               </View>
             </Animated.View>
           </TouchableOpacity>
 
-          <Animated.View style={[styles.dropdownMenuWrapper, containerStyle]}>
-            <View style={styles.dropdownMenuShadow} />
-            <View style={styles.dropdownMenuBody}>
-              {walletCards.map((card, index) => (
-                <DropdownItem 
-                  key={card.id} 
-                  card={card} 
-                  index={index} 
-                  isLast={index === walletCards.length - 1} 
-                  onSelect={selectWallet} 
-                  isOpen={isOpen} 
-                />
-              ))}
-            </View>
-          </Animated.View>
+          <View style={styles.dropdownMenuWrapper}>
+            <Animated.View style={[styles.dropdownMenuShadow, containerStyle]} />
+            <Animated.View style={[styles.dropdownMenuBody, containerStyle]}>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+                {walletCards.map((card: any, index: number) => (
+                  <DropdownItem 
+                    key={card.id} 
+                    card={card} 
+                    index={index} 
+                    isLast={index === walletCards.length - 1} 
+                    onSelect={selectWallet} 
+                    isOpen={isOpen} 
+                    isLoading={isLoading}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          </View>
         </View>
 
         {/* 3. ANALYTICS CARD */}
@@ -278,7 +374,7 @@ export default function AnalyticsScreen() {
             {/* NEW: Total Balance Header inside the card */}
             <View style={styles.analyticsTotalBalanceContainer}>
               <Text style={styles.analyticsTotalBalanceText} adjustsFontSizeToFit={true} numberOfLines={1}>
-                Total Balance: ${cashFlowStats.totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                {isLoading ? 'Loading...' : `Total Balance: $${cashFlowStats.totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
               </Text>
             </View>
 
@@ -288,14 +384,14 @@ export default function AnalyticsScreen() {
                 <Svg width={150} height={150} viewBox="0 0 150 150">
                   <G>
                     {/* Render Segments */}
-                    {chartSegments.map((segment) => (
+                    {chartSegments.map((segment: any) => (
                       <React.Fragment key={`arc-${segment.id}`}>
                         {createArc(segment.startAngle, segment.endAngle, segment.color)}
                       </React.Fragment>
                     ))}
                     
                     {/* Render Separators */}
-                    {chartSegments.map((segment) => (
+                    {chartSegments.map((segment: any) => (
                       <React.Fragment key={`sep-${segment.id}`}>
                         {createSeparator(segment.startAngle)}
                       </React.Fragment>
@@ -315,12 +411,12 @@ export default function AnalyticsScreen() {
 
               {/* Right: Stats Grid */}
               <View style={styles.statsGrid}>
-                {cashFlowStats.metrics.map(metric => (
+                {cashFlowStats.metrics.map((metric: any) => (
                   <View key={metric.id} style={styles.statCell}>
                     <View style={[styles.statDot, { backgroundColor: metric.color }]} />
                     <Text style={styles.statLabel}>{metric.label}</Text>
                     <Text style={styles.statAmount}>
-                      {metric.amount < 0 ? '-' : ''}${Math.abs(metric.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                      {isLoading ? '...' : `${metric.amount < 0 ? '-' : ''}$${Math.abs(metric.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                     </Text>
                   </View>
                 ))}
@@ -346,7 +442,7 @@ export default function AnalyticsScreen() {
           </View>
           
           <Text style={styles.budgetSubText}>
-            Amount: <Text style={styles.budgetBold}>${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / ${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}</Text>
+            Amount: <Text style={styles.budgetBold}>{isLoading ? '...' : `$${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / $${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}`}</Text>
           </Text>
         </View>
 
@@ -385,11 +481,11 @@ export default function AnalyticsScreen() {
 
                 {/* Bars Area (Cột mọc từ đáy) */}
                 <View style={styles.trendBarsArea}>
-                  {trendData.map((data) => {
-                    const maxVal = 5000;
+                  {trendData.map((data: any) => {
+                    const maxVal = Math.max(10, ...trendData.map((d: any) => Math.max(d.earned, d.spent)));
                     // Max height for bars is 150px
-                    const earnedHeight = (data.earned / maxVal) * 150; 
-                    const spentHeight = (data.spent / maxVal) * 150;
+                    const earnedHeight = isLoading ? 0 : (data.earned / maxVal) * 150; 
+                    const spentHeight = isLoading ? 0 : (data.spent / maxVal) * 150;
                     
                     return (
                       <View key={data.month} style={styles.trendColumnGroup}>
@@ -402,12 +498,9 @@ export default function AnalyticsScreen() {
                   })}
                 </View>
                 
-                {/* X-Axis Baseline */}
-                <View style={styles.xAxisBaseline} />
-                
                 {/* Labels Area (Tách biệt hoàn toàn) */}
                 <View style={styles.trendLabelsArea}>
-                  {trendData.map((data) => (
+                  {trendData.map((data: any) => (
                     <View key={`label-${data.month}`} style={styles.monthLabelWrapper}>
                       <Text style={styles.monthLabel}>{data.month}</Text>
                     </View>
@@ -425,7 +518,9 @@ export default function AnalyticsScreen() {
             </View>
             
             <View style={styles.leaderboardList}>
-              {topDrainers.map((item, index) => (
+              {topDrainers.length === 0 && !isLoading ? (
+                <Text style={{ textAlign: 'center', marginVertical: 20, color: '#888' }}>No spending data found.</Text>
+              ) : topDrainers.map((item: any, index: number) => (
                 <View key={item.id} style={styles.drainerCardWrapper}>
                   <View style={styles.drainerCardShadow} />
                   <View style={styles.drainerCardBody}>
@@ -436,7 +531,7 @@ export default function AnalyticsScreen() {
                       <Text style={styles.drainerName}>{item.title}</Text>
                     </View>
                     <Text style={styles.drainerAmount}>
-                      {item.amount < 0 ? '-' : ''}${Math.abs(item.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                      {isLoading ? '...' : `${item.amount < 0 ? '-' : ''}$${Math.abs(item.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                     </Text>
                   </View>
                 </View>
@@ -563,14 +658,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
-    overflow: 'hidden',
   },
   dropdownMenuShadow: {
     position: 'absolute',
     top: 4,
     left: 4,
-    right: -4,
-    bottom: -4,
+    width: '100%',
     backgroundColor: '#000',
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -578,6 +671,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 0,
   },
   dropdownMenuBody: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
     backgroundColor: '#FFF',
     borderWidth: 3,
     borderColor: '#000',
@@ -923,23 +1020,14 @@ const styles = StyleSheet.create({
     borderColor: '#D4D4D4',
     borderStyle: 'dashed',
   },
-  xAxisBaseline: {
-    position: 'absolute',
-    bottom: 28, // height of labels area + margin
-    left: 45 + 8, // start after the y-axis labels
-    right: 0,
-    height: 2,
-    backgroundColor: '#000',
-    zIndex: 2, // baseline rests above the grid but below bars? Or same layer
-  },
   trendBarsArea: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'flex-end',
     marginLeft: 45 + 8, // offset for y-axis labels
-    marginBottom: 28, // sitting exactly on the baseline
-    overflow: 'hidden', // Make sure bars don't spill
+    borderBottomWidth: 2,
+    borderColor: '#000',
     zIndex: 3,
   },
   trendColumnGroup: {

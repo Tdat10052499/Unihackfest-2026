@@ -156,6 +156,14 @@ const inFlightHistoryMap = new Map<string, Promise<ActivityItem[]>>();
 const parsedTxCache = new Map<string, ActivityItem>();
 const inFlightBalanceMap = new Map<string, Promise<number>>();
 const balanceCache = new Map<string, { timestamp: number; balance: number }>();
+const usdcBalanceCache = new Map<string, { timestamp: number; balance: number }>();
+
+export function clearSolanaCache() {
+  addressHistoryCache.clear();
+  parsedTxCache.clear();
+  balanceCache.clear();
+  usdcBalanceCache.clear();
+}
 
 /**
  * Lấy số dư SOL của một địa chỉ trên Solana Devnet với commitment 'confirmed'
@@ -195,7 +203,6 @@ export async function getSolanaBalance(address: string, force: boolean = false):
   return promise;
 }
 
-const usdcBalanceCache = new Map<string, { timestamp: number; balance: number }>();
 const inFlightUsdcMap = new Map<string, Promise<number>>();
 
 /**

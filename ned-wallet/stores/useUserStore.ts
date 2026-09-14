@@ -5,6 +5,7 @@ import {
   upsertUserProfile,
   UserProfile,
 } from '../services/supabase';
+import { clearSolanaCache } from '../services/solana';
 
 const STORAGE_KEYS = {
   USER_HANDLE: '@ned_wallet_user_handle',
@@ -264,6 +265,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   resetUser: () => {
+    clearSolanaCache();
     set({
       username: null,
       walletAddress: null,
