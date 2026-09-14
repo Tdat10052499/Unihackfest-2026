@@ -24,6 +24,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import { resolveActiveSolanaAddress } from '../../services/identity';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
 import { useExternalWallet } from '../../src/providers/WalletProvider';
+import { useWalletCardsStore } from '../../stores/useWalletCardsStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -114,10 +115,29 @@ export default function AnalyticsScreen() {
     }, [solanaAddress])
   );
 
-  const walletCards = useMemo(() => [
-    { id: 'sol', name: 'SOL', network: 'Solana', balance: solBalance, color: '#9945FF', icon: 'wallet' },
-    { id: 'usdc', name: 'USDC', network: 'Solana', balance: 0.00, color: '#8B5CF6', icon: 'coins' },
-  ], [solBalance]);
+  const { walletCards: globalStablecoins } = useWalletCardsStore();
+
+  const walletCards = useMemo(() => {
+    const cards = globalStablecoins.map(coin => ({
+      id: coin.currency.toLowerCase(),
+      name: coin.currency,
+      network: 'Solana',
+      balance: 0.00, // For now hardcode or use a state
+      color: coin.themeColor,
+      icon: 'coins'
+    }));
+
+    cards.push({
+      id: 'sol',
+      name: 'SOL',
+      network: 'Solana',
+      balance: solBalance,
+      color: '#9945FF',
+      icon: 'wallet'
+    });
+
+    return cards;
+  }, [globalStablecoins, solBalance]);
 
   const cashFlowStats = useMemo(() => {
     let earned = 0;
@@ -191,7 +211,7 @@ export default function AnalyticsScreen() {
      }));
   }, [transactions]);
 
-  const [selectedWalletId, setSelectedWalletId] = useState('sol');
+  const [selectedWalletId, setSelectedWalletId] = useState('usdc');
   const selectedWallet = walletCards.find((c: any) => c.id === selectedWalletId) || walletCards[0];
 
   const isOpen = useSharedValue(0);

@@ -64,48 +64,22 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   onCardChange,
   onAddCardPress,
 }) => {
-  // Mặc định 3 thẻ Stablecoin nếu chưa truyền vào (chuẩn thẻ tài chính vật lý)
-  const initialCards: StablecoinCardData[] = cards.length > 0 ? cards : [
-    {
-      id: 'usdc',
-      currency: 'USDC',
-      name: 'US DOLLAR',
-      symbol: '$',
-      themeColor: '#00E5FF', // Cyan / Xanh lam pastel chuẩn Neo-brutalism
-      badgeBg: '#FFFFFF',
-      balanceUsd: '$17.50',
-      balanceFormatted: '$17.50',
-      accountName: 'JON SNOW',
-      maskedWallet: '**** 8421',
-      rateInfo: '1 USDC = $1.00',
-    },
-    {
-      id: 'eurc',
-      currency: 'EURC',
-      name: 'EURO',
-      symbol: '€',
-      themeColor: '#FFD6E8', // Hồng phấn pastel theo yêu cầu
-      badgeBg: '#FFFFFF',
-      balanceUsd: '$16.20',
-      balanceFormatted: '€15.80',
-      accountName: 'JON SNOW',
-      maskedWallet: '**** 8421',
-      rateInfo: '1 EURC = €1.00',
-    },
-    {
-      id: 'pyusd',
-      currency: 'PYUSD',
-      name: 'PAYPAL USD',
-      symbol: '$',
-      themeColor: '#FEF08A', // Vàng nhạt pastel ấm
-      badgeBg: '#FFFFFF',
-      balanceUsd: '$25.00',
-      balanceFormatted: '$25.00',
-      accountName: 'JON SNOW',
-      maskedWallet: '**** 8421',
-      rateInfo: '1 PYUSD = $1.00',
-    },
-  ];
+  // Mặc định 1 thẻ USDC nếu chưa truyền vào (đảm bảo mảng không bao giờ rỗng)
+  const DEFAULT_USDC_CARD: StablecoinCardData = {
+    id: 'usdc_default',
+    currency: 'USDC',
+    name: 'US DOLLAR',
+    symbol: '$',
+    themeColor: '#00E5FF',
+    badgeBg: '#FFFFFF',
+    balanceUsd: '$0.00',
+    balanceFormatted: '$0.00',
+    accountName: 'N.E.D User',
+    maskedWallet: '**** ****',
+    rateInfo: '1 USDC = $1.00',
+  };
+
+  const initialCards: StablecoinCardData[] = cards.length > 0 ? cards : [DEFAULT_USDC_CARD];
 
   // Thứ tự index vật lý của 3 thẻ: cardOrder[0] là Front, cardOrder[1] là Middle, cardOrder[2] là Back
   const [cardOrder, setCardOrder] = useState<number[]>([0, 1, 2]);
@@ -145,15 +119,31 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   const balanceOpacity = useSharedValue(1);
   const balanceTranslateY = useSharedValue(0);
 
+  // Hiệu ứng cảnh báo nảy bật (Bounce Scale) cho toàn bộ Component
+  const bounceScale = useSharedValue(1);
+
+  const triggerErrorFeedback = useCallback(() => {
+    // 1. Rung cảnh báo
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    
+    // 2. Phóng to và thu nhỏ nảy lò xo
+    bounceScale.value = withSequence(
+      withTiming(1.04, { duration: 100 }),
+      withSpring(1, { damping: 12, stiffness: 200 })
+    );
+  }, []);
+
   // Cập nhật khi props `cards` thay đổi
   useEffect(() => {
     if (cards && cards.length > 0) {
       setCardDataList(cards);
+    } else {
+      setCardDataList([DEFAULT_USDC_CARD]);
     }
   }, [cards]);
 
-  const activeFrontCard = cardDataList[cardOrder[0]] || initialCards[0];
-  const nextCard = cardDataList[cardOrder[1]] || cardDataList[cardOrder[0]];
+  const activeFrontCard = cardDataList[cardOrder[0]] || cardDataList[0] || DEFAULT_USDC_CARD;
+  const nextCard = cardDataList[cardOrder[1]] || cardDataList[cardOrder[0]] || DEFAULT_USDC_CARD;
 
   // Mảng controllers tương ứng cho 3 thẻ
   const cardAnimControllers = [
@@ -222,6 +212,12 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   // Kích hoạt chuỗi hoạt ảnh Đổi thẻ (Snappy Realistic Arc Trajectory Swap)
   const handleSwapPress = useCallback(() => {
     if (isAnimating) return;
+    
+    if (cardDataList.length < 2) {
+      triggerErrorFeedback();
+      return;
+    }
+
     setIsAnimating(true);
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -348,6 +344,10 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     opacity: balanceOpacity.value,
   }));
 
+  const animatedBounceStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: bounceScale.value }]
+  }));
+
   const cardAnimStyles = [card0AnimStyle, card1AnimStyle, card2AnimStyle];
 
   // Helper render từng thẻ Stablecoin với bóng đổ cứng đồng bộ (Chuẩn thẻ tài chính vật lý)
@@ -439,7 +439,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   };
 
   return (
-    <View style={styles.outerContainer}>
+    <Animated.View style={[styles.outerContainer, animatedBounceStyle]}>
       {/* 1. Lớp bóng đổ cứng đen bao ngoài toàn bộ cụm Ví */}
       <View style={styles.walletHardShadow} />
 
@@ -567,6 +567,10 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
           <TouchableOpacity
             style={styles.pouchActionBtnWrapper}
             onPress={() => {
+              if (cardDataList.length < 2) {
+                triggerErrorFeedback();
+                return;
+              }
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (onSwapActionPress) {
                 onSwapActionPress();
@@ -582,7 +586,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

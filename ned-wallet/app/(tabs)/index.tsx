@@ -61,6 +61,8 @@ import { NeoSwapModal, StablecoinBalances } from '@/components/neo/NeoSwapModal'
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import { useOnchainBalance } from '@/hooks/useOnchainBalance';
 import { useExternalWallet } from '@/src/providers/WalletProvider';
+import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
+import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -136,17 +138,21 @@ export default function HomeScreen() {
   const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
+  
+  // Wallet Cards Store
+  const { walletCards } = useWalletCardsStore();
+  const [showAddStablecoinModal, setShowAddStablecoinModal] = useState(false);
 
-  // Quản lý Số dư Độc lập cho từng loại Stablecoin (USDC: $100, EURC: €0, PYUSD: $25)
+  // Quản lý Số dư Độc lập cho từng loại Stablecoin
   const [stablecoinBalances, setStablecoinBalances] = useState<StablecoinBalances>({
-    USDC: 100.0,
+    USDC: 0.0, // Khởi tạo $0, sẽ được đồng bộ từ on-chain
     EURC: 0.0,
-    PYUSD: 25.0,
+    PYUSD: 0.0,
   });
   const [activeCardCurrency, setActiveCardCurrency] = useState<string>('USDC');
 
   useEffect(() => {
-    if (onchainUsdcBalance !== undefined && onchainUsdcBalance !== null && onchainUsdcBalance > 0) {
+    if (onchainUsdcBalance !== undefined && onchainUsdcBalance !== null) {
       setStablecoinBalances((prev) => ({
         ...prev,
         USDC: onchainUsdcBalance,
@@ -550,8 +556,8 @@ export default function HomeScreen() {
     return null;
   };
 
-  const displayGreetingName = username || getUserEmailPrefix() || 'Dat';
-  const displayAccountName = username || 'Jon Snow';
+  const displayGreetingName = username ? username.split('.')[0] : 'N.E.D User';
+  const displayAccountName = username || 'N.E.D User';
   const displayMaskedWallet = solanaAddress
     ? `**** ${solanaAddress.slice(-4)}`
     : '**** 0849';
@@ -646,52 +652,37 @@ export default function HomeScreen() {
         {/* 3. VÍ VẬT LÝ CHỨA THẺ STABLECOIN (Physical Wallet Card - Swap Button) */}
         {/* ========================================================================= */}
         <NeoPhysicalWalletCard
-          cards={[
-            {
-              id: 'usdc',
-              currency: 'USDC',
-              name: 'US DOLLAR',
-              symbol: '$',
-              themeColor: '#00E5FF', // Xanh lam pastel/Cyan chuẩn Neo-brutalism
-              badgeBg: '#FFFFFF',
-              balanceUsd: `$${stablecoinBalances.USDC.toFixed(2)}`,
-              balanceFormatted: `$${stablecoinBalances.USDC.toFixed(2)}`,
+          cards={walletCards.map(card => {
+            let balance = 0;
+            let formatted = '$0.00';
+            
+            if (card.currency === 'USDC') {
+               balance = stablecoinBalances.USDC;
+               formatted = `$${balance.toFixed(2)}`;
+            } else if (card.currency === 'EURC') {
+               balance = stablecoinBalances.EURC;
+               formatted = `€${balance.toFixed(2)}`;
+            } else if (card.currency === 'PYUSD') {
+               balance = stablecoinBalances.PYUSD;
+               formatted = `$${balance.toFixed(2)}`;
+            } else if (card.currency === 'USDT') {
+               balance = 0; // Or from a state if we have it
+               formatted = `$0.00`;
+            }
+
+            return {
+              ...card,
+              balanceUsd: formatted,
+              balanceFormatted: formatted,
               accountName: displayAccountName,
               maskedWallet: displayMaskedWallet,
-              rateInfo: '1 USDC = $1.00',
-            },
-            {
-              id: 'eurc',
-              currency: 'EURC',
-              name: 'EURO',
-              symbol: '€',
-              themeColor: '#FFD6E8', // Hồng phấn pastel theo yêu cầu
-              badgeBg: '#FFFFFF',
-              balanceUsd: `$${(stablecoinBalances.EURC * 1.087).toFixed(2)}`,
-              balanceFormatted: `€${stablecoinBalances.EURC.toFixed(2)}`,
-              accountName: displayAccountName,
-              maskedWallet: displayMaskedWallet,
-              rateInfo: '1 EURC = €1.00',
-            },
-            {
-              id: 'pyusd',
-              currency: 'PYUSD',
-              name: 'PAYPAL USD',
-              symbol: '$',
-              themeColor: '#FEF08A', // Vàng nhạt pastel ấm
-              badgeBg: '#FFFFFF',
-              balanceUsd: `$${stablecoinBalances.PYUSD.toFixed(2)}`,
-              balanceFormatted: `$${stablecoinBalances.PYUSD.toFixed(2)}`,
-              accountName: displayAccountName,
-              maskedWallet: displayMaskedWallet,
-              rateInfo: '1 PYUSD = $1.00',
-            },
-          ]}
+            };
+          })}
           onDepositPress={() => setShowDepositModal(true)}
           onSendPress={() => router.push('/send')}
           onSwapActionPress={() => setShowSwapModal(true)}
           onCardChange={(card) => setActiveCardCurrency(card.currency)}
-          onAddCardPress={() => setShowAddSubWalletModal(true)}
+          onAddCardPress={() => setShowAddStablecoinModal(true)}
         />
 
         {/* ========================================================================= */}
@@ -855,6 +846,14 @@ export default function HomeScreen() {
         visible={showRecoveryModal || isNeedsRecovery}
         onClose={() => setShowRecoveryModal(false)}
         onSuccess={() => setShowRecoveryModal(false)}
+      />
+
+      {/* Modals cho Ví Stablecoin */}
+      <AddStablecoinModal
+        visible={showAddStablecoinModal}
+        onClose={() => setShowAddStablecoinModal(false)}
+        accountName={displayAccountName}
+        maskedWallet={displayMaskedWallet}
       />
 
       <AddSubWalletModal
