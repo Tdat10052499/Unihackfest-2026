@@ -20,6 +20,7 @@ import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { useTranslation } from '@/services/i18n';
 import { SendModal } from '@/components/SendModal';
 import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
+import { TransactionReceiptModal } from '@/components/TransactionReceiptModal';
 import { NeoCard } from '@/components/neo/NeoCard';
 import { NEO_COLORS } from '@/components/neo/tokens';
 
@@ -99,6 +100,13 @@ export default function TransferHubScreen() {
 
   const [showSendModal, setShowSendModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    amount: number | string;
+    currency?: string;
+    note?: string;
+    txHash?: string;
+  }>({ amount: 0, currency: 'USD', note: '' });
 
   // THỰC THI CHUYỂN TIỀN 100% ON-CHAIN TỪ TRANSFER HUB
   const handleConfirmSend = async (recipient: string, amount: number) => {
@@ -145,10 +153,14 @@ export default function TransferHubScreen() {
       };
       await cacheActivities([newAct, ...currentActs]);
 
-      Alert.alert(
-        'Chuyển Tiền Thành Công! ⚡',
-        `Đã chuyển $${amount.toFixed(2)} đến:\n${finalRecipient}\n\nMã giao dịch: ${txSignature.slice(0, 16)}...`
-      );
+      setShowSendModal(false);
+      setReceiptData({
+        amount: amount,
+        currency: 'USD',
+        note: `Chuyển đến: ${finalRecipient.slice(0, 8)}...${finalRecipient.slice(-6)}`,
+        txHash: txSignature,
+      });
+      setShowReceiptModal(true);
     } catch (err: any) {
       console.error('Transfer Hub Send Error:', err);
       Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể chuyển tiền lúc này.');
@@ -263,6 +275,16 @@ export default function TransferHubScreen() {
         visible={showRecoveryModal || needsRecovery}
         onClose={() => setShowRecoveryModal(false)}
         onSuccess={() => setShowRecoveryModal(false)}
+      />
+
+      {/* Modal Hóa Đơn Giao Dịch Chuẩn Neo-brutalism */}
+      <TransactionReceiptModal
+        visible={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        amount={receiptData.amount}
+        currency={receiptData.currency}
+        note={receiptData.note}
+        txHash={receiptData.txHash}
       />
     </SafeAreaView>
   );

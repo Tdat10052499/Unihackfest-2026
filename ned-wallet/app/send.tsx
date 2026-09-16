@@ -43,6 +43,7 @@ import {
 import { cacheActivities, getCachedActivities, getLinkedPhone } from '../services/storage';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
@@ -145,6 +146,13 @@ export default function SendScreen() {
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
   const [myPhone, setMyPhone] = useState<string | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    amount: number | string;
+    currency?: string;
+    note?: string;
+    txHash?: string;
+  }>({ amount: 0, currency: 'USD', note: '' });
 
   // Lấy địa chỉ ví người dùng hiện tại theo độ ưu tiên: Embedded Wallet -> Store -> Linked Accounts
   const getMySolanaAddress = (): string | null => {
@@ -525,11 +533,13 @@ export default function SendScreen() {
       // Cập nhật lại số dư ngay lập tức sau khi chuyển thành công
       refreshUserData();
 
-      Alert.alert(
-        t('send.successTitle', { defaultValue: 'Chuyển Tiền Thành Công! ⚡' }),
-        `Đã chuyển $${numAmount.toFixed(2)} (${(numAmount * USD_TO_VND_RATE).toLocaleString('vi-VN')} ₫) đến:\n${recipientDisplayName}\n\nMã giao dịch: ${txSignature.slice(0, 16)}...`,
-        [{ text: t('tabs.home', { defaultValue: 'Về Trang Chủ' }), onPress: () => router.replace('/') }]
-      );
+      setReceiptData({
+        amount: numAmount,
+        currency: 'USD',
+        note: `Chuyển đến: ${recipientDisplayName}`,
+        txHash: txSignature,
+      });
+      setShowReceiptModal(true);
     } catch (err: any) {
       console.error('Send Transaction Error:', err);
       Alert.alert(t('send.failedTitle', { defaultValue: 'Lỗi Giao Dịch' }), err?.message || 'Không thể thực hiện chuyển tiền.');
@@ -886,6 +896,18 @@ export default function SendScreen() {
         visible={showRecoveryModal || needsRecovery}
         onClose={() => setShowRecoveryModal(false)}
         onSuccess={() => setShowRecoveryModal(false)}
+      />
+
+      <TransactionReceiptModal
+        visible={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false);
+          router.replace('/');
+        }}
+        amount={receiptData.amount}
+        currency={receiptData.currency}
+        note={receiptData.note}
+        txHash={receiptData.txHash}
       />
     </SafeAreaView>
   );
