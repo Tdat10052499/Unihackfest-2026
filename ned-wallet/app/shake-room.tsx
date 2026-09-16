@@ -39,6 +39,7 @@ import { supabase } from '@/services/supabase';
 import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
+import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 
 // Tỷ giá quy đổi giả định: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
@@ -139,6 +140,13 @@ export default function ShakeRoomScreen() {
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    amount: number | string;
+    currency?: string;
+    note?: string;
+    txHash?: string;
+  }>({ amount: 10, currency: 'USD', note: 'Group lunch' });
   const { nearbyUsers, broadcastInvite, currentUserProfile } = useGlobalPresence();
 
   // Xác định vai trò: Host hay Guest
@@ -616,7 +624,14 @@ export default function ShakeRoomScreen() {
         console.log('Error broadcasting room paid:', err);
       }
 
-      Alert.alert('Thành công! 🎉', `Đã thanh toán on-chain thành công!\nTx: ${txSignature.slice(0, 16)}...`);
+      // Hiển thị Modal Hóa đơn giao dịch (Transaction Receipt)
+      setReceiptData({
+        amount: paymentAmountUSD,
+        currency: 'USD',
+        note: billNote || 'Group lunch',
+        txHash: txSignature,
+      });
+      setShowReceiptModal(true);
     } catch (e: any) {
       setIsGuestPaying(false);
       Alert.alert('Giao dịch thất bại', e?.message || 'Không thể thanh toán lúc này.');
@@ -1018,6 +1033,15 @@ export default function ShakeRoomScreen() {
         visible={showRecoveryModal || needsRecovery}
         onClose={() => setShowRecoveryModal(false)}
         onSuccess={() => setShowRecoveryModal(false)}
+      />
+
+      <TransactionReceiptModal
+        visible={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        amount={receiptData.amount}
+        currency={receiptData.currency}
+        note={receiptData.note}
+        txHash={receiptData.txHash}
       />
     </SafeAreaView>
   );
