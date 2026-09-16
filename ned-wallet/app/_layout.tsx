@@ -1,7 +1,8 @@
 import '../polyfill';
 import '../services/i18n';
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
@@ -37,9 +38,33 @@ const PRIVY_CONFIG = {
 };
 
 export default function RootLayout() {
+  const appState = useRef(AppState.currentState);
+
   useEffect(() => {
     console.log("🚀 [Phase 1] Privy App ID:", process.env.EXPO_PUBLIC_PRIVY_APP_ID);
     console.log("🚀 [Phase 1] Privy Client ID:", process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID);
+  }, []);
+
+  // Update lastActiveTime when app goes to background
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App has come to the foreground
+      } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        // App has gone to the background
+        try {
+          await AsyncStorage.setItem('ned_last_active_time', Date.now().toString());
+          console.log("🕒 [Session] Saved lastActiveTime:", Date.now());
+        } catch (e) {
+          console.error("Failed to save lastActiveTime", e);
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   return (

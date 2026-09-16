@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -31,6 +33,7 @@ export interface StablecoinCardData {
   maskedWallet: string;
   network?: string;
   rateInfo?: string;
+  logoUrl?: string;
 }
 
 export interface NeoPhysicalWalletCardProps {
@@ -160,12 +163,20 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   // Pha 2 & Pha 3: Đạt đỉnh Parabol (-160, 60), đảo lớp zIndex và thực hiện nhét vào sau tức thì (Zero-delay)
   const onApexReached = useCallback((frontIdx: number, midIdx: number, backIdx: number) => {
     // 1. Cập nhật state thứ tự thẻ
-    const newOrder = [midIdx, backIdx, frontIdx];
+    let newOrder = [midIdx, backIdx, frontIdx];
+    if (cardDataList.length === 2) {
+      // Nếu chỉ có 2 thẻ, thẻ thứ 3 (backIdx) là vô hình, ta chỉ hoán đổi vị trí của thẻ 1 và 2.
+      newOrder = [midIdx, frontIdx, backIdx];
+    }
+    
     setCardOrder(newOrder);
 
     // 2. Thông báo cho component cha (HomeScreen) biết thẻ active mới
     if (onCardChange) {
-      onCardChange(cardDataList[midIdx]);
+      const activeCard = cardDataList[newOrder[0]] || cardDataList[0];
+      if (activeCard) {
+        onCardChange(activeCard);
+      }
     }
 
     // Hiệu ứng số chạy / Pop nảy số sang số dư thẻ mới
@@ -391,9 +402,12 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
             {/* HÀNG 1 (Top Row): Icon đồng Stablecoin Tròn (Trái) & Tên Tiền Tệ (Phải) */}
             {/* ========================================================= */}
             <View style={styles.cardTopRow}>
-              {/* Trái: Icon của đồng Stablecoin tròn, viền đen */}
               <View style={styles.cardCoinBadge}>
-                <Text style={styles.cardCoinBadgeText}>{coinSymbolChar}</Text>
+                {cardData.logoUrl ? (
+                  <Image source={{ uri: cardData.logoUrl }} style={styles.cardCoinImage} />
+                ) : (
+                  <Text style={styles.cardCoinBadgeText}>{coinSymbolChar}</Text>
+                )}
               </View>
 
               {/* Phải: Text hiển thị tên tiền tệ (VD: "US DOLLAR"), font Black/Bold, chữ hoa */}
@@ -512,7 +526,11 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
         {/* Khu vực Số dư lớn & Biểu tượng đồng xu */}
         <View style={styles.pouchBalanceArea}>
           <View style={[styles.coinSymbolBadge, { backgroundColor: activeFrontCard.themeColor }]}>
-            <Text style={styles.coinSymbolText}>{activeFrontCard.symbol}</Text>
+            {activeFrontCard.logoUrl ? (
+              <Image source={{ uri: activeFrontCard.logoUrl }} style={styles.coinSymbolImage} />
+            ) : (
+              <Text style={styles.coinSymbolText}>{activeFrontCard.symbol}</Text>
+            )}
           </View>
 
           <Animated.View style={animatedBalanceStyle}>
@@ -675,6 +693,12 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  cardCoinImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   cardCoinBadgeText: {
     fontSize: 16,
@@ -897,6 +921,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
+    overflow: 'hidden',
+  },
+  coinSymbolImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   coinSymbolText: {
     fontSize: 15,

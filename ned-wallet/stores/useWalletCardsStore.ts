@@ -17,6 +17,7 @@ export interface StablecoinCardData {
   maskedWallet: string;
   network?: string;
   rateInfo?: string;
+  logoUrl?: string;
 }
 
 export const DEFAULT_USDC_CARD: StablecoinCardData = {
@@ -31,6 +32,7 @@ export const DEFAULT_USDC_CARD: StablecoinCardData = {
   accountName: 'N.E.D User',
   maskedWallet: '**** ****',
   rateInfo: '1 USDC = $1.00',
+  logoUrl: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/128/color/usdc.png',
 };
 
 export interface WalletCardsState {

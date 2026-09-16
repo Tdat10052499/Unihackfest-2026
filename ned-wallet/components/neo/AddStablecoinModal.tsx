@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +27,7 @@ const SUPPORTED_STABLECOINS = [
     themeColor: '#26A17B',
     badgeBg: '#FFFFFF',
     rateInfo: '1 USDT = $1.00',
+    logoUrl: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/128/color/usdt.png'
   },
   {
     currency: 'PYUSD',
@@ -34,6 +36,7 @@ const SUPPORTED_STABLECOINS = [
     themeColor: '#0079C1',
     badgeBg: '#FFFFFF',
     rateInfo: '1 PYUSD = $1.00',
+    logoUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/27772.png'
   },
   {
     currency: 'EURC',
@@ -42,6 +45,7 @@ const SUPPORTED_STABLECOINS = [
     themeColor: '#0052FF',
     badgeBg: '#FFFFFF',
     rateInfo: '1 EURC = €1.00',
+    logoUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20243.png'
   },
   {
     currency: 'DAI',
@@ -50,6 +54,7 @@ const SUPPORTED_STABLECOINS = [
     themeColor: '#F4B731',
     badgeBg: '#FFFFFF',
     rateInfo: '1 DAI = $1.00',
+    logoUrl: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/128/color/dai.png'
   },
   {
     currency: 'FDUSD',
@@ -58,6 +63,7 @@ const SUPPORTED_STABLECOINS = [
     themeColor: '#131518',
     badgeBg: '#FFFFFF',
     rateInfo: '1 FDUSD = $1.00',
+    logoUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/26081.png'
   }
 ];
 
@@ -89,6 +95,7 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
       accountName: accountName,
       maskedWallet: maskedWallet,
       rateInfo: coin.rateInfo,
+      logoUrl: coin.logoUrl,
     };
     addCard(newCard);
     onClose();
@@ -116,7 +123,7 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
             Chọn đồng coin bạn muốn thêm vào ví chính.
           </Text>
 
-          <View style={styles.listContainer}>
+          <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
             {availableCoins.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>😎</Text>
@@ -127,7 +134,11 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
                 <View key={coin.currency} style={styles.coinRow}>
                   <View style={styles.coinInfo}>
                     <View style={styles.coinIconWrapper}>
-                      <Text style={styles.coinSymbol}>{coin.symbol}</Text>
+                      {coin.logoUrl ? (
+                        <Image source={{ uri: coin.logoUrl }} style={styles.coinImage} />
+                      ) : (
+                        <Text style={styles.coinSymbol}>{coin.symbol}</Text>
+                      )}
                     </View>
                     <View>
                       <Text style={styles.coinName}>{coin.name}</Text>
@@ -148,7 +159,7 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
                 </View>
               ))
             )}
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -222,6 +233,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    overflow: 'hidden',
+  },
+  coinImage: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
   },
   coinSymbol: {
     fontFamily: 'Outfit-Bold',

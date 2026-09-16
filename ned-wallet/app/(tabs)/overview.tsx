@@ -292,7 +292,7 @@ export default function AnalyticsScreen() {
   // Tính toán góc cho Donut Chart dựa trên giá trị tuyệt đối
   const totalAmountForChart = cashFlowStats.metrics.reduce((acc: number, curr: any) => acc + Math.abs(curr.amount), 0);
   let currentAngle = 0;
-  const chartSegments = cashFlowStats.metrics.map((metric: any) => {
+  const chartSegments = totalAmountForChart === 0 ? [] : cashFlowStats.metrics.map((metric: any) => {
     const segmentAngle = (Math.abs(metric.amount) / totalAmountForChart) * 360;
     const startAngle = currentAngle;
     const endAngle = currentAngle + segmentAngle;
@@ -303,7 +303,7 @@ export default function AnalyticsScreen() {
       startAngle,
       endAngle
     };
-  });
+  }).filter((segment: any) => segment.endAngle > segment.startAngle);
 
   // Tính toán thanh Budget
   const spendingLimit = 2000;
@@ -403,6 +403,11 @@ export default function AnalyticsScreen() {
               <View style={styles.chartContainer}>
                 <Svg width={150} height={150} viewBox="0 0 150 150">
                   <G>
+                    {/* Placeholder if no data */}
+                    {totalAmountForChart === 0 && (
+                      <Circle cx={75} cy={75} r={50} fill="none" stroke="#E2E8F0" strokeWidth={24} />
+                    )}
+
                     {/* Render Segments */}
                     {chartSegments.map((segment: any) => (
                       <React.Fragment key={`arc-${segment.id}`}>

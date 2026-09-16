@@ -231,45 +231,57 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
     : 'Đăng nhập bằng ví Phantom';
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.walletLoginBtn,
-        (disabled || isSigning) && styles.walletBtnDisabled,
-        style,
-      ]}
-      onPress={handlePhantomAuth}
-      disabled={disabled || isSigning}
-      activeOpacity={0.85}
-    >
-      <View style={styles.walletBtnInner}>
-        {isSigning ? (
-          <ActivityIndicator size="small" color="#AB9FF2" />
-        ) : (
-          <View style={styles.walletIconBox}>
-            <Ionicons name="wallet-outline" size={20} color="#AB9FF2" />
-          </View>
-        )}
-        <Text style={styles.walletBtnText}>{buttonText}</Text>
-      </View>
-    </TouchableOpacity>
+    <View style={[styles.walletBtnContainer, style]}>
+      <View style={styles.walletBtnShadow} />
+      <TouchableOpacity
+        style={[
+          styles.walletLoginBtn,
+          (disabled || isSigning) && styles.walletBtnDisabled,
+        ]}
+        onPress={handlePhantomAuth}
+        disabled={disabled || isSigning}
+        activeOpacity={0.85}
+      >
+        <View style={styles.walletBtnInner}>
+          {isSigning ? (
+            <ActivityIndicator size="small" color="#000" />
+          ) : (
+            <View style={styles.walletIconBox}>
+              <Ionicons name="wallet-outline" size={20} color="#AB9FF2" />
+            </View>
+          )}
+          <Text style={styles.walletBtnText}>{buttonText}</Text>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  walletLoginBtn: {
+  walletBtnContainer: {
+    width: '100%',
     height: 52,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    position: 'relative',
+    marginTop: 0,
+  },
+  walletBtnShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: '#000',
+    borderRadius: 12,
+  },
+  walletLoginBtn: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
   },
   walletBtnDisabled: {
     opacity: 0.7,
@@ -287,8 +299,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   walletBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#4338CA',
+    fontSize: 14,
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
 });

@@ -11,6 +11,7 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -21,6 +22,39 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { PhantomAuthButton } from '../../components/PhantomAuthButton';
+
+// Component đục lỗ cuống vé
+const TicketCutout = ({ size, left, right, bottomOffset = -4 }: { size: number, left?: number | string, right?: number | string, bottomOffset?: number }) => {
+  return (
+    <View style={{
+      position: 'absolute',
+      bottom: bottomOffset,
+      ...(left !== undefined ? { left } : {}),
+      ...(right !== undefined ? { right } : {}),
+      width: size,
+      height: size / 2 + 5, // Thêm 5px để che luôn phần bóng đổ bên dưới
+      overflow: 'hidden',
+      zIndex: 10,
+    }}>
+      <View style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: '#FDF8F5',
+        borderWidth: 3,
+        borderColor: '#000',
+      }} />
+      <View style={{
+        position: 'absolute',
+        top: size / 2,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#FDF8F5',
+      }} />
+    </View>
+  );
+};
 
 export default function AuthGatewayScreen() {
   const router = useRouter();
@@ -164,7 +198,7 @@ export default function AuthGatewayScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -178,7 +212,11 @@ export default function AuthGatewayScreen() {
           {/* Top Brand Banner */}
           <View style={styles.brandHeader}>
             <View style={styles.logoBadge}>
-              <Ionicons name="shield-checkmark" size={28} color="#00A859" />
+              <Image 
+                source={require('../../assets/images/mascot-sleepy.png')} 
+                style={styles.mascotImage} 
+                resizeMode="contain" 
+              />
             </View>
             <Text style={styles.brandTitle}>N.E.D WALLET</Text>
             <Text style={styles.brandSubtitle}>
@@ -186,199 +224,217 @@ export default function AuthGatewayScreen() {
             </Text>
           </View>
 
-          {/* Auth Card Container */}
-          <View style={styles.authCard}>
-            {/* Mode Switcher Tabs (Đăng Nhập | Đăng Ký) */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tabButton, isLoginMode && styles.tabButtonActive]}
-                onPress={() => {
-                  setIsLoginMode(true);
-                  setErrorMessage('');
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tabText, isLoginMode && styles.tabTextActive]}>
-                  Đăng Nhập
-                </Text>
-              </TouchableOpacity>
+          {/* Ticket Wrapper */}
+          <View style={styles.ticketWrapper}>
+            {/* Ticket Shadow */}
+            <View style={styles.ticketShadow} />
 
-              <TouchableOpacity
-                style={[styles.tabButton, !isLoginMode && styles.tabButtonActive]}
-                onPress={() => {
-                  setIsLoginMode(false);
-                  setErrorMessage('');
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tabText, !isLoginMode && styles.tabTextActive]}>
-                  Đăng Ký
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Error Message Banner */}
-            {!!errorMessage && (
-              <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={16} color="#DC2626" />
-                <Text style={styles.errorBannerText}>{errorMessage}</Text>
-              </View>
-            )}
-
-            {step === 'INITIAL' ? (
-              /* Bước 1: Nhập Email & Lựa chọn phương thức xác thực */
-              <View style={styles.formSection}>
-                {/* Tiêu đề biểu mẫu */}
-                <View style={styles.formHeader}>
-                  <Text style={styles.formTitle}>
-                    {isLoginMode ? 'Chào mừng trở lại!' : 'Tạo tài khoản mới'}
-                  </Text>
-                  <Text style={styles.formSubtitle}>
-                    {isLoginMode
-                      ? 'Đăng nhập vào ví N.E.D của bạn'
-                      : 'Bắt đầu trải nghiệm Web3 không cần Seedphrase'}
-                  </Text>
-                </View>
-
-                {/* Email Input Field */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Địa chỉ Email</Text>
-                  <View style={styles.inputWrapper}>
-                    <Feather name="mail" size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="vidu@domain.com"
-                      placeholderTextColor="#94A3B8"
-                      value={email}
-                      onChangeText={(text) => {
-                        setEmail(text);
-                        if (errorMessage) setErrorMessage('');
-                      }}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!isSendingEmail}
-                    />
-                  </View>
-                </View>
-
-                {/* Email Submit Button */}
+            {/* Ticket Body */}
+            <View style={styles.ticketBody}>
+              {/* Mode Switcher Tabs */}
+              <View style={styles.tabContainer}>
                 <TouchableOpacity
-                  style={[styles.primaryBtn, isSendingEmail && styles.primaryBtnDisabled]}
-                  onPress={handleSendEmailCode}
-                  disabled={isSendingEmail}
-                  activeOpacity={0.85}
-                >
-                  {isSendingEmail ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>
-                      {isLoginMode ? 'Tiếp tục với Email' : 'Đăng ký với Email'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>hoặc tiếp tục với</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* OAuth: Google Button */}
-                <TouchableOpacity
-                  style={[styles.googleLoginBtn, isGoogleLoading && styles.googleLoginBtnDisabled]}
-                  onPress={handleGoogleLogin}
-                  disabled={isGoogleLoading}
-                  activeOpacity={0.85}
-                >
-                  {isGoogleLoading ? (
-                    <ActivityIndicator size="small" color="#4285F4" />
-                  ) : (
-                    <View style={styles.googleBtnInner}>
-                      <View style={styles.googleIconBox}>
-                        <Ionicons name="logo-google" size={20} color="#4285F4" />
-                      </View>
-                      <Text style={styles.googleBtnText}>Tiếp tục với Google</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {/* Web3 Auth: Phantom Auth Button (Encapsulated Component) */}
-                <PhantomAuthButton
-                  mode={isLoginMode ? 'login' : 'signup'}
-                  onSuccess={(u, isNew) => handleAuthSuccess(u, isNew, false)}
-                  onComplete={(u, isNew, wasAuth) => handleAuthSuccess(u, isNew, wasAuth)}
-                />
-              </View>
-            ) : (
-              /* Bước 2: Xác thực mã OTP qua Email */
-              <View style={styles.formSection}>
-                <View style={styles.otpHeader}>
-                  <Text style={styles.otpTitle}>Nhập mã xác thực</Text>
-                  <Text style={styles.otpSubtitle}>
-                    Mã 6 chữ số đã được gửi tới{' '}
-                    <Text style={styles.otpEmailHighlight}>{email}</Text>
-                  </Text>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
-                  <View style={styles.inputWrapper}>
-                    <Feather name="key" size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.textInput, styles.otpInput]}
-                      placeholder="123456"
-                      placeholderTextColor="#94A3B8"
-                      value={otpCode}
-                      onChangeText={(text) => {
-                        setOtpCode(text);
-                        if (errorMessage) setErrorMessage('');
-                      }}
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      editable={!isSubmittingOtp}
-                      autoFocus
-                    />
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.primaryBtn, isSubmittingOtp && styles.primaryBtnDisabled]}
-                  onPress={handleVerifyOtp}
-                  disabled={isSubmittingOtp}
-                  activeOpacity={0.85}
-                >
-                  {isSubmittingOtp ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Xác nhận & Đăng nhập</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.backLinkBtn}
+                  style={[styles.tabButton, isLoginMode && styles.tabButtonActive]}
                   onPress={() => {
-                    setStep('INITIAL');
-                    setOtpCode('');
+                    setIsLoginMode(true);
                     setErrorMessage('');
                   }}
-                  activeOpacity={0.7}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="arrow-left" size={16} color="#64748B" />
-                  <Text style={styles.backLinkText}>Đổi địa chỉ email khác</Text>
+                  <Text style={[styles.tabText, isLoginMode && styles.tabTextActive]}>
+                    Đăng nhập
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.tabButton, !isLoginMode && styles.tabButtonActive]}
+                  onPress={() => {
+                    setIsLoginMode(false);
+                    setErrorMessage('');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <Text style={[styles.tabText, !isLoginMode && styles.tabTextActive]}>
+                    Đăng ký
+                  </Text>
                 </TouchableOpacity>
               </View>
-            )}
-          </View>
 
-          {/* Footer Terms */}
-          <View style={styles.footerSection}>
-            <Text style={styles.footerTermsText}>
-              Bằng việc tiếp tục, bạn đồng ý với{' '}
-              <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
-              <Text style={styles.termsLink}>Chính sách bảo mật</Text> của N.E.D Wallet.
-            </Text>
+              {/* Error Message Banner */}
+              {!!errorMessage && (
+                <View style={styles.errorBanner}>
+                  <Feather name="alert-circle" size={16} color="#DC2626" />
+                  <Text style={styles.errorBannerText}>{errorMessage}</Text>
+                </View>
+              )}
+
+              {step === 'INITIAL' ? (
+                /* Bước 1: Nhập Email & Lựa chọn phương thức */
+                <View style={styles.formSection}>
+                  <View style={styles.formHeader}>
+                    <Text style={styles.formTitle}>
+                      {isLoginMode ? 'Chào mừng trở lại!' : 'Tạo tài khoản mới'}
+                    </Text>
+                    <Text style={styles.formSubtitle}>
+                      {isLoginMode
+                        ? 'Đăng nhập vào ví N.E.D của bạn'
+                        : 'Bắt đầu trải nghiệm Web3 cần Seedphrase'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Địa chỉ Email</Text>
+                    <View style={styles.inputWrapper}>
+                      <Feather name="mail" size={18} color="#000" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="vidu@domain.com"
+                        placeholderTextColor="#94A3B8"
+                        value={email}
+                        onChangeText={(text) => {
+                          setEmail(text);
+                          if (errorMessage) setErrorMessage('');
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!isSendingEmail}
+                      />
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, isSendingEmail && styles.primaryBtnDisabled]}
+                    onPress={handleSendEmailCode}
+                    disabled={isSendingEmail}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.primaryBtnShadow} />
+                    <View style={styles.primaryBtnBody}>
+                      {isSendingEmail ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>
+                          {isLoginMode ? 'Tiếp tục với Email' : 'Đăng ký với Email'}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={styles.dividerRow}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>hoặc tiếp tục với</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.socialBtnWrapper, isGoogleLoading && styles.primaryBtnDisabled]}
+                    onPress={handleGoogleLogin}
+                    disabled={isGoogleLoading}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.socialBtnShadow} />
+                    <View style={styles.socialBtnBody}>
+                      {isGoogleLoading ? (
+                        <ActivityIndicator size="small" color="#000" />
+                      ) : (
+                        <View style={styles.socialBtnInner}>
+                          <Image source={{uri: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg'}} style={{width: 20, height: 20}} />
+                          {/* Fallback to simple icon since remote SVG requires extra config sometimes */}
+                          <Ionicons name="logo-google" size={20} color="#EA4335" />
+                          <Text style={styles.socialBtnText}>
+                            {isLoginMode ? 'Tiếp tục với Google' : 'Đăng ký với Google'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={styles.phantomWrapper}>
+                    <PhantomAuthButton
+                      mode={isLoginMode ? 'login' : 'signup'}
+                      onSuccess={(u, isNew) => handleAuthSuccess(u, isNew, false)}
+                      onComplete={(u, isNew, wasAuth) => handleAuthSuccess(u, isNew, wasAuth)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                /* Bước 2: Xác thực mã OTP qua Email */
+                <View style={styles.formSection}>
+                  <View style={styles.otpHeader}>
+                    <Text style={styles.otpTitle}>Nhập mã xác thực</Text>
+                    <Text style={styles.otpSubtitle}>
+                      Mã 6 chữ số đã được gửi tới{' '}
+                      <Text style={styles.otpEmailHighlight}>{email}</Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
+                    <View style={styles.inputWrapper}>
+                      <Feather name="key" size={18} color="#000" style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.textInput, styles.otpInput]}
+                        placeholder="123456"
+                        placeholderTextColor="#94A3B8"
+                        value={otpCode}
+                        onChangeText={(text) => {
+                          setOtpCode(text);
+                          if (errorMessage) setErrorMessage('');
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        editable={!isSubmittingOtp}
+                        autoFocus
+                      />
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, isSubmittingOtp && styles.primaryBtnDisabled]}
+                    onPress={handleVerifyOtp}
+                    disabled={isSubmittingOtp}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.primaryBtnShadow} />
+                    <View style={styles.primaryBtnBody}>
+                      {isSubmittingOtp ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>Xác nhận & Đăng nhập</Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.backLinkBtn}
+                    onPress={() => {
+                      setStep('INITIAL');
+                      setOtpCode('');
+                      setErrorMessage('');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="arrow-left" size={16} color="#000" />
+                    <Text style={styles.backLinkText}>Đổi địa chỉ email khác</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Footer Terms */}
+              <View style={styles.footerSection}>
+                <Text style={styles.footerTermsText}>
+                  Bằng việc tiếp tục, bạn đồng ý với{' '}
+                  <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
+                  <Text style={styles.termsLink}>Chính sách bảo mật</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Cutouts (Lỗ đục cuống vé) */}
+            <TicketCutout size={28} left={30} />
+            <TicketCutout size={44} left="44%" right="44%" bottomOffset={-5} />
+            <TicketCutout size={28} right={30} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -389,95 +445,105 @@ export default function AuthGatewayScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FDF8F5',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
 
   // Brand Header
   brandHeader: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 24,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1E293B',
-    borderWidth: 2,
-    borderColor: '#00A859',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FDE68A', // Vàng pastel
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  mascotImage: {
+    width: 90,
+    height: 90,
+    marginTop: 15,
   },
   brandTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 1.5,
+    fontSize: 24,
+    fontFamily: 'Inter-Black',
+    color: '#000',
+    letterSpacing: 1,
   },
   brandSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#333',
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
-  // Auth Card
-  authCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 6,
+  // Ticket Wrapper
+  ticketWrapper: {
+    width: '100%',
+    position: 'relative',
+    paddingBottom: 10,
+  },
+  ticketShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: '#000',
+    borderRadius: 16,
+  },
+  ticketBody: {
+    backgroundColor: '#FFF',
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: 16,
+    padding: 20,
+    paddingBottom: 30, // Chừa khoảng trống cho đục lỗ
   },
 
-  // Tabs (Đăng Nhập | Đăng Ký)
+  // Tabs
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 999,
+    padding: 2,
+    marginBottom: 24,
+    backgroundColor: '#FFF',
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   tabButtonActive: {
-    backgroundColor: '#0F172A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#8B5CF6', // Tím
+    borderColor: '#000',
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#64748B',
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: '#FFF',
   },
 
   // Form Section
@@ -485,37 +551,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   formTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
   formSubtitle: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-  },
-
-  // Error Banner
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  errorBannerText: {
-    fontSize: 12,
-    color: '#B91C1C',
-    fontWeight: '600',
-    flex: 1,
+    color: '#555',
+    marginTop: 6,
+    fontWeight: '500',
   },
 
   // Input Group
@@ -523,20 +570,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: 6,
+    fontSize: 12,
+    fontFamily: 'Inter-Black',
+    color: '#000',
+    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    backgroundColor: '#FDF8F5', // Kem nhạt
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#000',
     paddingHorizontal: 14,
-    height: 50,
+    height: 52,
   },
   inputIcon: {
     marginRight: 10,
@@ -545,8 +592,8 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 15,
-    color: '#0F172A',
-    fontWeight: '500',
+    color: '#000',
+    fontWeight: '600',
   },
   otpInput: {
     fontSize: 18,
@@ -554,129 +601,166 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Primary Action Button
+  // Primary Action Button (Email)
   primaryBtn: {
-    height: 50,
-    backgroundColor: '#00A859',
-    borderRadius: 14,
+    width: '100%',
+    height: 52,
+    position: 'relative',
+    marginTop: 8,
+  },
+  primaryBtnShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: '#000',
+    borderRadius: 12,
+  },
+  primaryBtnBody: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#06B6D4', // Cyan
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
   },
   primaryBtnDisabled: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   primaryBtnText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontFamily: 'Inter-Black',
+    color: '#FFF',
   },
 
   // Divider
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
+    height: 2,
+    backgroundColor: '#000',
   },
   dividerText: {
     marginHorizontal: 12,
     fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '600',
+    color: '#000',
+    fontWeight: '700',
   },
 
-  // Google Login Button
-  googleLoginBtn: {
+  // Social Buttons
+  socialBtnWrapper: {
+    width: '100%',
     height: 52,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    position: 'relative',
+    marginBottom: 16,
+  },
+  socialBtnShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: '#000',
+    borderRadius: 12,
+  },
+  socialBtnBody: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  googleLoginBtnDisabled: {
-    opacity: 0.7,
-  },
-  googleBtnInner: {
+  socialBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 10,
   },
-  googleIconBox: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+  socialBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
-  googleBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
+  phantomWrapper: {
+    // The PhantomAuthButton uses its own wrapper inside, but we can override if it accepts style
   },
 
-  // OTP Step Styles
+  // OTP Styles
   otpHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   otpTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
   otpSubtitle: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
+    color: '#555',
+    marginTop: 6,
     lineHeight: 18,
+    fontWeight: '500',
   },
   otpEmailHighlight: {
-    fontWeight: '700',
-    color: '#00A859',
+    fontFamily: 'Inter-Black',
+    color: '#8B5CF6',
   },
   backLinkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    paddingVertical: 6,
+    marginTop: 20,
     gap: 6,
   },
   backLinkText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
+    fontFamily: 'Inter-Black',
+    color: '#000',
   },
 
   // Footer Terms
   footerSection: {
-    paddingVertical: 16,
+    marginTop: 24,
     alignItems: 'center',
   },
   footerTermsText: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: 10,
+    color: '#555',
     textAlign: 'center',
     lineHeight: 16,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
+    fontWeight: '600',
   },
   termsLink: {
-    color: '#00A859',
-    fontWeight: '600',
+    color: '#000',
+    fontFamily: 'Inter-Black',
+    textDecorationLine: 'underline',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Black',
+    color: '#DC2626',
+    flex: 1,
   },
 });
