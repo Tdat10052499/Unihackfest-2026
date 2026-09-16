@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
     } catch (e) {
       // ignore
     }
-    router.replace('/(tabs)');
+    router.replace('/(auth)');
   };
 
   if (isChecking) {

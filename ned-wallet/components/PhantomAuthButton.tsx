@@ -266,10 +266,10 @@ const styles = StyleSheet.create({
   },
   walletBtnShadow: {
     position: 'absolute',
-    top: 2,
-    left: 2,
-    right: -2,
-    bottom: -2,
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
     backgroundColor: '#000',
     borderRadius: 12,
   },
@@ -281,7 +281,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#000',
     justifyContent: 'center',
-    alignItems: 'center',
   },
   walletBtnDisabled: {
     opacity: 0.7,
@@ -289,18 +288,18 @@ const styles = StyleSheet.create({
   walletBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    paddingHorizontal: 16,
   },
   walletIconBox: {
     width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   walletBtnText: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 14,
     fontFamily: 'Inter-Black',
     color: '#000',
+    marginRight: 24, // Để cân bằng với icon bên trái
   },
 });

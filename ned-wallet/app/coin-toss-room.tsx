@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,10 @@ import {
   Platform,
   StatusBar,
   Modal,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, Feather, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import {
@@ -34,15 +33,13 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { getSolanaBalance } from '../services/solana';
+import { getUsdcTokenBalance } from '../services/solana';
 import { resolveActiveSolanaAddress } from '../services/identity';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
 import { useGlobalPresence } from '../contexts/GlobalPresenceContext';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface RoomMember {
   user_id: string;
@@ -53,11 +50,18 @@ interface RoomMember {
   joined_at?: number;
 }
 
+const PRESET_AMOUNTS = [
+  { value: '1.00', label: '$1', bg: '#8A2BE2', textColor: '#FFFFFF' },
+  { value: '5.00', label: '$5', bg: '#00E5FF', textColor: '#000000' },
+  { value: '10.00', label: '$10', bg: '#FF4C4C', textColor: '#FFFFFF' },
+  { value: '20.00', label: '$20', bg: '#FFFFFF', textColor: '#000000' },
+];
+
 export default function CoinTossRoomScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const roomId = (params.roomId as string) || 'coin_demo';
+  const roomId = (params.roomId as string) || 'Coin_mthbc98';
   const isHost = String(params.isHost) === 'true';
 
   const { user } = usePrivy();
@@ -80,12 +84,12 @@ export default function CoinTossRoomScreen() {
 
   // Danh sách thành viên trong phòng Realtime
   const [members, setMembers] = useState<RoomMember[]>([]);
-  const [amount, setAmount] = useState('0.005');
-  const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [amount, setAmount] = useState('5.00');
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
 
   // Trạng thái Tung Đồng Xu
   const [isTossing, setIsTossing] = useState(false);
-  const [tossStatusText, setTossStatusText] = useState('Vuốt đồng xu lên trên để lì xì');
+  const [tossStatusText, setTossStatusText] = useState('Vuốt lên để tung đồng xu');
   const [winner, setWinner] = useState<RoomMember | null>(null);
   const [wonAmount, setWonAmount] = useState<number | null>(null);
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
@@ -96,9 +100,10 @@ export default function CoinTossRoomScreen() {
   const coinScale = useSharedValue(1);
   const coinOpacity = useSharedValue(1);
   const coinRotateY = useSharedValue(0);
-  const coinGlowScale = useSharedValue(1);
-  const coinGlowOpacity = useSharedValue(0.4);
   const winnerModalScale = useSharedValue(0.3);
+
+  // Reanimated Shared Values cho Nút Hành Động
+  const buttonTranslateY = useSharedValue(0);
 
   // Lấy địa chỉ ví người dùng
   const getMySolanaAddress = (): string | null => {
@@ -114,7 +119,7 @@ export default function CoinTossRoomScreen() {
 
   // Lấy tên hiển thị của người dùng
   const getMyProfile = () => {
-    if (!user) return { name: 'Người chơi', avatar: 'U' };
+    if (!user) return { name: 'Người chơi', avatar: 'H' };
     const googleAcc =
       (user as any)?.google ||
       (user as any)?.linked_accounts?.find((a: any) => a.type === 'google_oauth' || a.type === 'google');
@@ -131,44 +136,20 @@ export default function CoinTossRoomScreen() {
 
   const myProfile = useMemo(() => getMyProfile(), [user]);
 
-  // Nạp số dư SOL
+  // Nạp số dư USDC Token
   useEffect(() => {
     if (myAddress) {
-      getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
+      getUsdcTokenBalance(myAddress).then(setUsdcBalance).catch(console.log);
     }
   }, [myAddress]);
 
-  // Vòng sáng hào quang nhịp thở (Glow Pulse)
-  useEffect(() => {
-    coinGlowScale.value = withRepeat(
-      withSequence(
-        withTiming(1.15, { duration: 1400 }),
-        withTiming(0.95, { duration: 1400 })
-      ),
-      -1,
-      true
-    );
-    coinGlowOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.85, { duration: 1400 }),
-        withTiming(0.35, { duration: 1400 })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
-  // Haptic feedback helpers cho Worklet
+  // Haptic feedback helpers
   const triggerHapticLight = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const triggerHapticHeavy = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-  };
-
-  const triggerHapticSuccess = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   // 1. KHỞI TẠO THÀNH VIÊN PHÒNG
@@ -178,7 +159,7 @@ export default function CoinTossRoomScreen() {
     const currentMember: RoomMember = {
       user_id: user.id,
       name: myProfile.name,
-      avatar: myProfile.avatar,
+      avatar: isHost ? 'H' : myProfile.avatar,
       wallet_address: myAddress || undefined,
       is_host: isHost,
       joined_at: Date.now(),
@@ -187,7 +168,7 @@ export default function CoinTossRoomScreen() {
     setMembers([currentMember]);
   }, [user?.id, roomId, myAddress, myProfile, isHost]);
 
-  // 2. THUẬT TOÁN RANDOM & THỰC THI GIAO DỊCH ON-CHAIN (CHỈ HOST THỰC HIỆN)
+  // 2. THỰC THI GIAO DỊCH ON-CHAIN VỚI STABLECOIN (USDC)
   const handleHostExecuteCoinToss = async () => {
     if (!isHost) return;
 
@@ -201,15 +182,18 @@ export default function CoinTossRoomScreen() {
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Số tiền không hợp lệ', 'Vui lòng nhập số lượng SOL lì xì lớn hơn 0.');
+      Alert.alert('Số tiền không hợp lệ', 'Vui lòng nhập số lượng Lì Xì (USD) lớn hơn 0.');
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
       coinOpacity.value = withTiming(1);
       return;
     }
 
-    if (solBalance !== null && numAmount > solBalance) {
-      Alert.alert('Số dư không đủ', `Ví của bạn (${solBalance.toFixed(4)} SOL) không đủ để lì xì ${numAmount} SOL.`);
+    if (usdcBalance !== null && numAmount > usdcBalance) {
+      Alert.alert(
+        'Số dư không đủ',
+        `Ví của bạn ($${usdcBalance.toFixed(2)} USDC) không đủ để lì xì $${numAmount.toFixed(2)} USDC.`
+      );
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
       coinOpacity.value = withTiming(1);
@@ -222,7 +206,7 @@ export default function CoinTossRoomScreen() {
     if (guests.length === 0) {
       Alert.alert(
         'Chưa có người chơi!',
-        'Phòng cần ít nhất 1 thành viên (Guest) tham gia để có thể tung đồng xu lì xì. Hãy bấm nút "Mời bạn bè" để mời người quanh đây!'
+        'Phòng cần ít nhất 1 thành viên (Guest) tham gia để có thể tung đồng xu lì xì. Hãy bấm nút "+ Invite" để mời bạn bè quanh đây!'
       );
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
@@ -250,11 +234,11 @@ export default function CoinTossRoomScreen() {
       const chosenGuest = guests[randomIndex];
       console.log(`🎯 [Random Choice] Người may mắn được chọn: ${chosenGuest.name} (${chosenGuest.wallet_address})`);
 
-      // Ký và thực thi chuyển SOL trực tiếp on-chain trên Solana Devnet
+      // Ký và thực thi chuyển USDC Stablecoin trực tiếp on-chain trên Solana
       const transferResult = await transfer({
         fromAddress: myAddress,
         recipientAddressOrPhone: chosenGuest.wallet_address!,
-        amountSol: numAmount,
+        amountUsd: numAmount,
       });
 
       if (!transferResult.success || !transferResult.transactionHash) {
@@ -279,7 +263,7 @@ export default function CoinTossRoomScreen() {
       winnerModalScale.value = withSpring(1, { damping: 10, stiffness: 120 });
 
       // Cập nhật số dư Host
-      getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
+      getUsdcTokenBalance(myAddress).then(setUsdcBalance).catch(console.log);
     } catch (err: any) {
       console.error('Coin Toss Error:', err);
       setIsTossing(false);
@@ -288,63 +272,62 @@ export default function CoinTossRoomScreen() {
     }
   };
 
-  // 3. TƯƠNG TÁC GESTURE DETECTOR (TOUCH DOWN -> DRAG -> RELEASE FLIGHT)
-  const panGesture = useMemo(() => {
+  // KÍCH HOẠT HIỆU ỨNG TUNG ĐỒNG XU BAY LÊN & THỰC THI
+  const launchCoinToss = () => {
+    if (isTossing || !isHost) return;
+
+    coinOpacity.value = withTiming(1, { duration: 80 });
+    coinTranslateY.value = withTiming(
+      -450,
+      {
+        duration: 700,
+        easing: Easing.out(Easing.quad),
+      },
+      (finished) => {
+        if (finished) {
+          coinTranslateY.value = withSpring(0, { damping: 12, stiffness: 100 });
+          coinScale.value = withSpring(1, { damping: 14, stiffness: 150 });
+        }
+      }
+    );
+
+    coinScale.value = withSequence(
+      withTiming(1.35, { duration: 320 }),
+      withTiming(1, { duration: 380 })
+    );
+
+    coinRotateY.value = withTiming(coinRotateY.value + 1800, {
+      duration: 1600,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+
+    handleHostExecuteCoinToss();
+  };
+
+  // 3. GESTURE DETECTOR CHO ĐỒNG XU (VUỐT LÊN ĐỂ TUNG)
+  const coinPanGesture = useMemo(() => {
     return Gesture.Pan()
       .enabled(isHost && !isTossing)
-      // A. TRẠNG THÁI NÉN (Touch Down / onBegin)
       .onBegin(() => {
         'worklet';
-        coinScale.value = withSpring(0.9, { damping: 15, stiffness: 220 });
-        coinOpacity.value = withTiming(0.7, { duration: 120 });
+        coinScale.value = withSpring(0.92, { damping: 15, stiffness: 220 });
+        coinOpacity.value = withTiming(0.85, { duration: 100 });
         runOnJS(triggerHapticLight)();
       })
-      // B. TRẠNG THÁI VUỐT (Drag / onUpdate)
       .onUpdate((event) => {
         'worklet';
-        // Chỉ cho phép vuốt lên trên (translationY < 0), kéo xuống bị cản lực
         if (event.translationY < 0) {
           coinTranslateY.value = event.translationY;
         } else {
           coinTranslateY.value = event.translationY * 0.15;
         }
       })
-      // C. TRẠNG THÁI TUNG (Release / onEnd)
       .onEnd((event) => {
         'worklet';
-        // Kiểm tra lực/khoảng cách vuốt: nếu translationY < -120px HOẶC velocityY < -550
-        if (event.translationY < -120 || event.velocityY < -550) {
-          coinOpacity.value = withTiming(1, { duration: 80 });
-
-          // Bay vút lên không trung ra khỏi khung nhìn và rơi lại
-          coinTranslateY.value = withTiming(
-            -500,
-            {
-              duration: 750,
-              easing: Easing.out(Easing.quad),
-            },
-            (finished) => {
-              if (finished) {
-                coinTranslateY.value = withSpring(0, { damping: 12, stiffness: 100 });
-                coinScale.value = withSpring(1, { damping: 14, stiffness: 150 });
-              }
-            }
-          );
-
-          coinScale.value = withSequence(
-            withTiming(1.35, { duration: 350 }),
-            withTiming(1, { duration: 400 })
-          );
-
-          coinRotateY.value = withTiming(coinRotateY.value + 1800, {
-            duration: 1800,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-          });
-
+        if (event.translationY < -80 || event.velocityY < -400) {
           runOnJS(triggerHapticHeavy)();
-          runOnJS(handleHostExecuteCoinToss)();
+          runOnJS(launchCoinToss)();
         } else {
-          // Chưa đủ lực -> Đàn hồi nảy về vị trí gốc
           coinTranslateY.value = withSpring(0, { damping: 14, stiffness: 180 });
           coinScale.value = withSpring(1, { damping: 14, stiffness: 180 });
           coinOpacity.value = withTiming(1, { duration: 150 });
@@ -352,11 +335,46 @@ export default function CoinTossRoomScreen() {
       })
       .onFinalize(() => {
         'worklet';
-        if (coinTranslateY.value !== -500) {
+        if (coinTranslateY.value !== -450) {
           coinOpacity.value = withTiming(1, { duration: 150 });
         }
       });
-  }, [isHost, isTossing, myAddress, amount, solBalance, isWalletReady, members]);
+  }, [isHost, isTossing, myAddress, amount, usdcBalance, isWalletReady, members]);
+
+  // 4. GESTURE DETECTOR CHO NÚT HÀNH ĐỘNG (VUỐT HOẶC CHẠM ĐỂ TUNG)
+  const buttonGesture = useMemo(() => {
+    const buttonPan = Gesture.Pan()
+      .enabled(isHost && !isTossing && isWalletReady)
+      .activeOffsetY([-8, 8])
+      .onBegin(() => {
+        'worklet';
+        runOnJS(triggerHapticLight)();
+      })
+      .onUpdate((e) => {
+        'worklet';
+        if (e.translationY < 0) {
+          buttonTranslateY.value = e.translationY * 0.35;
+        }
+      })
+      .onEnd((e) => {
+        'worklet';
+        buttonTranslateY.value = withSpring(0, { damping: 14, stiffness: 180 });
+        if (e.translationY < -25 || e.velocityY < -250) {
+          runOnJS(triggerHapticHeavy)();
+          runOnJS(launchCoinToss)();
+        }
+      });
+
+    const buttonTap = Gesture.Tap()
+      .enabled(isHost && !isTossing && isWalletReady)
+      .onEnd(() => {
+        'worklet';
+        runOnJS(triggerHapticHeavy)();
+        runOnJS(launchCoinToss)();
+      });
+
+    return Gesture.Race(buttonPan, buttonTap);
+  }, [isHost, isTossing, isWalletReady, amount, members]);
 
   // Reanimated Animated Styles
   const animatedCoinStyle = useAnimatedStyle(() => {
@@ -370,10 +388,9 @@ export default function CoinTossRoomScreen() {
     };
   });
 
-  const animatedGlowStyle = useAnimatedStyle(() => {
+  const animatedButtonStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: coinGlowScale.value }],
-      opacity: coinGlowOpacity.value,
+      transform: [{ translateY: buttonTranslateY.value }],
     };
   });
 
@@ -389,7 +406,7 @@ export default function CoinTossRoomScreen() {
       Haptics.selectionAsync();
       await broadcastInvite(roomId, [targetUser.user_id], {
         roomType: 'coin_toss',
-        note: 'Vào phòng tung đồng xu nhận lì xì SOL may mắn!',
+        note: 'Vào phòng tung đồng xu nhận lì xì USDC may mắn!',
       });
       setInvitedUserIds((prev) => [...prev, targetUser.user_id]);
       Alert.alert('Đã gửi lời mời! 📩', `Đã gửi lời mời tham gia phòng tới ${targetUser.name}`);
@@ -398,242 +415,279 @@ export default function CoinTossRoomScreen() {
     }
   };
 
+  // Thêm thành viên demo (dành cho môi trường test nếu chưa có guest thực)
+  const handleAddTestGuest = () => {
+    const testGuest: RoomMember = {
+      user_id: `guest_test_${Date.now()}`,
+      name: 'Bạn Lộc Phát',
+      avatar: 'LP',
+      wallet_address: '7f9oZqD1Z41XvF9mG1PcvxZJ8fQnLm1A4h9uBvK6demo',
+      is_host: false,
+      joined_at: Date.now(),
+    };
+    setMembers((prev) => [...prev, testGuest]);
+    setShowInviteModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   const copyRoomId = async () => {
     await Clipboard.setStringAsync(roomId);
     Alert.alert('Thông báo', 'Đã sao chép mã phòng!');
   };
 
+  const formatAmountDisplay = (val: string) => {
+    const num = parseFloat(val);
+    if (isNaN(num)) return '0.00';
+    return num.toFixed(2);
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFBEB" />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
 
-        {/* Header Bar */}
+        {/* 1. NỀN & CẤU TRÚC HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#78350F" />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleCol}>
-            <View style={styles.roomBadgeRow}>
-              <View style={[styles.roleBadge, isHost ? styles.roleBadgeHost : styles.roleBadgeGuest]}>
-                <Text style={[styles.roleBadgeText, isHost ? styles.roleBadgeTextHost : styles.roleBadgeTextGuest]}>
-                  {isHost ? '👑 HOST' : '🎮 GUEST'}
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.roomPill} onPress={copyRoomId}>
-                <Text style={styles.roomPillText}>Phòng: {roomId.slice(0, 10)}...</Text>
-                <Feather name="copy" size={12} color="#92400E" style={{ marginLeft: 4 }} />
-              </TouchableOpacity>
-            </View>
+          {/* Nút Back tròn, viền đen 2px, bóng cứng 2px 2px */}
+          <View style={styles.backBtnWrapper}>
+            <View style={styles.backBtnShadow} />
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+              activeOpacity={0.8}
+            >
+              <Feather name="chevron-left" size={24} color="#000000" />
+            </TouchableOpacity>
           </View>
 
+          {/* Room Code & Host Avatar */}
+          <TouchableOpacity
+            style={styles.roomCenterWrapper}
+            onPress={copyRoomId}
+            activeOpacity={0.8}
+          >
+            <View style={styles.headerHostCol}>
+              <View style={styles.headerHostCircle}>
+                <Text style={styles.headerHostText}>H</Text>
+              </View>
+              <View style={styles.headerHostPill}>
+                <Text style={styles.headerHostPillText}>Host</Text>
+              </View>
+            </View>
+
+            <View style={styles.roomPill}>
+              <Text style={styles.roomPillText}>
+                ROOM: {roomId.length > 14 ? roomId.slice(0, 12) + '...' : roomId}
+              </Text>
+              <Feather name="copy" size={12} color="#000000" style={{ marginLeft: 6 }} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Nút Invite góc phải: Vuông bo góc, viền đen 2px, bóng cứng 2px 2px */}
           {isHost ? (
-            <TouchableOpacity
-              style={styles.inviteHeaderBtn}
-              onPress={() => setShowInviteModal(true)}
-            >
-              <Ionicons name="person-add" size={18} color="#D97706" />
-            </TouchableOpacity>
+            <View style={styles.inviteBtnWrapper}>
+              <View style={styles.inviteBtnShadow} />
+              <TouchableOpacity
+                style={styles.inviteHeaderBtn}
+                onPress={() => setShowInviteModal(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-add" size={18} color="#000000" />
+              </TouchableOpacity>
+            </View>
           ) : (
-            <View style={{ width: 40 }} />
+            <View style={{ width: 42 }} />
           )}
         </View>
+
+        {/* Thanh phân cách ngang đậm chất Neo-brutalism */}
+        <View style={styles.headerDivider} />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* NỬA TRÊN: DANH SÁCH THÀNH VIÊN TRONG PHÒNG */}
-          <View style={styles.membersSection}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.sectionTitle}>
-                  Người Trong Phòng ({members.length})
-                </Text>
-              </View>
+          {/* 2. KHU VỰC NGƯỜI TRONG PHÒNG (PARTICIPANTS) */}
+          <View style={styles.participantsSection}>
+            <Text style={styles.participantsTitle}>
+              Người trong phòng ({members.length})
+            </Text>
 
-              {isHost && (
-                <TouchableOpacity
-                  style={styles.inviteTextBtn}
-                  onPress={() => setShowInviteModal(true)}
-                >
-                  <Feather name="user-plus" size={14} color="#D97706" style={{ marginRight: 4 }} />
-                  <Text style={styles.inviteTextBtnText}>Mời bạn bè ({nearbyUsers.length})</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Avatar Row */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.avatarScrollContent}
-            >
+            <View style={styles.participantsRow}>
+              {/* Host & Thành viên trong phòng */}
               {members.map((m) => {
-                const isMe = m.user_id === user?.id;
+                const displayInitial = m.is_host ? 'H' : (m.avatar || 'U');
                 return (
-                  <View key={m.user_id} style={styles.memberAvatarCol}>
-                    <View
-                      style={[
-                        styles.avatarCircle,
-                        m.is_host && styles.avatarCircleHost,
-                        isMe && styles.avatarCircleMe,
-                      ]}
-                    >
-                      <Text style={styles.avatarText}>{m.avatar}</Text>
-                      {m.is_host && (
-                        <View style={styles.crownBadge}>
-                          <Text style={{ fontSize: 10 }}>👑</Text>
-                        </View>
-                      )}
+                  <View key={m.user_id} style={styles.participantItem}>
+                    <View style={styles.participantAvatarCircle}>
+                      <Text style={styles.participantAvatarText}>{displayInitial}</Text>
                     </View>
-                    <Text style={styles.memberName} numberOfLines={1}>
-                      {isMe ? 'Bạn' : m.name}
-                    </Text>
-                    <Text style={styles.memberRole}>
-                      {m.is_host ? 'Host' : 'Guest'}
-                    </Text>
+                    <View style={styles.participantRolePill}>
+                      <Text style={styles.participantRolePillText}>
+                        {m.is_host ? 'Host' : 'Guest'}
+                      </Text>
+                    </View>
                   </View>
                 );
               })}
 
-              {members.length === 1 && isHost && (
+              {/* Slot trống: Nền đứt khúc (dashed), dấu +, label "+ Invite" */}
+              {isHost && (
                 <TouchableOpacity
-                  style={styles.addMemberPlaceholder}
+                  style={styles.participantItem}
                   onPress={() => setShowInviteModal(true)}
+                  activeOpacity={0.7}
                 >
-                  <Feather name="plus" size={20} color="#D97706" />
-                  <Text style={styles.addMemberPlaceholderText}>Mời thêm</Text>
+                  <View style={styles.emptySlotCircle}>
+                    <Feather name="plus" size={22} color="#000000" />
+                  </View>
+                  <View style={styles.inviteSlotPill}>
+                    <Text style={styles.inviteSlotPillText}>+ Invite</Text>
+                  </View>
                 </TouchableOpacity>
               )}
-            </ScrollView>
+            </View>
           </View>
 
-          {/* NỬA DƯỚI: FORM NHẬP TIỀN & ĐỒNG XU TUNG */}
-          <View style={styles.tossStageCard}>
-            {isHost ? (
-              <View style={styles.hostFormContainer}>
-                <View style={styles.amountHeaderRow}>
-                  <Text style={styles.amountLabel}>Số lượng SOL Lì Xì:</Text>
-                  {solBalance !== null && (
-                    <Text style={styles.balanceText}>Ví: {solBalance.toFixed(4)} SOL</Text>
-                  )}
-                </View>
+          {/* 3. KHU VỰC TRUNG TÂM (ĐỒNG XU & SỐ TIỀN) */}
+          <View style={styles.centerSection}>
+            <Text style={styles.amountTitleText}>
+              Số lượng Lì Xì (USDC/Stablecoin):
+            </Text>
 
-                <View style={styles.amountInputBox}>
-                  <TextInput
-                    style={styles.amountInput}
-                    placeholder="0.005"
-                    placeholderTextColor="#94A3B8"
-                    value={amount}
-                    onChangeText={setAmount}
-                    keyboardType="numeric"
-                    editable={!isTossing}
-                  />
-                  <View style={styles.currencyBadge}>
-                    <Text style={styles.currencyBadgeText}>SOL</Text>
-                  </View>
-                </View>
+            {/* Input Số tiền: Khối chữ nhật nền trắng, viền đen 3px, bóng đổ cứng 4px 4px */}
+            <View style={styles.amountBoxWrapper}>
+              <View style={styles.amountBoxShadow} />
+              <View style={styles.amountBoxFront}>
+                <Text style={styles.dollarPrefix}>$</Text>
+                <TextInput
+                  style={styles.amountInputField}
+                  value={amount}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9.]/g, '');
+                    setAmount(cleaned);
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholder="5.00"
+                  placeholderTextColor="#A0AEC0"
+                  editable={!isTossing}
+                />
+              </View>
+            </View>
 
-                {/* Quick Pills */}
-                <View style={styles.quickPillRow}>
-                  {['0.005', '0.01', '0.02', '0.05'].map((amt) => (
-                    <TouchableOpacity
-                      key={amt}
-                      style={[styles.quickPill, amount === amt && styles.quickPillActive]}
-                      onPress={() => setAmount(amt)}
-                      disabled={isTossing}
-                    >
-                      <Text
-                        style={[
-                          styles.quickPillText,
-                          amount === amt && styles.quickPillTextActive,
-                        ]}
-                      >
-                        {amt} SOL
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            ) : (
-              <View style={styles.guestWaitingBox}>
-                <Text style={styles.guestWaitingTitle}>
-                  🎁 Chờ Host Tung Đồng Xu
-                </Text>
-                <Text style={styles.guestWaitingDesc}>
-                  Khi Host vuốt tung đồng xu, hệ thống sẽ chọn ngẫu nhiên 1 người trong phòng để nhận lì xì SOL trực tiếp on-chain!
-                </Text>
-              </View>
+            {/* Hiển thị số dư USDC thực tế */}
+            {usdcBalance !== null && (
+              <Text style={styles.balanceSubtext}>
+                Số dư khả dụng: ${usdcBalance.toFixed(2)} USDC
+              </Text>
             )}
 
-            {/* VÙNG TUNG ĐỒNG XU (COIN TOSS ARENA) */}
-            <View style={styles.coinArena}>
-              {/* Vòng Glow hào quang nhịp thở */}
-              <Animated.View style={[styles.coinGlowRing, animatedGlowStyle]} />
+            {/* Mũi tên kép >> (xoay dọc) báo hiệu vuốt lên */}
+            <View style={styles.coinTopChevrons}>
+              <Feather name="chevrons-up" size={30} color="#000000" />
+            </View>
 
-              {/* Component Đồng Xu Tương Tác GestureDetector & Reanimated */}
-              <GestureDetector gesture={panGesture}>
+            {/* Đồng xu Lì Xì Neo-brutalism: Gold, viền đen 5px, gờ trong, Dollar $ siêu to, bóng cứng lệch 8x8 */}
+            <View style={styles.coinArena}>
+              <GestureDetector gesture={coinPanGesture}>
                 <Animated.View style={[styles.coin3DWrapper, animatedCoinStyle]}>
-                  <View style={styles.coinBodyOuter}>
-                    <View style={styles.coinBodyInner}>
-                      <Text style={styles.coinSymbol}>🪙</Text>
-                      <Text style={styles.coinText}>SOL</Text>
+                  {/* Bóng cứng màu đen 8px 8px */}
+                  <View style={styles.coinHardShadow} />
+                  {/* Thân đồng xu vàng gold */}
+                  <View style={styles.coinOuterBody}>
+                    {/* Vòng tròn viền đen mỏng hơn bên trong tạo gờ */}
+                    <View style={styles.coinInnerRing}>
+                      <Text style={styles.coinDollarSymbol}>$</Text>
                     </View>
                   </View>
                 </Animated.View>
               </GestureDetector>
-
-              {/* Mũi tên chỉ dẫn vuốt */}
-              {isHost && !isTossing && (
-                <View style={styles.swipeHintContainer}>
-                  <Feather name="chevrons-up" size={24} color="#D97706" />
-                  <Text style={styles.swipeHintText}>Vuốt lên để tung đồng xu</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Trạng Thái & Nút Bấm Thủ Công */}
-            <View style={styles.statusActionRow}>
-              <Text style={styles.tossStatusText}>{tossStatusText}</Text>
-
-              {isHost && (
-                <TouchableOpacity
-                  style={[
-                    styles.manualTossBtn,
-                    (isTossing || !isWalletReady) && styles.manualTossBtnDisabled,
-                  ]}
-                  onPress={handleHostExecuteCoinToss}
-                  disabled={isTossing || !isWalletReady}
-                  activeOpacity={0.85}
-                >
-                  {isTossing ? (
-                    <View style={styles.btnInner}>
-                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.manualTossBtnText}>
-                        {statusMessage || 'Đang trao thưởng On-chain...'}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.btnInner}>
-                      <MaterialCommunityIcons name="hand-coin" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.manualTossBtnText}>
-                        Tung Ngay ({amount} SOL)
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
             </View>
           </View>
 
-          <View style={{ height: 40 }} />
+          {/* 4. BỘ CHỌN SỐ TIỀN NHANH (PRESET PILLS) */}
+          <View style={styles.presetPillsRow}>
+            {PRESET_AMOUNTS.map((item) => {
+              const isSelected = parseFloat(amount) === parseFloat(item.value);
+              return (
+                <View key={item.value} style={styles.presetPillWrapper}>
+                  <View style={styles.presetPillShadow} />
+                  <TouchableOpacity
+                    style={[
+                      styles.presetPillFront,
+                      { backgroundColor: item.bg },
+                      isSelected && styles.presetPillActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setAmount(item.value);
+                    }}
+                    disabled={isTossing}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.presetPillText, { color: item.textColor }]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* 5. NÚT HÀNH ĐỘNG / SWIPE AREA */}
+          <View style={styles.actionSection}>
+            <Text style={styles.swipeHintText}>Vuốt lên để tung đồng xu</Text>
+
+            {isHost ? (
+              <GestureDetector gesture={buttonGesture}>
+                <Animated.View style={[styles.actionButtonWrapper, animatedButtonStyle]}>
+                  {/* Bóng cứng 5px 5px */}
+                  <View style={styles.actionButtonShadow} />
+                  {/* Nút chữ nhật to, nền Tím, viền đen 3px */}
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButtonFront,
+                      (isTossing || !isWalletReady) && styles.actionButtonDisabled,
+                    ]}
+                    onPress={launchCoinToss}
+                    disabled={isTossing || !isWalletReady}
+                    activeOpacity={0.9}
+                  >
+                    {isTossing ? (
+                      <View style={styles.btnInner}>
+                        <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.actionButtonText}>
+                          {statusMessage || 'Đang trao thưởng On-chain...'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.actionButtonText}>
+                        Tung ngay ($ {formatAmountDisplay(amount)})
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </Animated.View>
+              </GestureDetector>
+            ) : (
+              <View style={styles.guestWaitingBox}>
+                <Text style={styles.guestWaitingTitle}>🎁 Chờ Host Tung Đồng Xu</Text>
+                <Text style={styles.guestWaitingDesc}>
+                  Khi Host vuốt tung đồng xu, hệ thống sẽ chọn ngẫu nhiên 1 người trong phòng để nhận lì xì USDC trực tiếp on-chain!
+                </Text>
+              </View>
+            )}
+
+            {/* Icon mũi tên kép dưới cùng */}
+            <View style={styles.bottomChevronsContainer}>
+              <Feather name="chevrons-up" size={26} color="#000000" />
+            </View>
+          </View>
+
+          <View style={{ height: 20 }} />
         </ScrollView>
 
-        {/* MODAL CHIẾN THẮNG (WINNER CELEBRATION MODAL) */}
+        {/* MODAL CHIẾN THẮNG (WINNER CELEBRATION MODAL) THEO PHONG CÁCH NEO-BRUTALISM */}
         <Modal
           visible={showWinnerModal}
           transparent
@@ -641,56 +695,66 @@ export default function CoinTossRoomScreen() {
           onRequestClose={() => setShowWinnerModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <Animated.View style={[styles.winnerCard, animatedWinnerModalStyle]}>
-              <View style={styles.winnerConfettiIcon}>
-                <Text style={{ fontSize: 50 }}>🎉</Text>
-              </View>
+            <Animated.View style={[styles.winnerCardWrapper, animatedWinnerModalStyle]}>
+              <View style={styles.winnerCardShadow} />
+              <View style={styles.winnerCard}>
+                <View style={styles.winnerConfettiIcon}>
+                  <Text style={{ fontSize: 48 }}>🎉</Text>
+                </View>
 
-              <Text style={styles.winnerCardHeading}>
-                {winner?.user_id === user?.id
-                  ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG! 🧧'
-                  : 'NGƯỜI MAY MẮN NHẤT PHÒNG! 🏆'}
-              </Text>
-
-              <View style={styles.winnerAvatarLarge}>
-                <Text style={styles.winnerAvatarLargeText}>
-                  {winner?.avatar || 'W'}
+                <Text style={styles.winnerCardHeading}>
+                  {winner?.user_id === user?.id
+                    ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG! 🧧'
+                    : 'NGƯỜI MAY MẮN NHẤT PHÒNG! 🏆'}
                 </Text>
-              </View>
 
-              <Text style={styles.winnerNameText}>{winner?.name}</Text>
-              <Text style={styles.winnerWalletText}>
-                {winner?.wallet_address
-                  ? `${winner.wallet_address.slice(0, 6)}...${winner.wallet_address.slice(-6)}`
-                  : ''}
-              </Text>
-
-              <View style={styles.rewardPill}>
-                <Text style={styles.rewardPillText}>
-                  +{wonAmount} SOL
-                </Text>
-              </View>
-
-              {lastTxSignature && (
-                <View style={styles.txBox}>
-                  <Text style={styles.txBoxLabel}>Chữ ký On-chain Solana:</Text>
-                  <Text style={styles.txBoxValue} numberOfLines={1}>
-                    {lastTxSignature}
+                <View style={styles.winnerAvatarLarge}>
+                  <Text style={styles.winnerAvatarLargeText}>
+                    {winner?.avatar || 'W'}
                   </Text>
                 </View>
-              )}
 
-              <TouchableOpacity
-                style={styles.closeWinnerBtn}
-                onPress={() => setShowWinnerModal(false)}
-              >
-                <Text style={styles.closeWinnerBtnText}>Tuyệt Vời! Tiếp Tục Chơi</Text>
-              </TouchableOpacity>
+                <Text style={styles.winnerNameText}>{winner?.name}</Text>
+                <Text style={styles.winnerWalletText}>
+                  {winner?.wallet_address
+                    ? `${winner.wallet_address.slice(0, 6)}...${winner.wallet_address.slice(-6)}`
+                    : ''}
+                </Text>
+
+                <View style={styles.rewardPillWrapper}>
+                  <View style={styles.rewardPillShadow} />
+                  <View style={styles.rewardPill}>
+                    <Text style={styles.rewardPillText}>
+                      +${wonAmount ? wonAmount.toFixed(2) : '0.00'} USDC
+                    </Text>
+                  </View>
+                </View>
+
+                {lastTxSignature && (
+                  <View style={styles.txBox}>
+                    <Text style={styles.txBoxLabel}>Chữ ký On-chain Solana:</Text>
+                    <Text style={styles.txBoxValue} numberOfLines={1}>
+                      {lastTxSignature}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.closeWinnerBtnWrapper}>
+                  <View style={styles.closeWinnerBtnShadow} />
+                  <TouchableOpacity
+                    style={styles.closeWinnerBtn}
+                    onPress={() => setShowWinnerModal(false)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.closeWinnerBtnText}>Tuyệt Vời! Tiếp Tục Chơi</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </Animated.View>
           </View>
         </Modal>
 
-        {/* MODAL MỜI BẠN BÈ XUNG QUANH (PRESENCE DISCOVERY) */}
+        {/* MODAL MỜI BẠN BÈ XUNG QUANH (PRESENCE DISCOVERY) THEO CHUẨN NEO-BRUTALISM */}
         <Modal
           visible={showInviteModal}
           transparent
@@ -709,12 +773,13 @@ export default function CoinTossRoomScreen() {
                 <TouchableOpacity
                   style={styles.closeSheetBtn}
                   onPress={() => setShowInviteModal(false)}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="close" size={22} color="#1E293B" />
+                  <Ionicons name="close" size={22} color="#000000" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 350 }}>
+              <ScrollView style={{ maxHeight: 320 }}>
                 {nearbyUsers.map((u) => {
                   const isAlreadyIn = members.some((m) => m.user_id === u.user_id);
                   const isInvited = invitedUserIds.includes(u.user_id);
@@ -735,7 +800,7 @@ export default function CoinTossRoomScreen() {
 
                       {isAlreadyIn ? (
                         <View style={styles.alreadyInBadge}>
-                          <Text style={styles.alreadyInText}>Đã vào phòng</Text>
+                          <Text style={styles.alreadyInText}>Đã vào</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -745,6 +810,7 @@ export default function CoinTossRoomScreen() {
                           ]}
                           onPress={() => handleInviteUser(u)}
                           disabled={isInvited}
+                          activeOpacity={0.8}
                         >
                           <Text
                             style={[
@@ -752,7 +818,7 @@ export default function CoinTossRoomScreen() {
                               isInvited && styles.inviteBtnTextSent,
                             ]}
                           >
-                            {isInvited ? 'Đã gửi' : 'Mời vào'}
+                            {isInvited ? 'Đã gửi' : 'Mời'}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -762,10 +828,22 @@ export default function CoinTossRoomScreen() {
 
                 {nearbyUsers.length === 0 && (
                   <View style={styles.emptyNearbyBox}>
-                    <Feather name="users" size={36} color="#CBD5E1" />
+                    <Feather name="users" size={32} color="#94A3B8" />
                     <Text style={styles.emptyNearbyText}>
                       Chưa phát hiện thiết bị nào khác đang mở app quanh đây.
                     </Text>
+
+                    {/* Nút bổ sung người chơi Test cho Dev/Demo */}
+                    <TouchableOpacity
+                      style={styles.addTestPlayerBtn}
+                      onPress={handleAddTestGuest}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="user-check" size={16} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={styles.addTestPlayerBtnText}>
+                        + Thêm người chơi giả lập (Test Devnet)
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </ScrollView>
@@ -773,7 +851,7 @@ export default function CoinTossRoomScreen() {
           </View>
         </Modal>
 
-        {/* Modal Khôi phục Ví */}
+        {/* Modal Khôi phục Ví nếu cần */}
         <WalletRecoveryModal
           visible={showRecoveryModal || needsRecovery}
           onClose={() => setShowRecoveryModal(false)}
@@ -787,398 +865,440 @@ export default function CoinTossRoomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FDF8F5',
   },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+
+  // 1. HEADER STYLES
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FEF3C7',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 10,
+    backgroundColor: '#FDF8F5',
+  },
+  backBtnWrapper: {
+    width: 42,
+    height: 42,
+    position: 'relative',
+  },
+  backBtnShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#000000',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FEF3C7',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitleCol: {
-    alignItems: 'center',
-  },
-  roomBadgeRow: {
+  roomCenterWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginRight: 6,
+  headerHostCol: {
+    alignItems: 'center',
+    marginRight: 8,
   },
-  roleBadgeHost: {
-    backgroundColor: '#FEF3C7',
+  headerHostCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  roleBadgeGuest: {
-    backgroundColor: '#E0F2FE',
+  headerHostText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000000',
   },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+  headerHostPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginTop: -6,
+    zIndex: 2,
   },
-  roleBadgeTextHost: {
-    color: '#D97706',
-  },
-  roleBadgeTextGuest: {
-    color: '#0284C7',
+  headerHostPillText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#000000',
   },
   roomPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   roomPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#92400E',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  inviteBtnWrapper: {
+    width: 42,
+    height: 42,
+    position: 'relative',
+  },
+  inviteBtnShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#000000',
   },
   inviteHeaderBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FEF3C7',
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#FFD8A8',
+    borderWidth: 2,
+    borderColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scrollContent: {
-    padding: 16,
+  headerDivider: {
+    height: 2,
+    backgroundColor: '#000000',
+    marginHorizontal: 20,
+    marginBottom: 12,
   },
-  membersSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FEF3C7',
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+
+  // 2. PARTICIPANTS STYLES
+  participantsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 8,
-  },
-  sectionTitle: {
-    fontSize: 14,
+  participantsTitle: {
+    fontSize: 13.5,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#000000',
+    marginBottom: 10,
   },
-  inviteTextBtn: {
+  participantsRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inviteTextBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#D97706',
-  },
-  avatarScrollContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  memberAvatarCol: {
+  participantItem: {
     alignItems: 'center',
     marginRight: 16,
-    width: 60,
   },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FEF3C7',
+  participantAvatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FDE68A',
-    marginBottom: 4,
   },
-  avatarCircleHost: {
-    borderColor: '#D97706',
-    backgroundColor: '#FEF3C7',
+  participantAvatarText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
   },
-  avatarCircleMe: {
-    borderWidth: 2.5,
-    borderColor: '#D97706',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#92400E',
-  },
-  crownBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -4,
-  },
-  memberName: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#1E293B',
-    textAlign: 'center',
-  },
-  memberRole: {
-    fontSize: 10,
-    color: '#64748B',
-  },
-  addMemberPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  participantRolePill: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#D97706',
+    borderColor: '#000000',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 1.5,
+    marginTop: -8,
+    zIndex: 2,
+  },
+  participantRolePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#000000',
+  },
+  emptySlotCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FDF8F5',
+    borderWidth: 2,
+    borderColor: '#000000',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 4,
   },
-  addMemberPlaceholderText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#D97706',
-    marginTop: 1,
-  },
-  tossStageCard: {
+  inviteSlotPill: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#FEF3C7',
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  hostFormContainer: {
-    marginBottom: 16,
-  },
-  amountHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  amountLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  balanceText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  amountInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    height: 50,
+    borderColor: '#000000',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 1.5,
+    marginTop: -8,
+    zIndex: 2,
   },
-  amountInput: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
+  inviteSlotPillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#000000',
   },
-  currencyBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  currencyBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#92400E',
-  },
-  quickPillRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  quickPill: {
-    flex: 1,
-    paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+
+  // 3. CENTER (AMOUNT & COIN) STYLES
+  centerSection: {
     alignItems: 'center',
-    marginHorizontal: 3,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginTop: 4,
   },
-  quickPillActive: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
-  },
-  quickPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  quickPillTextActive: {
-    color: '#92400E',
+  amountTitleText: {
+    fontSize: 14,
     fontWeight: '800',
-  },
-  guestWaitingBox: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    alignItems: 'center',
-  },
-  guestWaitingTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#92400E',
-    marginBottom: 4,
-  },
-  guestWaitingDesc: {
-    fontSize: 12,
-    color: '#78350F',
+    color: '#000000',
     textAlign: 'center',
-    lineHeight: 17,
+    marginBottom: 8,
+  },
+  amountBoxWrapper: {
+    width: 220,
+    height: 52,
+    position: 'relative',
+    alignSelf: 'center',
+  },
+  amountBoxShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 220,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#000000',
+  },
+  amountBoxFront: {
+    width: 220,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  dollarPrefix: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#000000',
+    marginRight: 6,
+  },
+  amountInputField: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#000000',
+    minWidth: 90,
+    padding: 0,
+    textAlign: 'left',
+  },
+  balanceSubtext: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#4B5563',
+    marginTop: 6,
+  },
+  coinTopChevrons: {
+    marginTop: 12,
+    marginBottom: 4,
+    alignItems: 'center',
   },
   coinArena: {
-    height: 260,
+    width: 170,
+    height: 170,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 10,
-  },
-  coinGlowRing: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: '#FEF3C7',
-    borderWidth: 2,
-    borderColor: '#FDE68A',
+    marginVertical: 4,
   },
   coin3DWrapper: {
-    width: 120,
-    height: 120,
+    width: 154,
+    height: 154,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  coinBodyOuter: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: '#F59E0B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 5,
-    borderColor: '#D97706',
-    shadowColor: '#B45309',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  coinBodyInner: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#FBBF24',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FDE68A',
-  },
-  coinSymbol: {
-    fontSize: 34,
-  },
-  coinText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#78350F',
-    marginTop: -2,
-    letterSpacing: 1,
-  },
-  swipeHintContainer: {
+  coinHardShadow: {
     position: 'absolute',
-    bottom: 0,
+    top: 8,
+    left: 8,
+    width: 154,
+    height: 154,
+    borderRadius: 77,
+    backgroundColor: '#000000',
+  },
+  coinOuterBody: {
+    width: 154,
+    height: 154,
+    borderRadius: 77,
+    backgroundColor: '#FFD700',
+    borderWidth: 5,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coinInnerRing: {
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coinDollarSymbol: {
+    fontSize: 58,
+    fontWeight: '900',
+    color: '#000000',
+    lineHeight: 64,
+    textAlign: 'center',
+  },
+
+  // 4. PRESET PILLS STYLES
+  presetPillsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginVertical: 14,
+  },
+  presetPillWrapper: {
+    flex: 1,
+    height: 38,
+    marginHorizontal: 4,
+    position: 'relative',
+  },
+  presetPillShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: '#000000',
+    borderRadius: 19,
+  },
+  presetPillFront: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetPillActive: {
+    borderWidth: 2.5,
+    transform: [{ scale: 1.04 }],
+  },
+  presetPillText: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  // 5. ACTION BUTTON & SWIPE AREA STYLES
+  actionSection: {
+    paddingHorizontal: 20,
+    marginTop: 6,
     alignItems: 'center',
   },
   swipeHintText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#92400E',
-    marginTop: 2,
-  },
-  statusActionRow: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  tossStatusText: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 12,
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#000000',
     textAlign: 'center',
+    marginBottom: 10,
   },
-  manualTossBtn: {
-    backgroundColor: '#D97706',
-    borderRadius: 16,
-    paddingVertical: 15,
-    paddingHorizontal: 24,
+  actionButtonWrapper: {
     width: '100%',
+    height: 56,
+    position: 'relative',
+  },
+  actionButtonShadow: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    right: -5,
+    bottom: -5,
+    backgroundColor: '#000000',
+    borderRadius: 16,
+  },
+  actionButtonFront: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#8A2BE2',
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingHorizontal: 16,
   },
-  manualTossBtnDisabled: {
-    backgroundColor: '#FCD34D',
-    shadowOpacity: 0,
-    elevation: 0,
+  actionButtonDisabled: {
+    backgroundColor: '#C4B5FD',
   },
-  manualTossBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
+  actionButtonText: {
+    fontSize: 16.5,
+    fontWeight: '900',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   btnInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  guestWaitingBox: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#000000',
+    padding: 16,
+    alignItems: 'center',
+  },
+  guestWaitingTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 6,
+  },
+  guestWaitingDesc: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  bottomChevronsContainer: {
+    alignItems: 'center',
+    marginTop: 14,
+  },
+
+  // MODAL STYLES (NEO-BRUTALISM)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
@@ -1186,17 +1306,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  winnerCardWrapper: {
+    width: '100%',
+    position: 'relative',
+  },
+  winnerCardShadow: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: -6,
+    bottom: -6,
+    backgroundColor: '#000000',
+    borderRadius: 24,
+  },
   winnerCard: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: '#000000',
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
   },
   winnerConfettiIcon: {
     marginBottom: 8,
@@ -1204,54 +1334,69 @@ const styles = StyleSheet.create({
   winnerCardHeading: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#D97706',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 16,
   },
   winnerAvatarLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FEF3C7',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#FFD700',
+    borderWidth: 3,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#F59E0B',
     marginBottom: 8,
   },
   winnerAvatarLargeText: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
-    color: '#92400E',
+    color: '#000000',
   },
   winnerNameText: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '900',
+    color: '#000000',
     marginBottom: 2,
   },
   winnerWalletText: {
     fontSize: 12,
+    fontWeight: '700',
     color: '#64748B',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     marginBottom: 16,
   },
-  rewardPill: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#86EFAC',
+  rewardPillWrapper: {
+    position: 'relative',
     marginBottom: 16,
+  },
+  rewardPillShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: '#000000',
+    borderRadius: 16,
+  },
+  rewardPill: {
+    backgroundColor: '#00E5FF',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   rewardPillText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#15803D',
+    color: '#000000',
   },
   txBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: '#000000',
     padding: 10,
     borderRadius: 10,
     width: '100%',
@@ -1259,36 +1404,59 @@ const styles = StyleSheet.create({
   },
   txBoxLabel: {
     fontSize: 10,
-    color: '#64748B',
+    fontWeight: '800',
+    color: '#000000',
     marginBottom: 2,
   },
   txBoxValue: {
     fontSize: 11,
-    color: '#0284C7',
+    color: '#8A2BE2',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  closeWinnerBtn: {
-    backgroundColor: '#D97706',
-    borderRadius: 14,
-    paddingVertical: 14,
+  closeWinnerBtnWrapper: {
     width: '100%',
+    height: 50,
+    position: 'relative',
+  },
+  closeWinnerBtnShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
+    backgroundColor: '#000000',
+    borderRadius: 14,
+  },
+  closeWinnerBtn: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#8A2BE2',
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeWinnerBtnText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
   },
+
+  // INVITE BOTTOM SHEET STYLES
   modalOverlayBottom: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   inviteSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#FDF8F5',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderRightWidth: 3,
+    borderColor: '#000000',
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
@@ -1300,11 +1468,12 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '900',
+    color: '#000000',
   },
   sheetSubtitle: {
     fontSize: 12,
+    fontWeight: '600',
     color: '#64748B',
     marginTop: 2,
   },
@@ -1312,7 +1481,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1320,30 +1491,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#E5E7EB',
   },
   nearbyAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   nearbyAvatarText: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#92400E',
+    fontWeight: '900',
+    color: '#000000',
   },
   nearbyInfo: {
     flex: 1,
   },
   nearbyName: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '800',
+    color: '#000000',
   },
   nearbyDist: {
     fontSize: 12,
@@ -1352,39 +1525,59 @@ const styles = StyleSheet.create({
   alreadyInBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3F4F6',
     borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#000000',
   },
   alreadyInText: {
     fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
+    color: '#000000',
+    fontWeight: '700',
   },
   inviteBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#D97706',
+    backgroundColor: '#00E5FF',
     borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   inviteBtnSent: {
-    backgroundColor: '#FDE68A',
+    backgroundColor: '#E5E7EB',
   },
   inviteBtnText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '900',
+    color: '#000000',
   },
   inviteBtnTextSent: {
-    color: '#92400E',
+    color: '#64748B',
   },
   emptyNearbyBox: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 24,
   },
   emptyNearbyText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     marginTop: 10,
+    marginBottom: 16,
+  },
+  addTestPlayerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD8A8',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  addTestPlayerBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#000000',
   },
 });

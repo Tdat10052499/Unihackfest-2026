@@ -1,137 +1,193 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useTranslation } from '../../services/i18n';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
-interface MiniAppCardProps {
+interface MiniAppItem {
+  id: string;
   title: string;
   category: string;
   description: string;
-  iconNode: React.ReactNode;
+  iconName: string;
+  iconType: 'feather' | 'ionicons';
   iconBg: string;
-  soonText?: string;
-  inDevMsg?: string;
+  iconColor?: string;
+  categoryColor?: string;
+  status?: string;
 }
 
-const MiniAppCard: React.FC<MiniAppCardProps> = ({
-  title,
-  category,
-  description,
-  iconNode,
-  iconBg,
-  soonText,
-  inDevMsg,
-}) => (
-  <TouchableOpacity
-    style={styles.appCard}
-    activeOpacity={0.85}
-    onPress={() =>
-      Alert.alert(
-        title,
-        `${description}\n\n${inDevMsg || 'Ứng dụng này đang trong quá trình phát triển trên hệ sinh thái N.E.D MiniApps!'}`
-      )
-    }
-  >
-    <View style={[styles.appIconCircle, { backgroundColor: iconBg }]}>
-      {iconNode}
-    </View>
-    <View style={styles.appInfoCol}>
-      <View style={styles.appHeaderRow}>
-        <Text style={styles.appTitle}>{title}</Text>
-        <View style={styles.soonBadge}>
-          <Text style={styles.soonBadgeText}>{soonText || 'Sắp ra mắt'}</Text>
-        </View>
-      </View>
-      <Text style={styles.appCategory}>{category}</Text>
-      <Text style={styles.appDesc}>{description}</Text>
-    </View>
-  </TouchableOpacity>
-);
+// 2. Cấu trúc Mock Data cho danh sách Mini-Apps
+const MINI_APPS_DATA: MiniAppItem[] = [
+  {
+    id: '1',
+    title: 'Solana Pay Merchant',
+    category: 'Payments & Merchant',
+    description: 'Generate QR code invoices for cafes, retail shops and receive instant USDC/VND payments.',
+    iconName: 'qr-code',
+    iconType: 'ionicons',
+    iconBg: '#E0FFFF', // Cyan nhạt
+    categoryColor: '#0891B2',
+    status: 'Coming soon',
+  },
+  {
+    id: '2',
+    title: 'Jupiter Swap Lite',
+    category: 'DeFi & Token Swap',
+    description: 'Swap tokens swiftly with optimal rates routed by Jupiter Aggregator.',
+    iconName: 'swap-horizontal',
+    iconType: 'ionicons',
+    iconBg: '#E6E6FA', // Tím nhạt
+    categoryColor: '#0891B2',
+    status: 'Coming soon',
+  },
+  {
+    id: '3',
+    title: 'Micro Savings',
+    category: 'Personal Finance',
+    description: 'Auto-round up spare change to accumulate SOL and earn daily yield.',
+    iconName: 'trending-up',
+    iconType: 'feather',
+    iconBg: '#FFFFFF', // Trắng
+    categoryColor: '#0891B2',
+    status: 'Coming soon',
+  },
+  {
+    id: '4',
+    title: 'Web3 Gift Cards',
+    category: 'Gift Cards & Vouchers',
+    description: 'Purchase and gift digital cards (Grab, Shopee, Starbucks) using N.E.D balance.',
+    iconName: 'gift-outline',
+    iconType: 'ionicons',
+    iconBg: '#FFE4E1', // Hồng nhạt
+    categoryColor: '#0891B2',
+    status: 'Coming soon',
+  },
+];
 
 export default function MiniAppsScreen() {
-  const { t } = useTranslation();
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCardPress = (item: MiniAppItem | { title: string; status?: string }) => {
+    // Gọi hiệu ứng rung nhẹ Haptics
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage('Tính năng đang được phát triển');
+    setToastVisible(true);
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastVisible(false);
+    }, 2200);
+  };
+
+  const renderIcon = (name: string, type: 'feather' | 'ionicons', color: string = '#000000') => {
+    if (type === 'feather') {
+      return <Feather name={name as any} size={22} color={color} />;
+    }
+    return <Ionicons name={name as any} size={22} color={color} />;
+  };
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerTitle}>{t('miniapps.title', { defaultValue: 'N.E.D MiniApps Hub' })}</Text>
-          <Text style={styles.headerSubtitle}>
-            {t('miniapps.subtitle', { defaultValue: 'Hệ sinh thái ứng dụng phi tập trung Web3 trên Solana' })}
-          </Text>
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Banner */}
-        <View style={styles.bannerContainer}>
-          <View style={styles.bannerIconBox}>
-            <Ionicons name="sparkles" size={24} color="#00A859" />
-          </View>
-          <View style={styles.bannerTextBox}>
-            <Text style={styles.bannerTitle}>{t('miniapps.bannerTitle', { defaultValue: 'Web3 DApps Không Giới Hạn' })}</Text>
-            <Text style={styles.bannerSubtitle}>
-              {t('miniapps.bannerSubtitle', { defaultValue: 'Trải nghiệm DeFi, Gaming, Thanh toán thương mại điện tử với tốc độ tức thì của mạng Solana.' })}
-            </Text>
-          </View>
+        {/* 1. Tiêu đề chính "MINI APPS" */}
+        <Text style={styles.mainTitle}>MINI APPS</Text>
+
+        {/* Thẻ Banner Highlight "Limitless Web3 DApps" */}
+        <View style={styles.cardWrapper}>
+          <View style={styles.cardShadow} />
+          <TouchableOpacity
+            style={styles.cardFront}
+            activeOpacity={0.85}
+            onPress={() => handleCardPress({ title: 'Limitless Web3 DApps' })}
+          >
+            <View style={[styles.iconBox, { backgroundColor: '#00E5FF' }]}>
+              <Ionicons name="sparkles" size={22} color="#000000" />
+            </View>
+
+            <View style={styles.textContent}>
+              <Text style={styles.cardTitle}>Limitless Web3 DApps</Text>
+              <Text style={styles.bannerDesc}>
+                Experience DeFi, Gaming, E-commerce payments with Solana instant speed.
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionHeader}>{t('miniapps.featuredSection', { defaultValue: 'ỨNG DỤNG NỔI BẬT' })}</Text>
+        {/* Tiêu đề phụ "Featured Apps" */}
+        <Text style={styles.sectionTitle}>Featured Apps</Text>
 
-        <MiniAppCard
-          title={t('miniapps.solanaPayTitle', { defaultValue: 'Solana Pay Merchant' })}
-          category={t('miniapps.solanaPayCategory', { defaultValue: 'Thanh Toán & Cửa Hàng' })}
-          description={t('miniapps.solanaPayDesc', { defaultValue: 'Tạo hóa đơn QR Code cho quán cafe, cửa hàng bán lẻ và nhận thanh toán USDC/VND tức thì.' })}
-          iconNode={<MaterialCommunityIcons name="qrcode-scan" size={24} color="#00A859" />}
-          iconBg="#D1F4E0"
-          soonText={t('miniapps.comingSoon', { defaultValue: 'Sắp ra mắt' })}
-          inDevMsg={t('miniapps.inDevNotice', { defaultValue: 'Ứng dụng này đang trong quá trình phát triển trên hệ sinh thái N.E.D MiniApps!' })}
-        />
+        {/* Danh sách các thẻ ứng dụng Mock Data */}
+        {MINI_APPS_DATA.map((item) => (
+          <View key={item.id} style={styles.cardWrapper}>
+            {/* Hard Shadow Layer phía sau (Neo-brutalism) */}
+            <View style={styles.cardShadow} />
 
-        <MiniAppCard
-          title={t('miniapps.jupiterSwapTitle', { defaultValue: 'Jupiter Swap Lite' })}
-          category={t('miniapps.jupiterSwapCategory', { defaultValue: 'DeFi & Hoán Đổi Token' })}
-          description={t('miniapps.jupiterSwapDesc', { defaultValue: 'Hoán đổi token nhanh chóng với tỷ giá tốt nhất từ giao thức Jupiter Aggregator.' })}
-          iconNode={<MaterialCommunityIcons name="swap-horizontal-bold" size={24} color="#8B5CF6" />}
-          iconBg="#EDE9FE"
-          soonText={t('miniapps.comingSoon', { defaultValue: 'Sắp ra mắt' })}
-          inDevMsg={t('miniapps.inDevNotice', { defaultValue: 'Ứng dụng này đang trong quá trình phát triển trên hệ sinh thái N.E.D MiniApps!' })}
-        />
+            <TouchableOpacity
+              style={styles.cardFront}
+              activeOpacity={0.85}
+              onPress={() => handleCardPress(item)}
+            >
+              {/* Biểu tượng (Icon Box - Bên trái) */}
+              <View style={[styles.iconBox, { backgroundColor: item.iconBg }]}>
+                {renderIcon(item.iconName, item.iconType, item.iconColor || '#000000')}
+              </View>
 
-        <MiniAppCard
-          title={t('miniapps.microSavingsTitle', { defaultValue: 'Micro Savings (Tích Lũy Nhỏ)' })}
-          category={t('miniapps.microSavingsCategory', { defaultValue: 'Tài Chính Cá Nhân' })}
-          description={t('miniapps.microSavingsDesc', { defaultValue: 'Tự động làm tròn số tiền chi tiêu lẻ để tích lũy SOL sinh lời mỗi ngày.' })}
-          iconNode={<Feather name="trending-up" size={24} color="#0284C7" />}
-          iconBg="#E0F2FE"
-          soonText={t('miniapps.comingSoon', { defaultValue: 'Sắp ra mắt' })}
-          inDevMsg={t('miniapps.inDevNotice', { defaultValue: 'Ứng dụng này đang trong quá trình phát triển trên hệ sinh thái N.E.D MiniApps!' })}
-        />
+              {/* Nội dung (Text Content - Ở giữa) */}
+              <View style={styles.textContent}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
 
-        <MiniAppCard
-          title={t('miniapps.giftCardsTitle', { defaultValue: 'Web3 Gift Cards' })}
-          category={t('miniapps.giftCardsCategory', { defaultValue: 'Thẻ Quà Tặng & Voucher' })}
-          description={t('miniapps.giftCardsDesc', { defaultValue: 'Mua và tặng thẻ quà điện tử (Grab, Shopee, Starbucks) thanh toán bằng số dư N.E.D.' })}
-          iconNode={<MaterialCommunityIcons name="gift-outline" size={24} color="#EF4444" />}
-          iconBg="#FEE2E2"
-          soonText={t('miniapps.comingSoon', { defaultValue: 'Sắp ra mắt' })}
-          inDevMsg={t('miniapps.inDevNotice', { defaultValue: 'Ứng dụng này đang trong quá trình phát triển trên hệ sinh thái N.E.D MiniApps!' })}
-        />
+                  {/* Badge Trạng thái "Coming soon" ở góc phải */}
+                  {item.status && (
+                    <View style={styles.statusBadge}>
+                      <Text style={styles.statusBadgeText}>{item.status}</Text>
+                    </View>
+                  )}
+                </View>
 
-        <View style={{ height: 90 }} />
+                {/* Phụ đề 2 dòng: Dòng 1 (thể loại), Dòng 2 (mô tả) */}
+                <Text style={[styles.cardCategory, { color: item.categoryColor || '#0891B2' }]}>
+                  {item.category}
+                </Text>
+                <Text style={styles.cardDesc} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        ))}
       </ScrollView>
+
+      {/* Toast thông báo "Tính năng đang được phát triển" chuẩn Neo-brutalism */}
+      {toastVisible && (
+        <View style={styles.toastContainer} pointerEvents="none">
+          <View style={styles.toastShadow} />
+          <View style={styles.toastCard}>
+            <Text style={styles.toastIcon}>🚧</Text>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -139,134 +195,156 @@ export default function MiniAppsScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FDF8F5',
   },
-  headerBar: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
+  // BẮT BUỘC contentContainerStyle padding: 20, paddingBottom: 120
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    padding: 20,
+    paddingBottom: 120,
   },
-  bannerContainer: {
+
+  // Typography Tiêu đề
+  mainTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.5,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+
+  // Thẻ Ứng Dụng (Mini-App Card)
+  cardWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  cardShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: '#000000',
+    borderRadius: 16,
+  },
+  cardFront: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
-  bannerIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#D1F4E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  bannerTextBox: {
-    flex: 1,
-  },
-  bannerTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  bannerSubtitle: {
-    fontSize: 11.5,
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  appCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  appIconCircle: {
+
+  // Biểu tượng (Icon Box - Bên trái)
+  iconBox: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#000000',
     alignItems: 'center',
-    marginRight: 14,
+    justifyContent: 'center',
   },
-  appInfoCol: {
+
+  // Nội dung (Text Content - Ở giữa)
+  textContent: {
     flex: 1,
+    paddingHorizontal: 12,
   },
-  appHeaderRow: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 2,
   },
-  appTitle: {
+  cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '800',
+    color: '#000000',
     flex: 1,
+    marginRight: 6,
   },
-  soonBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  soonBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#D97706',
-  },
-  appCategory: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#00A859',
-    marginBottom: 4,
-  },
-  appDesc: {
+  bannerDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#888888',
     lineHeight: 16,
+    marginTop: 2,
+  },
+  cardCategory: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: '#888888',
+    lineHeight: 16,
+  },
+
+  // Badge Trạng thái (Góc phải)
+  statusBadge: {
+    backgroundColor: '#FFF8DC',
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+
+  // Toast thông báo Neo-brutalism
+  toastContainer: {
+    position: 'absolute',
+    bottom: 125,
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  toastShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
+    backgroundColor: '#000000',
+    borderRadius: 14,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8DC',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  toastIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  toastText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#000000',
   },
 });

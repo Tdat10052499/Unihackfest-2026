@@ -12,6 +12,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Image,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,19 +25,20 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { PhantomAuthButton } from '../../components/PhantomAuthButton';
 
-// Component đục lỗ cuống vé
-const TicketCutout = ({ size, left, right, bottomOffset = -4 }: { size: number, left?: number | string, right?: number | string, bottomOffset?: number }) => {
+// Component đục lỗ cuống vé (Clipped Container Technique)
+const TicketCutout = ({ size, left, right, transformX, bottomOffset = -3 }: { size: number, left?: number | string, right?: number | string, transformX?: number, bottomOffset?: number }) => {
   return (
     <View style={{
       position: 'absolute',
-      bottom: bottomOffset,
+      bottom: bottomOffset, // Nâng lên 3px (độ dày viền) để đè khít viền dưới của Ticket
       ...(left !== undefined ? { left } : {}),
       ...(right !== undefined ? { right } : {}),
+      ...(transformX !== undefined ? { transform: [{ translateX: transformX }] } : {}),
       width: size,
-      height: size / 2 + 5, // Thêm 5px để che luôn phần bóng đổ bên dưới
-      overflow: 'hidden',
+      height: (size / 2) + 3, // Chỉ hiển thị nửa trên + độ dày viền
+      overflow: 'hidden', // Cắt xén hoàn hảo nửa dưới, KHÔNG cần dùng mask đè lên shadow!
       zIndex: 10,
-    }}>
+    } as any}>
       <View style={{
         width: size,
         height: size,
@@ -44,17 +47,14 @@ const TicketCutout = ({ size, left, right, bottomOffset = -4 }: { size: number, 
         borderWidth: 3,
         borderColor: '#000',
       }} />
-      <View style={{
-        position: 'absolute',
-        top: size / 2,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#FDF8F5',
-      }} />
     </View>
   );
 };
+
+// Kích hoạt LayoutAnimation trên Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function AuthGatewayScreen() {
   const router = useRouter();
@@ -78,15 +78,6 @@ export default function AuthGatewayScreen() {
     isNewUser?: boolean,
     wasAlreadyAuthenticated?: boolean
   ) => {
-    console.log(
-      '🎉 [Auth Gateway] Xác thực thành công! User:',
-      authUser?.id,
-      '| isNewUser:',
-      isNewUser,
-      '| wasAlreadyAuthenticated:',
-      wasAlreadyAuthenticated
-    );
-
     if (isNewUser) {
       router.replace('/(onboarding)/phone');
     } else {
@@ -97,14 +88,12 @@ export default function AuthGatewayScreen() {
   // Hook Privy Google OAuth
   const oAuthHook = useLoginWithOAuth({
     onError: (err) => {
-      console.error('Google OAuth Error:', err);
       Alert.alert(
         isLoginMode ? 'Đăng nhập thất bại' : 'Đăng ký thất bại',
         err?.message || 'Không thể xác thực bằng tài khoản Google. Vui lòng thử lại.'
       );
     },
     onSuccess: (u, isNew) => {
-      console.log('Google OAuth Success for user:', u?.id, 'isNew:', isNew);
       handleAuthSuccess(u, isNew ?? !isLoginMode, false);
     },
   });
@@ -114,11 +103,9 @@ export default function AuthGatewayScreen() {
   // Hook Privy Email OTP
   const emailHook = useLoginWithEmail({
     onError: (err) => {
-      console.error('Email Auth Error:', err);
       setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
     },
     onLoginSuccess: (u, isNew) => {
-      console.log('Email Auth Success for user:', u?.id, 'isNew:', isNew);
       handleAuthSuccess(u, isNew ?? !isLoginMode, false);
     },
   });
@@ -126,15 +113,12 @@ export default function AuthGatewayScreen() {
   const loginWithCode = emailHook?.loginWithCode;
   const emailState = emailHook?.state;
 
-  // Tự động chuyển hướng vào màn hình Home khi đã xác thực từ trước
   useEffect(() => {
     if (isReady && user) {
-      console.log('🔄 [Auth Gateway] Đã có phiên đăng nhập trước đó:', user.id);
       handleAuthSuccess(user, false, true);
     }
   }, [isReady, user]);
 
-  // Xử lý gửi mã xác nhận OTP qua Email
   const handleSendEmailCode = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
@@ -142,21 +126,17 @@ export default function AuthGatewayScreen() {
       return;
     }
     setErrorMessage('');
-    if (!sendCode) {
-      setErrorMessage('Hệ thống xác thực chưa sẵn sàng. Vui lòng thử lại sau.');
-      return;
-    }
+    if (!sendCode) return;
     try {
       await sendCode({ email: trimmedEmail });
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setStep('OTP_VERIFICATION');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      console.log('Error sending email code:', msg);
       setErrorMessage(msg || 'Không thể gửi mã xác nhận.');
     }
   };
 
-  // Xử lý xác thực mã OTP
   const handleVerifyOtp = async () => {
     const trimmedCode = otpCode.trim();
     const trimmedEmail = email.trim();
@@ -165,31 +145,29 @@ export default function AuthGatewayScreen() {
       return;
     }
     setErrorMessage('');
-    if (!loginWithCode) {
-      setErrorMessage('Hệ thống xác thực chưa sẵn sàng. Vui lòng thử lại sau.');
-      return;
-    }
+    if (!loginWithCode) return;
     try {
       await loginWithCode({ code: trimmedCode, email: trimmedEmail });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      console.log('Error verifying OTP code:', msg);
       setErrorMessage(msg || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
     }
   };
 
-  // Xử lý đăng nhập / đăng ký Google
   const handleGoogleLogin = async () => {
     setErrorMessage('');
-    if (!loginWithOAuth) {
-      Alert.alert('Chưa sẵn sàng', 'Hệ thống xác thực Google đang khởi động.');
-      return;
-    }
+    if (!loginWithOAuth) return;
     try {
       await loginWithOAuth({ provider: 'google' });
     } catch (err: unknown) {
       console.log('Error triggering Google login:', err instanceof Error ? err.message : JSON.stringify(err));
     }
+  };
+
+  const switchMode = (mode: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsLoginMode(mode);
+    setErrorMessage('');
   };
 
   const isGoogleLoading = oAuthState?.status === 'loading';
@@ -213,7 +191,7 @@ export default function AuthGatewayScreen() {
           <View style={styles.brandHeader}>
             <View style={styles.logoBadge}>
               <Image 
-                source={require('../../assets/images/mascot-sleepy.png')} 
+                source={require('../../assets/images/mascot-welcome.png')} 
                 style={styles.mascotImage} 
                 resizeMode="contain" 
               />
@@ -235,10 +213,7 @@ export default function AuthGatewayScreen() {
               <View style={styles.tabContainer}>
                 <TouchableOpacity
                   style={[styles.tabButton, isLoginMode && styles.tabButtonActive]}
-                  onPress={() => {
-                    setIsLoginMode(true);
-                    setErrorMessage('');
-                  }}
+                  onPress={() => switchMode(true)}
                   activeOpacity={0.9}
                 >
                   <Text style={[styles.tabText, isLoginMode && styles.tabTextActive]}>
@@ -248,10 +223,7 @@ export default function AuthGatewayScreen() {
 
                 <TouchableOpacity
                   style={[styles.tabButton, !isLoginMode && styles.tabButtonActive]}
-                  onPress={() => {
-                    setIsLoginMode(false);
-                    setErrorMessage('');
-                  }}
+                  onPress={() => switchMode(false)}
                   activeOpacity={0.9}
                 >
                   <Text style={[styles.tabText, !isLoginMode && styles.tabTextActive]}>
@@ -285,7 +257,7 @@ export default function AuthGatewayScreen() {
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Địa chỉ Email</Text>
                     <View style={styles.inputWrapper}>
-                      <Feather name="mail" size={18} color="#000" style={styles.inputIcon} />
+                      <Feather name="mail" size={18} color="#94A3B8" style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="vidu@domain.com"
@@ -312,7 +284,7 @@ export default function AuthGatewayScreen() {
                     <View style={styles.primaryBtnShadow} />
                     <View style={styles.primaryBtnBody}>
                       {isSendingEmail ? (
-                        <ActivityIndicator size="small" color="#FFF" />
+                        <ActivityIndicator size="small" color="#000" />
                       ) : (
                         <Text style={styles.primaryBtnText}>
                           {isLoginMode ? 'Tiếp tục với Email' : 'Đăng ký với Email'}
@@ -339,9 +311,9 @@ export default function AuthGatewayScreen() {
                         <ActivityIndicator size="small" color="#000" />
                       ) : (
                         <View style={styles.socialBtnInner}>
-                          <Image source={{uri: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg'}} style={{width: 20, height: 20}} />
-                          {/* Fallback to simple icon since remote SVG requires extra config sometimes */}
-                          <Ionicons name="logo-google" size={20} color="#EA4335" />
+                          <View style={styles.socialBtnIconContainer}>
+                            <Ionicons name="logo-google" size={20} color="#EA4335" />
+                          </View>
                           <Text style={styles.socialBtnText}>
                             {isLoginMode ? 'Tiếp tục với Google' : 'Đăng ký với Google'}
                           </Text>
@@ -372,7 +344,7 @@ export default function AuthGatewayScreen() {
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
                     <View style={styles.inputWrapper}>
-                      <Feather name="key" size={18} color="#000" style={styles.inputIcon} />
+                      <Feather name="key" size={18} color="#94A3B8" style={styles.inputIcon} />
                       <TextInput
                         style={[styles.textInput, styles.otpInput]}
                         placeholder="123456"
@@ -399,7 +371,7 @@ export default function AuthGatewayScreen() {
                     <View style={styles.primaryBtnShadow} />
                     <View style={styles.primaryBtnBody}>
                       {isSubmittingOtp ? (
-                        <ActivityIndicator size="small" color="#FFF" />
+                        <ActivityIndicator size="small" color="#000" />
                       ) : (
                         <Text style={styles.primaryBtnText}>Xác nhận & Đăng nhập</Text>
                       )}
@@ -409,6 +381,7 @@ export default function AuthGatewayScreen() {
                   <TouchableOpacity
                     style={styles.backLinkBtn}
                     onPress={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                       setStep('INITIAL');
                       setOtpCode('');
                       setErrorMessage('');
@@ -433,7 +406,7 @@ export default function AuthGatewayScreen() {
 
             {/* Cutouts (Lỗ đục cuống vé) */}
             <TicketCutout size={28} left={30} />
-            <TicketCutout size={44} left="44%" right="44%" bottomOffset={-5} />
+            <TicketCutout size={44} left="50%" transformX={-22} />
             <TicketCutout size={28} right={30} />
           </View>
         </ScrollView>
@@ -454,7 +427,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
     alignItems: 'center',
   },
 
@@ -464,83 +437,83 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoBadge: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FDE68A', // Vàng pastel
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#FFD54F',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    overflow: 'hidden',
+    marginBottom: 12,
   },
   mascotImage: {
-    width: 90,
-    height: 90,
-    marginTop: 15,
+    width: '80%',
+    height: '80%',
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: 'Inter-Black',
     color: '#000',
-    letterSpacing: 1,
+    marginTop: 12,
   },
   brandSubtitle: {
-    fontSize: 13,
-    color: '#333',
+    fontSize: 12,
+    color: '#555',
     marginTop: 4,
-    fontWeight: '600',
+    textAlign: 'center',
   },
 
   // Ticket Wrapper
   ticketWrapper: {
     width: '100%',
     position: 'relative',
-    paddingBottom: 10,
+    marginBottom: 40,
   },
   ticketShadow: {
     position: 'absolute',
-    top: 4,
-    left: 4,
-    right: -4,
-    bottom: -4,
+    top: 5,
+    left: 5,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#000',
-    borderRadius: 16,
+    borderRadius: 24,
   },
   ticketBody: {
     backgroundColor: '#FFF',
     borderWidth: 3,
     borderColor: '#000',
-    borderRadius: 16,
-    padding: 20,
-    paddingBottom: 30, // Chừa khoảng trống cho đục lỗ
+    borderRadius: 24,
+    padding: 24,
+    zIndex: 2, // Trên shadow
   },
+
+
 
   // Tabs
   tabContainer: {
     flexDirection: 'row',
     borderWidth: 2,
     borderColor: '#000',
-    borderRadius: 999,
-    padding: 2,
+    borderRadius: 30,
+    padding: 4,
     marginBottom: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FAF6F0',
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 2,
+    borderRadius: 30,
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
   tabButtonActive: {
-    backgroundColor: '#8B5CF6', // Tím
+    backgroundColor: '#8A2BE2', // Tím
     borderColor: '#000',
   },
   tabText: {
     fontSize: 14,
     fontFamily: 'Inter-Black',
-    color: '#000',
+    color: '#555',
   },
   tabTextActive: {
     color: '#FFF',
@@ -578,7 +551,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FDF8F5', // Kem nhạt
+    backgroundColor: '#FAF6F0',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#000',
@@ -610,17 +583,17 @@ const styles = StyleSheet.create({
   },
   primaryBtnShadow: {
     position: 'absolute',
-    top: 2,
-    left: 2,
-    right: -2,
-    bottom: -2,
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
     backgroundColor: '#000',
     borderRadius: 12,
   },
   primaryBtnBody: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#06B6D4', // Cyan
+    backgroundColor: '#00E5FF', // Cyan
     borderWidth: 2,
     borderColor: '#000',
     borderRadius: 12,
@@ -633,7 +606,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 15,
     fontFamily: 'Inter-Black',
-    color: '#FFF',
+    color: '#000', // Đen theo yêu cầu
   },
 
   // Divider
@@ -644,7 +617,7 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 2,
+    height: 1.5,
     backgroundColor: '#000',
   },
   dividerText: {
@@ -663,10 +636,10 @@ const styles = StyleSheet.create({
   },
   socialBtnShadow: {
     position: 'absolute',
-    top: 2,
-    left: 2,
-    right: -2,
-    bottom: -2,
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
     backgroundColor: '#000',
     borderRadius: 12,
   },
@@ -678,20 +651,26 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   socialBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 16,
+  },
+  socialBtnIconContainer: {
+    width: 24,
+    alignItems: 'flex-start',
   },
   socialBtnText: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 14,
     fontFamily: 'Inter-Black',
     color: '#000',
+    marginRight: 24, // Để cân bằng với icon bên trái
   },
   phantomWrapper: {
-    // The PhantomAuthButton uses its own wrapper inside, but we can override if it accepts style
+    width: '100%',
   },
 
   // OTP Styles
@@ -712,7 +691,7 @@ const styles = StyleSheet.create({
   },
   otpEmailHighlight: {
     fontFamily: 'Inter-Black',
-    color: '#8B5CF6',
+    color: '#8A2BE2', // Tím
   },
   backLinkBtn: {
     flexDirection: 'row',
@@ -731,10 +710,11 @@ const styles = StyleSheet.create({
   footerSection: {
     marginTop: 24,
     alignItems: 'center',
+    marginBottom: 4, // Tránh sát viền
   },
   footerTermsText: {
-    fontSize: 10,
-    color: '#555',
+    fontSize: 11,
+    color: '#777',
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 20,
