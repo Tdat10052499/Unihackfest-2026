@@ -523,6 +523,7 @@ export default function SendScreen() {
         iconBg: '#374151',
         signature: txSignature,
         blockTime: Math.floor(Date.now() / 1000),
+        currency: 'USDC',
       };
       await cacheActivities([newAct, ...currentActs]);
 

@@ -10,16 +10,16 @@ import {
   StatusBar,
   ActivityIndicator,
   Modal,
-  TextInput,
   InteractionManager,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, scanFromURLAsync } from 'expo-camera';
+import QRCode from 'react-native-qrcode-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,8 +27,13 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useUserStore } from '../stores/useUserStore';
+import { resolveActiveSolanaAddress, getMaskedPhone, getAccountIdentifier } from '../services/identity';
+import { getLinkedPhone } from '../services/storage';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCAN_SIZE = Math.min(Math.round(SCREEN_WIDTH * 0.74), 280);
 
 export default function ScanQrScreen() {
@@ -39,10 +44,29 @@ export default function ScanQrScreen() {
   const [isTorchOn, setIsTorchOn] = useState(false);
   const [isScanned, setIsScanned] = useState(false);
   const [isScanningImage, setIsScanningImage] = useState(false);
-  const [showManualModal, setShowManualModal] = useState(false);
-  const [manualAddress, setManualAddress] = useState('');
+  const [showMyQrModal, setShowMyQrModal] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [phoneState, setPhoneState] = useState<string | null>(null);
 
   const isScanningLocked = useRef(false);
+
+  // Lấy thông tin ví Solana hiện tại của người dùng
+  const { user } = usePrivy();
+  const solanaWalletState = useEmbeddedSolanaWallet();
+  const externalWallet = useExternalWallet();
+
+  const solanaAddress = resolveActiveSolanaAddress(
+    user,
+    externalWallet,
+    solanaWalletState,
+    useUserStore.getState().walletAddress
+  );
+
+  useEffect(() => {
+    getLinkedPhone().then((p) => {
+      if (p) setPhoneState(p);
+    });
+  }, []);
 
   // Reanimated - Laser Scan Line chạy dọc lên xuống liên tục
   const scanLineY = useSharedValue(0);
@@ -145,7 +169,7 @@ export default function ScanQrScreen() {
         console.warn('scanFromURLAsync error:', scanErr);
         Alert.alert(
           'Không thể nhận diện',
-          'Không tìm thấy mã QR hợp lệ trong ảnh này. Bạn có thể nhập địa chỉ thủ công.'
+          'Không tìm thấy mã QR hợp lệ trong ảnh này.'
         );
       }
     } catch (err) {
@@ -155,39 +179,143 @@ export default function ScanQrScreen() {
     }
   };
 
-  // Dán từ bộ nhớ tạm vào ô nhập thủ công
-  const handlePasteClipboard = async () => {
+  // Sao chép địa chỉ ví vào bộ nhớ tạm
+  const handleCopyWalletAddress = async () => {
+    if (!solanaAddress) {
+      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví.');
+      return;
+    }
     try {
       if (Platform.OS !== 'web') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      const text = await Clipboard.getStringAsync();
-      if (text) {
-        setManualAddress(text.trim());
-      } else {
-        Alert.alert('Bộ nhớ tạm trống', 'Chưa có nội dung nào được sao chép.');
-      }
+      await Clipboard.setStringAsync(solanaAddress);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2500);
     } catch (e) {
-      console.warn('Clipboard paste error:', e);
+      console.warn('Clipboard copy error:', e);
     }
   };
 
-  // Xác nhận chuyển tiền từ địa chỉ nhập thủ công
-  const handleConfirmManualAddress = () => {
-    const trimmed = manualAddress.trim();
-    if (!trimmed) {
-      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ ví Solana hoặc số điện thoại.');
-      return;
+  // Sao chép số điện thoại ví vào bộ nhớ tạm
+  const handleCopyPhone = async () => {
+    if (!phoneState) return;
+    try {
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      await Clipboard.setStringAsync(phoneState);
+      Alert.alert('Đã sao chép', `Đã sao chép số điện thoại ví: ${phoneState}`);
+    } catch (e) {
+      console.warn('Clipboard copy error:', e);
     }
-    setShowManualModal(false);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    router.replace({
-      pathname: '/send',
-      params: { recipient: trimmed },
-    });
   };
+
+  // Render Modal QR Của Tôi (My QR)
+  function renderMyQrModal() {
+    return (
+      <Modal
+        visible={showMyQrModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMyQrModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.myQrModalCard}>
+            {/* Header Modal */}
+            <View style={styles.myQrModalHeader}>
+              <View style={styles.myQrModalIconWrap}>
+                <Ionicons name="qr-code" size={20} color="#000000" />
+              </View>
+              <Text style={styles.myQrModalTitle}>Mã QR Của Tôi</Text>
+              <TouchableOpacity
+                onPress={() => setShowMyQrModal(false)}
+                style={styles.myQrModalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Đóng"
+              >
+                <Ionicons name="close" size={20} color="#000000" />
+              </TouchableOpacity>
+            </View>
+
+            {/* QR Code Container */}
+            <View style={styles.qrCardContainer}>
+              {solanaAddress ? (
+                <QRCode
+                  value={solanaAddress}
+                  size={190}
+                  color="#000000"
+                  backgroundColor="#FFFFFF"
+                />
+              ) : (
+                <View style={styles.qrLoadingBox}>
+                  <ActivityIndicator size="large" color="#000000" />
+                  <Text style={styles.qrLoadingText}>Đang nạp địa chỉ ví...</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Thông tin định danh tài khoản */}
+            <View style={styles.accountInfoWrap}>
+              {phoneState && (
+                <TouchableOpacity
+                  style={styles.phoneBadgeRow}
+                  onPress={handleCopyPhone}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="call" size={14} color="#00A859" />
+                  <Text style={styles.phoneBadgeText}>
+                    SĐT ví: <Text style={{ fontWeight: '900' }}>{phoneState}</Text>
+                  </Text>
+                  <Ionicons name="copy-outline" size={13} color="#64748B" />
+                </TouchableOpacity>
+              )}
+
+              <Text style={styles.addressShortText}>
+                {solanaAddress
+                  ? `${solanaAddress.slice(0, 10)}...${solanaAddress.slice(-10)}`
+                  : 'Chưa phát hiện địa chỉ ví'}
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.myQrActions}>
+              <TouchableOpacity
+                style={[
+                  styles.copyAddressMainBtn,
+                  copiedAddress && styles.copyAddressMainBtnSuccess,
+                ]}
+                onPress={handleCopyWalletAddress}
+                activeOpacity={0.88}
+              >
+                <Ionicons
+                  name={copiedAddress ? 'checkmark-circle' : 'copy-outline'}
+                  size={18}
+                  color={copiedAddress ? '#FFFFFF' : '#000000'}
+                />
+                <Text
+                  style={[
+                    styles.copyAddressMainBtnText,
+                    copiedAddress && styles.copyAddressMainBtnTextSuccess,
+                  ]}
+                >
+                  {copiedAddress ? 'Đã sao chép địa chỉ ví!' : 'Sao chép địa chỉ ví'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.closeMyQrBtn}
+                onPress={() => setShowMyQrModal(false)}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.closeMyQrBtnText}>Quay lại quét QR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   // Màn hình khi chưa có quyền Camera
   if (!permission?.granted) {
@@ -246,91 +374,24 @@ export default function ScanQrScreen() {
 
               <TouchableOpacity
                 style={[styles.permissionSecondaryBtn, { marginTop: 10 }]}
-                onPress={() => setShowManualModal(true)}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setShowMyQrModal(true);
+                }}
                 activeOpacity={0.88}
               >
-                <Ionicons name="keypad-outline" size={18} color="#000000" />
-                <Text style={styles.permissionSecondaryBtnText}>Nhập địa chỉ thủ công</Text>
+                <Ionicons name="qr-code-outline" size={18} color="#000000" />
+                <Text style={styles.permissionSecondaryBtnText}>Xem QR của tôi</Text>
               </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
 
-        {/* Modal Nhập Thủ Công */}
-        {renderManualInputModal()}
+        {/* Modal QR Của Tôi */}
+        {renderMyQrModal()}
       </View>
-    );
-  }
-
-  // Render Modal Nhập Thủ Công
-  function renderManualInputModal() {
-    return (
-      <Modal
-        visible={showManualModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowManualModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.manualModalCard}>
-            <View style={styles.manualModalHeader}>
-              <View style={styles.manualModalIconWrap}>
-                <Ionicons name="keypad" size={20} color="#000000" />
-              </View>
-              <Text style={styles.manualModalTitle}>Nhập Địa Chỉ Người Nhận</Text>
-              <TouchableOpacity
-                onPress={() => setShowManualModal(false)}
-                style={styles.manualModalCloseBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close" size={20} color="#000000" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.manualModalSubtitle}>
-              Nhập địa chỉ ví Solana (Base58) hoặc số điện thoại người nhận đã liên kết ví:
-            </Text>
-
-            <View style={styles.manualInputBox}>
-              <TextInput
-                style={styles.manualTextInput}
-                placeholder="Ví dụ: 7xKXtg2C... hoặc 0987654321"
-                placeholderTextColor="#94A3B8"
-                value={manualAddress}
-                onChangeText={setManualAddress}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.manualPasteBtn}
-                onPress={handlePasteClipboard}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="clipboard-outline" size={16} color="#000000" />
-                <Text style={styles.manualPasteBtnText}>Dán</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.manualModalActions}>
-              <TouchableOpacity
-                style={styles.manualCancelBtn}
-                onPress={() => setShowManualModal(false)}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.manualCancelBtnText}>Hủy</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.manualSubmitBtn}
-                onPress={handleConfirmManualAddress}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.manualSubmitBtnText}>Xác nhận & Chuyển</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     );
   }
 
@@ -403,16 +464,21 @@ export default function ScanQrScreen() {
                 <Text style={styles.actionBtnText}>Tải ảnh</Text>
               </TouchableOpacity>
 
-              {/* Nút 2: Nhập địa chỉ thủ công */}
+              {/* Nút 2: QR Của Tôi */}
               <TouchableOpacity
                 style={styles.actionPillBtn}
-                onPress={() => setShowManualModal(true)}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setShowMyQrModal(true);
+                }}
                 activeOpacity={0.85}
               >
-                <View style={styles.actionIconBadge}>
-                  <Ionicons name="keypad" size={18} color="#000000" />
+                <View style={[styles.actionIconBadge, { backgroundColor: '#FFE600' }]}>
+                  <Ionicons name="qr-code" size={18} color="#000000" />
                 </View>
-                <Text style={styles.actionBtnText}>Nhập thủ công</Text>
+                <Text style={styles.actionBtnText}>QR của tôi</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -474,8 +540,8 @@ export default function ScanQrScreen() {
         </View>
       )}
 
-      {/* Modal Nhập Thủ Công */}
-      {renderManualInputModal()}
+      {/* Modal QR Của Tôi */}
+      {renderMyQrModal()}
     </View>
   );
 }
@@ -846,51 +912,59 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
 
-  // Modal Nhập Thủ Công
+  // Modal QR Của Tôi (My QR Modal)
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  manualModalCard: {
+  myQrModalCard: {
     width: '100%',
+    maxWidth: 360,
     backgroundColor: '#FDF8F5',
     borderWidth: 3,
     borderColor: '#000000',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 22,
+    padding: 22,
+    alignItems: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 5, height: 5 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 8,
+    elevation: 9,
   },
-  manualModalHeader: {
+  myQrModalHeader: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  manualModalIconWrap: {
-    width: 34,
-    height: 34,
+  myQrModalIconWrap: {
+    width: 36,
+    height: 36,
     borderRadius: 10,
     backgroundColor: '#FFE600',
     borderWidth: 2,
     borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 1.5, height: 1.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
-  manualModalTitle: {
+  myQrModalTitle: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 16.5,
+    fontSize: 17,
     fontWeight: '900',
     color: '#000000',
+    letterSpacing: 0.2,
   },
-  manualModalCloseBtn: {
+  myQrModalCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: 8,
@@ -899,88 +973,121 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 1.5, height: 1.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
-  manualModalSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 14,
-  },
-  manualInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  qrCardContainer: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#000000',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: 18,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
     marginBottom: 16,
   },
-  manualTextInput: {
-    flex: 1,
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#000000',
-    paddingVertical: 0,
+  qrLoadingBox: {
+    width: 190,
+    height: 190,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  manualPasteBtn: {
+  qrLoadingText: {
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+
+  accountInfoWrap: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  phoneBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0FFFF',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1.5,
     borderColor: '#000000',
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    gap: 4,
+    gap: 6,
+    marginBottom: 8,
   },
-  manualPasteBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#000000',
+  phoneBadgeText: {
+    fontSize: 12.5,
+    color: '#065F46',
   },
-  manualModalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  addressShortText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+
+  myQrActions: {
+    width: '100%',
     gap: 10,
   },
-  manualCancelBtn: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 12,
+  copyAddressMainBtn: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  manualCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#000000',
-  },
-  manualSubmitBtn: {
-    flex: 2,
+    justifyContent: 'center',
     backgroundColor: '#00E5FF',
     borderWidth: 2,
     borderColor: '#000000',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 13,
+    gap: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  copyAddressMainBtnSuccess: {
+    backgroundColor: '#10B981',
+  },
+  copyAddressMainBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.2,
+  },
+  copyAddressMainBtnTextSuccess: {
+    color: '#FFFFFF',
+  },
+
+  closeMyQrBtn: {
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 12,
+    paddingVertical: 11,
     shadowColor: '#000000',
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 2,
   },
-  manualSubmitBtnText: {
-    fontSize: 14,
-    fontWeight: '900',
+  closeMyQrBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
     color: '#000000',
   },
 });

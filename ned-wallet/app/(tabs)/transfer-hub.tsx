@@ -150,6 +150,7 @@ export default function TransferHubScreen() {
         isPositive: false,
         iconBg: '#374151',
         signature: txSignature,
+        currency: 'USDC',
       };
       await cacheActivities([newAct, ...currentActs]);
 

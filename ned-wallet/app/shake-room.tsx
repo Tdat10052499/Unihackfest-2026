@@ -778,6 +778,7 @@ export default function ShakeRoomScreen() {
         amount: `+$${totalCollectedSoFar.toFixed(2)}`,
         isPositive: true,
         iconBg: '#8B5CF6',
+        currency: 'USDC',
       };
       await cacheActivities([newActivity, ...currentActs]);
 
@@ -837,6 +838,7 @@ export default function ShakeRoomScreen() {
         isPositive: false,
         iconBg: '#EF4444',
         signature: txSignature,
+        currency: 'USDC',
       };
       await cacheActivities([newActivity, ...currentActs]);
 

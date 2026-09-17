@@ -143,6 +143,7 @@ export interface ActivityItem {
   signature?: string;
   blockTime?: number;
   isNetworkFee?: boolean;
+  currency?: string;
 }
 
 export interface TransferResult {
@@ -489,6 +490,7 @@ export function parseTransactionForAddress(
       iconBg: '#DC2626',
       signature,
       blockTime: blockTime ?? undefined,
+      currency: 'USDC',
     };
   }
 
@@ -504,6 +506,21 @@ export function parseTransactionForAddress(
     const preAmount = userPreToken?.uiTokenAmount?.uiAmount ?? 0;
     const postAmount = userPostToken?.uiTokenAmount?.uiAmount ?? 0;
     const tokenDiff = postAmount - preAmount;
+
+    // Phân loại đơn vị tiền tệ dựa theo Mint
+    const tokenMint = userPostToken?.mint || userPreToken?.mint || '';
+    let detectedCurrency = 'USDC';
+    let currencySymbol = '$';
+    if (tokenMint.includes('EUR') || tokenMint.includes('eur')) {
+      detectedCurrency = 'EURC';
+      currencySymbol = '€';
+    } else if (tokenMint.includes('USDT') || tokenMint.includes('usdt')) {
+      detectedCurrency = 'USDT';
+      currencySymbol = '$';
+    } else if (tokenMint.includes('PYUSD') || tokenMint.includes('pyusd')) {
+      detectedCurrency = 'PYUSD';
+      currencySymbol = '$';
+    }
 
     if (Math.abs(tokenDiff) > 0.000001) {
       if (tokenDiff > 0) {
@@ -527,11 +544,12 @@ export function parseTransactionForAddress(
           type: 'received',
           title: isFaucet ? 'Nạp tiền' : 'Nhận tiền',
           time: timeStr,
-          amount: `+$${tokenDiff.toFixed(2)}`,
+          amount: `+${currencySymbol}${tokenDiff.toFixed(2)}`,
           isPositive: true,
           iconBg: '#10B981',
           signature,
           blockTime: blockTime ?? undefined,
+          currency: detectedCurrency,
         };
       } else {
         return {
@@ -539,11 +557,12 @@ export function parseTransactionForAddress(
           type: 'sent',
           title: 'Chuyển tiền',
           time: timeStr,
-          amount: `-$${Math.abs(tokenDiff).toFixed(2)}`,
+          amount: `-${currencySymbol}${Math.abs(tokenDiff).toFixed(2)}`,
           isPositive: false,
           iconBg: '#374151',
           signature,
           blockTime: blockTime ?? undefined,
+          currency: detectedCurrency,
         };
       }
     }
@@ -569,6 +588,7 @@ export function parseTransactionForAddress(
               iconBg: '#374151',
               signature,
               blockTime: blockTime ?? undefined,
+              currency: 'USDC',
             };
           }
           if (info.destination === address || info.wallet === address) {
@@ -582,6 +602,7 @@ export function parseTransactionForAddress(
               iconBg: '#10B981',
               signature,
               blockTime: blockTime ?? undefined,
+              currency: 'USDC',
             };
           }
         } else if (type === 'mintTo' && info) {
@@ -597,6 +618,7 @@ export function parseTransactionForAddress(
               iconBg: '#10B981',
               signature,
               blockTime: blockTime ?? undefined,
+              currency: 'USDC',
             };
           }
         }
@@ -639,6 +661,7 @@ export function parseTransactionForAddress(
           iconBg: '#10B981',
           signature,
           blockTime: blockTime ?? undefined,
+          currency: 'USDC',
         };
       }
 
@@ -659,6 +682,7 @@ export function parseTransactionForAddress(
           iconBg: '#374151',
           signature,
           blockTime: blockTime ?? undefined,
+          currency: 'USDC',
         };
       }
     }
@@ -676,6 +700,7 @@ export function parseTransactionForAddress(
     signature,
     blockTime: blockTime ?? undefined,
     isNetworkFee: true,
+    currency: 'USDC',
   };
 }
 
@@ -768,6 +793,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
           iconBg: isFailed ? '#DC2626' : '#374151',
           signature: sigInfo.signature,
           blockTime: sigInfo.blockTime ?? undefined,
+          currency: 'USDC',
         };
       });
 
@@ -1037,6 +1063,7 @@ export async function executeSolanaTransfer(params: {
       isPositive: false,
       iconBg: '#374151',
       signature: txSignature,
+      currency: 'USDC',
     });
 
     return {

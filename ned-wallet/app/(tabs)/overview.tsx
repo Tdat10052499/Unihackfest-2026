@@ -24,6 +24,7 @@ import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { useUserStore } from '../../stores/useUserStore';
 import { resolveActiveSolanaAddress } from '../../services/identity';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
+import { getCachedActivities } from '../../services/storage';
 import { useExternalWallet } from '../../src/providers/WalletProvider';
 import { useWalletCardsStore, DEFAULT_USDC_CARD } from '../../stores/useWalletCardsStore';
 import { useOnchainBalance } from '../../hooks/useOnchainBalance';
@@ -102,13 +103,26 @@ export default function AnalyticsScreen() {
         }
         setIsLoading(true);
         try {
-          const [txData, bal] = await Promise.all([
+          const [txData, bal, cachedActs] = await Promise.all([
             fetchOnChainHistory(solanaAddress),
-            getSolanaBalance(solanaAddress)
+            getSolanaBalance(solanaAddress),
+            getCachedActivities(),
           ]);
           if (isMounted) {
+            // Hợp nhất dữ liệu cache và on-chain để không bỏ sót giao dịch
+            const combined = [...(cachedActs || []), ...(txData || [])];
+            const seen = new Set<string>();
+            const deduped: ActivityItem[] = [];
+            for (const item of combined) {
+              const key = item.signature || item.id;
+              if (key && !seen.has(key)) {
+                seen.add(key);
+                deduped.push(item);
+              }
+            }
+
             // Lọc bỏ hoàn toàn các giao dịch phí mạng (Gas Fee) và các giao dịch $0.00 rác
-            const validTransactions = (txData || []).filter((tx: ActivityItem) => {
+            const validTransactions = deduped.filter((tx: ActivityItem) => {
               if (!tx) return false;
               if (tx.isNetworkFee === true || tx.type === 'GAS_FEE') return false;
               const cleanAmount = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
@@ -179,95 +193,10 @@ export default function AnalyticsScreen() {
         color: coin.themeColor || '#00E5FF',
         icon: 'coins',
         logoUrl: coin.logoUrl,
-        symbol: coin.symbol,
+        symbol: coin.symbol || (coin.currency === 'EURC' ? '€' : '$'),
       };
     });
   }, [globalStablecoins, onchainUsdcBalance]);
-
-  const cashFlowStats = useMemo(() => {
-    let earned = 0;
-    let spent = 0;
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    transactions.forEach(tx => {
-      if (tx.blockTime) {
-        const date = new Date(tx.blockTime * 1000);
-        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-          const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
-          if (tx.isPositive) {
-            earned += amt;
-          } else {
-            spent += amt;
-          }
-        }
-      }
-    });
-
-    const totalBalance = walletCards.reduce((sum, card) => sum + (card.balance || 0), 0);
-
-    return {
-      totalBalance,
-      metrics: [
-        { id: 'available', label: 'Available', amount: totalBalance, color: '#00E5FF' },
-        { id: 'savings', label: 'Savings/Vault', amount: 0, color: '#CDB4DB' },
-        { id: 'earned', label: 'Earned (In)', amount: earned, color: '#CCFF00' },
-        { id: 'spent', label: 'Spent (Out)', amount: spent, color: '#FF6B6B' }
-      ]
-    };
-  }, [transactions, walletCards]);
-
-  const trendData = useMemo(() => {
-    const map = new Map<string, { month: string, earned: number, spent: number, ts: number }>();
-    transactions.forEach(tx => {
-      if (!tx.blockTime) return;
-      const d = new Date(tx.blockTime * 1000);
-      const month = d.toLocaleString('en-US', { month: 'short' });
-      const year = d.getFullYear();
-      const key = `${month} ${year}`;
-      
-      if (!map.has(key)) {
-        map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
-      }
-      const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
-      if (tx.isPositive) {
-        map.get(key)!.earned += amt;
-      } else {
-        map.get(key)!.spent += amt;
-      }
-    });
-    const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
-    const last3 = sorted.slice(-3);
-    if (last3.length === 0) {
-      return [
-        { month: 'Jan', earned: 0, spent: 0 },
-        { month: 'Feb', earned: 0, spent: 0 },
-        { month: 'Mar', earned: 0, spent: 0 },
-      ];
-    }
-    return last3;
-  }, [transactions]);
-
-  const topDrainers = useMemo(() => {
-    const sent = transactions
-      .map((tx, idx) => {
-        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
-        return {
-          id: tx.id || `d${idx}`,
-          title: tx.title || 'Spending',
-          amount: amt,
-          isPositive: tx.isPositive,
-        };
-      })
-      .filter(tx => !tx.isPositive && tx.amount >= 0.01);
-
-    sent.sort((a, b) => b.amount - a.amount);
-    return sent.slice(0, 3).map((item) => ({
-      id: item.id,
-      title: item.title,
-      amount: -item.amount
-    }));
-  }, [transactions]);
 
   const [selectedWalletId, setSelectedWalletId] = useState('');
   const selectedWallet = useMemo(() => {
@@ -288,6 +217,131 @@ export default function AnalyticsScreen() {
     const found = walletCards.find((c: any) => c.id === selectedWalletId || c.currency?.toLowerCase() === selectedWalletId.toLowerCase());
     return found || walletCards[0];
   }, [walletCards, selectedWalletId, onchainUsdcBalance]);
+
+  const currencySymbol = useMemo(() => {
+    if (selectedWallet.currency === 'EURC') return '€';
+    if (selectedWallet.currency === 'VND') return '₫';
+    if (selectedWallet.symbol && selectedWallet.symbol.length <= 2 && selectedWallet.symbol !== selectedWallet.currency) {
+      return selectedWallet.symbol;
+    }
+    return '$';
+  }, [selectedWallet]);
+
+  // Lọc giao dịch chỉ thuộc về loại Thẻ / Stablecoin đang được chọn
+  const cardTransactions = useMemo(() => {
+    const targetCurrency = (selectedWallet.currency || 'USDC').toUpperCase();
+    return transactions.filter((tx: ActivityItem) => {
+      if (!tx) return false;
+      if (tx.currency) {
+        return tx.currency.toUpperCase() === targetCurrency;
+      }
+      if (tx.amount?.includes('€')) {
+        return targetCurrency === 'EURC';
+      }
+      if (tx.amount?.includes('₫')) {
+        return targetCurrency === 'VND';
+      }
+      return targetCurrency === 'USDC';
+    });
+  }, [transactions, selectedWallet.currency]);
+
+  const cashFlowStats = useMemo(() => {
+    let earned = 0;
+    let spent = 0;
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    cardTransactions.forEach(tx => {
+      if (tx.blockTime) {
+        const date = new Date(tx.blockTime * 1000);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+          if (tx.isPositive) {
+            earned += amt;
+          } else {
+            spent += amt;
+          }
+        }
+      } else {
+        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        if (tx.isPositive) {
+          earned += amt;
+        } else {
+          spent += amt;
+        }
+      }
+    });
+
+    const cardBalance = selectedWallet.balance || 0;
+
+    return {
+      cardBalance,
+      metrics: [
+        { id: 'available', label: 'Available', amount: cardBalance, color: '#00E5FF' },
+        { id: 'savings', label: 'Savings/Vault', amount: 0, color: '#CDB4DB' },
+        { id: 'earned', label: 'Earned (In)', amount: earned, color: '#CCFF00' },
+        { id: 'spent', label: 'Spent (Out)', amount: spent, color: '#FF6B6B' }
+      ]
+    };
+  }, [cardTransactions, selectedWallet.balance]);
+
+  const trendData = useMemo(() => {
+    const map = new Map<string, { month: string, earned: number, spent: number, ts: number }>();
+    cardTransactions.forEach(tx => {
+      const blockTime = tx.blockTime || Math.floor(Date.now() / 1000);
+      const d = new Date(blockTime * 1000);
+      const month = d.toLocaleString('en-US', { month: 'short' });
+      const year = d.getFullYear();
+      const key = `${month} ${year}`;
+      
+      if (!map.has(key)) {
+        map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
+      }
+      const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+      if (tx.isPositive) {
+        map.get(key)!.earned += amt;
+      } else {
+        map.get(key)!.spent += amt;
+      }
+    });
+    const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
+    const last3 = sorted.slice(-3);
+    if (last3.length === 0) {
+      const now = new Date();
+      const emptyMonths = [];
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        emptyMonths.push({
+          month: d.toLocaleString('en-US', { month: 'short' }),
+          earned: 0,
+          spent: 0,
+        });
+      }
+      return emptyMonths;
+    }
+    return last3;
+  }, [cardTransactions]);
+
+  const topDrainers = useMemo(() => {
+    const sent = cardTransactions
+      .map((tx, idx) => {
+        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        return {
+          id: tx.id || `d${idx}`,
+          title: tx.title || 'Spending',
+          amount: amt,
+          isPositive: tx.isPositive,
+        };
+      })
+      .filter(tx => !tx.isPositive && tx.amount >= 0.01);
+
+    sent.sort((a, b) => b.amount - a.amount);
+    return sent.slice(0, 3).map((item) => ({
+      id: item.id,
+      title: item.title,
+      amount: -item.amount
+    }));
+  }, [cardTransactions]);
 
   const isOpen = useSharedValue(0);
 
@@ -336,6 +390,18 @@ export default function AnalyticsScreen() {
   };
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
+    if (endAngle - startAngle >= 359.9) {
+      return (
+        <Circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+        />
+      );
+    }
     const start = polarToCartesian(cx, cy, radius, endAngle);
     const end = polarToCartesian(cx, cy, radius, startAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
@@ -474,7 +540,7 @@ export default function AnalyticsScreen() {
             {/* NEW: Total Balance Header inside the card */}
             <View style={styles.analyticsTotalBalanceContainer}>
               <Text style={styles.analyticsTotalBalanceText} adjustsFontSizeToFit={true} numberOfLines={1}>
-                {isLoading ? 'Loading...' : `Total Balance: $${cashFlowStats.totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+                {isLoading ? 'Loading...' : `${selectedWallet.name || selectedWallet.currency} Balance: ${currencySymbol}${(selectedWallet.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
               </Text>
             </View>
 
@@ -495,8 +561,8 @@ export default function AnalyticsScreen() {
                       </React.Fragment>
                     ))}
                     
-                    {/* Render Separators */}
-                    {chartSegments.map((segment: any) => (
+                    {/* Render Separators - Chỉ hiển thị khi có từ 2 segment trở lên */}
+                    {chartSegments.length > 1 && chartSegments.map((segment: any) => (
                       <React.Fragment key={`sep-${segment.id}`}>
                         {createSeparator(segment.startAngle)}
                       </React.Fragment>
@@ -521,7 +587,7 @@ export default function AnalyticsScreen() {
                     <View style={[styles.statDot, { backgroundColor: metric.color }]} />
                     <Text style={styles.statLabel}>{metric.label}</Text>
                     <Text style={styles.statAmount}>
-                      {isLoading ? '...' : `${metric.amount < 0 ? '-' : ''}$${Math.abs(metric.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+                      {isLoading ? '...' : `${metric.amount < 0 ? '-' : ''}${currencySymbol}${Math.abs(metric.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                     </Text>
                   </View>
                 ))}
@@ -547,7 +613,7 @@ export default function AnalyticsScreen() {
           </View>
           
           <Text style={styles.budgetSubText}>
-            Amount: <Text style={styles.budgetBold}>{isLoading ? '...' : `$${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / $${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}`}</Text>
+            Amount: <Text style={styles.budgetBold}>{isLoading ? '...' : `${currencySymbol}${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / ${currencySymbol}${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}`}</Text>
           </Text>
         </View>
 
@@ -577,7 +643,7 @@ export default function AnalyticsScreen() {
                   {[5000, 2500, 0].map((val, idx) => (
                     <View key={`grid-${idx}`} style={styles.gridLineWrapper}>
                       <Text style={styles.gridLabel} numberOfLines={1}>
-                        {val === 0 ? '$0' : `$${val/1000}k`}
+                        {val === 0 ? `${currencySymbol}0` : `${currencySymbol}${val/1000}k`}
                       </Text>
                       <View style={styles.gridLine} />
                     </View>
@@ -624,7 +690,12 @@ export default function AnalyticsScreen() {
             
             <View style={styles.leaderboardList}>
               {topDrainers.length === 0 && !isLoading ? (
-                <Text style={{ textAlign: 'center', marginVertical: 20, color: '#888' }}>No spending data found.</Text>
+                <View style={styles.emptyDrainerBox}>
+                  <Feather name="info" size={20} color="#64748B" style={{ marginBottom: 6 }} />
+                  <Text style={styles.emptyDrainerText}>
+                    Chưa có giao dịch chi tiêu nào cho thẻ {selectedWallet.name || selectedWallet.currency}.
+                  </Text>
+                </View>
               ) : topDrainers.map((item: any, index: number) => (
                 <View key={item.id} style={styles.drainerCardWrapper}>
                   <View style={styles.drainerCardShadow} />
@@ -636,7 +707,7 @@ export default function AnalyticsScreen() {
                       <Text style={styles.drainerName}>{item.title}</Text>
                     </View>
                     <Text style={styles.drainerAmount}>
-                      {isLoading ? '...' : `${item.amount < 0 ? '-' : ''}$${Math.abs(item.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+                      {isLoading ? '...' : `${item.amount < 0 ? '-' : ''}${currencySymbol}${Math.abs(item.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                     </Text>
                   </View>
                 </View>
@@ -1232,5 +1303,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: '#FF6B6B',
+  },
+  emptyDrainerBox: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    marginVertical: 8,
+  },
+  emptyDrainerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
