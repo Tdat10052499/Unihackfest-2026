@@ -26,7 +26,6 @@ import {
   PublicKey,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getSolanaBalance,
@@ -92,7 +91,6 @@ export default function HomeScreen() {
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
 
   // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
@@ -100,15 +98,12 @@ export default function HomeScreen() {
   const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // State Modals & Camera Scanner
-  const [showScanner, setShowScanner] = useState(false);
+  // State Modals
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showPhoneLinkingModal, setShowPhoneLinkingModal] = useState(false);
   const [showPhoneManagementModal, setShowPhoneManagementModal] = useState(false);
   const [linkedPhoneState, setLinkedPhoneState] = useState<string | null>(null);
-  const [hasScanned, setHasScanned] = useState(false);
-  const isScanningLocked = useRef(false);
 
   // State Withdraw / Send Recipient & Broadcast Loading
   const [withdrawAddress, setWithdrawAddress] = useState('');
@@ -399,36 +394,11 @@ export default function HomeScreen() {
     }
   }, [solanaAddress, fetchBalance, refreshOnchainBalance, fetchActivities]);
 
-  // Mở màn hình Camera quét mã QR
-  const handleOpenScanner = async () => {
+  // Mở màn hình Camera quét mã QR chuyên nghiệp
+  const handleOpenScanner = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!permission?.granted) {
-      const res = await requestPermission();
-      if (!res.granted) {
-        Alert.alert(
-          'Quyền Camera',
-          'Cần cấp quyền truy cập camera để quét mã QR thanh toán.'
-        );
-        return;
-      }
-    }
-    isScanningLocked.current = false;
-    setHasScanned(false);
-    setShowScanner(true);
-  };
-
-  // Quét QR thành công -> Điều hướng sang Send
-  const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (isScanningLocked.current) return;
-    isScanningLocked.current = true;
-    setHasScanned(true);
-    setShowScanner(false);
-
-    InteractionManager.runAfterInteractions(() => {
-      setTimeout(() => {
-        router.push({ pathname: '/send', params: { recipient: data } });
-      }, 350);
-    });
+    setShowWithdrawModal(false);
+    router.push('/scan-qr');
   };
 
   // Gửi giao dịch chuyển tiền
@@ -908,23 +878,6 @@ export default function HomeScreen() {
         onPhoneUpdated={(newPhone) => setLinkedPhoneState(newPhone)}
       />
 
-      {showScanner && (
-        <View style={styles.cameraContainer}>
-          <CameraView
-            style={StyleSheet.absoluteFill}
-            facing="back"
-            onBarcodeScanned={hasScanned ? undefined : handleBarCodeScanned}
-          />
-          <View style={styles.cameraOverlay}>
-            <TouchableOpacity
-              style={styles.cancelCameraBtn}
-              onPress={() => setShowScanner(false)}
-            >
-              <Text style={styles.cancelCameraBtnText}>Hủy / Đóng</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       <WalletRecoveryModal
         visible={showRecoveryModal || isNeedsRecovery}
@@ -1289,33 +1242,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11.5,
     fontWeight: '800',
-  },
-
-  // 6. Camera Scanner Styles
-  cameraContainer: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 9999,
-    elevation: 9999,
-    backgroundColor: '#000000',
-  },
-  cameraOverlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  cancelCameraBtn: {
-    marginTop: 36,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 26,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#000000',
-  },
-  cancelCameraBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });

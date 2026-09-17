@@ -105,6 +105,7 @@ export default function RootLayout() {
                       <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
                       <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
+                      <Stack.Screen name="scan-qr" options={{ headerShown: false, animation: 'fade' }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
                     </Stack>
                     <GlobalNotificationManager />

@@ -15,27 +15,21 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
-  withSequence,
   withTiming,
   interpolateColor,
   interpolate,
+  LinearTransition,
+  Easing,
 } from 'react-native-reanimated';
 import { useTranslation } from '../../services/i18n';
 import { NEO_COLORS } from '../../components/neo/tokens';
 
 const TAB_ROUTES = ['index', 'overview', 'transfer-hub', 'miniapps'];
 
-// Cấu hình vật lý cơ học dứt khoát và nhanh (Snappy & Mechanical Spring)
-const SPRING_CONFIG = {
-  damping: 26,
-  stiffness: 280,
-  mass: 0.8,
-};
-
-const ICON_SPRING_CONFIG = {
-  damping: 20,
-  stiffness: 300,
+// Cấu hình chuyển động nhanh, dứt khoát, không hiệu ứng lò xo bật nảy
+const TIMING_CONFIG = {
+  duration: 160,
+  easing: Easing.out(Easing.cubic),
 };
 
 interface AnimatedTabItemProps {
@@ -52,9 +46,9 @@ interface AnimatedTabItemProps {
 /**
  * AnimatedTabItem: Tách biệt render độc lập cho từng tab,
  * Sử dụng react-native-reanimated trên UI Thread:
- * - Trục X & Chiều rộng (Width) tự co giãn đàn hồi với withSpring({ damping: 26, stiffness: 280, mass: 0.8 })
- * - Icon Scale Pop bật nảy nhẹ khi được click (1.0 -> 1.1 -> 1.0) với { damping: 20, stiffness: 300 }
- * - Text Label xuất hiện mượt mà
+ * - Co giãn dứt khoát, nhanh gọn (160ms) không lò xo bật nảy
+ * - Giảm biên độ co giãn (76px - 102px), gọn gàng và thanh thoát
+ * - Text Label xuất hiện dứt khoát
  */
 const AnimatedTabItem = React.memo(function AnimatedTabItem({
   route,
@@ -66,26 +60,27 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
   onLongPress,
   label,
 }: AnimatedTabItemProps) {
+  // Ước tính chiều rộng chuẩn xác theo độ dài ký tự: ~7.5px mỗi ký tự + 56px (icon + gap + margin 2 bên)
+  const defaultExpandedWidth = React.useMemo(() => {
+    const approx = Math.round(label.length * 7.5 + 56);
+    return Math.min(Math.max(approx, 84), 145);
+  }, [label]);
+
+  const targetWidth = useSharedValue(defaultExpandedWidth);
   const activeProgress = useSharedValue(isFocused ? 1 : 0);
-  const iconScale = useSharedValue(1);
+
+  React.useEffect(() => {
+    targetWidth.value = defaultExpandedWidth;
+  }, [defaultExpandedWidth]);
 
   useEffect(() => {
-    activeProgress.value = withSpring(isFocused ? 1 : 0, SPRING_CONFIG);
-
-    if (isFocused) {
-      // Hiệu ứng Bật nảy Icon (Scale Pop): Phóng to 1.1 rồi nhả về 1.0 với phản hồi cơ học dứt khoát
-      iconScale.value = withSequence(
-        withSpring(1.1, ICON_SPRING_CONFIG),
-        withSpring(1.0, ICON_SPRING_CONFIG)
-      );
-    } else {
-      iconScale.value = withSpring(1.0, ICON_SPRING_CONFIG);
-    }
+    // Chuyển động dứt khoát bằng withTiming, không dùng withSpring để tránh bập bênh lò xo
+    activeProgress.value = withTiming(isFocused ? 1 : 0, TIMING_CONFIG);
   }, [isFocused]);
 
-  // Animated style cho Khung viên thuốc (Pill)
+  // Animated style cho Khung viên thuốc (Pill) - Co giãn dứt khoát và gọn gàng
   const animatedContainerStyle = useAnimatedStyle(() => {
-    const width = interpolate(activeProgress.value, [0, 1], [44, 104]);
+    const width = interpolate(activeProgress.value, [0, 1], [44, targetWidth.value]);
     const backgroundColor = interpolateColor(
       activeProgress.value,
       [0, 1],
@@ -98,17 +93,10 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
     };
   });
 
-  // Animated style cho Icon bật nảy (Scale Pop)
-  const animatedIconStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: iconScale.value }],
-    };
-  });
-
   // Animated style cho Text Label
   const animatedLabelStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(activeProgress.value, [0, 0.4, 1], [0, 0, 1]);
-    const translateX = interpolate(activeProgress.value, [0, 1], [6, 0]);
+    const opacity = interpolate(activeProgress.value, [0, 0.35, 1], [0, 0, 1]);
+    const translateX = interpolate(activeProgress.value, [0, 1], [4, 0]);
 
     return {
       opacity,
@@ -175,9 +163,9 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
       activeOpacity={0.88}
     >
       <Animated.View style={[styles.tabItemBase, animatedContainerStyle]}>
-        <Animated.View style={animatedIconStyle}>
+        <View style={styles.iconContainer}>
           {renderIcon()}
-        </Animated.View>
+        </View>
 
         {isFocused && (
           <Animated.Text
@@ -187,10 +175,25 @@ const AnimatedTabItem = React.memo(function AnimatedTabItem({
               animatedLabelStyle,
             ]}
             numberOfLines={1}
+            ellipsizeMode="clip"
           >
             {label}
           </Animated.Text>
         )}
+
+        {/* Đo lường độ dài thực tế của text để co giãn width chuẩn xác 100%, không bị mất chữ */}
+        <Text
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0) {
+              const exactWidth = Math.min(Math.max(Math.round(w + 56), 84), 145);
+              targetWidth.value = exactWidth;
+            }
+          }}
+          style={styles.hiddenMeasureText}
+        >
+          {label}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -207,8 +210,9 @@ interface CustomTabBarProps {
 /**
  * Custom Floating Pill Tab Bar theo phong cách Neo-brutalism
  * Được nâng cấp bằng react-native-reanimated:
- * - Chuyển động vật lý nảy nhẹ với withSpring(damping: 14, stiffness: 120)
- * - Tách biệt component render độc lập, không giật cục trên Main Thread
+ * - Co giãn dứt khoát, giảm biên độ co giãn (76px - 102px)
+ * - Chuyển động nhanh gọn, không dùng lò xo bật nảy
+ * - Tách biệt component render độc lập trên UI Thread
  */
 function CustomTabBar({ state, descriptors, navigation, darkMode = false }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -235,8 +239,9 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
       ]}
       pointerEvents="box-none"
     >
-      {/* Thanh Điều Hướng Dạng Nổi (Floating Pill) */}
-      <View
+      {/* Thanh Điều Hướng Dạng Nổi (Floating Pill) - Co giãn dứt khoát, gọn gàng không hiệu ứng lò xo */}
+      <Animated.View
+        layout={LinearTransition.duration(160).easing(Easing.out(Easing.cubic))}
         style={[
           styles.pillBar,
           {
@@ -275,7 +280,7 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
           const getTabLabel = () => {
             if (route.name === 'index') return 'Home';
             if (route.name === 'overview' || route.name === 'card') return 'Overview';
-            if (route.name === 'transfer-hub') return t('tabs.transfer', { defaultValue: 'Chuyển' });
+            if (route.name === 'transfer-hub') return t('tabs.transfer', { defaultValue: 'Chuyển tiền' });
             if (route.name === 'miniapps') return t('tabs.miniapps', { defaultValue: 'Tiện ích' });
             return options.title || 'Tab';
           };
@@ -294,7 +299,7 @@ function CustomTabBar({ state, descriptors, navigation, darkMode = false }: Cust
             />
           );
         })}
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -378,10 +383,26 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
     overflow: 'hidden',
   },
+  iconContainer: {
+    width: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   activeTabText: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
     marginLeft: 6,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
+    flexShrink: 0,
+    includeFontPadding: false,
+  },
+  hiddenMeasureText: {
+    position: 'absolute',
+    opacity: 0,
+    zIndex: -9999,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.1,
+    includeFontPadding: false,
   },
 });
