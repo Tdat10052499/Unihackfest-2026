@@ -79,12 +79,14 @@ export default function AnalyticsScreen() {
   try { solanaWalletState = useEmbeddedSolanaWallet(); } catch (e) {}
   const externalWallet = useExternalWallet();
 
+  const walletAddress = useUserStore((s) => s.walletAddress);
+
   const getSolanaAddress = (): string | null => {
     return resolveActiveSolanaAddress(
       user,
       externalWallet,
       solanaWalletState,
-      useUserStore.getState().walletAddress
+      walletAddress
     );
   };
   const solanaAddress = getSolanaAddress();
@@ -93,63 +95,99 @@ export default function AnalyticsScreen() {
   const [solBalance, setSolBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 1. Tải nhanh từ AsyncStorage ngay khi mở tab để hiển thị tức thì
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const cached = await getCachedActivities();
+        if (isMounted && cached && cached.length > 0) {
+          const valid = cached.filter((tx: ActivityItem) => {
+            if (!tx) return false;
+            if (tx.isNetworkFee === true || tx.type === 'GAS_FEE') return false;
+            const amtStr = typeof tx.amount === 'string' ? tx.amount : String(tx.amount || '');
+            const cleanAmount = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
+            return cleanAmount >= 0.01;
+          });
+          if (valid.length > 0) {
+            setTransactions(valid);
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {
+        console.warn('Overview initial cache read error:', e);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Fetch dữ liệu on-chain an toàn, không bị treo khi RPC chậm hoặc 429
+  const loadData = useCallback(async () => {
+    if (!solanaAddress) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const [txData, bal, cachedActs] = await Promise.all([
+        fetchOnChainHistory(solanaAddress).catch((err) => {
+          console.warn('⚠️ [Overview] fetchOnChainHistory error:', err);
+          return [];
+        }),
+        getSolanaBalance(solanaAddress).catch((err) => {
+          console.warn('⚠️ [Overview] getSolanaBalance error:', err);
+          return 0;
+        }),
+        getCachedActivities().catch(() => []),
+      ]);
+
+      const combined = [...(cachedActs || []), ...(txData || [])];
+      const seen = new Set<string>();
+      const deduped: ActivityItem[] = [];
+      for (const item of combined) {
+        const key = item.signature || item.id;
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          deduped.push(item);
+        }
+      }
+
+      const validTransactions = deduped.filter((tx: ActivityItem) => {
+        if (!tx) return false;
+        if (tx.isNetworkFee === true || tx.type === 'GAS_FEE') return false;
+        const amtStr = typeof tx.amount === 'string' ? tx.amount : String(tx.amount || '');
+        const cleanAmount = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
+        return cleanAmount >= 0.01;
+      });
+
+      setTransactions(validTransactions);
+      setSolBalance(bal || 0);
+    } catch (error) {
+      console.error('Error fetching overview data', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [solanaAddress]);
+
   useFocusEffect(
     useCallback(() => {
-      let isMounted = true;
-      const loadData = async () => {
-        if (!solanaAddress) {
-          if (isMounted) setIsLoading(false);
-          return;
-        }
-        setIsLoading(true);
-        try {
-          const [txData, bal, cachedActs] = await Promise.all([
-            fetchOnChainHistory(solanaAddress),
-            getSolanaBalance(solanaAddress),
-            getCachedActivities(),
-          ]);
-          if (isMounted) {
-            // Hợp nhất dữ liệu cache và on-chain để không bỏ sót giao dịch
-            const combined = [...(cachedActs || []), ...(txData || [])];
-            const seen = new Set<string>();
-            const deduped: ActivityItem[] = [];
-            for (const item of combined) {
-              const key = item.signature || item.id;
-              if (key && !seen.has(key)) {
-                seen.add(key);
-                deduped.push(item);
-              }
-            }
-
-            // Lọc bỏ hoàn toàn các giao dịch phí mạng (Gas Fee) và các giao dịch $0.00 rác
-            const validTransactions = deduped.filter((tx: ActivityItem) => {
-              if (!tx) return false;
-              if (tx.isNetworkFee === true || tx.type === 'GAS_FEE') return false;
-              const cleanAmount = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
-              return cleanAmount >= 0.01;
-            });
-            setTransactions(validTransactions);
-            setSolBalance(bal || 0);
-          }
-        } catch (error) {
-          console.error("Error fetching overview data", error);
-        } finally {
-          if (isMounted) setIsLoading(false);
-        }
-      };
       loadData();
-      return () => { isMounted = false; };
-    }, [solanaAddress])
+    }, [loadData])
   );
 
-  const { walletCards: globalStablecoins, loadCardsForWallet, activeWalletAddress } = useWalletCardsStore();
+  useEffect(() => {
+    if (solanaAddress) {
+      loadData();
+    }
+  }, [solanaAddress, loadData]);
+
+  const { walletCards: globalStablecoins, loadCardsForWallet } = useWalletCardsStore();
   const { usdcBalance: onchainUsdcBalance } = useOnchainBalance(solanaAddress);
 
   useEffect(() => {
     if (solanaAddress) {
       loadCardsForWallet(solanaAddress);
     }
-  }, [solanaAddress, activeWalletAddress]);
+  }, [solanaAddress]);
 
   // Đồng bộ Dropdown Chọn Ví từ Global State thẻ ví (Home)
   const walletCards = useMemo(() => {
@@ -252,10 +290,11 @@ export default function AnalyticsScreen() {
     const currentYear = new Date().getFullYear();
 
     cardTransactions.forEach(tx => {
+      const amtStr = typeof tx.amount === 'string' ? tx.amount : String(tx.amount || '');
+      const amt = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
       if (tx.blockTime) {
         const date = new Date(tx.blockTime * 1000);
         if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-          const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
           if (tx.isPositive) {
             earned += amt;
           } else {
@@ -263,7 +302,6 @@ export default function AnalyticsScreen() {
           }
         }
       } else {
-        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
         if (tx.isPositive) {
           earned += amt;
         } else {
@@ -297,7 +335,8 @@ export default function AnalyticsScreen() {
       if (!map.has(key)) {
         map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
       }
-      const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+      const amtStr = typeof tx.amount === 'string' ? tx.amount : String(tx.amount || '');
+      const amt = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
       if (tx.isPositive) {
         map.get(key)!.earned += amt;
       } else {
@@ -325,7 +364,8 @@ export default function AnalyticsScreen() {
   const topDrainers = useMemo(() => {
     const sent = cardTransactions
       .map((tx, idx) => {
-        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        const amtStr = typeof tx.amount === 'string' ? tx.amount : String(tx.amount || '');
+        const amt = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
         return {
           id: tx.id || `d${idx}`,
           title: tx.title || 'Spending',

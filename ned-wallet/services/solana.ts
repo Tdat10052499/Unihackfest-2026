@@ -503,21 +503,22 @@ export function parseTransactionForAddress(
     const userPreToken = preTokens.find((t) => t.owner === address);
     const userPostToken = postTokens.find((t) => t.owner === address);
 
-    const preAmount = userPreToken?.uiTokenAmount?.uiAmount ?? 0;
-    const postAmount = userPostToken?.uiTokenAmount?.uiAmount ?? 0;
-    const tokenDiff = postAmount - preAmount;
+    const preAmount = userPreToken?.uiTokenAmount?.uiAmount ?? (userPreToken?.uiTokenAmount?.uiAmountString ? parseFloat(userPreToken.uiTokenAmount.uiAmountString) : 0);
+    const postAmount = userPostToken?.uiTokenAmount?.uiAmount ?? (userPostToken?.uiTokenAmount?.uiAmountString ? parseFloat(userPostToken.uiTokenAmount.uiAmountString) : 0);
+    const tokenDiff = (Number(postAmount) || 0) - (Number(preAmount) || 0);
 
     // Phân loại đơn vị tiền tệ dựa theo Mint
-    const tokenMint = userPostToken?.mint || userPreToken?.mint || '';
+    const rawMint = userPostToken?.mint || userPreToken?.mint || '';
+    const tokenMint = (typeof rawMint === 'string' ? rawMint : (rawMint?.toBase58?.() || String(rawMint || ''))).toUpperCase();
     let detectedCurrency = 'USDC';
     let currencySymbol = '$';
-    if (tokenMint.includes('EUR') || tokenMint.includes('eur')) {
+    if (tokenMint.includes('EUR')) {
       detectedCurrency = 'EURC';
       currencySymbol = '€';
-    } else if (tokenMint.includes('USDT') || tokenMint.includes('usdt')) {
+    } else if (tokenMint.includes('USDT')) {
       detectedCurrency = 'USDT';
       currencySymbol = '$';
-    } else if (tokenMint.includes('PYUSD') || tokenMint.includes('pyusd')) {
+    } else if (tokenMint.includes('PYUSD')) {
       detectedCurrency = 'PYUSD';
       currencySymbol = '$';
     }
@@ -850,7 +851,8 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
       const cleanActivities = activities.filter((act) => {
         if (!act) return false;
         if (act.isNetworkFee === true || act.type === 'GAS_FEE') return false;
-        const cleanAmount = Math.abs(parseFloat(act.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        const amtStr = typeof act.amount === 'string' ? act.amount : String(act.amount || '');
+        const cleanAmount = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
         return cleanAmount >= 0.01;
       });
 
@@ -865,7 +867,8 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
       return (cached?.data || []).filter((act) => {
         if (!act) return false;
         if (act.isNetworkFee === true || act.type === 'GAS_FEE') return false;
-        const cleanAmount = Math.abs(parseFloat(act.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        const amtStr = typeof act.amount === 'string' ? act.amount : String(act.amount || '');
+        const cleanAmount = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
         return cleanAmount >= 0.01;
       });
     } finally {
