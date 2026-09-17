@@ -11,6 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { useTranslation } from '@/services/i18n';
+
 interface MiniAppItem {
   id: string;
   title: string;
@@ -24,67 +26,66 @@ interface MiniAppItem {
   status?: string;
 }
 
-// 2. Cấu trúc Mock Data cho danh sách Mini-Apps
-const MINI_APPS_DATA: MiniAppItem[] = [
-  {
-    id: '1',
-    title: 'Solana Pay Merchant',
-    category: 'Payments & Merchant',
-    description: 'Generate QR code invoices for cafes, retail shops and receive instant USDC/VND payments.',
-    iconName: 'qr-code',
-    iconType: 'ionicons',
-    iconBg: '#E0FFFF', // Cyan nhạt
-    categoryColor: '#0891B2',
-    status: 'Coming soon',
-  },
-  {
-    id: '2',
-    title: 'Jupiter Swap Lite',
-    category: 'DeFi & Token Swap',
-    description: 'Swap tokens swiftly with optimal rates routed by Jupiter Aggregator.',
-    iconName: 'swap-horizontal',
-    iconType: 'ionicons',
-    iconBg: '#E6E6FA', // Tím nhạt
-    categoryColor: '#0891B2',
-    status: 'Coming soon',
-  },
-  {
-    id: '3',
-    title: 'Micro Savings',
-    category: 'Personal Finance',
-    description: 'Auto-round up spare change to accumulate SOL and earn daily yield.',
-    iconName: 'trending-up',
-    iconType: 'feather',
-    iconBg: '#FFFFFF', // Trắng
-    categoryColor: '#0891B2',
-    status: 'Coming soon',
-  },
-  {
-    id: '4',
-    title: 'Web3 Gift Cards',
-    category: 'Gift Cards & Vouchers',
-    description: 'Purchase and gift digital cards (Grab, Shopee, Starbucks) using N.E.D balance.',
-    iconName: 'gift-outline',
-    iconType: 'ionicons',
-    iconBg: '#FFE4E1', // Hồng nhạt
-    categoryColor: '#0891B2',
-    status: 'Coming soon',
-  },
-];
-
 export default function MiniAppsScreen() {
+  const { t } = useTranslation();
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const MINI_APPS_DATA: MiniAppItem[] = [
+    {
+      id: '1',
+      title: t('miniapps.solanaPayTitle', { defaultValue: 'Solana Pay Merchant' }),
+      category: t('miniapps.solanaPayCategory', { defaultValue: 'Payments & Merchant' }),
+      description: t('miniapps.solanaPayDesc', { defaultValue: 'Generate QR code invoices for cafes, retail shops and receive instant USDC/VND payments.' }),
+      iconName: 'qr-code',
+      iconType: 'ionicons',
+      iconBg: '#E0FFFF',
+      categoryColor: '#0891B2',
+      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
+    },
+    {
+      id: '2',
+      title: t('miniapps.jupiterSwapTitle', { defaultValue: 'Jupiter Swap Lite' }),
+      category: t('miniapps.jupiterSwapCategory', { defaultValue: 'DeFi & Token Swap' }),
+      description: t('miniapps.jupiterSwapDesc', { defaultValue: 'Swap tokens swiftly with optimal rates routed by Jupiter Aggregator.' }),
+      iconName: 'swap-horizontal',
+      iconType: 'ionicons',
+      iconBg: '#E6E6FA',
+      categoryColor: '#0891B2',
+      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
+    },
+    {
+      id: '3',
+      title: t('miniapps.microSavingsTitle', { defaultValue: 'Micro Savings' }),
+      category: t('miniapps.microSavingsCategory', { defaultValue: 'Personal Finance' }),
+      description: t('miniapps.microSavingsDesc', { defaultValue: 'Auto-round up spare change to accumulate SOL and earn daily yield.' }),
+      iconName: 'trending-up',
+      iconType: 'feather',
+      iconBg: '#FFFFFF',
+      categoryColor: '#0891B2',
+      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
+    },
+    {
+      id: '4',
+      title: t('miniapps.giftCardsTitle', { defaultValue: 'Web3 Gift Cards' }),
+      category: t('miniapps.giftCardsCategory', { defaultValue: 'Gift Cards & Vouchers' }),
+      description: t('miniapps.giftCardsDesc', { defaultValue: 'Purchase and gift digital cards (Grab, Shopee, Starbucks) using N.E.D balance.' }),
+      iconName: 'gift-outline',
+      iconType: 'ionicons',
+      iconBg: '#FFE4E1',
+      categoryColor: '#0891B2',
+      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
+    },
+  ];
+
   const handleCardPress = (item: MiniAppItem | { title: string; status?: string }) => {
-    // Gọi hiệu ứng rung nhẹ Haptics
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
-    setToastMessage('Tính năng đang được phát triển');
+    setToastMessage(t('miniapps.inDevNotice', { defaultValue: 'Tính năng đang được phát triển' }));
     setToastVisible(true);
 
     toastTimeoutRef.current = setTimeout(() => {
@@ -108,7 +109,7 @@ export default function MiniAppsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* 1. Tiêu đề chính "MINI APPS" */}
-        <Text style={styles.mainTitle}>MINI APPS</Text>
+        <Text style={styles.mainTitle}>{t('miniapps.title', { defaultValue: 'MINI APPS' })}</Text>
 
         {/* Thẻ Banner Highlight "Limitless Web3 DApps" */}
         <View style={styles.cardWrapper}>
@@ -116,23 +117,23 @@ export default function MiniAppsScreen() {
           <TouchableOpacity
             style={styles.cardFront}
             activeOpacity={0.85}
-            onPress={() => handleCardPress({ title: 'Limitless Web3 DApps' })}
+            onPress={() => handleCardPress({ title: t('miniapps.bannerTitle', { defaultValue: 'Limitless Web3 DApps' }) })}
           >
             <View style={[styles.iconBox, { backgroundColor: '#00E5FF' }]}>
               <Ionicons name="sparkles" size={22} color="#000000" />
             </View>
 
             <View style={styles.textContent}>
-              <Text style={styles.cardTitle}>Limitless Web3 DApps</Text>
+              <Text style={styles.cardTitle}>{t('miniapps.bannerTitle', { defaultValue: 'Limitless Web3 DApps' })}</Text>
               <Text style={styles.bannerDesc}>
-                Experience DeFi, Gaming, E-commerce payments with Solana instant speed.
+                {t('miniapps.bannerSubtitle', { defaultValue: 'Experience DeFi, Gaming, E-commerce payments with Solana instant speed.' })}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Tiêu đề phụ "Featured Apps" */}
-        <Text style={styles.sectionTitle}>Featured Apps</Text>
+        <Text style={styles.sectionTitle}>{t('miniapps.featuredSection', { defaultValue: 'Featured Apps' })}</Text>
 
         {/* Danh sách các thẻ ứng dụng Mock Data */}
         {MINI_APPS_DATA.map((item) => (

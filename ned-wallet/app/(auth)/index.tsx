@@ -27,6 +27,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { PhantomAuthButton } from '../../components/PhantomAuthButton';
 import { MASCOT_IMAGES } from '../../constants/mascot';
+import { useTranslation } from '@/services/i18n';
 
 // Kích hoạt LayoutAnimation trên Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -35,6 +36,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function AuthGatewayScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const privy = usePrivy();
   const isReady = privy?.isReady ?? false;
@@ -73,8 +75,8 @@ export default function AuthGatewayScreen() {
   const oAuthHook = useLoginWithOAuth({
     onError: (err) => {
       Alert.alert(
-        isLoginMode ? 'Đăng nhập thất bại' : 'Đăng ký thất bại',
-        err?.message || 'Không thể xác thực bằng tài khoản Google. Vui lòng thử lại.'
+        isLoginMode ? t('auth.loginFailed', { defaultValue: 'Đăng nhập thất bại' }) : t('auth.signupFailed', { defaultValue: 'Đăng ký thất bại' }),
+        err?.message || t('auth.googleAuthFailed', { defaultValue: 'Không thể xác thực bằng tài khoản Google. Vui lòng thử lại.' })
       );
     },
     onSuccess: (u, isNew) => {
@@ -87,7 +89,7 @@ export default function AuthGatewayScreen() {
   // Hook Privy Email OTP
   const emailHook = useLoginWithEmail({
     onError: (err) => {
-      setErrorMessage(err?.message || 'Không thể xử lý yêu cầu email. Vui lòng thử lại.');
+      setErrorMessage(err?.message || t('auth.emailReqFailed', { defaultValue: 'Không thể xử lý yêu cầu email. Vui lòng thử lại.' }));
     },
     onLoginSuccess: (u, isNew) => {
       handleAuthSuccess(u, isNew ?? !isLoginMode, false);
@@ -106,7 +108,7 @@ export default function AuthGatewayScreen() {
   const handleSendEmailCode = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setErrorMessage('Vui lòng nhập địa chỉ email hợp lệ.');
+      setErrorMessage(t('auth.enterValidEmail', { defaultValue: 'Vui lòng nhập địa chỉ email hợp lệ.' }));
       return;
     }
     setErrorMessage('');
@@ -117,7 +119,7 @@ export default function AuthGatewayScreen() {
       setStep('OTP_VERIFICATION');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      setErrorMessage(msg || 'Không thể gửi mã xác nhận.');
+      setErrorMessage(msg || t('auth.sendCodeFailed', { defaultValue: 'Không thể gửi mã xác nhận.' }));
     }
   };
 
@@ -125,7 +127,7 @@ export default function AuthGatewayScreen() {
     const trimmedCode = otpCode.trim();
     const trimmedEmail = email.trim();
     if (!trimmedCode) {
-      setErrorMessage('Vui lòng nhập mã OTP 6 chữ số.');
+      setErrorMessage(t('auth.enterOtp', { defaultValue: 'Vui lòng nhập mã OTP 6 chữ số.' }));
       return;
     }
     setErrorMessage('');
@@ -134,7 +136,7 @@ export default function AuthGatewayScreen() {
       await loginWithCode({ code: trimmedCode, email: trimmedEmail });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      setErrorMessage(msg || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+      setErrorMessage(msg || t('auth.invalidOtp', { defaultValue: 'Mã OTP không hợp lệ hoặc đã hết hạn.' }));
     }
   };
 
@@ -225,7 +227,7 @@ export default function AuthGatewayScreen() {
             </Animated.View>
             <Text style={styles.brandTitle}>N.E.D WALLET</Text>
             <Text style={styles.brandSubtitle}>
-              Ví Solana Thông Minh & Bảo Mật Tuyệt Đối
+              {t('auth.walletSlogan', { defaultValue: 'Ví Solana Thông Minh & Bảo Mật Tuyệt Đối' })}
             </Text>
           </View>
 
@@ -280,7 +282,7 @@ export default function AuthGatewayScreen() {
                       },
                     ]}
                   >
-                    Đăng nhập
+                    {t('auth.loginTab', { defaultValue: 'Đăng nhập' })}
                   </Animated.Text>
                 </TouchableOpacity>
 
@@ -300,7 +302,7 @@ export default function AuthGatewayScreen() {
                       },
                     ]}
                   >
-                    Đăng ký
+                    {t('auth.signupTab', { defaultValue: 'Đăng ký' })}
                   </Animated.Text>
                 </TouchableOpacity>
               </View>
@@ -326,17 +328,17 @@ export default function AuthGatewayScreen() {
                 >
                   <View style={styles.formHeader}>
                     <Text style={styles.formTitle}>
-                      {isLoginMode ? 'Chào mừng trở lại!' : 'Tạo tài khoản mới'}
+                      {isLoginMode ? t('auth.welcomeBack', { defaultValue: 'Chào mừng trở lại!' }) : t('auth.createNewAccount', { defaultValue: 'Tạo tài khoản mới' })}
                     </Text>
                     <Text style={styles.formSubtitle}>
                       {isLoginMode
-                        ? 'Đăng nhập vào ví N.E.D của bạn'
-                        : 'Bắt đầu trải nghiệm Web3 cần Seedphrase'}
+                        ? t('auth.loginSubtitle', { defaultValue: 'Đăng nhập vào ví N.E.D của bạn' })
+                        : t('auth.signupSubtitle', { defaultValue: 'Bắt đầu trải nghiệm Web3 không cần Seedphrase' })}
                     </Text>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Địa chỉ Email</Text>
+                    <Text style={styles.inputLabel}>{t('auth.emailAddressLabel', { defaultValue: 'Địa chỉ Email' })}</Text>
                     <View style={styles.inputWrapper}>
                       <Feather name="mail" size={18} color="#94A3B8" style={styles.inputIcon} />
                       <TextInput
@@ -368,7 +370,7 @@ export default function AuthGatewayScreen() {
                         <ActivityIndicator size="small" color="#000" />
                       ) : (
                         <Text style={styles.primaryBtnText}>
-                          {isLoginMode ? 'Tiếp tục với Email' : 'Đăng ký với Email'}
+                          {isLoginMode ? t('auth.continueWithEmail', { defaultValue: 'Tiếp tục với Email' }) : t('auth.signupWithEmail', { defaultValue: 'Đăng ký với Email' })}
                         </Text>
                       )}
                     </View>
@@ -376,7 +378,7 @@ export default function AuthGatewayScreen() {
 
                   <View style={styles.dividerRow}>
                     <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>hoặc tiếp tục với</Text>
+                    <Text style={styles.dividerText}>{t('auth.orContinueWith', { defaultValue: 'hoặc tiếp tục với' })}</Text>
                     <View style={styles.dividerLine} />
                   </View>
 
@@ -396,7 +398,7 @@ export default function AuthGatewayScreen() {
                             <Ionicons name="logo-google" size={20} color="#EA4335" />
                           </View>
                           <Text style={styles.socialBtnText}>
-                            {isLoginMode ? 'Tiếp tục với Google' : 'Đăng ký với Google'}
+                            {isLoginMode ? t('auth.continueWithGoogle', { defaultValue: 'Tiếp tục với Google' }) : t('auth.signupWithGoogle', { defaultValue: 'Đăng ký với Google' })}
                           </Text>
                         </View>
                       )}
@@ -415,15 +417,15 @@ export default function AuthGatewayScreen() {
                 /* Bước 2: Xác thực mã OTP qua Email */
                 <View style={styles.formSection}>
                   <View style={styles.otpHeader}>
-                    <Text style={styles.otpTitle}>Nhập mã xác thực</Text>
+                    <Text style={styles.otpTitle}>{t('auth.enterOtpTitle', { defaultValue: 'Nhập mã xác thực' })}</Text>
                     <Text style={styles.otpSubtitle}>
-                      Mã 6 chữ số đã được gửi tới{' '}
+                      {t('auth.otpSentMsg', { defaultValue: 'Mã 6 chữ số đã được gửi tới' })}{' '}
                       <Text style={styles.otpEmailHighlight}>{email}</Text>
                     </Text>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Mã xác thực OTP</Text>
+                    <Text style={styles.inputLabel}>{t('auth.otpLabel', { defaultValue: 'Mã xác thực OTP' })}</Text>
                     <View style={styles.inputWrapper}>
                       <Feather name="key" size={18} color="#94A3B8" style={styles.inputIcon} />
                       <TextInput
@@ -454,7 +456,7 @@ export default function AuthGatewayScreen() {
                       {isSubmittingOtp ? (
                         <ActivityIndicator size="small" color="#000" />
                       ) : (
-                        <Text style={styles.primaryBtnText}>Xác nhận & Đăng nhập</Text>
+                        <Text style={styles.primaryBtnText}>{t('auth.verifyLogin', { defaultValue: 'Xác nhận & Đăng nhập' })}</Text>
                       )}
                     </View>
                   </TouchableOpacity>
@@ -470,7 +472,7 @@ export default function AuthGatewayScreen() {
                     activeOpacity={0.7}
                   >
                     <Feather name="arrow-left" size={16} color="#000" />
-                    <Text style={styles.backLinkText}>Đổi địa chỉ email khác</Text>
+                    <Text style={styles.backLinkText}>{t('auth.changeEmail', { defaultValue: 'Đổi địa chỉ email khác' })}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -478,9 +480,9 @@ export default function AuthGatewayScreen() {
               {/* Footer Terms */}
               <View style={styles.footerSection}>
                 <Text style={styles.footerTermsText}>
-                  Bằng việc tiếp tục, bạn đồng ý với{' '}
-                  <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
-                  <Text style={styles.termsLink}>Chính sách bảo mật</Text>
+                  {t('auth.termsPrefix', { defaultValue: 'Bằng việc tiếp tục, bạn đồng ý với' })}{' '}
+                  <Text style={styles.termsLink}>{t('auth.termsLink', { defaultValue: 'Điều khoản dịch vụ' })}</Text> {t('auth.and', { defaultValue: 'và' })}{' '}
+                  <Text style={styles.termsLink}>{t('auth.privacyLink', { defaultValue: 'Chính sách bảo mật' })}</Text>
                 </Text>
               </View>
             </View>

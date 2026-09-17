@@ -407,20 +407,20 @@ export default function HomeScreen() {
     amountSol?: number
   ) => {
     if (!solanaAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nguồn.');
+      Alert.alert(t('send.failedTitle', { defaultValue: 'Thông báo' }), t('send.lookupError', { defaultValue: 'Không tìm thấy địa chỉ ví nguồn.' }));
       return;
     }
 
     const recipientInput = (targetAddress || withdrawAddress).trim();
     if (!recipientInput) {
-      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.');
+      Alert.alert(t('send.failedTitle', { defaultValue: 'Thông báo' }), t('send.invalidRecipient', { defaultValue: 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.' }));
       return;
     }
 
     if (!isWalletReady) {
       Alert.alert(
-        'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
+        t('wallet.connectingTitle', { defaultValue: 'Ví đang kết nối' }),
+        t('wallet.connectingDesc', { defaultValue: `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!` })
       );
       return;
     }
@@ -437,7 +437,7 @@ export default function HomeScreen() {
 
       if (!result.success || !result.transactionHash) {
         setIsSendingTx(false);
-        const errorMsg = result.error || 'Không thể thực hiện giao dịch.';
+        const errorMsg = result.error || t('send.failedMsg', { defaultValue: 'Không thể thực hiện giao dịch.' });
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -464,11 +464,11 @@ export default function HomeScreen() {
 
         if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
           Alert.alert(
-            'Phiên hết hạn ⚠️',
-            'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.',
+            t('session.expiredTitle', { defaultValue: 'Phiên hết hạn ⚠️' }),
+            t('session.expiredMsg', { defaultValue: 'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.' }),
             [
               {
-                text: 'Đăng nhập lại',
+                text: t('session.relogin', { defaultValue: 'Đăng nhập lại' }),
                 onPress: () => router.replace('/login'),
               },
             ]
@@ -476,7 +476,7 @@ export default function HomeScreen() {
           return;
         }
 
-        Alert.alert('Giao dịch chưa hoàn tất ❌', errorMsg);
+        Alert.alert(t('send.failedTitle', { defaultValue: 'Giao dịch chưa hoàn tất ❌' }), errorMsg);
         return;
       }
 
@@ -488,8 +488,8 @@ export default function HomeScreen() {
       const newAct: ActivityItem = {
         id: txSignature,
         type: 'sent',
-        title: 'Chuyển tiền',
-        time: 'Vừa xong',
+        title: t('activities.sent', { defaultValue: 'Chuyển tiền' }),
+        time: t('activities.justNow', { defaultValue: 'Vừa xong' }),
         amount: `-$${(numAmount * 150).toFixed(2)}`,
         isPositive: false,
         iconBg: '#374151',
@@ -509,15 +509,15 @@ export default function HomeScreen() {
       setIsSendingTx(false);
 
       Alert.alert(
-        'Chuyển Tiền Thành Công! ⚡',
-        `Đã chuyển $${numAmount.toFixed(2)} đến:\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\nMã giao dịch: ${txSignature.slice(0, 16)}...`
+        t('send.successTitle', { defaultValue: 'Chuyển Tiền Thành Công! ⚡' }),
+        `${t('send.successMsgPrefix', { defaultValue: 'Đã chuyển' })} $${numAmount.toFixed(2)} ${t('send.successMsgTo', { defaultValue: 'đến:' })}\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\n${t('send.txCode', { defaultValue: 'Mã giao dịch:' })} ${txSignature.slice(0, 16)}...`
       );
     } catch (err: any) {
       setIsSendingTx(false);
       console.error('Send Transaction Error:', err);
       Alert.alert(
-        'Lỗi Giao Dịch',
-        err?.message || 'Không thể thực hiện chuyển tiền lúc này.'
+        t('send.errorTitle', { defaultValue: 'Lỗi Giao Dịch' }),
+        err?.message || t('send.errorMsg', { defaultValue: 'Không thể thực hiện chuyển tiền lúc này.' })
       );
     }
   };
@@ -573,7 +573,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000000" />
-        <Text style={styles.loadingText}>Đang kết nối tài khoản N.E.D...</Text>
+        <Text style={styles.loadingText}>{t('home.connecting', { defaultValue: 'Đang kết nối tài khoản N.E.D...' })}</Text>
       </View>
     );
   }
@@ -635,7 +635,7 @@ export default function HomeScreen() {
               ]}
               numberOfLines={1}
             >
-              {'Welcome Back!'}
+              {t('home.welcomeBack', { defaultValue: 'Welcome Back!' })}
             </Text>
           </View>
         </View>
@@ -758,7 +758,7 @@ export default function HomeScreen() {
             <View style={styles.statCardShadow} />
             <View style={[styles.statCardBody, { backgroundColor: '#E0F7FA' }]}>
               <View>
-                <Text style={styles.statCardTitle}>Expenses</Text>
+                <Text style={styles.statCardTitle}>{t('home.expenses', { defaultValue: 'Expenses' })}</Text>
                 <Text style={styles.statCardAmount}>
                   {calculateTotalExpenses()}
                 </Text>
@@ -785,8 +785,8 @@ export default function HomeScreen() {
             <View style={styles.statCardShadow} />
             <View style={[styles.statCardBody, { backgroundColor: '#FAF5EE' }]}>
               <View>
-                <Text style={styles.statCardTitle}>Recent Transaction</Text>
-                <Text style={styles.statCardSubtitle}>Direct Bank</Text>
+                <Text style={styles.statCardTitle}>{t('home.recentTransaction', { defaultValue: 'Recent Transaction' })}</Text>
+                <Text style={styles.statCardSubtitle}>{t('home.directBank', { defaultValue: 'Direct Bank' })}</Text>
               </View>
 
               <View style={styles.recentBottomRow}>

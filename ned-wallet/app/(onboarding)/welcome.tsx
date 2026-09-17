@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MASCOT_IMAGES } from '../../constants/mascot';
+import { useTranslation } from '@/services/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -19,8 +20,9 @@ const { width } = Dimensions.get('window');
 
 export default function OnboardingWelcomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ name?: string }>();
-  const name = params?.name || 'bạn';
+  const name = params?.name || t('onboarding.you', { defaultValue: 'bạn' });
 
   // Animation values cho hiệu ứng Fade-in và Scale
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -98,15 +100,15 @@ export default function OnboardingWelcomeScreen() {
             {/* Greeting & Welcome Title */}
             <View style={styles.congratsBadge}>
               <Ionicons name="sparkles" size={14} color="#000" style={{ marginRight: 4 }} />
-              <Text style={styles.congratsBadgeText}>CHÚC MỪNG BẠN</Text>
+              <Text style={styles.congratsBadgeText}>{t('onboarding.welcomeCongrats', { defaultValue: 'CHÚC MỪNG BẠN' })}</Text>
             </View>
 
             <Text style={styles.welcomeTitle}>
-              Ví <Text style={styles.highlightName}>@{name}.sol</Text> đã sẵn sàng!
+              {t('onboarding.welcomeReadyTitle', { defaultValue: 'Ví' })} <Text style={styles.highlightName}>@{name}.sol</Text> {t('onboarding.welcomeReadyEnd', { defaultValue: 'đã sẵn sàng!' })}
             </Text>
 
             <Text style={styles.welcomeDesc}>
-              Tài khoản định danh ví của bạn đã được kích hoạt thành công. Đang đưa bạn vào N.E.D Wallet...
+              {t('onboarding.welcomeDesc', { defaultValue: 'Tài khoản định danh ví của bạn đã được kích hoạt thành công. Đang đưa bạn vào N.E.D Wallet...' })}
             </Text>
 
             {/* Progress Indicator Bar */}

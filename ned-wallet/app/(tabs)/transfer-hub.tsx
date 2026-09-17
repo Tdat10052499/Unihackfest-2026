@@ -43,6 +43,7 @@ const NeoFeatureCard: React.FC<NeoFeatureCardProps> = ({
   dividerColor = '#E2E8F0',
   onPress,
 }) => {
+  const { t } = useTranslation();
   return (
     <NeoCard
       backgroundColor={cardBgColor}
@@ -75,7 +76,7 @@ const NeoFeatureCard: React.FC<NeoFeatureCardProps> = ({
 
         {/* Bottom Row: Interact now -> */}
         <View style={styles.cardBottomRow}>
-          <Text style={styles.interactText}>Interact now</Text>
+          <Text style={styles.interactText}>{t('transferHub.interactNow', { defaultValue: 'Interact now' })}</Text>
           <Feather name="arrow-right" size={18} color="#000000" />
         </View>
       </TouchableOpacity>
@@ -144,8 +145,8 @@ export default function TransferHubScreen() {
       const newAct: ActivityItem = {
         id: txSignature,
         type: 'sent',
-        title: 'Chuyển tiền',
-        time: 'Vừa xong',
+        title: t('activities.sent', { defaultValue: 'Chuyển tiền' }),
+        time: t('activities.justNow', { defaultValue: 'Vừa xong' }),
         amount: `-$${amount.toFixed(2)}`,
         isPositive: false,
         iconBg: '#374151',
@@ -181,7 +182,7 @@ export default function TransferHubScreen() {
       <SafeAreaView style={[styles.safeContainer, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#00A859" />
         <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
-          Đang tải N.E.D Transfer Hub...
+          {t('transferHub.loading', { defaultValue: 'Đang tải N.E.D Transfer Hub...' })}
         </Text>
       </SafeAreaView>
     );
@@ -192,7 +193,7 @@ export default function TransferHubScreen() {
       <SafeAreaView style={[styles.safeContainer, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#00A859" />
         <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>
-          Phiên đăng nhập đã hết hạn. Đang chuyển hướng...
+          {t('session.expiredRedirect', { defaultValue: 'Phiên đăng nhập đã hết hạn. Đang chuyển hướng...' })}
         </Text>
       </SafeAreaView>
     );
@@ -204,7 +205,7 @@ export default function TransferHubScreen() {
 
       {/* Header Bar */}
       <View style={styles.topHeaderBar}>
-        <Text style={styles.headerTitle}>Transfer Hub</Text>
+        <Text style={styles.headerTitle}>{t('transferHub.title', { defaultValue: 'Transfer Hub' })}</Text>
       </View>
 
       <ScrollView
@@ -213,8 +214,8 @@ export default function TransferHubScreen() {
       >
         {/* 1. THẺ: Shake & Split bill (Nền Tím Nhạt #F3EBFF) */}
         <NeoFeatureCard
-          title="Shake & Split bill"
-          description="Shake phones with nearby friends to auto-discover and split bills on-chain."
+          title={t('transferHub.shakeSplitTitle', { defaultValue: 'Shake & Split bill' })}
+          description={t('transferHub.shakeSplitSubtitle', { defaultValue: 'Shake phones with nearby friends to auto-discover and split bills on-chain.' })}
           iconNode={
             <MaterialCommunityIcons name="cellphone-nfc" size={22} color="#FFFFFF" />
           }
@@ -226,8 +227,8 @@ export default function TransferHubScreen() {
 
         {/* 2. THẺ: Transfer by Phone Number (Nền Xanh Ngọc Nhạt #E6FAF8) */}
         <NeoFeatureCard
-          title="Transfer by Phone Number"
-          description="Send SOL directly to recipient via linked phone number."
+          title={t('transferHub.phoneTransferTitle', { defaultValue: 'Transfer by Phone Number' })}
+          description={t('transferHub.phoneTransferSubtitle', { defaultValue: 'Send SOL directly to recipient via linked phone number.' })}
           iconNode={<Ionicons name="navigate" size={20} color="#FFFFFF" style={{ transform: [{ rotate: '45deg' }] }} />}
           iconBgColor="#0D9488"
           cardBgColor="#E6FAF8"
@@ -237,8 +238,8 @@ export default function TransferHubScreen() {
 
         {/* 3. THẺ: Coin Toss Lì Xì Room (Nền Trắng #FFFFFF) */}
         <NeoFeatureCard
-          title="Coin Toss Lì Xì Room"
-          description="Create a room, invite nearby friends, and swipe to toss the lucky coin to pick a winner for on-chain SOL."
+          title={t('transferHub.coinTossTitle', { defaultValue: 'Coin Toss Lì Xì Room' })}
+          description={t('transferHub.coinTossSubtitle', { defaultValue: 'Create a room, invite nearby friends, and swipe to toss the lucky coin to pick a winner for on-chain SOL.' })}
           iconNode={
             <MaterialCommunityIcons name="bitcoin" size={22} color="#FFFFFF" />
           }

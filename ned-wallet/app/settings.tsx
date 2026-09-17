@@ -248,11 +248,11 @@ export default function SettingsScreen() {
         }
         Alert.alert('Thành công 🎉', 'Đã cập nhật ảnh đại diện mới thành công!');
       } else {
-        Alert.alert('Lỗi tải ảnh', uploadRes.error || 'Không thể upload ảnh lên Supabase.');
+        Alert.alert(t('settings.imageErrorTitle', { defaultValue: 'Lỗi tải ảnh' }), uploadRes.error || t('settings.imageUploadFailed', { defaultValue: 'Không thể upload ảnh lên Supabase.' }));
       }
     } catch (err: any) {
       console.error('❌ [handlePickAvatar] Lỗi chọn/upload avatar:', err);
-      Alert.alert('Lỗi', err?.message || 'Có lỗi xảy ra khi cập nhật ảnh đại diện.');
+      Alert.alert(t('settings.errorTitle', { defaultValue: 'Lỗi' }), err?.message || t('settings.avatarUpdateFailed', { defaultValue: 'Có lỗi xảy ra khi cập nhật ảnh đại diện.' }));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Alert.alert('Sao chép thành công', successMsg);
+      Alert.alert(t('settings.copySuccessTitle', { defaultValue: 'Sao chép thành công' }), successMsg);
     } catch (e) {
       console.log('Copy error:', e);
     }
@@ -281,7 +281,7 @@ export default function SettingsScreen() {
   // Sao chép mã tài khoản
   const handleCopyAccountId = async () => {
     const accId = getAccountIdentifier(user, linkedPhone);
-    handleCopyText(accId, `Đã sao chép mã tài khoản: ${accId}`);
+    handleCopyText(accId, `${t('settings.copiedAccountId', { defaultValue: 'Đã sao chép mã tài khoản:' })} ${accId}`);
   };
 
   // Xử lý chuyển đổi ngôn ngữ
@@ -426,8 +426,8 @@ export default function SettingsScreen() {
               backgroundColor="#DDD6FE"
               onPress={() =>
                 Alert.alert(
-                  'Bảo Mật Tài Khoản Google',
-                  'Tài khoản của bạn đã được sao lưu và bảo mật an toàn thông qua Google OAuth & Privy Embedded Wallet.'
+                  t('settings.googleBackupTitle', { defaultValue: 'Bảo Mật Tài Khoản Google' }),
+                  t('settings.googleBackupDesc', { defaultValue: 'Tài khoản của bạn đã được sao lưu và bảo mật an toàn thông qua Google OAuth & Privy Embedded Wallet.' })
                 )
               }
             >

@@ -139,7 +139,7 @@ export default function HistoryScreen() {
     if (!sig) return;
     const url = `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
     Linking.openURL(url).catch((err) => {
-      Alert.alert('Lỗi', 'Không thể mở liên kết Solana Explorer.');
+      Alert.alert(t('activities.errorTitle', { defaultValue: 'Lỗi' }), t('activities.explorerError', { defaultValue: 'Không thể mở liên kết Solana Explorer.' }));
     });
   };
 

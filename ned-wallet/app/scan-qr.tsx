@@ -32,12 +32,14 @@ import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 import { resolveActiveSolanaAddress, getMaskedPhone, getAccountIdentifier } from '../services/identity';
 import { getLinkedPhone } from '../services/storage';
+import { useTranslation } from '@/services/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCAN_SIZE = Math.min(Math.round(SCREEN_WIDTH * 0.74), 280);
 
 export default function ScanQrScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -160,29 +162,29 @@ export default function ScanQrScreen() {
           handleSuccessScan(scanResults[0].data);
         } else {
           Alert.alert(
-            'Không tìm thấy mã QR',
-            'Không thể nhận diện mã QR trong hình ảnh đã chọn. Vui lòng chọn ảnh chụp rõ nét hơn hoặc thử lại.'
+            t('scanQr.noQrFoundTitle', { defaultValue: 'Không tìm thấy mã QR' }),
+            t('scanQr.noQrFoundDesc', { defaultValue: 'Không thể nhận diện mã QR trong hình ảnh đã chọn. Vui lòng chọn ảnh chụp rõ nét hơn hoặc thử lại.' })
           );
         }
       } catch (scanErr) {
         setIsScanningImage(false);
         console.warn('scanFromURLAsync error:', scanErr);
         Alert.alert(
-          'Không thể nhận diện',
-          'Không tìm thấy mã QR hợp lệ trong ảnh này.'
+          t('scanQr.cannotRecognizeTitle', { defaultValue: 'Không thể nhận diện' }),
+          t('scanQr.cannotRecognizeDesc', { defaultValue: 'Không tìm thấy mã QR hợp lệ trong ảnh này.' })
         );
       }
     } catch (err) {
       setIsScanningImage(false);
       console.error('Image picker error:', err);
-      Alert.alert('Lỗi chọn ảnh', 'Không thể mở thư viện ảnh trên thiết bị.');
+      Alert.alert(t('scanQr.imageErrorTitle', { defaultValue: 'Lỗi chọn ảnh' }), t('scanQr.imageErrorDesc', { defaultValue: 'Không thể mở thư viện ảnh trên thiết bị.' }));
     }
   };
 
   // Sao chép địa chỉ ví vào bộ nhớ tạm
   const handleCopyWalletAddress = async () => {
     if (!solanaAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví.');
+      Alert.alert(t('scanQr.noticeTitle', { defaultValue: 'Thông báo' }), t('scanQr.noAddressTitle', { defaultValue: 'Không tìm thấy địa chỉ ví.' }));
       return;
     }
     try {
@@ -205,7 +207,7 @@ export default function ScanQrScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
       await Clipboard.setStringAsync(phoneState);
-      Alert.alert('Đã sao chép', `Đã sao chép số điện thoại ví: ${phoneState}`);
+      Alert.alert(t('scanQr.copiedTitle', { defaultValue: 'Đã sao chép' }), `${t('scanQr.copiedPhonePrefix', { defaultValue: 'Đã sao chép số điện thoại ví:' })} ${phoneState}`);
     } catch (e) {
       console.warn('Clipboard copy error:', e);
     }
@@ -227,12 +229,12 @@ export default function ScanQrScreen() {
               <View style={styles.myQrModalIconWrap}>
                 <Ionicons name="qr-code" size={20} color="#000000" />
               </View>
-              <Text style={styles.myQrModalTitle}>Mã QR Của Tôi</Text>
+              <Text style={styles.myQrModalTitle}>{t('scanQr.myQrTitle', { defaultValue: 'Mã QR Của Tôi' })}</Text>
               <TouchableOpacity
                 onPress={() => setShowMyQrModal(false)}
                 style={styles.myQrModalCloseBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="Đóng"
+                accessibilityLabel={t('scanQr.close', { defaultValue: 'Đóng' })}
               >
                 <Ionicons name="close" size={20} color="#000000" />
               </TouchableOpacity>
@@ -250,7 +252,7 @@ export default function ScanQrScreen() {
               ) : (
                 <View style={styles.qrLoadingBox}>
                   <ActivityIndicator size="large" color="#000000" />
-                  <Text style={styles.qrLoadingText}>Đang nạp địa chỉ ví...</Text>
+                  <Text style={styles.qrLoadingText}>{t('scanQr.loadingAddress', { defaultValue: 'Đang nạp địa chỉ ví...' })}</Text>
                 </View>
               )}
             </View>
@@ -265,7 +267,7 @@ export default function ScanQrScreen() {
                 >
                   <Ionicons name="call" size={14} color="#00A859" />
                   <Text style={styles.phoneBadgeText}>
-                    SĐT ví: <Text style={{ fontWeight: '900' }}>{phoneState}</Text>
+                    {t('scanQr.phoneLabel', { defaultValue: 'SĐT ví:' })} <Text style={{ fontWeight: '900' }}>{phoneState}</Text>
                   </Text>
                   <Ionicons name="copy-outline" size={13} color="#64748B" />
                 </TouchableOpacity>
@@ -274,7 +276,7 @@ export default function ScanQrScreen() {
               <Text style={styles.addressShortText}>
                 {solanaAddress
                   ? `${solanaAddress.slice(0, 10)}...${solanaAddress.slice(-10)}`
-                  : 'Chưa phát hiện địa chỉ ví'}
+                  : t('scanQr.noAddressDetected', { defaultValue: 'Chưa phát hiện địa chỉ ví' })}
               </Text>
             </View>
 
@@ -299,7 +301,7 @@ export default function ScanQrScreen() {
                     copiedAddress && styles.copyAddressMainBtnTextSuccess,
                   ]}
                 >
-                  {copiedAddress ? 'Đã sao chép địa chỉ ví!' : 'Sao chép địa chỉ ví'}
+                  {copiedAddress ? t('scanQr.addressCopied', { defaultValue: 'Đã sao chép địa chỉ ví!' }) : t('scanQr.copyAddress', { defaultValue: 'Sao chép địa chỉ ví' })}
                 </Text>
               </TouchableOpacity>
 
@@ -308,7 +310,7 @@ export default function ScanQrScreen() {
                 onPress={() => setShowMyQrModal(false)}
                 activeOpacity={0.88}
               >
-                <Text style={styles.closeMyQrBtnText}>Quay lại quét QR</Text>
+                <Text style={styles.closeMyQrBtnText}>{t('scanQr.backToScan', { defaultValue: 'Quay lại quét QR' })}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -332,7 +334,7 @@ export default function ScanQrScreen() {
             >
               <Ionicons name="arrow-back" size={22} color="#000000" />
             </TouchableOpacity>
-            <Text style={styles.permissionHeaderTitle}>Quét Mã QR</Text>
+            <Text style={styles.permissionHeaderTitle}>{t('scanQr.title', { defaultValue: 'Quét Mã QR' })}</Text>
             <View style={{ width: 44 }} />
           </View>
 
@@ -343,9 +345,9 @@ export default function ScanQrScreen() {
                 <Ionicons name="camera" size={36} color="#000000" />
               </View>
 
-              <Text style={styles.permissionCardTitle}>Cần Cấp Quyền Camera</Text>
+              <Text style={styles.permissionCardTitle}>{t('scanQr.cameraPermTitle', { defaultValue: 'Cần Cấp Quyền Camera' })}</Text>
               <Text style={styles.permissionCardDesc}>
-                Để quét mã QR nhận hoặc chuyển tiền Solana Pay tức thì, N.E.D Wallet cần bạn cấp quyền truy cập máy ảnh.
+                {t('scanQr.cameraPermDesc', { defaultValue: 'Để quét mã QR nhận hoặc chuyển tiền Solana Pay tức thì, N.E.D Wallet cần bạn cấp quyền truy cập máy ảnh.' })}
               </Text>
 
               <TouchableOpacity
@@ -358,7 +360,7 @@ export default function ScanQrScreen() {
                 }}
                 activeOpacity={0.88}
               >
-                <Text style={styles.permissionPrimaryBtnText}>Cấp Quyền Camera</Text>
+                <Text style={styles.permissionPrimaryBtnText}>{t('scanQr.grantCameraPerm', { defaultValue: 'Cấp Quyền Camera' })}</Text>
               </TouchableOpacity>
 
               <View style={styles.permissionDivider} />
@@ -369,7 +371,7 @@ export default function ScanQrScreen() {
                 activeOpacity={0.88}
               >
                 <Ionicons name="images-outline" size={18} color="#000000" />
-                <Text style={styles.permissionSecondaryBtnText}>Tải ảnh từ thư viện</Text>
+                <Text style={styles.permissionSecondaryBtnText}>{t('scanQr.loadFromGallery', { defaultValue: 'Tải ảnh từ thư viện' })}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -383,7 +385,7 @@ export default function ScanQrScreen() {
                 activeOpacity={0.88}
               >
                 <Ionicons name="qr-code-outline" size={18} color="#000000" />
-                <Text style={styles.permissionSecondaryBtnText}>Xem QR của tôi</Text>
+                <Text style={styles.permissionSecondaryBtnText}>{t('scanQr.viewMyQr', { defaultValue: 'Xem QR của tôi' })}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -441,7 +443,7 @@ export default function ScanQrScreen() {
         <View style={styles.overlayBottom}>
           {/* Dòng chữ hướng dẫn ngay bên dưới khung quét */}
           <Text style={styles.guidanceText}>
-            Di chuyển mã QR vào trung tâm khung hình
+            {t('scanQr.guidance', { defaultValue: 'Di chuyển mã QR vào trung tâm khung hình' })}
           </Text>
 
           {/* 4. Bottom Actions: Thẻ nổi Floating Card Neo-brutalism */}
@@ -461,7 +463,7 @@ export default function ScanQrScreen() {
                 <View style={styles.actionIconBadge}>
                   <Ionicons name="images" size={18} color="#000000" />
                 </View>
-                <Text style={styles.actionBtnText}>Tải ảnh</Text>
+                <Text style={styles.actionBtnText}>{t('scanQr.uploadImage', { defaultValue: 'Tải ảnh' })}</Text>
               </TouchableOpacity>
 
               {/* Nút 2: QR Của Tôi */}
@@ -478,7 +480,7 @@ export default function ScanQrScreen() {
                 <View style={[styles.actionIconBadge, { backgroundColor: '#FFE600' }]}>
                   <Ionicons name="qr-code" size={18} color="#000000" />
                 </View>
-                <Text style={styles.actionBtnText}>QR của tôi</Text>
+                <Text style={styles.actionBtnText}>{t('scanQr.myQr', { defaultValue: 'QR của tôi' })}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -498,13 +500,13 @@ export default function ScanQrScreen() {
               router.back();
             }}
             activeOpacity={0.85}
-            accessibilityLabel="Đóng máy quét"
+            accessibilityLabel={t('scanQr.closeScanner', { defaultValue: 'Đóng máy quét' })}
           >
             <Ionicons name="arrow-back" size={22} color="#000000" />
           </TouchableOpacity>
 
           {/* Tiêu đề ở giữa: Chữ trắng, font Heavy, viền shadow đen */}
-          <Text style={styles.headerTitle}>Quét Mã QR</Text>
+          <Text style={styles.headerTitle}>{t('scanQr.title', { defaultValue: 'Quét Mã QR' })}</Text>
 
           {/* Nút Đèn Pin Flashlight (Góc phải) */}
           <TouchableOpacity
@@ -519,7 +521,7 @@ export default function ScanQrScreen() {
               setIsTorchOn(!isTorchOn);
             }}
             activeOpacity={0.85}
-            accessibilityLabel="Bật tắt đèn flash"
+            accessibilityLabel={t('scanQr.toggleFlash', { defaultValue: 'Bật tắt đèn flash' })}
           >
             <Ionicons
               name={isTorchOn ? 'flash' : 'flash-outline'}
@@ -535,7 +537,7 @@ export default function ScanQrScreen() {
         <View style={styles.loadingBackdrop}>
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#000000" />
-            <Text style={styles.loadingText}>Đang nhận diện mã QR...</Text>
+            <Text style={styles.loadingText}>{t('scanQr.recognizing', { defaultValue: 'Đang nhận diện mã QR...' })}</Text>
           </View>
         </View>
       )}
