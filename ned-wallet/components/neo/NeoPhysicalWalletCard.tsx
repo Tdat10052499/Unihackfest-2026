@@ -7,6 +7,7 @@ import {
   Platform,
   Dimensions,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -15,6 +16,7 @@ import Animated, {
   withSpring,
   withTiming,
   withSequence,
+  withRepeat,
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
@@ -91,6 +93,54 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   const [cardDataList, setCardDataList] = useState<StablecoinCardData[]>(initialCards);
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [deletingCard, setDeletingCard] = useState<StablecoinCardData | null>(null);
+
+  // Wiggle animation state cho các thẻ khi ở chế độ chỉnh sửa
+  const wiggleRotate = useSharedValue(0);
+
+  const startWiggle = useCallback(() => {
+    wiggleRotate.value = withRepeat(
+      withSequence(
+        withTiming(1.5, { duration: 120, easing: Easing.linear }),
+        withTiming(-1.5, { duration: 120, easing: Easing.linear })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const stopWiggle = useCallback(() => {
+    wiggleRotate.value = withTiming(0, { duration: 150 });
+  }, []);
+
+  // Tắt chế độ Edit Mode khi bấm ra ngoài hoặc thu ví lại
+  useEffect(() => {
+    if (!isRevealed && isEditing) {
+      setIsEditing(false);
+      stopWiggle();
+    }
+  }, [isRevealed, isEditing, stopWiggle]);
+
+  const handleDeleteConfirm = () => {
+    if (deletingCard) {
+      // Tắt hiệu ứng wiggle và chế độ edit sau khi xóa
+      setIsEditing(false);
+      stopWiggle();
+      
+      // Xóa thẻ khỏi danh sách (trừ khi nó là thẻ đang active, tuỳ logic ví)
+      // Tạm thời gọi onAddCardPress() hoặc chỉ cần ẩn UI
+      setCardDataList(prev => prev.filter(c => c.id !== deletingCard.id));
+      setCardOrder(prev => {
+        // Cập nhật lại cardOrder để loại bỏ thẻ bị xoá
+        const idxToRemove = cardDataList.findIndex(c => c.id === deletingCard.id);
+        const filteredOrder = prev.filter(idx => idx !== idxToRemove);
+        // Normalize indices
+        return filteredOrder.map(idx => idx > idxToRemove ? idx - 1 : idx);
+      });
+    }
+    setDeletingCard(null);
+  };
 
   // Chiều cao ví co giãn mượt mà theo dạng Accordion xuống dưới (không đẩy thẻ lên đè header)
   const walletHeight = useSharedValue(360);
@@ -541,6 +591,14 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     card7AnimStyle,
   ];
 
+  const sharedWiggleStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { rotate: `${wiggleRotate.value}deg` }
+      ]
+    };
+  });
+
   // Helper render từng thẻ Stablecoin với bóng đổ cứng đồng bộ (Chuẩn thẻ tài chính vật lý)
   const renderCardItem = (cardIndex: number) => {
     const cardData = cardDataList[cardIndex];
@@ -557,14 +615,29 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     const currencyDisplayName = (cardData.name || cardData.currency || 'US DOLLAR').toUpperCase();
     const coinSymbolChar = cardData.symbol || (cardData.currency === 'EURC' ? '€' : '$');
 
+    const isWiggling = isEditing && cardData.currency !== 'USDC';
+
     return (
       <Animated.View
         key={cardData.id || `card_${cardIndex}`}
-        style={[styles.cardItemPosition, animStyle]}
+        style={[styles.cardItemPosition, animStyle, isWiggling && sharedWiggleStyle]}
       >
         <TouchableOpacity
           activeOpacity={0.94}
+          onLongPress={() => {
+            if (cardData.currency !== 'USDC') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              setIsEditing(true);
+              startWiggle();
+            }
+          }}
+          delayLongPress={400}
           onPress={() => {
+            if (isEditing) {
+              setIsEditing(false);
+              stopWiggle();
+              return;
+            }
             if (isFront) {
               toggleReveal();
             } else {
@@ -579,6 +652,20 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
 
           {/* Thân thẻ viền đen dày 3px Neo-brutalism */}
           <View style={[styles.cardItemBody, { backgroundColor: cardData.themeColor }]}>
+            
+            {/* Nút Xóa đính góc trái (Hiển thị khi isEditing) */}
+            {isWiggling && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setDeletingCard(cardData);
+                }}
+              >
+                <Feather name="x" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             {/* HÀNG 1 (Top Row): Icon đồng Stablecoin Tròn & Tên Tiền Tệ */}
             <View style={styles.cardTopRow}>
               <View style={styles.cardCoinBadge}>
@@ -775,6 +862,43 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* ========================================================================= */}
+        {/* 6. MODAL XÁC NHẬN XÓA THẺ (Neo-brutalism) */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={!!deletingCard}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setDeletingCard(null)}
+        >
+          <View style={styles.modalRoot}>
+            <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setDeletingCard(null)} />
+            <View style={styles.confirmCard}>
+              <Text style={styles.confirmTitle}>Xóa thẻ {deletingCard?.currency}?</Text>
+              <Text style={styles.confirmDesc}>
+                Bạn có chắc chắn muốn ẩn thẻ này khỏi ví? (Số dư trên chuỗi khối không bị ảnh hưởng)
+              </Text>
+              <View style={styles.confirmBtnRow}>
+                <TouchableOpacity
+                  style={[styles.confirmBtn, styles.btnCancel]}
+                  onPress={() => setDeletingCard(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnTextBlack}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmBtn, styles.btnDelete]}
+                  onPress={handleDeleteConfirm}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnTextWhite}>Xóa</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </Animated.View>
   );
@@ -1162,7 +1286,90 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 2,
+    paddingHorizontal: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FF4C4C',
+    borderWidth: 2,
+    borderColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+  },
+  confirmCard: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  confirmDesc: {
+    fontSize: 14,
+    color: '#333333',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  confirmBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  confirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  btnCancel: {
+    backgroundColor: '#FFFFFF',
+  },
+  btnDelete: {
+    backgroundColor: '#FF4C4C',
+  },
+  btnTextBlack: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  btnTextWhite: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   pouchActionBtnText: {
     fontSize: 13,
