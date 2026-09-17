@@ -1013,20 +1013,29 @@ export default function CoinTossRoomScreen() {
             <Animated.View style={[styles.winnerCardWrapper, animatedWinnerModalStyle]}>
               <View style={styles.winnerCardShadow} />
               <View style={styles.winnerCard}>
-                <View style={styles.winnerConfettiIcon}>
-                  <Text style={{ fontSize: 48 }}>🎉</Text>
+                {/* Mascot chú gấu tím ăn mừng hào hứng (Exciting Mascot) */}
+                <View style={styles.winnerMascotWrapper}>
+                  <Image
+                    source={require('@/assets/images/mascot teddy - exciting.png')}
+                    style={styles.winnerMascotImg}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 <Text style={styles.winnerCardHeading}>
                   {winner?.user_id === user?.id
-                    ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG! 🧧'
-                    : 'NGƯỜI MAY MẮN NHẤT PHÒNG! 🏆'}
+                    ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG!'
+                    : 'NGƯỜI MAY MẮN NHẤT PHÒNG!'}
                 </Text>
 
                 <View style={styles.winnerAvatarLarge}>
-                  <Text style={styles.winnerAvatarLargeText}>
-                    {winner?.avatar || 'W'}
-                  </Text>
+                  {winner?.avatar_url ? (
+                    <Image source={{ uri: winner.avatar_url }} style={styles.winnerAvatarLargeImg} />
+                  ) : (
+                    <Text style={styles.winnerAvatarLargeText}>
+                      {winner?.avatar || 'W'}
+                    </Text>
+                  )}
                 </View>
 
                 <Text style={styles.winnerNameText}>{winner?.name}</Text>
@@ -1044,15 +1053,6 @@ export default function CoinTossRoomScreen() {
                     </Text>
                   </View>
                 </View>
-
-                {lastTxSignature && (
-                  <View style={styles.txBox}>
-                    <Text style={styles.txBoxLabel}>Chữ ký On-chain Solana:</Text>
-                    <Text style={styles.txBoxValue} numberOfLines={1}>
-                      {lastTxSignature}
-                    </Text>
-                  </View>
-                )}
 
                 <View style={styles.closeWinnerBtnWrapper}>
                   <View style={styles.closeWinnerBtnShadow} />
@@ -1677,8 +1677,16 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
-  winnerConfettiIcon: {
+  winnerMascotWrapper: {
+    width: 140,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
+  },
+  winnerMascotImg: {
+    width: 135,
+    height: 115,
   },
   winnerCardHeading: {
     fontSize: 16,
@@ -1697,6 +1705,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    overflow: 'hidden',
+  },
+  winnerAvatarLargeImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 38,
   },
   winnerAvatarLargeText: {
     fontSize: 30,
