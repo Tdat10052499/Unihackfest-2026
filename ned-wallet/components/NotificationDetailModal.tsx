@@ -184,10 +184,17 @@ export function NotificationDetailModal({
                   <View style={styles.iconCircleSystem}>
                     <Ionicons name="shield-checkmark" size={42} color="#4F46E5" />
                   </View>
+                ) : isReceive ? (
+                  <Image
+                    source={require('../assets/images/mascot-love.png')}
+                    style={styles.mascotImage}
+                    resizeMode="contain"
+                  />
                 ) : (
                   <Image
-                    source={require('../assets/images/mascot-welcome.png')}
+                    source={require('../assets/images/mascot-happy.png')}
                     style={styles.mascotImage}
+                    resizeMode="contain"
                   />
                 )}
 

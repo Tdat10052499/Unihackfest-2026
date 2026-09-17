@@ -13,6 +13,7 @@ import { Ionicons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
+import { Mascot } from '@/components/Mascot';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -159,9 +160,7 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
             >
               {notifications.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <View style={styles.emptyIconBox}>
-                    <FontAwesome5 name="bell-slash" size={32} color="#9CA3AF" />
-                  </View>
+                  <Mascot mood="sad" size={100} floatAnimation containerStyle={{ marginBottom: 12 }} />
                   <Text style={styles.emptyTitle}>Chưa có thông báo nào</Text>
                   <Text style={styles.emptySubtitle}>
                     Các giao dịch nhận tiền, cảnh báo và cập nhật hệ thống sẽ xuất hiện tại đây.

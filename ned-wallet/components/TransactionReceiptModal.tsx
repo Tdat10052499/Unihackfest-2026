@@ -173,7 +173,7 @@ export function TransactionReceiptModal({
 
                 {/* Mascot Gấu */}
                 <Image
-                  source={require('../assets/images/mascot-welcome.png')}
+                  source={require('../assets/images/mascot-happy.png')}
                   style={styles.mascotImage}
                 />
 

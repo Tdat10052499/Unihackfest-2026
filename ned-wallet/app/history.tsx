@@ -18,6 +18,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { Mascot } from '@/components/Mascot';
 import {
   fetchOnChainHistory,
   ActivityItem,
@@ -272,9 +273,12 @@ export default function HistoryScreen() {
           </View>
         ) : filteredActivities.length === 0 ? (
           <View style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="receipt-outline" size={36} color="#94A3B8" />
-            </View>
+            <Mascot
+              mood={searchQuery ? 'question' : 'sad'}
+              size={110}
+              floatAnimation
+              containerStyle={{ marginBottom: 12 }}
+            />
             <Text style={styles.emptyTitle}>{t('activities.empty', { defaultValue: 'Không có giao dịch nào' })}</Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
