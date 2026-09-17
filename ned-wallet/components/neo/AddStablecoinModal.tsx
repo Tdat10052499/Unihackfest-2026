@@ -17,6 +17,7 @@ interface AddStablecoinModalProps {
   onClose: () => void;
   accountName: string;
   maskedWallet: string;
+  walletAddress?: string;
 }
 
 const SUPPORTED_STABLECOINS = [
@@ -72,6 +73,7 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
   onClose,
   accountName,
   maskedWallet,
+  walletAddress,
 }) => {
   const { walletCards, addCard } = useWalletCardsStore();
 
@@ -97,7 +99,7 @@ export const AddStablecoinModal: React.FC<AddStablecoinModalProps> = ({
       rateInfo: coin.rateInfo,
       logoUrl: coin.logoUrl,
     };
-    addCard(newCard);
+    addCard(newCard, walletAddress);
     onClose();
   };
 

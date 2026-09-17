@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Image,
 } from 'react-native';
 import Animated, { 
   useSharedValue, 
@@ -24,7 +25,8 @@ import { useUserStore } from '../../stores/useUserStore';
 import { resolveActiveSolanaAddress } from '../../services/identity';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
 import { useExternalWallet } from '../../src/providers/WalletProvider';
-import { useWalletCardsStore } from '../../stores/useWalletCardsStore';
+import { useWalletCardsStore, DEFAULT_USDC_CARD } from '../../stores/useWalletCardsStore';
+import { useOnchainBalance } from '../../hooks/useOnchainBalance';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -49,12 +51,16 @@ const DropdownItem = ({ card, index, isLast, onSelect, isOpen, isLoading }: any)
       <Animated.View style={[styles.dropdownMenuItem, !isLast && styles.dropdownMenuItemBorder, itemStyle]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={[styles.walletCardIcon, { width: 28, height: 28, backgroundColor: card.color }]}>
-            <FontAwesome5 name={card.icon} size={14} color="#FFF" />
+            {card.logoUrl ? (
+              <Image source={{ uri: card.logoUrl }} style={{ width: 18, height: 18, borderRadius: 9 }} resizeMode="contain" />
+            ) : (
+              <FontAwesome5 name={card.icon || 'coins'} size={14} color="#FFF" />
+            )}
           </View>
           <Text style={[styles.walletCardName, { color: '#000', fontSize: 16 }]}>{card.name}</Text>
         </View>
         <Text style={[styles.walletCardName, { color: '#000', fontWeight: '900' }]}>
-          {isLoading ? '...' : `${card.id === 'eurc' ? '€' : '$'}${card.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+          {isLoading ? '...' : card.balanceFormatted || `$${card.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
         </Text>
       </Animated.View>
     </TouchableOpacity>
@@ -101,7 +107,14 @@ export default function AnalyticsScreen() {
             getSolanaBalance(solanaAddress)
           ]);
           if (isMounted) {
-            setTransactions(txData || []);
+            // Lọc bỏ hoàn toàn các giao dịch phí mạng (Gas Fee) và các giao dịch $0.00 rác
+            const validTransactions = (txData || []).filter((tx: ActivityItem) => {
+              if (!tx) return false;
+              if (tx.isNetworkFee === true || tx.type === 'GAS_FEE') return false;
+              const cleanAmount = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+              return cleanAmount >= 0.01;
+            });
+            setTransactions(validTransactions);
             setSolBalance(bal || 0);
           }
         } catch (error) {
@@ -115,29 +128,61 @@ export default function AnalyticsScreen() {
     }, [solanaAddress])
   );
 
-  const { walletCards: globalStablecoins } = useWalletCardsStore();
+  const { walletCards: globalStablecoins, loadCardsForWallet, activeWalletAddress } = useWalletCardsStore();
+  const { usdcBalance: onchainUsdcBalance } = useOnchainBalance(solanaAddress);
 
+  useEffect(() => {
+    if (solanaAddress) {
+      loadCardsForWallet(solanaAddress);
+    }
+  }, [solanaAddress, activeWalletAddress]);
+
+  // Đồng bộ Dropdown Chọn Ví từ Global State thẻ ví (Home)
   const walletCards = useMemo(() => {
-    const cards = globalStablecoins.map(coin => ({
-      id: coin.currency.toLowerCase(),
-      name: coin.currency,
-      network: 'Solana',
-      balance: 0.00, // For now hardcode or use a state
-      color: coin.themeColor,
-      icon: 'coins'
-    }));
+    if (!globalStablecoins || globalStablecoins.length === 0) {
+      return [{
+        id: 'usdc_default',
+        currency: 'USDC',
+        name: 'US DOLLAR',
+        network: 'Solana',
+        balance: onchainUsdcBalance || 0,
+        balanceFormatted: `$${(onchainUsdcBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        color: '#00E5FF',
+        icon: 'coins',
+        logoUrl: DEFAULT_USDC_CARD.logoUrl,
+        symbol: '$',
+      }];
+    }
 
-    cards.push({
-      id: 'sol',
-      name: 'SOL',
-      network: 'Solana',
-      balance: solBalance,
-      color: '#9945FF',
-      icon: 'wallet'
+    return globalStablecoins.map(coin => {
+      let balance = 0;
+      let balanceFormatted = '$0.00';
+
+      if (coin.currency === 'USDC') {
+        balance = onchainUsdcBalance || 0;
+        balanceFormatted = `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      } else {
+        const rawStr = coin.balanceFormatted || coin.balanceUsd || '0';
+        const parsed = parseFloat(rawStr.replace(/[^0-9.-]+/g, '')) || 0;
+        balance = parsed;
+        const sym = coin.currency === 'EURC' ? '€' : '$';
+        balanceFormatted = coin.balanceFormatted || `${sym}${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      return {
+        id: coin.id || coin.currency.toLowerCase(),
+        currency: coin.currency,
+        name: coin.name || coin.currency,
+        network: coin.network || 'Solana',
+        balance,
+        balanceFormatted,
+        color: coin.themeColor || '#00E5FF',
+        icon: 'coins',
+        logoUrl: coin.logoUrl,
+        symbol: coin.symbol,
+      };
     });
-
-    return cards;
-  }, [globalStablecoins, solBalance]);
+  }, [globalStablecoins, onchainUsdcBalance]);
 
   const cashFlowStats = useMemo(() => {
     let earned = 0;
@@ -147,72 +192,102 @@ export default function AnalyticsScreen() {
 
     transactions.forEach(tx => {
       if (tx.blockTime) {
-         const date = new Date(tx.blockTime * 1000);
-         if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-           const amt = parseFloat(tx.amount) || 0;
-           if (tx.isPositive) {
-             earned += amt;
-           } else {
-             spent += amt;
-           }
-         }
+        const date = new Date(tx.blockTime * 1000);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+          if (tx.isPositive) {
+            earned += amt;
+          } else {
+            spent += amt;
+          }
+        }
       }
     });
 
+    const totalBalance = walletCards.reduce((sum, card) => sum + (card.balance || 0), 0);
+
     return {
-      totalBalance: solBalance,
+      totalBalance,
       metrics: [
-        { id: 'available', label: 'Available', amount: solBalance, color: '#00E5FF' },
+        { id: 'available', label: 'Available', amount: totalBalance, color: '#00E5FF' },
         { id: 'savings', label: 'Savings/Vault', amount: 0, color: '#CDB4DB' },
         { id: 'earned', label: 'Earned (In)', amount: earned, color: '#CCFF00' },
         { id: 'spent', label: 'Spent (Out)', amount: spent, color: '#FF6B6B' }
       ]
     };
-  }, [transactions, solBalance]);
+  }, [transactions, walletCards]);
 
   const trendData = useMemo(() => {
-     const map = new Map<string, { month: string, earned: number, spent: number, ts: number }>();
-     transactions.forEach(tx => {
-        if (!tx.blockTime) return;
-        const d = new Date(tx.blockTime * 1000);
-        const month = d.toLocaleString('en-US', { month: 'short' });
-        const year = d.getFullYear();
-        const key = `${month} ${year}`;
-        
-        if (!map.has(key)) {
-           map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
-        }
-        const amt = parseFloat(tx.amount) || 0;
-        if (tx.isPositive) {
-           map.get(key)!.earned += amt;
-        } else {
-           map.get(key)!.spent += amt;
-        }
-     });
-     const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
-     const last3 = sorted.slice(-3);
-     if (last3.length === 0) {
-       return [
-         { month: 'Jan', earned: 0, spent: 0 },
-         { month: 'Feb', earned: 0, spent: 0 },
-         { month: 'Mar', earned: 0, spent: 0 },
-       ];
-     }
-     return last3;
+    const map = new Map<string, { month: string, earned: number, spent: number, ts: number }>();
+    transactions.forEach(tx => {
+      if (!tx.blockTime) return;
+      const d = new Date(tx.blockTime * 1000);
+      const month = d.toLocaleString('en-US', { month: 'short' });
+      const year = d.getFullYear();
+      const key = `${month} ${year}`;
+      
+      if (!map.has(key)) {
+        map.set(key, { month, earned: 0, spent: 0, ts: d.getTime() });
+      }
+      const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+      if (tx.isPositive) {
+        map.get(key)!.earned += amt;
+      } else {
+        map.get(key)!.spent += amt;
+      }
+    });
+    const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
+    const last3 = sorted.slice(-3);
+    if (last3.length === 0) {
+      return [
+        { month: 'Jan', earned: 0, spent: 0 },
+        { month: 'Feb', earned: 0, spent: 0 },
+        { month: 'Mar', earned: 0, spent: 0 },
+      ];
+    }
+    return last3;
   }, [transactions]);
 
   const topDrainers = useMemo(() => {
-     const sent = transactions.filter(tx => !tx.isPositive && parseFloat(tx.amount) > 0);
-     sent.sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
-     return sent.slice(0, 3).map((tx, idx) => ({
-        id: tx.id || `d${idx}`,
-        title: tx.title || 'Unknown',
-        amount: -parseFloat(tx.amount)
-     }));
+    const sent = transactions
+      .map((tx, idx) => {
+        const amt = Math.abs(parseFloat(tx.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        return {
+          id: tx.id || `d${idx}`,
+          title: tx.title || 'Spending',
+          amount: amt,
+          isPositive: tx.isPositive,
+        };
+      })
+      .filter(tx => !tx.isPositive && tx.amount >= 0.01);
+
+    sent.sort((a, b) => b.amount - a.amount);
+    return sent.slice(0, 3).map((item) => ({
+      id: item.id,
+      title: item.title,
+      amount: -item.amount
+    }));
   }, [transactions]);
 
-  const [selectedWalletId, setSelectedWalletId] = useState('usdc');
-  const selectedWallet = walletCards.find((c: any) => c.id === selectedWalletId) || walletCards[0];
+  const [selectedWalletId, setSelectedWalletId] = useState('');
+  const selectedWallet = useMemo(() => {
+    if (!walletCards || walletCards.length === 0) {
+      return {
+        id: 'usdc_default',
+        currency: 'USDC',
+        name: 'US DOLLAR',
+        network: 'Solana',
+        balance: onchainUsdcBalance || 0,
+        balanceFormatted: `$${(onchainUsdcBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        color: '#00E5FF',
+        icon: 'coins',
+        logoUrl: DEFAULT_USDC_CARD.logoUrl,
+        symbol: '$',
+      };
+    }
+    const found = walletCards.find((c: any) => c.id === selectedWalletId || c.currency?.toLowerCase() === selectedWalletId.toLowerCase());
+    return found || walletCards[0];
+  }, [walletCards, selectedWalletId, onchainUsdcBalance]);
 
   const isOpen = useSharedValue(0);
 
@@ -225,9 +300,10 @@ export default function AnalyticsScreen() {
     isOpen.value = 0;
   };
 
+  const dropdownHeight = Math.max(1, walletCards.length) * 62;
   const containerStyle = useAnimatedStyle(() => {
     return {
-      height: withSpring(isOpen.value * 186, { stiffness: 250, damping: 20, mass: 0.5 }),
+      height: withSpring(isOpen.value * dropdownHeight, { stiffness: 250, damping: 20, mass: 0.5 }),
       opacity: withSpring(isOpen.value, { stiffness: 250, damping: 20, mass: 0.5 }),
     };
   });
@@ -339,7 +415,11 @@ export default function AnalyticsScreen() {
               <View style={styles.walletCardTop}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={[styles.walletCardIcon, { backgroundColor: selectedWallet.color }]}>
-                    <FontAwesome5 name={selectedWallet.icon} size={16} color="#FFF" />
+                    {selectedWallet.logoUrl ? (
+                      <Image source={{ uri: selectedWallet.logoUrl }} style={{ width: 20, height: 20, borderRadius: 10 }} resizeMode="contain" />
+                    ) : (
+                      <FontAwesome5 name={selectedWallet.icon || 'coins'} size={16} color="#FFF" />
+                    )}
                   </View>
                   <Text style={styles.walletCardName}>{selectedWallet.name}</Text>
                 </View>
@@ -354,7 +434,7 @@ export default function AnalyticsScreen() {
               </View>
               <View style={styles.walletCardBottom}>
                 <Text style={styles.walletCardBalance}>
-                  {isLoading ? '...' : `${selectedWallet.id === 'eurc' ? '€' : '$'}${selectedWallet.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+                  {isLoading ? '...' : selectedWallet.balanceFormatted || `$${(selectedWallet.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
                 </Text>
               </View>
             </Animated.View>

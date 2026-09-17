@@ -84,35 +84,67 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
 
   const initialCards: StablecoinCardData[] = cards.length > 0 ? cards : [DEFAULT_USDC_CARD];
 
-  // Thứ tự index vật lý của 3 thẻ: cardOrder[0] là Front, cardOrder[1] là Middle, cardOrder[2] là Back
-  const [cardOrder, setCardOrder] = useState<number[]>([0, 1, 2]);
+  const MAX_CONTROLLER_CARDS = 8;
+
+  // Thứ tự index vật lý của các thẻ: cardOrder[0] là Front (thẻ đang active)
+  const [cardOrder, setCardOrder] = useState<number[]>(() => initialCards.map((_, i) => i));
   const [cardDataList, setCardDataList] = useState<StablecoinCardData[]>(initialCards);
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
 
-  // Shared values cho từng thẻ 0, 1, 2
-  // Card 0 (Front ban đầu)
+  // Chiều cao ví co giãn mượt mà theo dạng Accordion xuống dưới (không đẩy thẻ lên đè header)
+  const walletHeight = useSharedValue(360);
+
+  // Shared values cho tối đa 8 thẻ (USDC, USDT, EURC, PYUSD, DAI, FDUSD...)
   const card0TranslateY = useSharedValue(0);
   const card0TranslateX = useSharedValue(0);
   const card0Rotate = useSharedValue(0);
   const card0Scale = useSharedValue(1);
-  const card0ZIndex = useSharedValue(5);
+  const card0ZIndex = useSharedValue(20);
 
-  // Card 1 (Middle ban đầu)
-  const card1TranslateY = useSharedValue(-8);
+  const card1TranslateY = useSharedValue(-6);
   const card1TranslateX = useSharedValue(0);
-  const card1Rotate = useSharedValue(1.5);
+  const card1Rotate = useSharedValue(2.0);
   const card1Scale = useSharedValue(0.98);
-  const card1ZIndex = useSharedValue(4);
+  const card1ZIndex = useSharedValue(18);
 
-  // Card 2 (Back ban đầu)
-  const card2TranslateY = useSharedValue(-16);
+  const card2TranslateY = useSharedValue(-12);
   const card2TranslateX = useSharedValue(0);
-  const card2Rotate = useSharedValue(-1.5);
+  const card2Rotate = useSharedValue(-2.0);
   const card2Scale = useSharedValue(0.96);
-  const card2ZIndex = useSharedValue(3);
+  const card2ZIndex = useSharedValue(16);
 
-  // Thẻ "Thêm ví Stablecoin" (Add Coin Card) - Trượt lên điền vào khoảng trống giữa cụm thẻ và túi ví
+  const card3TranslateY = useSharedValue(-16);
+  const card3TranslateX = useSharedValue(0);
+  const card3Rotate = useSharedValue(1.2);
+  const card3Scale = useSharedValue(0.94);
+  const card3ZIndex = useSharedValue(14);
+
+  const card4TranslateY = useSharedValue(-18);
+  const card4TranslateX = useSharedValue(0);
+  const card4Rotate = useSharedValue(-1.2);
+  const card4Scale = useSharedValue(0.92);
+  const card4ZIndex = useSharedValue(12);
+
+  const card5TranslateY = useSharedValue(-18);
+  const card5TranslateX = useSharedValue(0);
+  const card5Rotate = useSharedValue(1.0);
+  const card5Scale = useSharedValue(0.90);
+  const card5ZIndex = useSharedValue(10);
+
+  const card6TranslateY = useSharedValue(-18);
+  const card6TranslateX = useSharedValue(0);
+  const card6Rotate = useSharedValue(-1.0);
+  const card6Scale = useSharedValue(0.88);
+  const card6ZIndex = useSharedValue(8);
+
+  const card7TranslateY = useSharedValue(-18);
+  const card7TranslateX = useSharedValue(0);
+  const card7Rotate = useSharedValue(0.8);
+  const card7Scale = useSharedValue(0.86);
+  const card7ZIndex = useSharedValue(6);
+
+  // Thẻ "Thêm ví Stablecoin" (Add Coin Card) - Nằm ngay khoảng hở khi túi ví trượt xuống
   const addCardTranslateY = useSharedValue(20);
   const addCardScale = useSharedValue(0.95);
   const addCardOpacity = useSharedValue(0);
@@ -126,52 +158,75 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   const bounceScale = useSharedValue(1);
 
   const triggerErrorFeedback = useCallback(() => {
-    // 1. Rung cảnh báo
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    
-    // 2. Phóng to và thu nhỏ nảy lò xo
     bounceScale.value = withSequence(
       withTiming(1.04, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
     );
   }, []);
 
-  // Cập nhật khi props `cards` thay đổi
-  useEffect(() => {
-    if (cards && cards.length > 0) {
-      setCardDataList(cards);
-    } else {
-      setCardDataList([DEFAULT_USDC_CARD]);
-    }
-  }, [cards]);
-
-  const activeFrontCard = cardDataList[cardOrder[0]] || cardDataList[0] || DEFAULT_USDC_CARD;
-  const nextCard = cardDataList[cardOrder[1]] || cardDataList[cardOrder[0]] || DEFAULT_USDC_CARD;
-
-  // Mảng controllers tương ứng cho 3 thẻ
+  // Mảng controllers tương ứng cho các thẻ
   const cardAnimControllers = [
     { translateY: card0TranslateY, translateX: card0TranslateX, rotate: card0Rotate, scale: card0Scale, zIndex: card0ZIndex },
     { translateY: card1TranslateY, translateX: card1TranslateX, rotate: card1Rotate, scale: card1Scale, zIndex: card1ZIndex },
     { translateY: card2TranslateY, translateX: card2TranslateX, rotate: card2Rotate, scale: card2Scale, zIndex: card2ZIndex },
+    { translateY: card3TranslateY, translateX: card3TranslateX, rotate: card3Rotate, scale: card3Scale, zIndex: card3ZIndex },
+    { translateY: card4TranslateY, translateX: card4TranslateX, rotate: card4Rotate, scale: card4Scale, zIndex: card4ZIndex },
+    { translateY: card5TranslateY, translateX: card5TranslateX, rotate: card5Rotate, scale: card5Scale, zIndex: card5ZIndex },
+    { translateY: card6TranslateY, translateX: card6TranslateX, rotate: card6Rotate, scale: card6Scale, zIndex: card6ZIndex },
+    { translateY: card7TranslateY, translateX: card7TranslateX, rotate: card7Rotate, scale: card7Scale, zIndex: card7ZIndex },
   ];
+
+  // Hàm tính toán thuộc tính hiển thị theo thứ tự xếp chồng (Rank)
+  // Đảm bảo thẻ xếp chồng an toàn, không bao giờ vượt quá -18px, hoàn toàn tránh Header
+  const getStackTransform = (rank: number, isExpanded: boolean = false) => {
+    switch (rank) {
+      case 0:
+        return { translateY: 0, translateX: 0, rotate: 0, scale: 1.0, zIndex: 20 };
+      case 1:
+        return { translateY: -6, translateX: 0, rotate: isExpanded ? 2.5 : 2.0, scale: 0.98, zIndex: 18 };
+      case 2:
+        return { translateY: -12, translateX: 0, rotate: isExpanded ? -2.5 : -2.0, scale: 0.96, zIndex: 16 };
+      case 3:
+        return { translateY: -16, translateX: 0, rotate: isExpanded ? 1.5 : 1.2, scale: 0.94, zIndex: 14 };
+      case 4:
+        return { translateY: -18, translateX: 0, rotate: isExpanded ? -1.5 : -1.2, scale: 0.92, zIndex: 12 };
+      case 5:
+        return { translateY: -18, translateX: 0, rotate: 1.0, scale: 0.90, zIndex: 10 };
+      case 6:
+        return { translateY: -18, translateX: 0, rotate: -1.0, scale: 0.88, zIndex: 8 };
+      default:
+        return { translateY: -18, translateX: 0, rotate: 0, scale: 0.86, zIndex: 6 };
+    }
+  };
+
+  // Cập nhật khi props `cards` thay đổi (hỗ trợ thêm nhiều loại thẻ)
+  useEffect(() => {
+    const list = cards && cards.length > 0 ? cards : [DEFAULT_USDC_CARD];
+    setCardDataList(list);
+
+    setCardOrder((prevOrder) => {
+      const validIndices = list.map((_, i) => i);
+      const filtered = prevOrder.filter((idx) => idx < list.length);
+      const missing = validIndices.filter((idx) => !filtered.includes(idx));
+      const combined = [...filtered, ...missing];
+      return combined.length > 0 ? combined : [0];
+    });
+  }, [cards]);
+
+  const activeFrontCard = cardDataList[cardOrder[0]] || cardDataList[0] || DEFAULT_USDC_CARD;
+  const nextCard = cardDataList[cardOrder[1]] || cardDataList[cardOrder[0]] || DEFAULT_USDC_CARD;
 
   // Callback kết thúc toàn bộ chuỗi animation
   const onAnimationFinished = useCallback(() => {
     setIsAnimating(false);
   }, []);
 
-  // Pha 2 & Pha 3: Đạt đỉnh Parabol (-160, 60), đảo lớp zIndex và thực hiện nhét vào sau tức thì (Zero-delay)
-  const onApexReached = useCallback((frontIdx: number, midIdx: number, backIdx: number) => {
-    // 1. Cập nhật state thứ tự thẻ
-    let newOrder = [midIdx, backIdx, frontIdx];
-    if (cardDataList.length === 2) {
-      // Nếu chỉ có 2 thẻ, thẻ thứ 3 (backIdx) là vô hình, ta chỉ hoán đổi vị trí của thẻ 1 và 2.
-      newOrder = [midIdx, frontIdx, backIdx];
-    }
-    
+  // Pha đổi thẻ: Đạt đỉnh sang phải và nhét vào sau bộ bài
+  const onApexReached = useCallback((currentFrontIdx: number) => {
+    const newOrder = [...cardOrder.slice(1), cardOrder[0]];
     setCardOrder(newOrder);
 
-    // 2. Thông báo cho component cha (HomeScreen) biết thẻ active mới
     if (onCardChange) {
       const activeCard = cardDataList[newOrder[0]] || cardDataList[0];
       if (activeCard) {
@@ -179,7 +234,6 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
       }
     }
 
-    // Hiệu ứng số chạy / Pop nảy số sang số dư thẻ mới
     balanceOpacity.value = withTiming(1, { duration: 150 });
     balanceTranslateY.value = withSpring(0, SNAPPY_SPRING_CONFIG);
     balanceScale.value = withSequence(
@@ -187,40 +241,36 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
       withSpring(1, SNAPPY_SPRING_CONFIG)
     );
 
-    // 3. Pha 3 (Nhét vào sau & Đùn thẻ mới lên):
-    const frontCtrl = cardAnimControllers[frontIdx];
-    frontCtrl.zIndex.value = 2; // Hạ zIndex xuống thấp nhất
-    frontCtrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
-    frontCtrl.rotate.value = withSpring(-1.5, SNAPPY_SPRING_CONFIG);
-    frontCtrl.scale.value = withSpring(0.96, SNAPPY_SPRING_CONFIG);
-    frontCtrl.translateY.value = withSpring(
-      isRevealed ? -100 : -16,
-      SNAPPY_SPRING_CONFIG,
-      (isDone) => {
-        if (isDone) {
-          runOnJS(onAnimationFinished)();
-        }
+    newOrder.forEach((idx, rank) => {
+      if (idx >= MAX_CONTROLLER_CARDS) return;
+      const ctrl = cardAnimControllers[idx];
+      const target = getStackTransform(rank, isRevealed);
+
+      if (idx === currentFrontIdx) {
+        ctrl.zIndex.value = target.zIndex;
+        ctrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+        ctrl.rotate.value = withSpring(target.rotate, SNAPPY_SPRING_CONFIG);
+        ctrl.scale.value = withSpring(target.scale, SNAPPY_SPRING_CONFIG);
+        ctrl.translateY.value = withSpring(
+          target.translateY,
+          SNAPPY_SPRING_CONFIG,
+          (isDone) => {
+            if (isDone) {
+              runOnJS(onAnimationFinished)();
+            }
+          }
+        );
+      } else {
+        ctrl.zIndex.value = target.zIndex;
+        ctrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+        ctrl.rotate.value = withSpring(target.rotate, SNAPPY_SPRING_CONFIG);
+        ctrl.scale.value = withSpring(target.scale, SNAPPY_SPRING_CONFIG);
+        ctrl.translateY.value = withSpring(target.translateY, SNAPPY_SPRING_CONFIG);
       }
-    );
+    });
+  }, [cardOrder, cardDataList, isRevealed, onCardChange, onAnimationFinished, cardAnimControllers]);
 
-    // Thẻ Middle cũ (midIdx): Đùn lên làm Front Card mới
-    const midCtrl = cardAnimControllers[midIdx];
-    midCtrl.zIndex.value = 5; // Nâng zIndex lên cao nhất
-    midCtrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
-    midCtrl.rotate.value = withSpring(0, SNAPPY_SPRING_CONFIG);
-    midCtrl.scale.value = withSpring(1.0, SNAPPY_SPRING_CONFIG);
-    midCtrl.translateY.value = withSpring(isRevealed ? -75 : 0, SNAPPY_SPRING_CONFIG);
-
-    // Thẻ Back cũ (backIdx): Tiến lên làm Middle Card mới
-    const backCtrl = cardAnimControllers[backIdx];
-    backCtrl.zIndex.value = 4; // Nâng lên lớp giữa
-    backCtrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
-    backCtrl.rotate.value = withSpring(1.5, SNAPPY_SPRING_CONFIG);
-    backCtrl.scale.value = withSpring(0.98, SNAPPY_SPRING_CONFIG);
-    backCtrl.translateY.value = withSpring(isRevealed ? -88 : -8, SNAPPY_SPRING_CONFIG);
-  }, [cardDataList, isRevealed, onCardChange, onAnimationFinished]);
-
-  // Kích hoạt chuỗi hoạt ảnh Đổi thẻ (Snappy Realistic Arc Trajectory Swap)
+  // Kích hoạt chuỗi hoạt ảnh Đổi thẻ (Snappy Shuffle sang phải, không bay lên trần)
   const handleSwapPress = useCallback(() => {
     if (isAnimating) return;
     
@@ -230,84 +280,151 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     }
 
     setIsAnimating(true);
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Bắt đầu chuỗi lật: Nhấc nhẹ số cũ lên & mờ dần
     balanceOpacity.value = withTiming(0.15, { duration: 90 });
-    balanceTranslateY.value = withTiming(-8, { duration: 90 });
+    balanceTranslateY.value = withTiming(-6, { duration: 90 });
     balanceScale.value = withTiming(0.92, { duration: 90 });
 
-    const [frontIdx, midIdx, backIdx] = cardOrder;
+    const frontIdx = cardOrder[0];
     const frontCtrl = cardAnimControllers[frontIdx];
 
-    // Đảm bảo Front Card ở zIndex cao nhất trong lúc rút lên
     frontCtrl.zIndex.value = 50;
 
-    // Pha 1 (Rút lên cực nhanh 130ms, Easing phanh gấp ở đỉnh):
-    const SWAP_OUT_DURATION = 130;
+    const SWAP_OUT_DURATION = 140;
     const FAST_EASING = Easing.bezier(0.25, 1, 0.5, 1);
 
     frontCtrl.scale.value = withTiming(0.95, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
-    frontCtrl.rotate.value = withTiming(15, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
-    frontCtrl.translateX.value = withTiming(60, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
+    frontCtrl.rotate.value = withTiming(14, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
+    frontCtrl.translateX.value = withTiming(85, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
     frontCtrl.translateY.value = withTiming(
-      isRevealed ? -180 : -160,
+      -16,
       { duration: SWAP_OUT_DURATION, easing: FAST_EASING },
       (isFinished) => {
         if (isFinished) {
-          runOnJS(onApexReached)(frontIdx, midIdx, backIdx);
+          runOnJS(onApexReached)(frontIdx);
         }
       }
     );
-  }, [isAnimating, isRevealed, cardOrder, onApexReached]);
+  }, [isAnimating, cardDataList, cardOrder, triggerErrorFeedback, onApexReached, cardAnimControllers]);
 
-  // Tap to Expand / Bung cụm thẻ lên vừa phải tạo khoảng không & Thẻ Add Coin trượt lên điền vào giữa
+  // Chạm trực tiếp vào thẻ phía sau để đùn lên trước
+  const handleBringCardToFront = useCallback((targetCardIdx: number) => {
+    if (isAnimating) return;
+    const currentFront = cardOrder[0];
+    if (targetCardIdx === currentFront) return;
+
+    setIsAnimating(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    balanceOpacity.value = withTiming(0.15, { duration: 90 });
+    balanceTranslateY.value = withTiming(-6, { duration: 90 });
+    balanceScale.value = withTiming(0.92, { duration: 90 });
+
+    const frontCtrl = cardAnimControllers[currentFront];
+    frontCtrl.zIndex.value = 50;
+
+    const SWAP_OUT_DURATION = 140;
+    const FAST_EASING = Easing.bezier(0.25, 1, 0.5, 1);
+
+    frontCtrl.scale.value = withTiming(0.95, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
+    frontCtrl.rotate.value = withTiming(14, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
+    frontCtrl.translateX.value = withTiming(85, { duration: SWAP_OUT_DURATION, easing: FAST_EASING });
+    frontCtrl.translateY.value = withTiming(-16, { duration: SWAP_OUT_DURATION, easing: FAST_EASING }, (done) => {
+      if (done) {
+        runOnJS(() => {
+          const remaining = cardOrder.filter((idx) => idx !== targetCardIdx);
+          const newOrder = [targetCardIdx, ...remaining];
+          setCardOrder(newOrder);
+
+          if (onCardChange) {
+            const activeCard = cardDataList[newOrder[0]] || cardDataList[0];
+            if (activeCard) onCardChange(activeCard);
+          }
+
+          balanceOpacity.value = withTiming(1, { duration: 150 });
+          balanceTranslateY.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+          balanceScale.value = withSequence(
+            withTiming(1.18, { duration: 100, easing: Easing.out(Easing.quad) }),
+            withSpring(1, SNAPPY_SPRING_CONFIG)
+          );
+
+          newOrder.forEach((idx, rank) => {
+            if (idx >= MAX_CONTROLLER_CARDS) return;
+            const ctrl = cardAnimControllers[idx];
+            const target = getStackTransform(rank, isRevealed);
+
+            if (idx === currentFront) {
+              ctrl.zIndex.value = target.zIndex;
+              ctrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+              ctrl.rotate.value = withSpring(target.rotate, SNAPPY_SPRING_CONFIG);
+              ctrl.scale.value = withSpring(target.scale, SNAPPY_SPRING_CONFIG);
+              ctrl.translateY.value = withSpring(target.translateY, SNAPPY_SPRING_CONFIG, (isDone) => {
+                if (isDone) runOnJS(onAnimationFinished)();
+              });
+            } else {
+              ctrl.zIndex.value = target.zIndex;
+              ctrl.translateX.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+              ctrl.rotate.value = withSpring(target.rotate, SNAPPY_SPRING_CONFIG);
+              ctrl.scale.value = withSpring(target.scale, SNAPPY_SPRING_CONFIG);
+              ctrl.translateY.value = withSpring(target.translateY, SNAPPY_SPRING_CONFIG);
+            }
+          });
+        })();
+      }
+    });
+  }, [isAnimating, cardOrder, cardDataList, isRevealed, onCardChange, onAnimationFinished, cardAnimControllers]);
+
+  // Tap to Expand / Co giãn chiều cao túi ví xuống dưới để lộ khoảng trống cho Thêm Stablecoin
+  // Tuyệt đối không đẩy thẻ bay lên đè vào Header
   const toggleReveal = useCallback(() => {
     if (isAnimating) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const nextState = !isRevealed;
     setIsRevealed(nextState);
 
-    const [frontIdx, midIdx, backIdx] = cardOrder;
-    const frontCtrl = cardAnimControllers[frontIdx];
-    const midCtrl = cardAnimControllers[midIdx];
-    const backCtrl = cardAnimControllers[backIdx];
-
     if (nextState) {
-      // 1. Cụm thẻ chính trượt lên vừa phải (-75px, -88px, -100px) tạo khoảng trống 60px bên dưới
-      frontCtrl.translateY.value = withSpring(-75, EXPAND_SPRING_CONFIG);
-      frontCtrl.rotate.value = withSpring(0, EXPAND_SPRING_CONFIG);
+      // 1. Mở rộng chiều cao túi ví xuống dưới (tạo khoảng hở 58px cho thẻ Thêm Stablecoin)
+      walletHeight.value = withSpring(438, EXPAND_SPRING_CONFIG);
 
-      midCtrl.translateY.value = withSpring(-88, EXPAND_SPRING_CONFIG);
-      midCtrl.rotate.value = withSpring(2, EXPAND_SPRING_CONFIG);
-
-      backCtrl.translateY.value = withSpring(-100, EXPAND_SPRING_CONFIG);
-      backCtrl.rotate.value = withSpring(-2, EXPAND_SPRING_CONFIG);
-
-      // 2. Thẻ "Add Coin" trượt từ dưới miệng ví lên (-64px), điền vừa vặn vào khoảng trống 60px
-      addCardTranslateY.value = withSpring(-64, EXPAND_SPRING_CONFIG);
+      // 2. Thẻ "Add Coin" trượt vào vị trí an toàn giữa thẻ chính và miệng túi ví
+      addCardTranslateY.value = withSpring(0, EXPAND_SPRING_CONFIG);
       addCardScale.value = withSpring(1.0, EXPAND_SPRING_CONFIG);
-      addCardOpacity.value = withTiming(1, { duration: 150 });
+      addCardOpacity.value = withTiming(1, { duration: 180 });
+
+      // 3. Giữ các thẻ ở vị trí an toàn (Rank 0 tại 0, các thẻ sau xòe nhẹ góc, không bao giờ vượt -18px)
+      cardOrder.forEach((idx, rank) => {
+        if (idx >= MAX_CONTROLLER_CARDS) return;
+        const ctrl = cardAnimControllers[idx];
+        const target = getStackTransform(rank, true);
+        ctrl.translateY.value = withSpring(target.translateY, EXPAND_SPRING_CONFIG);
+        ctrl.rotate.value = withSpring(target.rotate, EXPAND_SPRING_CONFIG);
+        ctrl.scale.value = withSpring(target.scale, EXPAND_SPRING_CONFIG);
+        ctrl.zIndex.value = target.zIndex;
+      });
     } else {
-      // Thu gọn tất cả thẻ về vị trí cắm gọn gàng trong ví
-      frontCtrl.translateY.value = withSpring(0, SNAPPY_SPRING_CONFIG);
-      frontCtrl.rotate.value = withSpring(0, SNAPPY_SPRING_CONFIG);
+      // 1. Thu gọn ví về chiều cao chuẩn 360
+      walletHeight.value = withSpring(360, SNAPPY_SPRING_CONFIG);
 
-      midCtrl.translateY.value = withSpring(-8, SNAPPY_SPRING_CONFIG);
-      midCtrl.rotate.value = withSpring(1.5, SNAPPY_SPRING_CONFIG);
-
-      backCtrl.translateY.value = withSpring(-16, SNAPPY_SPRING_CONFIG);
-      backCtrl.rotate.value = withSpring(-1.5, SNAPPY_SPRING_CONFIG);
-
-      // Thẻ "Add Coin" trượt sâu xuống đáy ví và ẩn đi
+      // 2. Thẻ "Add Coin" trượt sâu xuống và ẩn đi
       addCardTranslateY.value = withSpring(20, SNAPPY_SPRING_CONFIG);
       addCardScale.value = withSpring(0.95, SNAPPY_SPRING_CONFIG);
       addCardOpacity.value = withTiming(0, { duration: 100 });
-    }
-  }, [isAnimating, isRevealed, cardOrder]);
 
-  // Animated Styles cho từng thẻ 0, 1, 2
+      // 3. Đưa các thẻ về trạng thái xếp chồng cơ bản
+      cardOrder.forEach((idx, rank) => {
+        if (idx >= MAX_CONTROLLER_CARDS) return;
+        const ctrl = cardAnimControllers[idx];
+        const target = getStackTransform(rank, false);
+        ctrl.translateY.value = withSpring(target.translateY, SNAPPY_SPRING_CONFIG);
+        ctrl.rotate.value = withSpring(target.rotate, SNAPPY_SPRING_CONFIG);
+        ctrl.scale.value = withSpring(target.scale, SNAPPY_SPRING_CONFIG);
+        ctrl.zIndex.value = target.zIndex;
+      });
+    }
+  }, [isAnimating, isRevealed, cardOrder, cardAnimControllers]);
+
+  // Animated Styles cho các thẻ
   const card0AnimStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: card0TranslateY.value },
@@ -338,6 +455,56 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     zIndex: card2ZIndex.value,
   }));
 
+  const card3AnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: card3TranslateY.value },
+      { translateX: card3TranslateX.value },
+      { rotateZ: `${card3Rotate.value}deg` },
+      { scale: card3Scale.value },
+    ],
+    zIndex: card3ZIndex.value,
+  }));
+
+  const card4AnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: card4TranslateY.value },
+      { translateX: card4TranslateX.value },
+      { rotateZ: `${card4Rotate.value}deg` },
+      { scale: card4Scale.value },
+    ],
+    zIndex: card4ZIndex.value,
+  }));
+
+  const card5AnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: card5TranslateY.value },
+      { translateX: card5TranslateX.value },
+      { rotateZ: `${card5Rotate.value}deg` },
+      { scale: card5Scale.value },
+    ],
+    zIndex: card5ZIndex.value,
+  }));
+
+  const card6AnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: card6TranslateY.value },
+      { translateX: card6TranslateX.value },
+      { rotateZ: `${card6Rotate.value}deg` },
+      { scale: card6Scale.value },
+    ],
+    zIndex: card6ZIndex.value,
+  }));
+
+  const card7AnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: card7TranslateY.value },
+      { translateX: card7TranslateX.value },
+      { rotateZ: `${card7Rotate.value}deg` },
+      { scale: card7Scale.value },
+    ],
+    zIndex: card7ZIndex.value,
+  }));
+
   // Animated Style cho thẻ "Thêm ví" (Add Coin Card)
   const addCardAnimStyle = useAnimatedStyle(() => ({
     transform: [
@@ -345,6 +512,10 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
       { scale: addCardScale.value },
     ],
     opacity: addCardOpacity.value,
+  }));
+
+  const containerAnimStyle = useAnimatedStyle(() => ({
+    height: walletHeight.value,
   }));
 
   const animatedBalanceStyle = useAnimatedStyle(() => ({
@@ -359,37 +530,47 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
     transform: [{ scale: bounceScale.value }]
   }));
 
-  const cardAnimStyles = [card0AnimStyle, card1AnimStyle, card2AnimStyle];
+  const cardAnimStyles = [
+    card0AnimStyle,
+    card1AnimStyle,
+    card2AnimStyle,
+    card3AnimStyle,
+    card4AnimStyle,
+    card5AnimStyle,
+    card6AnimStyle,
+    card7AnimStyle,
+  ];
 
   // Helper render từng thẻ Stablecoin với bóng đổ cứng đồng bộ (Chuẩn thẻ tài chính vật lý)
   const renderCardItem = (cardIndex: number) => {
     const cardData = cardDataList[cardIndex];
-    if (!cardData) return null;
+    if (!cardData || cardIndex >= MAX_CONTROLLER_CARDS) return null;
 
     const animStyle = cardAnimStyles[cardIndex];
+    const isFront = cardOrder[0] === cardIndex;
 
-    // Format chuỗi ví dạng số thẻ ngân hàng: **** **** **** 8421
     const rawWallet = cardData.maskedWallet || '8421';
     const last4 = rawWallet.replace(/[^a-zA-Z0-9]/g, '').slice(-4) || '8421';
     const formattedCardNumber = `**** **** **** ${last4}`;
 
-    // Tên người dùng viết hoa toàn bộ (VD: JON SNOW)
     const formattedCardHolder = (cardData.accountName || 'JON SNOW').toUpperCase();
-
-    // Tên tiền tệ hiển thị viết hoa (VD: US DOLLAR, EURO, PAYPAL USD)
     const currencyDisplayName = (cardData.name || cardData.currency || 'US DOLLAR').toUpperCase();
-
-    // Ký hiệu icon đồng Stablecoin tròn viền đen
     const coinSymbolChar = cardData.symbol || (cardData.currency === 'EURC' ? '€' : '$');
 
     return (
       <Animated.View
-        key={cardData.id}
+        key={cardData.id || `card_${cardIndex}`}
         style={[styles.cardItemPosition, animStyle]}
       >
         <TouchableOpacity
           activeOpacity={0.94}
-          onPress={toggleReveal}
+          onPress={() => {
+            if (isFront) {
+              toggleReveal();
+            } else {
+              handleBringCardToFront(cardIndex);
+            }
+          }}
           disabled={isAnimating}
           style={styles.cardTouchable}
         >
@@ -398,9 +579,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
 
           {/* Thân thẻ viền đen dày 3px Neo-brutalism */}
           <View style={[styles.cardItemBody, { backgroundColor: cardData.themeColor }]}>
-            {/* ========================================================= */}
-            {/* HÀNG 1 (Top Row): Icon đồng Stablecoin Tròn (Trái) & Tên Tiền Tệ (Phải) */}
-            {/* ========================================================= */}
+            {/* HÀNG 1 (Top Row): Icon đồng Stablecoin Tròn & Tên Tiền Tệ */}
             <View style={styles.cardTopRow}>
               <View style={styles.cardCoinBadge}>
                 {cardData.logoUrl ? (
@@ -410,38 +589,29 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
                 )}
               </View>
 
-              {/* Phải: Text hiển thị tên tiền tệ (VD: "US DOLLAR"), font Black/Bold, chữ hoa */}
               <Text style={styles.cardCurrencyTitleText} numberOfLines={1}>
                 {currencyDisplayName}
               </Text>
             </View>
 
-            {/* ========================================================= */}
             {/* HÀNG 2 (Middle Row): Chip EMV vật lý & Icon sóng NFC Contactless */}
-            {/* ========================================================= */}
             <View style={styles.cardMiddleRow}>
-              {/* Chip thẻ ngân hàng vật lý mô phỏng chuẩn Neo-brutalism */}
               <View style={styles.emvChip}>
                 <View style={styles.emvChipLineHoriz} />
                 <View style={styles.emvChipLineVert} />
               </View>
 
-              {/* Icon sóng chạm NFC ở bên phải */}
               <View style={styles.contactlessIconContainer}>
                 <MaterialCommunityIcons name="contactless-payment" size={24} color="#000000" />
               </View>
             </View>
 
-            {/* ========================================================= */}
             {/* HÀNG 3 (Bottom Row): Chuỗi số thẻ **** **** **** 8421 & Tên chủ thẻ */}
-            {/* ========================================================= */}
             <View style={styles.cardBottomRow}>
-              {/* Chuỗi ví định dạng số thẻ ngân hàng: **** **** **** 8421 */}
               <Text style={styles.cardNumberText} numberOfLines={1}>
                 {formattedCardNumber}
               </Text>
 
-              {/* Tên người dùng viết hoa toàn bộ */}
               <Text style={styles.cardHolderNameText} numberOfLines={1}>
                 {formattedCardHolder}
               </Text>
@@ -453,23 +623,25 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.outerContainer, animatedBounceStyle]}>
+    <Animated.View style={[styles.outerContainer, containerAnimStyle, animatedBounceStyle]}>
       {/* 1. Lớp bóng đổ cứng đen bao ngoài toàn bộ cụm Ví */}
       <View style={styles.walletHardShadow} />
 
-      {/* 2. Lớp lót bên trong túi ví (Leather Pocket Inner Lining) - Xóa bỏ khoảng trống đen */}
+      {/* 2. Lớp lót bên trong túi ví (Leather Pocket Inner Lining) */}
       <View style={styles.walletInnerLining} />
 
       {/* ========================================================================= */}
-      {/* 3. NGĂN CHỨA THẺ (Card Stack Bay - Nằm sau Túi ví) */}
+      {/* 3. NGĂN CHỨA THẺ (Card Stack Bay - Hỗ trợ N loại thẻ) */}
       {/* ========================================================================= */}
       <View style={styles.cardBayContainer} pointerEvents="box-none">
-        {/* 3 Thẻ Stablecoin chính (Xếp chồng) */}
-        {renderCardItem(2)}
-        {renderCardItem(1)}
-        {renderCardItem(0)}
+        {/* Render danh sách thẻ theo thứ tự từ sau ra trước */}
+        {cardOrder
+          .slice(0, Math.min(cardDataList.length, MAX_CONTROLLER_CARDS))
+          .slice()
+          .reverse()
+          .map((cardIdx) => renderCardItem(cardIdx))}
 
-        {/* THẺ DẸT "THÊM VÍ STABLECOIN" - Nằm ngay tại khoảng trống lộ ra giữa cụm thẻ và miệng ví */}
+        {/* THẺ DẸT "THÊM VÍ STABLECOIN" */}
         <Animated.View style={[styles.addCardPosition, addCardAnimStyle]}>
           <TouchableOpacity
             activeOpacity={0.82}
@@ -613,7 +785,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: 360, // Chiều cao vừa vặn, không bị khoảng trống quá lớn
-    marginTop: 18,
+    marginTop: 22,
     marginBottom: 8,
   },
   walletHardShadow: {
@@ -644,7 +816,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 160,
+    height: 210,
     alignItems: 'center',
     zIndex: 10,
   },
@@ -767,10 +939,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Thẻ dẹt "Thêm ví Stablecoin" (Add Coin Card - Nằm gọn trong khoảng trống 60px)
+  // Thẻ dẹt "Thêm ví Stablecoin" (Add Coin Card - Nằm gọn trong khoảng trống giữa thẻ chính và miệng túi ví)
   addCardPosition: {
     position: 'absolute',
-    top: 130, // Khởi đầu tại vị trí miệng túi ví
+    top: 144, // Nằm ngay dưới đáy thẻ front (140) và trên miệng túi ví khi mở rộng (198)
     width: '92%',
     height: 48, // Chiều cao dạng dẹt vừa vặn
     zIndex: 25, // Nằm trên nền ví để hiển thị và chạm thoải mái

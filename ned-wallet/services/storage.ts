@@ -238,6 +238,11 @@ export const setCachedAvatarUrl = async (avatarUrl: string): Promise<void> => {
  */
 export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<void> => {
   console.log('🧹 [Hard Reset] Bắt đầu dọn dẹp sâu session và bộ nhớ đệm...');
+  try {
+    const { useWalletCardsStore } = require('../stores/useWalletCardsStore');
+    useWalletCardsStore.getState().resetCards();
+  } catch {}
+
   if (typeof logoutFn === 'function') {
     try {
       await Promise.race([

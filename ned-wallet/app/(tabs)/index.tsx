@@ -11,8 +11,10 @@ import {
   InteractionManager,
   AppState,
   Image,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
@@ -63,10 +65,13 @@ import { useOnchainBalance } from '@/hooks/useOnchainBalance';
 import { useExternalWallet } from '@/src/providers/WalletProvider';
 import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
 import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
+import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { isNight, greeting } = useTimeOfDay();
   const { t } = useTranslation();
   
   const { isReady, user, logout } = usePrivy();
@@ -140,7 +145,7 @@ export default function HomeScreen() {
   const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
   
   // Wallet Cards Store
-  const { walletCards } = useWalletCardsStore();
+  const { walletCards, loadCardsForWallet, resetCards } = useWalletCardsStore();
   const [showAddStablecoinModal, setShowAddStablecoinModal] = useState(false);
 
   // Quản lý Số dư Độc lập cho từng loại Stablecoin
@@ -150,6 +155,15 @@ export default function HomeScreen() {
     PYUSD: 0.0,
   });
   const [activeCardCurrency, setActiveCardCurrency] = useState<string>('USDC');
+
+  // Đồng bộ thẻ theo từng ví (walletAddress), cô lập dữ liệu và fetch từ Supabase
+  useEffect(() => {
+    if (solanaAddress) {
+      loadCardsForWallet(solanaAddress, username || 'N.E.D User');
+    } else {
+      resetCards();
+    }
+  }, [solanaAddress, username]);
 
   useEffect(() => {
     if (onchainUsdcBalance !== undefined && onchainUsdcBalance !== null) {
@@ -589,23 +603,23 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handlePullToRefresh}
-            colors={['#000000']}
-            tintColor="#000000"
-          />
-        }
+    <View style={styles.safeContainer}>
+      <StatusBar barStyle={isNight ? 'light-content' : 'dark-content'} />
+
+      {/* ========================================================================= */}
+      {/* 1. STICKY HEADER (Tự động thích ứng Ban ngày / Ban đêm theo thời gian thực) */}
+      {/* ========================================================================= */}
+      <View
+        style={[
+          styles.stickyHeader,
+          {
+            paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 6,
+            backgroundColor: isNight ? '#161426' : '#FDF8F5',
+          },
+        ]}
       >
-        {/* ========================================================================= */}
-        {/* 1. HEADER (Profile Tròn Trái & QR Code Phải) */}
-        {/* ========================================================================= */}
-        <View style={styles.header}>
+        {/* Góc trái: Avatar + Lời chào theo thời gian thực (Good Morning/Afternoon/Evening) */}
+        <View style={styles.headerLeftGroup}>
           <TouchableOpacity
             style={styles.profileBtnWrapper}
             onPress={() => {
@@ -614,39 +628,95 @@ export default function HomeScreen() {
             }}
             activeOpacity={0.85}
           >
-            <View style={styles.profileBtnShadow} />
-            <View style={styles.profileBtnBody}>
+            <View style={[styles.profileBtnShadow, isNight && styles.profileBtnShadowNight]} />
+            <View style={[styles.profileBtnBody, isNight && styles.profileBtnBodyNight]}>
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
               ) : (
-                <Feather name="user" size={21} color="#000000" />
+                <Feather name="user" size={20} color={isNight ? '#FFFFFF' : '#000000'} />
               )}
             </View>
           </TouchableOpacity>
 
+          <View style={styles.headerGreetingCol}>
+            <Text
+              style={[
+                styles.headerGreetingTitle,
+                { color: isNight ? '#FFFFFF' : '#000000' },
+              ]}
+              numberOfLines={1}
+            >
+              {`${greeting}, ${displayGreetingName}`}
+            </Text>
+            <Text
+              style={[
+                styles.headerGreetingSubtitle,
+                { color: isNight ? '#A5A1C0' : '#4B5563' },
+              ]}
+              numberOfLines={1}
+            >
+              {'Welcome Back!'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Góc phải (Actions Group): flexDirection: 'row', alignItems: 'center', gap: 16 */}
+        <View style={styles.actionsGroup}>
+          {/* Icon Chuông (Notification) - Style Neo-brutalism */}
+          <TouchableOpacity
+            style={[styles.bellBtn, isNight ? styles.bellBtnNight : styles.bellBtnDay]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Alert.alert(
+                t('notifications', 'Thông báo'),
+                t('no_new_notifications', 'Hiện tại bạn chưa có thông báo mới nào.')
+              );
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={21}
+              color={isNight ? '#FFFFFF' : '#000000'}
+            />
+          </TouchableOpacity>
+
+          {/* Mã QR Code: Sử dụng đúng component QR Code mở camera scanner đã cung cấp */}
           <TouchableOpacity
             style={styles.qrCodeBtn}
             onPress={handleOpenScanner}
             activeOpacity={0.7}
           >
-            <Ionicons name="qr-code-outline" size={28} color="#000000" />
+            <Ionicons
+              name="qr-code-outline"
+              size={28}
+              color={isNight ? '#FFFFFF' : '#000000'}
+            />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* ========================================================================= */}
-        {/* 2. LỜI CHÀO (Hi Dat, Welcome Back !) */}
-        {/* ========================================================================= */}
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingTitle}>
-            {`Hi ${displayGreetingName},`}
-          </Text>
-          <Text style={styles.greetingWelcome}>
-            {'Welcome Back !'}
-          </Text>
-          <Text style={styles.greetingSubtitle}>
-            {"Here's your latest account overview"}
-          </Text>
-        </View>
+      {/* ========================================================================= */}
+      {/* 2. SCROLLVIEW CHỨA NỘI DUNG CHÍNH (paddingTop tránh bị Header đè khuất) */}
+      {/* ========================================================================= */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 76,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handlePullToRefresh}
+            colors={[isNight ? '#FFFFFF' : '#000000']}
+            tintColor={isNight ? '#FFFFFF' : '#000000'}
+            progressViewOffset={Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 68}
+          />
+        }
+      >
 
         {/* ========================================================================= */}
         {/* 3. VÍ VẬT LÝ CHỨA THẺ STABLECOIN (Physical Wallet Card - Swap Button) */}
@@ -854,6 +924,7 @@ export default function HomeScreen() {
         onClose={() => setShowAddStablecoinModal(false)}
         accountName={displayAccountName}
         maskedWallet={displayMaskedWallet}
+        walletAddress={solanaAddress || ''}
       />
 
       <AddSubWalletModal
@@ -875,7 +946,7 @@ export default function HomeScreen() {
         balances={stablecoinBalances}
         onConfirmSwap={handleConfirmSwap}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -903,11 +974,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // 1. Header Styles
-  header: {
+  // 1. Sticky Header Styles (Neo-brutalism, Rounded Corners & Time-based Dynamic)
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderColor: 'transparent',
+    borderBottomColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  headerLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    flex: 1,
+    marginRight: 12,
+    gap: 12,
+  },
+  headerGreetingCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerGreetingTitle: {
+    fontSize: 15.5,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  headerGreetingSubtitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: 1,
+    letterSpacing: -0.2,
   },
   profileBtnWrapper: {
     position: 'relative',
@@ -916,11 +1027,14 @@ const styles = StyleSheet.create({
   },
   profileBtnShadow: {
     position: 'absolute',
-    top: 3.5,
-    left: 3.5,
+    top: 3,
+    left: 3,
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: '#000000',
+  },
+  profileBtnShadowNight: {
     backgroundColor: '#000000',
   },
   profileBtnBody: {
@@ -934,46 +1048,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+  profileBtnBodyNight: {
+    backgroundColor: '#25223D',
+    borderColor: '#FFFFFF',
+  },
   avatarImg: {
     width: '100%',
     height: '100%',
   },
-  qrCodeBtn: {
-    width: 44,
-    height: 44,
+  actionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  bellBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
-
-  // 2. Greeting Section Styles
-  greetingContainer: {
-    marginTop: -4,
+  bellBtnDay: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#000000',
+    shadowColor: '#000000',
   },
-  greetingTitle: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: '#000000',
-    lineHeight: 32,
-    letterSpacing: -0.4,
-    textShadowColor: 'rgba(0, 0, 0, 0.12)',
-    textShadowOffset: { width: 1.5, height: 1.5 },
-    textShadowRadius: 0,
+  bellBtnNight: {
+    backgroundColor: '#25223D',
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
   },
-  greetingWelcome: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: '#000000',
-    lineHeight: 34,
-    letterSpacing: -0.4,
-    textShadowColor: 'rgba(0, 0, 0, 0.12)',
-    textShadowOffset: { width: 1.5, height: 1.5 },
-    textShadowRadius: 0,
-  },
-  greetingSubtitle: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#555555',
-    marginTop: 4,
+  qrCodeBtn: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
 

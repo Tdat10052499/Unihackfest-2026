@@ -134,7 +134,7 @@ export const solanaConnection = new Connection(SOLANA_DEVNET_RPC, {
 
 export interface ActivityItem {
   id: string;
-  type: 'received' | 'sent' | 'reward';
+  type: 'received' | 'sent' | 'reward' | 'GAS_FEE';
   title: string;
   time: string;
   amount: string;
@@ -142,6 +142,7 @@ export interface ActivityItem {
   iconBg: string;
   signature?: string;
   blockTime?: number;
+  isNetworkFee?: boolean;
 }
 
 export interface TransferResult {
@@ -663,17 +664,18 @@ export function parseTransactionForAddress(
     }
   }
 
-  // 4. Default: Giao dịch hệ thống / Gas ẩn
+  // 4. Default: Giao dịch hệ thống / Gas ẩn (Đánh dấu rõ ràng là phí mạng/gas để lọc sạch)
   return {
     id: signature,
-    type: 'sent',
-    title: 'Giao dịch',
+    type: 'GAS_FEE',
+    title: 'Phí mạng',
     time: timeStr,
     amount: '$0.00',
     isPositive: false,
     iconBg: '#64748B',
     signature,
     blockTime: blockTime ?? undefined,
+    isNetworkFee: true,
   };
 }
 
@@ -819,9 +821,12 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
       }
 
       // Ẩn toàn bộ các giao dịch gas / $0.00 / tương tác kỹ thuật blockchain
-      const cleanActivities = activities.filter(
-        (act) => act && act.amount !== '$0.00' && act.amount !== '-$0.00' && act.amount !== '+$0.00'
-      );
+      const cleanActivities = activities.filter((act) => {
+        if (!act) return false;
+        if (act.isNetworkFee === true || act.type === 'GAS_FEE') return false;
+        const cleanAmount = Math.abs(parseFloat(act.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        return cleanAmount >= 0.01;
+      });
 
       addressHistoryCache.set(address, { timestamp: Date.now(), data: cleanActivities });
       return cleanActivities;
@@ -831,9 +836,12 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
       } else {
         console.error('Error fetching on-chain history:', error);
       }
-      return (cached?.data || []).filter(
-        (act) => act && act.amount !== '$0.00' && act.amount !== '-$0.00' && act.amount !== '+$0.00'
-      );
+      return (cached?.data || []).filter((act) => {
+        if (!act) return false;
+        if (act.isNetworkFee === true || act.type === 'GAS_FEE') return false;
+        const cleanAmount = Math.abs(parseFloat(act.amount.replace(/[^0-9.-]+/g, '')) || 0);
+        return cleanAmount >= 0.01;
+      });
     } finally {
       inFlightHistoryMap.delete(address);
     }
