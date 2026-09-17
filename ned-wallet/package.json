@@ -30,6 +30,7 @@
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
+    "date-fns": "^4.4.0",
     "events": "^3.3.0",
     "expo": "~57.0.21",
     "expo-apple-authentication": "~57.0.1",

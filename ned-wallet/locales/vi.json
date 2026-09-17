@@ -217,5 +217,19 @@
     "supportInfo": "Vui lòng liên hệ support@ned.finance để được trợ giúp 24/7.",
     "aboutInfo": "N.E.D (NorthAxis Electronic Dollars)\nPhiên bản: 1.0.0 (Solana Pay & MiniPay Native)",
     "googleBackedUp": "Đã sao lưu Google"
+  },
+  "error": {
+    "senderWalletNotFound": "Không tìm thấy địa chỉ ví người gửi.",
+    "recipientRequired": "Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.",
+    "invalidAmount": "Vui lòng nhập số lượng SOL hợp lệ (lớn hơn 0).",
+    "walletNotReady": "Ví nhúng Solana chưa sẵn sàng.",
+    "phoneWalletNotFound": "Không tìm thấy ví liên kết với số điện thoại này.",
+    "invalidRecipientAddress": "Địa chỉ ví đích không hợp lệ trên mạng lưới Solana.",
+    "cannotSendToSelf": "Bạn không thể chuyển tiền đến tài khoản của chính mình.",
+    "insufficientSolBalance": "Số dư ví ({{currentSol}} SOL) không đủ để chuyển {{amountSol}} SOL kèm phí mạng lưới. Vui lòng nạp thêm SOL!",
+    "userRejected": "Người dùng đã hủy hoặc từ chối ký giao dịch.",
+    "txFailedOnChain": "Giao dịch thất bại trên chuỗi: {{err}}",
+    "userCancelled": "Bạn đã hủy ký giao dịch.",
+    "txFailed": "Không thể thực hiện giao dịch On-chain trên Solana Devnet."
   }
 }

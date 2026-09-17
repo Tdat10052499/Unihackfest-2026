@@ -43,6 +43,7 @@ import { useGlobalPresence } from '../contexts/GlobalPresenceContext';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
+import { useTranslation } from '../services/i18n';
 
 interface RoomMember {
   user_id: string;
@@ -63,12 +64,13 @@ const PRESET_AMOUNTS = [
 
 export default function CoinTossRoomScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
 
   const roomId = (params.roomId as string) || 'Coin_mthbc98';
   const isHost = String(params.isHost) === 'true';
   const hostId = (params.hostId as string) || '';
-  const hostName = (params.hostName as string) || 'Host';
+  const hostName = (params.hostName as string) || t('coinTossRoom.defaultHost', { defaultValue: 'Host' });
   const hostWallet = (params.hostWallet as string) || '';
   const hostAvatar = (params.hostAvatar as string) || 'H';
 
@@ -100,7 +102,7 @@ export default function CoinTossRoomScreen() {
 
   // Trạng thái Tung Đồng Xu
   const [isTossing, setIsTossing] = useState(false);
-  const [tossStatusText, setTossStatusText] = useState('Vuốt lên để tung đồng xu');
+  const [tossStatusText, setTossStatusText] = useState(t('coinTossRoom.swipeToToss', { defaultValue: 'Vuốt lên để tung đồng xu' }));
   const [winner, setWinner] = useState<RoomMember | null>(null);
   const [wonAmount, setWonAmount] = useState<number | null>(null);
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export default function CoinTossRoomScreen() {
 
     if (!user) {
       return {
-        name: walletUsername || 'Người chơi',
+        name: walletUsername || t('coinTossRoom.player', { defaultValue: 'Người chơi' }),
         avatar: (walletUsername || 'N').charAt(0).toUpperCase(),
         avatar_url: walletAvatarUrl || null,
       };
@@ -152,7 +154,7 @@ export default function CoinTossRoomScreen() {
       walletUsername ||
       googleAcc?.name ||
       (googleAcc?.email ? googleAcc.email.split('@')[0] : null) ||
-      (emailAcc?.address ? emailAcc.address.split('@')[0] : 'Người chơi');
+      (emailAcc?.address ? emailAcc.address.split('@')[0] : t('coinTossRoom.player', { defaultValue: 'Người chơi' }));
 
     const avatar = name.charAt(0).toUpperCase();
     return { name, avatar, avatar_url: walletAvatarUrl || null };
@@ -224,7 +226,7 @@ export default function CoinTossRoomScreen() {
         if (payload?.user_id && payload.user_id !== user.id) {
           const newMember: RoomMember = {
             user_id: payload.user_id,
-            name: payload.name || 'Người chơi',
+            name: payload.name || t('coinTossRoom.player', { defaultValue: 'Người chơi' }),
             avatar: payload.avatar || 'U',
             avatar_url: payload.avatar_url || null,
             wallet_address: payload.wallet_address,
@@ -281,17 +283,17 @@ export default function CoinTossRoomScreen() {
         if (payload?.user_id && isHost) {
           setInvitedUserIds((prev) => prev.filter((id) => id !== payload.user_id));
           Alert.alert(
-            'Từ chối tham gia',
-            `${payload.name || 'Người dùng'} đã từ chối tham gia phòng lì xì.`
+            t('coinTossRoom.rejectJoinTitle', { defaultValue: 'Từ chối tham gia' }),
+            t('coinTossRoom.rejectJoinMsg', { defaultValue: '{{name}} đã từ chối tham gia phòng lì xì.', name: payload.name || t('coinTossRoom.user', { defaultValue: 'Người dùng' }) })
           );
         }
       })
       .on('broadcast', { event: 'room_kick' }, ({ payload }) => {
         console.log('🚪 [CoinTossRoom] Thành viên bị xóa:', payload);
         if (payload?.target_user_id === user.id) {
-          Alert.alert('Rời khỏi phòng', 'Bạn đã được mời rời khỏi phòng lì xì.', [
+          Alert.alert(t('coinTossRoom.leaveRoomTitle', { defaultValue: 'Rời khỏi phòng' }), t('coinTossRoom.leaveRoomMsg', { defaultValue: 'Bạn đã được mời rời khỏi phòng lì xì.' }), [
             {
-              text: 'Đồng ý',
+              text: t('coinTossRoom.agree', { defaultValue: 'Đồng ý' }),
               onPress: () => {
                 if (router.canGoBack()) router.back();
                 else router.replace('/(tabs)/transfer-hub');
@@ -311,7 +313,7 @@ export default function CoinTossRoomScreen() {
         console.log('🎲 [CoinTossRoom] Host tung đồng xu:', payload);
         if (!isHost) {
           setIsTossing(true);
-          setTossStatusText('Chủ phòng đang tung đồng xu lì xì...');
+          setTossStatusText(t('coinTossRoom.hostTossing', { defaultValue: 'Chủ phòng đang tung đồng xu lì xì...' }));
           coinOpacity.value = withTiming(1, { duration: 80 });
           coinTranslateY.value = withTiming(
             -450,
@@ -347,7 +349,7 @@ export default function CoinTossRoomScreen() {
           winnerModalScale.value = 0.3;
           winnerModalScale.value = withSpring(1, { damping: 10, stiffness: 120 });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setTossStatusText('Đã trao lì xì thành công!');
+          setTossStatusText(t('coinTossRoom.giveawaySuccess', { defaultValue: 'Đã trao lì xì thành công!' }));
         }
       })
       .subscribe((status) => {
@@ -387,7 +389,7 @@ export default function CoinTossRoomScreen() {
     if (!isHost) return;
 
     if (!myAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví của Host.');
+      Alert.alert(t('coinTossRoom.notice', { defaultValue: 'Thông báo' }), t('coinTossRoom.noHostWallet', { defaultValue: 'Không tìm thấy địa chỉ ví của Host.' }));
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
       coinOpacity.value = withTiming(1);
@@ -396,7 +398,7 @@ export default function CoinTossRoomScreen() {
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Số tiền không hợp lệ', 'Vui lòng nhập số lượng Lì Xì (USD) lớn hơn 0.');
+      Alert.alert(t('coinTossRoom.invalidAmountTitle', { defaultValue: 'Số tiền không hợp lệ' }), t('coinTossRoom.invalidAmountMsg', { defaultValue: 'Vui lòng nhập số lượng Lì Xì (USD) lớn hơn 0.' }));
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
       coinOpacity.value = withTiming(1);
@@ -405,8 +407,8 @@ export default function CoinTossRoomScreen() {
 
     if (usdcBalance !== null && numAmount > usdcBalance) {
       Alert.alert(
-        'Số dư không đủ',
-        `Ví của bạn ($${usdcBalance.toFixed(2)} USDC) không đủ để lì xì $${numAmount.toFixed(2)} USDC.`
+        t('coinTossRoom.insufficientBalanceTitle', { defaultValue: 'Số dư không đủ' }),
+        t('coinTossRoom.insufficientBalanceMsg', { defaultValue: `Ví của bạn ($${usdcBalance.toFixed(2)} USDC) không đủ để lì xì $${numAmount.toFixed(2)} USDC.` })
       );
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
@@ -419,8 +421,8 @@ export default function CoinTossRoomScreen() {
 
     if (guests.length === 0) {
       Alert.alert(
-        'Chưa có người chơi!',
-        'Phòng cần ít nhất 1 thành viên (Guest) tham gia để có thể tung đồng xu lì xì. Hãy bấm nút "+ Invite" để mời bạn bè quanh đây!'
+        t('coinTossRoom.noPlayersTitle', { defaultValue: 'Chưa có người chơi!' }),
+        t('coinTossRoom.noPlayersMsg', { defaultValue: 'Phòng cần ít nhất 1 thành viên (Guest) tham gia để có thể tung đồng xu lì xì. Hãy bấm nút "+ Invite" để mời bạn bè quanh đây!' })
       );
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
@@ -430,8 +432,8 @@ export default function CoinTossRoomScreen() {
 
     if (!isWalletReady) {
       Alert.alert(
-        'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
+        t('coinTossRoom.walletConnecting', { defaultValue: 'Ví đang kết nối' }),
+        t('coinTossRoom.walletConnectingMsg', { defaultValue: `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!` })
       );
       coinTranslateY.value = withSpring(0);
       coinScale.value = withSpring(1);
@@ -441,7 +443,7 @@ export default function CoinTossRoomScreen() {
 
     try {
       setIsTossing(true);
-      setTossStatusText('Đang tung đồng xu và chọn người may mắn...');
+      setTossStatusText(t('coinTossRoom.tossingAndChoosing', { defaultValue: 'Đang tung đồng xu và chọn người may mắn...' }));
 
       // Thuật toán Random chọn 1 Guest may mắn duy nhất
       const randomIndex = Math.floor(Math.random() * guests.length);
@@ -456,10 +458,10 @@ export default function CoinTossRoomScreen() {
       });
 
       if (!transferResult.success || !transferResult.transactionHash) {
-        const errorMsg = transferResult.error || 'Giao dịch on-chain không thành công.';
+        const errorMsg = transferResult.error || t('coinTossRoom.onchainFail', { defaultValue: 'Giao dịch on-chain không thành công.' });
         setIsTossing(false);
-        setTossStatusText('Giao dịch chưa hoàn tất. Vuốt để thử lại.');
-        Alert.alert('Lỗi Chuyển Lì Xì ❌', errorMsg);
+        setTossStatusText(t('coinTossRoom.txIncomplete', { defaultValue: 'Giao dịch chưa hoàn tất. Vuốt để thử lại.' }));
+        Alert.alert(t('coinTossRoom.transferErrorTitle', { defaultValue: 'Lỗi Chuyển Lì Xì ❌' }), errorMsg);
         return;
       }
 
@@ -471,7 +473,7 @@ export default function CoinTossRoomScreen() {
       setLastTxSignature(txSignature);
       setShowWinnerModal(true);
       setIsTossing(false);
-      setTossStatusText('Đã trao lì xì thành công!');
+      setTossStatusText(t('coinTossRoom.giveawaySuccess', { defaultValue: 'Đã trao lì xì thành công!' }));
 
       // Phát sóng kết quả cho toàn bộ phòng Realtime
       roomChannelRef.current?.send({
@@ -492,8 +494,8 @@ export default function CoinTossRoomScreen() {
     } catch (err: any) {
       console.error('Coin Toss Error:', err);
       setIsTossing(false);
-      setTossStatusText('Đã xảy ra lỗi. Vuốt để thử lại.');
-      Alert.alert('Lỗi Tung Đồng Xu', err?.message || 'Không thể thực hiện lúc này.');
+      setTossStatusText(t('coinTossRoom.tossErrorRetry', { defaultValue: 'Đã xảy ra lỗi. Vuốt để thử lại.' }));
+      Alert.alert(t('coinTossRoom.tossErrorTitle', { defaultValue: 'Lỗi Tung Đồng Xu' }), err?.message || t('coinTossRoom.cannotPerform', { defaultValue: 'Không thể thực hiện lúc này.' }));
     }
   };
 
@@ -638,15 +640,15 @@ export default function CoinTossRoomScreen() {
       Haptics.selectionAsync();
       const success = await broadcastInvite(roomId, [targetUser.user_id], {
         roomType: 'coin_toss',
-        note: 'Vào phòng tung đồng xu nhận lì xì USDC may mắn!',
+        note: t('coinTossRoom.inviteNote', { defaultValue: 'Vào phòng tung đồng xu nhận lì xì USDC may mắn!' }),
       });
       if (success) {
         setInvitedUserIds((prev) =>
           prev.includes(targetUser.user_id) ? prev : [...prev, targetUser.user_id]
         );
-        Alert.alert('Đã gửi lời mời! 📩', `Đã gửi lời mời tham gia phòng tới ${targetUser.name}`);
+        Alert.alert(t('coinTossRoom.inviteSentTitle', { defaultValue: 'Đã gửi lời mời! 📩' }), t('coinTossRoom.inviteSentMsg', { defaultValue: 'Đã gửi lời mời tham gia phòng tới {{name}}', name: targetUser.name }));
       } else {
-        Alert.alert('Thông báo', 'Không thể gửi lời mời. Vui lòng kiểm tra lại kết nối mạng.');
+        Alert.alert(t('coinTossRoom.notice', { defaultValue: 'Thông báo' }), t('coinTossRoom.inviteError', { defaultValue: 'Không thể gửi lời mời. Vui lòng kiểm tra lại kết nối mạng.' }));
       }
     } catch (e) {
       console.log('Error inviting:', e);
@@ -658,8 +660,8 @@ export default function CoinTossRoomScreen() {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await Share.share({
-        title: 'Tham gia phòng Lì Xì N.E.D!',
-        message: `Mời bạn vào phòng Lì Xì Tung Đồng Xu may mắn trên N.E.D Wallet! Mã phòng: ${roomId}`,
+        title: t('coinTossRoom.shareTitle', { defaultValue: 'Tham gia phòng Lì Xì N.E.D!' }),
+        message: t('coinTossRoom.shareMsg', { defaultValue: 'Mời bạn vào phòng Lì Xì Tung Đồng Xu may mắn trên N.E.D Wallet! Mã phòng: {{roomId}}', roomId: roomId }),
       });
     } catch (err) {
       console.log('Error sharing room:', err);
@@ -670,12 +672,12 @@ export default function CoinTossRoomScreen() {
   const handleKickMember = (targetUserId: string, targetName: string) => {
     if (!isHost) return;
     Alert.alert(
-      'Xóa thành viên',
-      `Bạn có chắc muốn mời ${targetName} ra khỏi phòng lì xì không?`,
+      t('coinTossRoom.kickMemberTitle', { defaultValue: 'Xóa thành viên' }),
+      t('coinTossRoom.kickMemberMsg', { defaultValue: 'Bạn có chắc muốn mời {{name}} ra khỏi phòng lì xì không?', name: targetName }),
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: t('coinTossRoom.cancel', { defaultValue: 'Hủy' }), style: 'cancel' },
         {
-          text: 'Xóa',
+          text: t('coinTossRoom.remove', { defaultValue: 'Xóa' }),
           style: 'destructive',
           onPress: () => {
             setMembers((prev) => prev.filter((m) => m.user_id !== targetUserId));
@@ -722,7 +724,7 @@ export default function CoinTossRoomScreen() {
   const handleAddTestGuest = () => {
     const testGuest: RoomMember = {
       user_id: `guest_test_${Date.now()}`,
-      name: 'Bạn Lộc Phát',
+      name: t('coinTossRoom.demoUser', { defaultValue: 'Bạn Lộc Phát' }),
       avatar: 'LP',
       wallet_address: '7f9oZqD1Z41XvF9mG1PcvxZJ8fQnLm1A4h9uBvK6demo',
       is_host: false,
@@ -735,7 +737,7 @@ export default function CoinTossRoomScreen() {
 
   const copyRoomId = async () => {
     await Clipboard.setStringAsync(roomId);
-    Alert.alert('Thông báo', 'Đã sao chép mã phòng!');
+    Alert.alert(t('coinTossRoom.notice', { defaultValue: 'Thông báo' }), t('coinTossRoom.copiedRoomId', { defaultValue: 'Đã sao chép mã phòng!' }));
   };
 
   const formatAmountDisplay = (val: string) => {
@@ -814,7 +816,7 @@ export default function CoinTossRoomScreen() {
           {/* 2. KHU VỰC NGƯỜI TRONG PHÒNG (PARTICIPANTS) */}
           <View style={styles.participantsSection}>
             <Text style={styles.participantsTitle}>
-              Người trong phòng ({members.length})
+              {t('coinTossRoom.participants', { defaultValue: 'Người trong phòng' })} ({members.length})
             </Text>
 
             <View style={styles.participantsRow}>
@@ -846,7 +848,7 @@ export default function CoinTossRoomScreen() {
                     </View>
                     <View style={styles.participantRolePill}>
                       <Text style={styles.participantRolePillText} numberOfLines={1}>
-                        {m.is_host ? 'Host' : (m.name.length > 8 ? m.name.slice(0, 7) + '..' : m.name)}
+                        {m.is_host ? t('coinTossRoom.defaultHost', { defaultValue: 'Host' }) : (m.name.length > 8 ? m.name.slice(0, 7) + '..' : m.name)}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -864,7 +866,7 @@ export default function CoinTossRoomScreen() {
                     <Feather name="plus" size={22} color="#000000" />
                   </View>
                   <View style={styles.inviteSlotPill}>
-                    <Text style={styles.inviteSlotPillText}>+ Invite</Text>
+                    <Text style={styles.inviteSlotPillText}>{t('coinTossRoom.inviteLabel', { defaultValue: '+ Invite' })}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -874,7 +876,7 @@ export default function CoinTossRoomScreen() {
           {/* 3. KHU VỰC TRUNG TÂM (ĐỒNG XU & SỐ TIỀN) */}
           <View style={styles.centerSection}>
             <Text style={styles.amountTitleText}>
-              Số lượng Lì Xì (USDC/Stablecoin):
+              {t('coinTossRoom.amountLabel', { defaultValue: 'Số lượng Lì Xì (USDC/Stablecoin):' })}
             </Text>
 
             {/* Input Số tiền: Khối chữ nhật nền trắng, viền đen 3px, bóng đổ cứng 4px 4px */}
@@ -897,7 +899,7 @@ export default function CoinTossRoomScreen() {
             {/* Hiển thị số dư USDC thực tế */}
             {usdcBalance !== null && (
               <Text style={styles.balanceSubtext}>
-                Số dư khả dụng: ${usdcBalance.toFixed(2)} USDC
+                {t('coinTossRoom.availableBalance', { defaultValue: 'Số dư khả dụng:' })} ${usdcBalance.toFixed(2)} USDC
               </Text>
             )}
 
@@ -952,7 +954,7 @@ export default function CoinTossRoomScreen() {
 
           {/* 5. NÚT HÀNH ĐỘNG / SWIPE AREA */}
           <View style={styles.actionSection}>
-            <Text style={styles.swipeHintText}>Vuốt lên để tung đồng xu</Text>
+            <Text style={styles.swipeHintText}>{t('coinTossRoom.swipeToToss', { defaultValue: 'Vuốt lên để tung đồng xu' })}</Text>
 
             {isHost ? (
               <GestureDetector gesture={buttonGesture}>
@@ -973,12 +975,12 @@ export default function CoinTossRoomScreen() {
                       <View style={styles.btnInner}>
                         <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
                         <Text style={styles.actionButtonText}>
-                          {statusMessage || 'Đang trao thưởng On-chain...'}
+                          {statusMessage || t('coinTossRoom.givingReward', { defaultValue: 'Đang trao thưởng On-chain...' })}
                         </Text>
                       </View>
                     ) : (
                       <Text style={styles.actionButtonText}>
-                        Tung ngay ($ {formatAmountDisplay(amount)})
+                        {t('coinTossRoom.tossNow', { defaultValue: 'Tung ngay' })} ($ {formatAmountDisplay(amount)})
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -986,9 +988,9 @@ export default function CoinTossRoomScreen() {
               </GestureDetector>
             ) : (
               <View style={styles.guestWaitingBox}>
-                <Text style={styles.guestWaitingTitle}>🎁 Chờ Host Tung Đồng Xu</Text>
+                <Text style={styles.guestWaitingTitle}>{t('coinTossRoom.guestWaitingTitle', { defaultValue: '🎁 Chờ Host Tung Đồng Xu' })}</Text>
                 <Text style={styles.guestWaitingDesc}>
-                  Khi Host vuốt tung đồng xu, hệ thống sẽ chọn ngẫu nhiên 1 người trong phòng để nhận lì xì USDC trực tiếp on-chain!
+                  {t('coinTossRoom.guestWaitingDesc', { defaultValue: 'Khi Host vuốt tung đồng xu, hệ thống sẽ chọn ngẫu nhiên 1 người trong phòng để nhận lì xì USDC trực tiếp on-chain!' })}
                 </Text>
               </View>
             )}
@@ -1024,8 +1026,8 @@ export default function CoinTossRoomScreen() {
 
                 <Text style={styles.winnerCardHeading}>
                   {winner?.user_id === user?.id
-                    ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG!'
-                    : 'NGƯỜI MAY MẮN NHẤT PHÒNG!'}
+                    ? t('coinTossRoom.congratsYouWon', { defaultValue: 'CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG!' })
+                    : t('coinTossRoom.luckiestPerson', { defaultValue: 'NGƯỜI MAY MẮN NHẤT PHÒNG!' })}
                 </Text>
 
                 <View style={styles.winnerAvatarLarge}>
@@ -1061,7 +1063,7 @@ export default function CoinTossRoomScreen() {
                     onPress={() => setShowWinnerModal(false)}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.closeWinnerBtnText}>Tuyệt Vời! Tiếp Tục Chơi</Text>
+                    <Text style={styles.closeWinnerBtnText}>{t('coinTossRoom.awesomeKeepPlaying', { defaultValue: 'Tuyệt Vời! Tiếp Tục Chơi' })}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1080,9 +1082,9 @@ export default function CoinTossRoomScreen() {
             <View style={styles.inviteSheet}>
               <View style={styles.sheetHeader}>
                 <View>
-                  <Text style={styles.sheetTitle}>Mời Bạn Bè Vào Phòng</Text>
+                  <Text style={styles.sheetTitle}>{t('coinTossRoom.inviteFriends', { defaultValue: 'Mời Bạn Bè Vào Phòng' })}</Text>
                   <Text style={styles.sheetSubtitle}>
-                    Phát hiện qua Supabase Realtime Presence
+                    {t('coinTossRoom.presenceDetection', { defaultValue: 'Phát hiện qua Supabase Realtime Presence' })}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1102,7 +1104,7 @@ export default function CoinTossRoomScreen() {
               >
                 <Feather name="share-2" size={16} color="#000000" style={{ marginRight: 8 }} />
                 <Text style={styles.shareRoomActionBtnText}>
-                  Chia sẻ mã phòng: {roomId}
+                  {t('coinTossRoom.shareRoomCode', { defaultValue: 'Chia sẻ mã phòng:' })} {roomId}
                 </Text>
               </TouchableOpacity>
 
@@ -1124,14 +1126,14 @@ export default function CoinTossRoomScreen() {
                         <Text style={styles.nearbyName}>{u.name}</Text>
                         <Text style={styles.nearbyDist}>
                           {u.distanceMeters !== undefined
-                            ? `Cách bạn ~${u.distanceMeters}m`
-                            : 'Đang online'}
+                            ? t('coinTossRoom.distance', { defaultValue: 'Cách bạn ~{{distance}}m', distance: u.distanceMeters })
+                            : t('coinTossRoom.online', { defaultValue: 'Đang online' })}
                         </Text>
                       </View>
 
                       {isAlreadyIn ? (
                         <View style={styles.alreadyInBadge}>
-                          <Text style={styles.alreadyInText}>Đã vào</Text>
+                          <Text style={styles.alreadyInText}>{t('coinTossRoom.alreadyJoined', { defaultValue: 'Đã vào' })}</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -1149,7 +1151,7 @@ export default function CoinTossRoomScreen() {
                               isInvited && styles.inviteBtnTextSent,
                             ]}
                           >
-                            {isInvited ? 'Đã gửi' : 'Mời'}
+                            {isInvited ? t('coinTossRoom.sent', { defaultValue: 'Đã gửi' }) : t('coinTossRoom.invite', { defaultValue: 'Mời' })}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -1161,7 +1163,7 @@ export default function CoinTossRoomScreen() {
                   <View style={styles.emptyNearbyBox}>
                     <Feather name="users" size={32} color="#94A3B8" />
                     <Text style={styles.emptyNearbyText}>
-                      Chưa phát hiện thiết bị nào khác đang mở app quanh đây. Bạn có thể sao chép mã phòng hoặc bấm nút chia sẻ ở trên để mời bạn bè!
+                      {t('coinTossRoom.noDevicesFound', { defaultValue: 'Chưa phát hiện thiết bị nào khác đang mở app quanh đây. Bạn có thể sao chép mã phòng hoặc bấm nút chia sẻ ở trên để mời bạn bè!' })}
                     </Text>
 
                     {/* Nút bổ sung người chơi Test cho Dev/Demo */}
@@ -1172,7 +1174,7 @@ export default function CoinTossRoomScreen() {
                     >
                       <Feather name="user-check" size={16} color="#000000" style={{ marginRight: 6 }} />
                       <Text style={styles.addTestPlayerBtnText}>
-                        + Thêm người chơi giả lập (Test Devnet)
+                        {t('coinTossRoom.addTestPlayer', { defaultValue: '+ Thêm người chơi giả lập (Test Devnet)' })}
                       </Text>
                     </TouchableOpacity>
                   </View>

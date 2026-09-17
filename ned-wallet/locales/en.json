@@ -217,5 +217,19 @@
     "supportInfo": "Please contact support@ned.finance for 24/7 assistance.",
     "aboutInfo": "N.E.D (NorthAxis Electronic Dollars)\nVersion: 1.0.0 (Solana Pay & MiniPay Native)",
     "googleBackedUp": "Google Backed up"
+  },
+  "error": {
+    "senderWalletNotFound": "Sender wallet address not found.",
+    "recipientRequired": "Please enter recipient wallet address or phone number.",
+    "invalidAmount": "Please enter a valid SOL amount (greater than 0).",
+    "walletNotReady": "Solana embedded wallet is not ready.",
+    "phoneWalletNotFound": "No wallet linked with this phone number found.",
+    "invalidRecipientAddress": "Invalid destination wallet address on Solana network.",
+    "cannotSendToSelf": "You cannot send funds to your own account.",
+    "insufficientSolBalance": "Wallet balance ({{currentSol}} SOL) is insufficient to send {{amountSol}} SOL with network fee. Please top up SOL!",
+    "userRejected": "User canceled or rejected the transaction.",
+    "txFailedOnChain": "Transaction failed on-chain: {{err}}",
+    "userCancelled": "You canceled signing the transaction.",
+    "txFailed": "Failed to execute On-chain transaction on Solana Devnet."
   }
 }

@@ -9,6 +9,9 @@ import {
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import { lookupWalletByPhone } from './identity';
+import { formatDistanceToNow } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
+import i18n from '../services/i18n';
 
 export const SOLANA_DEVNET_RPC =
   process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
@@ -427,37 +430,33 @@ export function formatLocalizedRelativeTime(
   blockTime: number | null | undefined,
   t?: (key: string, options?: any) => string
 ): string {
-  if (!t) return formatRelativeTime(blockTime);
-  if (!blockTime) return t('activities.justNow', { defaultValue: 'Vừa xong' });
-  const now = Math.floor(Date.now() / 1000);
-  const diffSec = Math.max(0, now - blockTime);
-  if (diffSec < 60) return t('activities.justNow', { defaultValue: 'Vừa xong' });
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return t('activities.minutesAgo', { count: diffMin, defaultValue: `${diffMin} phút trước` });
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return t('activities.hoursAgo', { count: diffHour, defaultValue: `${diffHour} giờ trước` });
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 30) return t('activities.daysAgo', { count: diffDay, defaultValue: `${diffDay} ngày trước` });
-  const diffMonth = Math.floor(diffDay / 30);
-  return t('activities.monthsAgo', { count: diffMonth, defaultValue: `${diffMonth} tháng trước` });
+  if (!blockTime) return t ? t('activities.justNow', { defaultValue: 'Vừa xong' }) : formatRelativeTime(blockTime);
+  
+  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
+  const locale = currentLang === 'en' ? enUS : vi;
+  
+  const date = new Date(blockTime * 1000);
+  const diffSec = Math.floor(Date.now() / 1000) - blockTime;
+  
+  if (diffSec < 60) return t ? t('activities.justNow', { defaultValue: 'Vừa xong' }) : formatRelativeTime(blockTime);
+  
+  return formatDistanceToNow(date, { addSuffix: true, locale });
 }
 
 /**
  * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối mặc định
  */
 export function formatRelativeTime(blockTime: number | null | undefined): string {
-  if (!blockTime) return 'Vừa xong';
-  const now = Math.floor(Date.now() / 1000);
-  const diffSec = Math.max(0, now - blockTime);
-  if (diffSec < 60) return 'Vừa xong';
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} phút trước`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ trước`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 30) return `${diffDay} ngày trước`;
-  const diffMonth = Math.floor(diffDay / 30);
-  return `${diffMonth} tháng trước`;
+  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
+  if (!blockTime) return currentLang === 'en' ? 'Just now' : 'Vừa xong';
+  
+  const locale = currentLang === 'en' ? enUS : vi;
+  const date = new Date(blockTime * 1000);
+  const diffSec = Math.floor(Date.now() / 1000) - blockTime;
+  
+  if (diffSec < 60) return currentLang === 'en' ? 'Just now' : 'Vừa xong';
+  
+  return formatDistanceToNow(date, { addSuffix: true, locale });
 }
 
 /**
@@ -897,16 +896,16 @@ export async function executeSolanaTransfer(params: {
   const { fromAddress, toAddressOrPhone, amountSol, walletProvider, onStatusUpdate } = params;
 
   if (!fromAddress) {
-    return { success: false, error: 'Không tìm thấy địa chỉ ví người gửi.' };
+    return { success: false, error: i18n.t('error.senderWalletNotFound', { defaultValue: 'Không tìm thấy địa chỉ ví người gửi.' }) as string };
   }
   if (!toAddressOrPhone || !toAddressOrPhone.trim()) {
-    return { success: false, error: 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.' };
+    return { success: false, error: i18n.t('error.recipientRequired', { defaultValue: 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.' }) as string };
   }
   if (!amountSol || isNaN(amountSol) || amountSol <= 0) {
-    return { success: false, error: 'Vui lòng nhập số lượng SOL hợp lệ (lớn hơn 0).' };
+    return { success: false, error: i18n.t('error.invalidAmount', { defaultValue: 'Vui lòng nhập số lượng SOL hợp lệ (lớn hơn 0).' }) as string };
   }
   if (!walletProvider) {
-    return { success: false, error: 'Ví nhúng Solana chưa sẵn sàng.' };
+    return { success: false, error: i18n.t('error.walletNotReady', { defaultValue: 'Ví nhúng Solana chưa sẵn sàng.' }) as string };
   }
 
   const rawRecipient = toAddressOrPhone.trim();
@@ -921,7 +920,7 @@ export async function executeSolanaTransfer(params: {
     if (!resolved) {
       return {
         success: false,
-        error: 'Không tìm thấy ví liên kết với số điện thoại này.',
+        error: i18n.t('error.phoneWalletNotFound', { defaultValue: 'Không tìm thấy ví liên kết với số điện thoại này.' }) as string,
       };
     }
     recipientAddress = resolved;
@@ -934,12 +933,12 @@ export async function executeSolanaTransfer(params: {
     fromPubkey = new PublicKey(fromAddress);
     toPubkey = new PublicKey(recipientAddress);
   } catch (err: any) {
-    return { success: false, error: 'Địa chỉ ví đích không hợp lệ trên mạng lưới Solana.' };
+    return { success: false, error: i18n.t('error.invalidRecipientAddress', { defaultValue: 'Địa chỉ ví đích không hợp lệ trên mạng lưới Solana.' }) as string };
   }
 
   // Chặn tự chuyển tiền cho chính mình
   if (fromAddress === recipientAddress || fromPubkey.equals(toPubkey)) {
-    return { success: false, error: 'Bạn không thể chuyển tiền đến tài khoản của chính mình.' };
+    return { success: false, error: i18n.t('error.cannotSendToSelf', { defaultValue: 'Bạn không thể chuyển tiền đến tài khoản của chính mình.' }) as string };
   }
 
   const sendLamports = Math.floor(amountSol * 1e9);
@@ -954,7 +953,7 @@ export async function executeSolanaTransfer(params: {
       const currentSol = (currentBalanceLamports / 1e9).toFixed(4);
       return {
         success: false,
-        error: `Số dư ví (${currentSol} SOL) không đủ để chuyển ${amountSol} SOL kèm phí mạng lưới. Vui lòng nạp thêm SOL!`,
+        error: i18n.t('error.insufficientSolBalance', { defaultValue: `Số dư ví (${currentSol} SOL) không đủ để chuyển ${amountSol} SOL kèm phí mạng lưới. Vui lòng nạp thêm SOL!`, currentSol, amountSol }) as string,
       };
     }
   } catch (err: any) {
@@ -1022,7 +1021,7 @@ export async function executeSolanaTransfer(params: {
 
     const signedTransaction = signResult?.signedTransaction;
     if (!signedTransaction) {
-      return { success: false, error: 'Người dùng đã hủy hoặc từ chối ký giao dịch.' };
+      return { success: false, error: i18n.t('error.userRejected', { defaultValue: 'Người dùng đã hủy hoặc từ chối ký giao dịch.' }) as string };
     }
 
     // 4. Broadcast lên mạng lưới Solana Devnet
@@ -1049,7 +1048,7 @@ export async function executeSolanaTransfer(params: {
     if (confirmation.value.err) {
       return {
         success: false,
-        error: `Giao dịch thất bại trên chuỗi: ${JSON.stringify(confirmation.value.err)}`,
+        error: i18n.t('error.txFailedOnChain', { defaultValue: `Giao dịch thất bại trên chuỗi: ${JSON.stringify(confirmation.value.err)}`, err: JSON.stringify(confirmation.value.err) }) as string,
       };
     }
 
@@ -1077,11 +1076,11 @@ export async function executeSolanaTransfer(params: {
   } catch (err: any) {
     console.error('❌ [On-chain Error]:', err);
     if (err?.message?.includes('User rejected') || err?.message?.includes('cancelled')) {
-      return { success: false, error: 'Bạn đã hủy ký giao dịch.' };
+      return { success: false, error: i18n.t('error.userCancelled', { defaultValue: 'Bạn đã hủy ký giao dịch.' }) as string };
     }
     return {
       success: false,
-      error: err?.message || 'Không thể thực hiện giao dịch On-chain trên Solana Devnet.',
+      error: err?.message || (i18n.t('error.txFailed', { defaultValue: 'Không thể thực hiện giao dịch On-chain trên Solana Devnet.' }) as string),
     };
   }
 }

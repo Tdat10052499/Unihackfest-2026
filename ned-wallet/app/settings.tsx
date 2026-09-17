@@ -458,7 +458,7 @@ export default function SettingsScreen() {
                 <Text style={styles.menuItemTitleText}>
                   {t('settings.language', { defaultValue: 'Languages' })}
                 </Text>
-                <Text style={styles.menuItemSubText}>Select display languages</Text>
+                <Text style={styles.menuItemSubText}>{t('settings.languageSub', { defaultValue: 'Select display languages' })}</Text>
               </View>
             </View>
 
@@ -482,8 +482,8 @@ export default function SettingsScreen() {
                 <Feather name="terminal" size={18} color="#6366F1" />
               </CircleIcon>
               <View style={styles.menuTextCol}>
-                <Text style={styles.menuItemTitleText}>Developer Mode</Text>
-                <Text style={styles.menuItemSubText}>Cấu hình mạng Solana</Text>
+                <Text style={styles.menuItemTitleText}>{t('settings.developerMode', { defaultValue: 'Developer Mode' })}</Text>
+                <Text style={styles.menuItemSubText}>{t('settings.developerModeSub', { defaultValue: 'Cấu hình mạng Solana' })}</Text>
               </View>
             </View>
 
@@ -501,7 +501,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Tiền tệ định danh', 'Đơn vị tiền tệ hiển thị mặc định là Đồng Việt Nam (VND).')}
+            onPress={() => Alert.alert(t('settings.localCurrencyTitle', { defaultValue: 'Tiền tệ định danh' }), t('settings.localCurrencyDesc', { defaultValue: 'Đơn vị tiền tệ hiển thị mặc định là Đồng Việt Nam (VND).' }))}
           >
             <View style={styles.menuRowLeft}>
               <CircleIcon backgroundColor="#FEE2E2">
@@ -532,7 +532,7 @@ export default function SettingsScreen() {
                 <Text style={styles.menuItemTitleText}>
                   {t('settings.transactionHistory', { defaultValue: 'Transaction history' })}
                 </Text>
-                <Text style={styles.menuItemSubText}>View transaction details &gt;</Text>
+                <Text style={styles.menuItemSubText}>{t('settings.transactionHistorySub', { defaultValue: 'View transaction details >' })}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -585,7 +585,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Mời bạn bè 🎉', 'Chia sẻ ví N.E.D Wallet tới bạn bè để cùng trải nghiệm thanh toán Web3 Solana!')}
+            onPress={() => Alert.alert(t('settings.inviteFriendsAlertTitle', { defaultValue: 'Mời bạn bè 🎉' }), t('settings.inviteFriendsAlertDesc', { defaultValue: 'Chia sẻ ví N.E.D Wallet tới bạn bè để cùng trải nghiệm thanh toán Web3 Solana!' }))}
           >
             <View style={styles.menuRowLeft}>
               <CircleIcon backgroundColor="#F1F5F9">
@@ -603,7 +603,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Câu hỏi thường gặp 💡', 'Truy cập trung tâm trợ giúp N.E.D để xem hướng dẫn sử dụng chi tiết.')}
+            onPress={() => Alert.alert(t('settings.faqAlertTitle', { defaultValue: 'Câu hỏi thường gặp 💡' }), t('settings.faqAlertDesc', { defaultValue: 'Truy cập trung tâm trợ giúp N.E.D để xem hướng dẫn sử dụng chi tiết.' }))}
           >
             <View style={styles.menuRowLeft}>
               <CircleIcon backgroundColor="#F1F5F9">
@@ -621,7 +621,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Hỗ trợ kỹ thuật 💬', 'Đội ngũ hỗ trợ N.E.D luôn sẵn sàng 24/7 qua cộng đồng Telegram & Discord.')}
+            onPress={() => Alert.alert(t('settings.supportAlertTitle', { defaultValue: 'Hỗ trợ kỹ thuật 💬' }), t('settings.supportAlertDesc', { defaultValue: 'Đội ngũ hỗ trợ N.E.D luôn sẵn sàng 24/7 qua cộng đồng Telegram & Discord.' }))}
           >
             <View style={styles.menuRowLeft}>
               <CircleIcon backgroundColor="#F1F5F9">
@@ -639,7 +639,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuRowItem}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Về N.E.D Wallet 🚀', 'N.E.D (Next Economy Decentralized) - Ví định danh Web3 tốc độ cao trên Solana Devnet.')}
+            onPress={() => Alert.alert(t('settings.aboutAlertTitle', { defaultValue: 'Về N.E.D Wallet 🚀' }), t('settings.aboutAlertDesc', { defaultValue: 'N.E.D (Next Economy Decentralized) - Ví định danh Web3 tốc độ cao trên Solana Devnet.' }))}
           >
             <View style={styles.menuRowLeft}>
               <CircleIcon backgroundColor="#F1F5F9">
@@ -661,7 +661,7 @@ export default function SettingsScreen() {
           onPress={handleLogout}
         >
           <Feather name="log-out" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.dangerLogoutBtnText}>ĐĂNG XUẤT</Text>
+          <Text style={styles.dangerLogoutBtnText}>{t('settings.dangerLogoutBtnText', { defaultValue: 'ĐĂNG XUẤT' })}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -733,7 +733,7 @@ export default function SettingsScreen() {
                         </View>
                       ) : !langItem.available ? (
                         <View style={styles.comingSoonBadge}>
-                          <Text style={styles.comingSoonText}>Sắp có</Text>
+                          <Text style={styles.comingSoonText}>{t('settings.comingSoonPill', { defaultValue: 'Sắp có' })}</Text>
                         </View>
                       ) : (
                         <View style={styles.inactiveRadioCircle} />

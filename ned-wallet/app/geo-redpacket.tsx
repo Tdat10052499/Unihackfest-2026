@@ -20,6 +20,7 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
+import { useTranslation } from '../services/i18n';
 import {
   createGeoRedPacketRecord,
   fetchActiveGeoRedPackets,
@@ -36,6 +37,7 @@ type ActiveTab = 'drop' | 'scan';
 
 export default function GeoRedPacketScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, isReady, logout } = usePrivy();
   const externalWallet = useExternalWallet();
   const solanaWalletState = useEmbeddedSolanaWallet();
@@ -59,7 +61,7 @@ export default function GeoRedPacketScreen() {
 
   // State Thả Lì Xì (Drop Mode)
   const [amount, setAmount] = useState('0.005');
-  const [wishesMessage, setWishesMessage] = useState('Chúc bạn vạn sự như ý, phát tài phát lộc! 🧧');
+  const [wishesMessage, setWishesMessage] = useState(t('geoRedpacket.defaultWishes', { defaultValue: 'Chúc bạn vạn sự như ý, phát tài phát lộc! 🧧' }));
   const [radiusMeters, setRadiusMeters] = useState(50);
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [isSuccessDrop, setIsSuccessDrop] = useState(false);
@@ -99,7 +101,7 @@ export default function GeoRedPacketScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocationError('Ứng dụng cần quyền truy cập vị trí để xác định tọa độ lì xì.');
+        setLocationError(t('geoRedpacket.locationPermissionDenied', { defaultValue: 'Ứng dụng cần quyền truy cập vị trí để xác định tọa độ lì xì.' }));
         setIsLoadingLocation(false);
         return null;
       }
@@ -112,7 +114,7 @@ export default function GeoRedPacketScreen() {
       return loc;
     } catch (err: any) {
       console.error('Location Error:', err);
-      setLocationError('Không thể lấy tọa độ GPS. Vui lòng bật GPS trên thiết bị.');
+      setLocationError(t('geoRedpacket.locationError', { defaultValue: 'Không thể lấy tọa độ GPS. Vui lòng bật GPS trên thiết bị.' }));
       setIsLoadingLocation(false);
       return null;
     }
@@ -181,7 +183,7 @@ export default function GeoRedPacketScreen() {
   // THỰC THI THẢ LÌ XÌ (ON-CHAIN ESCROW DEPOSIT + SUPABASE RECORD)
   const handleDropRedPacket = async () => {
     if (!myAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nguồn.');
+      Alert.alert(t('geoRedpacket.notice', { defaultValue: 'Thông báo' }), t('geoRedpacket.noSourceWallet', { defaultValue: 'Không tìm thấy địa chỉ ví nguồn.' }));
       return;
     }
 
@@ -189,26 +191,26 @@ export default function GeoRedPacketScreen() {
     if (!currentLoc) {
       currentLoc = await requestUserLocation();
       if (!currentLoc) {
-        Alert.alert('Chưa có vị trí', 'Vui lòng cho phép truy cập GPS để xác định tọa độ thả lì xì.');
+        Alert.alert(t('geoRedpacket.noLocation', { defaultValue: 'Chưa có vị trí' }), t('geoRedpacket.enableLocationDrop', { defaultValue: 'Vui lòng cho phép truy cập GPS để xác định tọa độ thả lì xì.' }));
         return;
       }
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert('Thông báo', 'Vui lòng nhập số lượng SOL hợp lệ (> 0).');
+      Alert.alert(t('geoRedpacket.notice', { defaultValue: 'Thông báo' }), t('geoRedpacket.invalidAmount', { defaultValue: 'Vui lòng nhập số lượng SOL hợp lệ (> 0).' }));
       return;
     }
 
     if (solBalance !== null && numAmount > solBalance) {
-      Alert.alert('Số dư không đủ', `Số dư ví (${solBalance.toFixed(4)} SOL) không đủ để thả ${numAmount} SOL.`);
+      Alert.alert(t('geoRedpacket.insufficientBalanceTitle', { defaultValue: 'Số dư không đủ' }), t('geoRedpacket.insufficientBalanceMsg', { defaultValue: `Số dư ví (${solBalance.toFixed(4)} SOL) không đủ để thả ${numAmount} SOL.` }));
       return;
     }
 
     if (!isWalletReady) {
       Alert.alert(
-        'Ví đang kết nối',
-        `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
+        t('geoRedpacket.walletConnecting', { defaultValue: 'Ví đang kết nối' }),
+        t('geoRedpacket.walletWaitMsg', { defaultValue: `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!` })
       );
       return;
     }
@@ -224,8 +226,8 @@ export default function GeoRedPacketScreen() {
       });
 
       if (!result.success || !result.transactionHash) {
-        const errorMsg = result.error || 'Giao dịch on-chain không thành công.';
-        Alert.alert('Lỗi Thả Lì Xì ❌', errorMsg);
+        const errorMsg = result.error || t('geoRedpacket.onchainFail', { defaultValue: 'Giao dịch on-chain không thành công.' });
+        Alert.alert(t('geoRedpacket.dropErrorTitle', { defaultValue: 'Lỗi Thả Lì Xì ❌' }), errorMsg);
         return;
       }
 
@@ -238,14 +240,14 @@ export default function GeoRedPacketScreen() {
         lat: currentLoc.coords.latitude,
         lng: currentLoc.coords.longitude,
         radius: radiusMeters,
-        message: wishesMessage.trim() || 'Chúc bạn nhận được thật nhiều may mắn! 🧧',
+        message: wishesMessage.trim() || t('geoRedpacket.defaultWishes2', { defaultValue: 'Chúc bạn nhận được thật nhiều may mắn! 🧧' }),
         tx_signature: txSignature,
       });
 
       if (!insertResult.success) {
         Alert.alert(
-          'Lưu Tọa Độ Thất Bại ⚠️',
-          `Giao dịch on-chain đã ký thành công (${txSignature.slice(0, 12)}...), nhưng hệ thống gặp lỗi khi lưu tọa độ Supabase: ${insertResult.error}`
+          t('geoRedpacket.saveLocationFail', { defaultValue: 'Lưu Tọa Độ Thất Bại ⚠️' }),
+          t('geoRedpacket.saveLocationFailMsg', { defaultValue: `Giao dịch on-chain đã ký thành công (${txSignature.slice(0, 12)}...), nhưng hệ thống gặp lỗi khi lưu tọa độ Supabase: ${insertResult.error}` })
         );
         return;
       }
@@ -258,34 +260,34 @@ export default function GeoRedPacketScreen() {
       setLastCreatedPacket(insertResult.data || null);
 
       Alert.alert(
-        'Thả Lì Xì Thành Công! 🧧✨',
-        `Bao lì xì ${numAmount} SOL đã được khóa an toàn trên Solana Devnet tại tọa độ GPS của bạn.\n\nBán kính: ${radiusMeters}m\nChữ ký: ${txSignature.slice(0, 16)}...`,
+        t('geoRedpacket.dropSuccessTitle', { defaultValue: 'Thả Lì Xì Thành Công! 🧧✨' }),
+        t('geoRedpacket.dropSuccessMsg', { defaultValue: `Bao lì xì ${numAmount} SOL đã được khóa an toàn trên Solana Devnet tại tọa độ GPS của bạn.\n\nBán kính: ${radiusMeters}m\nChữ ký: ${txSignature.slice(0, 16)}...` }),
         [
           {
-            text: 'Xem Radar Quét',
+            text: t('geoRedpacket.scanRadar', { defaultValue: 'Xem Radar Quét' }),
             onPress: () => {
               setIsSuccessDrop(false);
               setActiveTab('scan');
             },
           },
-          { text: 'Xong', style: 'cancel', onPress: () => setIsSuccessDrop(false) },
+          { text: t('geoRedpacket.done', { defaultValue: 'Xong' }), style: 'cancel', onPress: () => setIsSuccessDrop(false) },
         ]
       );
     } catch (err: any) {
       console.error('Drop Red Packet Error:', err);
-      Alert.alert('Lỗi Thả Lì Xì', err?.message || 'Không thể thực hiện lúc này.');
+      Alert.alert(t('geoRedpacket.dropErrorTitle', { defaultValue: 'Lỗi Thả Lì Xì' }), err?.message || t('geoRedpacket.cannotPerform', { defaultValue: 'Không thể thực hiện lúc này.' }));
     }
   };
 
   // THỰC THI NHẬN LÌ XÌ (GỌI SUPABASE EDGE FUNCTION - BACKEND SIGNER)
   const handleClaimRedPacket = async (pkt: GeoRedPacket) => {
     if (!myAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ ví nhận.');
+      Alert.alert(t('geoRedpacket.notice', { defaultValue: 'Thông báo' }), t('geoRedpacket.noReceiveWallet', { defaultValue: 'Không tìm thấy địa chỉ ví nhận.' }));
       return;
     }
 
     if (pkt.creator_wallet.toLowerCase() === myAddress.toLowerCase()) {
-      Alert.alert('Không thể nhận ⚠️', 'Bạn không thể tự nhặt bao lì xì do chính mình tạo ra.');
+      Alert.alert(t('geoRedpacket.cannotClaimTitle', { defaultValue: 'Không thể nhận ⚠️' }), t('geoRedpacket.cannotClaimOwn', { defaultValue: 'Bạn không thể tự nhặt bao lì xì do chính mình tạo ra.' }));
       return;
     }
 
@@ -293,7 +295,7 @@ export default function GeoRedPacketScreen() {
     if (!currentLoc) {
       currentLoc = await requestUserLocation();
       if (!currentLoc) {
-        Alert.alert('Chưa có vị trí', 'Vui lòng bật định vị GPS để xác thực khoảng cách.');
+        Alert.alert(t('geoRedpacket.noLocation', { defaultValue: 'Chưa có vị trí' }), t('geoRedpacket.enableLocationClaim', { defaultValue: 'Vui lòng bật định vị GPS để xác thực khoảng cách.' }));
         return;
       }
     }
@@ -310,7 +312,7 @@ export default function GeoRedPacketScreen() {
       });
 
       if (!result.success) {
-        Alert.alert('Không thể mở lì xì ❌', result.error || 'Yêu cầu bị từ chối.');
+        Alert.alert(t('geoRedpacket.claimFailTitle', { defaultValue: 'Không thể mở lì xì ❌' }), result.error || t('geoRedpacket.requestDenied', { defaultValue: 'Yêu cầu bị từ chối.' }));
         return;
       }
 
@@ -320,11 +322,11 @@ export default function GeoRedPacketScreen() {
       getSolanaBalance(myAddress).then(setSolBalance).catch(console.log);
 
       Alert.alert(
-        '🎉 Mở Lì Xì Thành Công! 🧧✨',
-        `Bạn đã nhận được ${result.amount} SOL từ Backend Treasury!\n\nLời chúc: "${result.message || pkt.message}"\n\nChữ ký On-chain:\n${result.txSignature?.slice(0, 16)}...`,
+        t('geoRedpacket.claimSuccessTitle', { defaultValue: '🎉 Mở Lì Xì Thành Công! 🧧✨' }),
+        t('geoRedpacket.claimSuccessMsg', { defaultValue: `Bạn đã nhận được ${result.amount} SOL từ Backend Treasury!\n\nLời chúc: "${result.message || pkt.message}"\n\nChữ ký On-chain:\n${result.txSignature?.slice(0, 16)}...` }),
         [
           {
-            text: 'Tuyệt vời',
+            text: t('geoRedpacket.awesome', { defaultValue: 'Tuyệt vời' }),
             onPress: () => handleScanNearbyPackets(),
           },
         ]
@@ -333,7 +335,7 @@ export default function GeoRedPacketScreen() {
       handleScanNearbyPackets();
     } catch (err: any) {
       console.error('Claim Error:', err);
-      Alert.alert('Lỗi Khi Nhận Lì Xì', err?.message || 'Không thể kết nối máy chủ backend.');
+      Alert.alert(t('geoRedpacket.claimErrorTitle', { defaultValue: 'Lỗi Khi Nhận Lì Xì' }), err?.message || t('geoRedpacket.backendError', { defaultValue: 'Không thể kết nối máy chủ backend.' }));
     } finally {
       setClaimingPacketId(null);
     }
@@ -358,8 +360,8 @@ export default function GeoRedPacketScreen() {
             <Ionicons name="arrow-back" size={24} color="#1E293B" />
           </TouchableOpacity>
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Geo-RedPacket</Text>
-            <Text style={styles.headerSubtitle}>Lì Xì Tọa Độ Không Gian</Text>
+            <Text style={styles.headerTitle}>{t('geoRedpacket.headerTitle', { defaultValue: 'Geo-RedPacket' })}</Text>
+            <Text style={styles.headerSubtitle}>{t('geoRedpacket.headerSubtitle', { defaultValue: 'Lì Xì Tọa Độ Không Gian' })}</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>
@@ -380,7 +382,7 @@ export default function GeoRedPacketScreen() {
               style={{ marginRight: 6 }}
             />
             <Text style={[styles.tabText, activeTab === 'drop' && styles.tabTextActive]}>
-              Thả Lì Xì
+              {t('geoRedpacket.dropTab', { defaultValue: 'Thả Lì Xì' })}
             </Text>
           </TouchableOpacity>
 
@@ -398,7 +400,7 @@ export default function GeoRedPacketScreen() {
               style={{ marginRight: 6 }}
             />
             <Text style={[styles.tabText, activeTab === 'scan' && styles.tabTextActive]}>
-              Quét Lì Xì Quanh Đây
+              {t('geoRedpacket.scanTab', { defaultValue: 'Quét Lì Xì Quanh Đây' })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -414,16 +416,16 @@ export default function GeoRedPacketScreen() {
               <Ionicons name="location" size={20} color="#EF4444" />
             </View>
             <View style={styles.gpsInfoCol}>
-              <Text style={styles.gpsTitle}>Vị trí GPS Hiện Tại</Text>
+              <Text style={styles.gpsTitle}>{t('geoRedpacket.currentGPS', { defaultValue: 'Vị trí GPS Hiện Tại' })}</Text>
               {isLoadingLocation ? (
-                <Text style={styles.gpsLoadingText}>Đang lấy tọa độ vệ tinh GPS...</Text>
+                <Text style={styles.gpsLoadingText}>{t('geoRedpacket.gettingGPS', { defaultValue: 'Đang lấy tọa độ vệ tinh GPS...' })}</Text>
               ) : location ? (
                 <Text style={styles.gpsCoordText}>
                   Lat: {formatCoord(location.coords.latitude)} | Lng: {formatCoord(location.coords.longitude)}
                 </Text>
               ) : (
                 <Text style={styles.gpsErrorText}>
-                  {locationError || 'Chưa xác định được vị trí'}
+                  {locationError || t('geoRedpacket.unknownLocation', { defaultValue: 'Chưa xác định được vị trí' })}
                 </Text>
               )}
             </View>
@@ -441,9 +443,9 @@ export default function GeoRedPacketScreen() {
                   <Text style={styles.bannerEmoji}>🧧</Text>
                 </View>
                 <View style={styles.bannerTextBox}>
-                  <Text style={styles.bannerTitle}>Tạo Bao Lì Xì Theo Tọa Độ</Text>
+                  <Text style={styles.bannerTitle}>{t('geoRedpacket.createPacketTitle', { defaultValue: 'Tạo Bao Lì Xì Theo Tọa Độ' })}</Text>
                   <Text style={styles.bannerDesc}>
-                    Khóa token SOL on-chain tại vị trí bạn đang đứng. Người nhận phải đến đúng bán kính để mở lì xì.
+                    {t('geoRedpacket.createPacketDesc', { defaultValue: 'Khóa token SOL on-chain tại vị trí bạn đang đứng. Người nhận phải đến đúng bán kính để mở lì xì.' })}
                   </Text>
                 </View>
               </View>
@@ -451,9 +453,9 @@ export default function GeoRedPacketScreen() {
               {/* 1. Nhập Số Lượng SOL */}
               <View style={styles.inputSection}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.fieldLabel}>Số lượng SOL trong bao lì xì:</Text>
+                  <Text style={styles.fieldLabel}>{t('geoRedpacket.amountLabel', { defaultValue: 'Số lượng SOL trong bao lì xì:' })}</Text>
                   {solBalance !== null && (
-                    <Text style={styles.balanceText}>Số dư: {solBalance.toFixed(4)} SOL</Text>
+                    <Text style={styles.balanceText}>{t('geoRedpacket.balance', { defaultValue: 'Số dư:' })} {solBalance.toFixed(4)} SOL</Text>
                   )}
                 </View>
 
@@ -494,10 +496,10 @@ export default function GeoRedPacketScreen() {
 
               {/* 2. Lời Chúc Mừng (Wishes Message) */}
               <View style={styles.inputSection}>
-                <Text style={styles.fieldLabel}>Lời chúc gửi gắm:</Text>
+                <Text style={styles.fieldLabel}>{t('geoRedpacket.wishesLabel', { defaultValue: 'Lời chúc gửi gắm:' })}</Text>
                 <TextInput
                   style={styles.messageInput}
-                  placeholder="Nhập lời chúc may mắn..."
+                  placeholder={t('geoRedpacket.wishesPlaceholder', { defaultValue: 'Nhập lời chúc may mắn...' })}
                   placeholderTextColor="#94A3B8"
                   value={wishesMessage}
                   onChangeText={setWishesMessage}
@@ -508,7 +510,7 @@ export default function GeoRedPacketScreen() {
 
               {/* 3. Chọn Bán Kính Mở Lì Xì */}
               <View style={styles.inputSection}>
-                <Text style={styles.fieldLabel}>Bán kính nhặt lì xì hợp lệ:</Text>
+                <Text style={styles.fieldLabel}>{t('geoRedpacket.radiusLabel', { defaultValue: 'Bán kính nhặt lì xì hợp lệ:' })}</Text>
                 <View style={styles.radiusOptionsRow}>
                   {[20, 50, 100].map((r) => (
                     <TouchableOpacity
@@ -530,7 +532,7 @@ export default function GeoRedPacketScreen() {
                           radiusMeters === r && styles.radiusOptionTextActive,
                         ]}
                       >
-                        {r} mét
+                        {r} {t('geoRedpacket.meters', { defaultValue: 'mét' })}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -551,13 +553,13 @@ export default function GeoRedPacketScreen() {
                   <View style={styles.btnInner}>
                     <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
                     <Text style={styles.dropBtnText}>
-                      {statusMessage || 'Đang khóa SOL vào Escrow On-chain...'}
+                      {statusMessage || t('geoRedpacket.lockingEscrow', { defaultValue: 'Đang khóa SOL vào Escrow On-chain...' })}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.btnInner}>
                     <Text style={{ fontSize: 20, marginRight: 8 }}>🧧</Text>
-                    <Text style={styles.dropBtnText}>Xác Nhận Thả Lì Xì ({amount} SOL)</Text>
+                    <Text style={styles.dropBtnText}>{t('geoRedpacket.confirmDrop', { defaultValue: 'Xác Nhận Thả Lì Xì' })} ({amount} SOL)</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -615,10 +617,10 @@ export default function GeoRedPacketScreen() {
 
               <View style={styles.radarStatusBox}>
                 <Text style={styles.radarStatusTitle}>
-                  {isScanning ? 'Đang quét sóng GPS lân cận...' : `Tìm thấy ${nearbyPackets.length} bao lì xì quanh đây`}
+                  {isScanning ? t('geoRedpacket.scanningGPS', { defaultValue: 'Đang quét sóng GPS lân cận...' }) : t('geoRedpacket.foundPackets', { defaultValue: 'Tìm thấy {{count}} bao lì xì quanh đây', count: nearbyPackets.length })}
                 </Text>
                 <Text style={styles.radarStatusSubtitle}>
-                  Phạm vi tìm kiếm vệ tinh: 1,000 mét
+                  {t('geoRedpacket.searchRange', { defaultValue: 'Phạm vi tìm kiếm vệ tinh: 1,000 mét' })}
                 </Text>
               </View>
 
@@ -640,7 +642,7 @@ export default function GeoRedPacketScreen() {
                           <View>
                             <Text style={styles.packetCardAmount}>{pkt.amount} SOL</Text>
                             <Text style={styles.packetCardCreator}>
-                              Bởi: {pkt.creator_wallet.slice(0, 4)}...{pkt.creator_wallet.slice(-4)}
+                              {t('geoRedpacket.by', { defaultValue: 'Bởi:' })} {pkt.creator_wallet.slice(0, 4)}...{pkt.creator_wallet.slice(-4)}
                             </Text>
                           </View>
                         </View>
@@ -663,13 +665,13 @@ export default function GeoRedPacketScreen() {
                               isInRange ? styles.distanceBadgeTextGreen : styles.distanceBadgeTextRed,
                             ]}
                           >
-                            {dist !== 999 ? `${dist}m` : 'Gần đây'} / {pkt.radius}m
+                            {dist !== 999 ? `${dist}m` : t('geoRedpacket.nearby', { defaultValue: 'Gần đây' })} / {pkt.radius}m
                           </Text>
                         </View>
                       </View>
 
                       <Text style={styles.packetCardMessage} numberOfLines={2}>
-                        "{pkt.message || 'Chúc bạn nhận được thật nhiều may mắn!'}"
+                        "{pkt.message || t('geoRedpacket.defaultWishes2', { defaultValue: 'Chúc bạn nhận được thật nhiều may mắn!' })}"
                       </Text>
 
                       {/* Action Area */}
@@ -677,7 +679,7 @@ export default function GeoRedPacketScreen() {
                         {isMine ? (
                           <View style={styles.myPacketPill}>
                             <MaterialCommunityIcons name="account-check" size={14} color="#64748B" style={{ marginRight: 4 }} />
-                            <Text style={styles.myPacketPillText}>Bao lì xì do chính bạn tạo</Text>
+                            <Text style={styles.myPacketPillText}>{t('geoRedpacket.yourPacket', { defaultValue: 'Bao lì xì do chính bạn tạo' })}</Text>
                           </View>
                         ) : isInRange ? (
                           <TouchableOpacity
@@ -689,12 +691,12 @@ export default function GeoRedPacketScreen() {
                             {isClaimingThis ? (
                               <View style={styles.btnInner}>
                                 <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
-                                <Text style={styles.claimNowBtnText}>Đang nhận lì xì...</Text>
+                                <Text style={styles.claimNowBtnText}>{t('geoRedpacket.claiming', { defaultValue: 'Đang nhận lì xì...' })}</Text>
                               </View>
                             ) : (
                               <View style={styles.btnInner}>
                                 <Text style={{ fontSize: 15, marginRight: 6 }}>🧧</Text>
-                                <Text style={styles.claimNowBtnText}>Mở Lì Xì Ngay</Text>
+                                <Text style={styles.claimNowBtnText}>{t('geoRedpacket.claimNow', { defaultValue: 'Mở Lì Xì Ngay' })}</Text>
                               </View>
                             )}
                           </TouchableOpacity>
@@ -702,7 +704,7 @@ export default function GeoRedPacketScreen() {
                           <View style={styles.outOfRangePill}>
                             <Feather name="map-pin" size={12} color="#94A3B8" style={{ marginRight: 4 }} />
                             <Text style={styles.outOfRangeText}>
-                              Cần lại gần thêm {dist - pkt.radius}m để mở lì xì
+                              {t('geoRedpacket.needToGetCloser', { defaultValue: 'Cần lại gần thêm' })} {dist - pkt.radius}m {t('geoRedpacket.toClaim', { defaultValue: 'để mở lì xì' })}
                             </Text>
                           </View>
                         )}
@@ -714,9 +716,9 @@ export default function GeoRedPacketScreen() {
                 {nearbyPackets.length === 0 && !isScanning && (
                   <View style={styles.emptyStateBox}>
                     <MaterialCommunityIcons name="map-marker-question-outline" size={48} color="#94A3B8" />
-                    <Text style={styles.emptyStateTitle}>Chưa có bao lì xì nào trong khu vực</Text>
+                    <Text style={styles.emptyStateTitle}>{t('geoRedpacket.noPackets', { defaultValue: 'Chưa có bao lì xì nào trong khu vực' })}</Text>
                     <Text style={styles.emptyStateDesc}>
-                      Hãy thử chuyển sang tab "Thả Lì Xì" để trở thành người đầu tiên lì xì bạn bè tại địa điểm này!
+                      {t('geoRedpacket.noPacketsDesc', { defaultValue: 'Hãy thử chuyển sang tab "Thả Lì Xì" để trở thành người đầu tiên lì xì bạn bè tại địa điểm này!' })}
                     </Text>
                   </View>
                 )}
@@ -733,7 +735,7 @@ export default function GeoRedPacketScreen() {
                 ) : (
                   <View style={styles.btnInner}>
                     <Feather name="refresh-cw" size={16} color="#EF4444" style={{ marginRight: 8 }} />
-                    <Text style={styles.rescanBtnText}>Quét lại vị trí</Text>
+                    <Text style={styles.rescanBtnText}>{t('geoRedpacket.rescan', { defaultValue: 'Quét lại vị trí' })}</Text>
                   </View>
                 )}
               </TouchableOpacity>

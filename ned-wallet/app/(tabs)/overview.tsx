@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { useUserStore } from '../../stores/useUserStore';
 import { resolveActiveSolanaAddress } from '../../services/identity';
+import { useTranslation } from '../../services/i18n';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
 import { getCachedActivities } from '../../services/storage';
 import { useExternalWallet } from '../../src/providers/WalletProvider';
@@ -70,6 +71,7 @@ const DropdownItem = ({ card, index, isLast, onSelect, isOpen, isLoading }: any)
 
 export default function AnalyticsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   
   let privy: any = null;
   try { privy = usePrivy(); } catch (e) {}
@@ -315,10 +317,10 @@ export default function AnalyticsScreen() {
     return {
       cardBalance,
       metrics: [
-        { id: 'available', label: 'Available', amount: cardBalance, color: '#00E5FF' },
-        { id: 'savings', label: 'Savings/Vault', amount: 0, color: '#CDB4DB' },
-        { id: 'earned', label: 'Earned (In)', amount: earned, color: '#CCFF00' },
-        { id: 'spent', label: 'Spent (Out)', amount: spent, color: '#FF6B6B' }
+        { id: 'available', label: t('overview.available', { defaultValue: 'Available' }), amount: cardBalance, color: '#00E5FF' },
+        { id: 'savings', label: t('overview.savings', { defaultValue: 'Savings/Vault' }), amount: 0, color: '#CDB4DB' },
+        { id: 'earned', label: t('overview.earned', { defaultValue: 'Earned (In)' }), amount: earned, color: '#CCFF00' },
+        { id: 'spent', label: t('overview.spent', { defaultValue: 'Spent (Out)' }), amount: spent, color: '#FF6B6B' }
       ]
     };
   }, [cardTransactions, selectedWallet.balance]);
@@ -368,7 +370,7 @@ export default function AnalyticsScreen() {
         const amt = Math.abs(parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0);
         return {
           id: tx.id || `d${idx}`,
-          title: tx.title || 'Spending',
+          title: tx.title || t('overview.spending', { defaultValue: 'Spending' }),
           amount: amt,
           isPositive: tx.isPositive,
         };
@@ -499,7 +501,7 @@ export default function AnalyticsScreen() {
         <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Analytics</Text>
+        <Text style={styles.headerTitle}>{t('overview.headerTitle', { defaultValue: 'Analytics' })}</Text>
         <TouchableOpacity style={styles.headerIconBtn}>
           <Ionicons name="ellipsis-vertical" size={20} color="#000" />
         </TouchableOpacity>
@@ -571,7 +573,7 @@ export default function AnalyticsScreen() {
           <View style={styles.analyticsShadow} />
           <View style={styles.analyticsBody}>
             <View style={styles.analyticsHeader}>
-              <Text style={styles.analyticsCardTitle}>Cash Flow Overview</Text>
+              <Text style={styles.analyticsCardTitle}>{t('overview.cashFlowOverview', { defaultValue: 'Cash Flow Overview' })}</Text>
               <TouchableOpacity>
                 <Feather name="maximize-2" size={18} color="#fff" />
               </TouchableOpacity>
@@ -580,7 +582,7 @@ export default function AnalyticsScreen() {
             {/* NEW: Total Balance Header inside the card */}
             <View style={styles.analyticsTotalBalanceContainer}>
               <Text style={styles.analyticsTotalBalanceText} adjustsFontSizeToFit={true} numberOfLines={1}>
-                {isLoading ? 'Loading...' : `${selectedWallet.name || selectedWallet.currency} Balance: ${currencySymbol}${(selectedWallet.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
+                {isLoading ? t('overview.loading', { defaultValue: 'Loading...' }) : `${selectedWallet.name || selectedWallet.currency} ${t('overview.balance', { defaultValue: 'Balance:' })} ${currencySymbol}${(selectedWallet.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`}
               </Text>
             </View>
 
@@ -639,7 +641,7 @@ export default function AnalyticsScreen() {
         {/* 4. BUDGET FOR MONTH (Monthly Outflow Cap) */}
         <View style={styles.budgetContainer}>
           <View style={styles.budgetHeader}>
-            <Text style={styles.budgetTitle}>Monthly Outflow Cap</Text>
+            <Text style={styles.budgetTitle}>{t('overview.monthlyOutflowCap', { defaultValue: 'Monthly Outflow Cap' })}</Text>
             <TouchableOpacity style={styles.editBtn}>
               <Feather name="edit-2" size={14} color="#000" />
             </TouchableOpacity>
@@ -653,7 +655,7 @@ export default function AnalyticsScreen() {
           </View>
           
           <Text style={styles.budgetSubText}>
-            Amount: <Text style={styles.budgetBold}>{isLoading ? '...' : `${currencySymbol}${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / ${currencySymbol}${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}`}</Text>
+            {t('overview.amount', { defaultValue: 'Amount:' })} <Text style={styles.budgetBold}>{isLoading ? '...' : `${currencySymbol}${absoluteSpent.toLocaleString('en-US', {minimumFractionDigits: 2})} / ${currencySymbol}${spendingLimit.toLocaleString('en-US', {minimumFractionDigits: 2})}`}</Text>
           </Text>
         </View>
 
@@ -664,15 +666,15 @@ export default function AnalyticsScreen() {
             <View style={styles.trendShadow} />
             <View style={styles.trendBody}>
               <View style={styles.trendHeaderContainer}>
-                <Text style={styles.trendHeader}>Cash Flow Trend</Text>
+                <Text style={styles.trendHeader}>{t('overview.cashFlowTrend', { defaultValue: 'Cash Flow Trend' })}</Text>
                 <View style={styles.trendLegend}>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: '#00E5FF' }]} />
-                    <Text style={styles.legendText}>Earned</Text>
+                    <Text style={styles.legendText}>{t('overview.earned', { defaultValue: 'Earned' })}</Text>
                   </View>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: '#FF6B6B' }]} />
-                    <Text style={styles.legendText}>Spent</Text>
+                    <Text style={styles.legendText}>{t('overview.spent', { defaultValue: 'Spent' })}</Text>
                   </View>
                 </View>
               </View>
@@ -724,7 +726,7 @@ export default function AnalyticsScreen() {
           {/* 6. TOP DRAINERS (LEADERBOARD) */}
           <View style={styles.leaderboardContainer}>
             <View style={styles.leaderboardHeader}>
-              <Text style={styles.leaderboardTitle}>Top Drainers</Text>
+              <Text style={styles.leaderboardTitle}>{t('overview.topDrainers', { defaultValue: 'Top Drainers' })}</Text>
               <FontAwesome5 name="fire" size={18} color="#FF6B6B" />
             </View>
             
@@ -733,7 +735,7 @@ export default function AnalyticsScreen() {
                 <View style={styles.emptyDrainerBox}>
                   <Feather name="info" size={20} color="#64748B" style={{ marginBottom: 6 }} />
                   <Text style={styles.emptyDrainerText}>
-                    Chưa có giao dịch chi tiêu nào cho thẻ {selectedWallet.name || selectedWallet.currency}.
+                    {t('overview.noSpendingTx', { defaultValue: 'Chưa có giao dịch chi tiêu nào cho thẻ {{cardName}}.', cardName: selectedWallet.name || selectedWallet.currency })}
                   </Text>
                 </View>
               ) : topDrainers.map((item: any, index: number) => (

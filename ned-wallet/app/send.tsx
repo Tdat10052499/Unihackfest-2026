@@ -270,7 +270,7 @@ export default function SendScreen() {
       setSearchResults([]);
       setResolvedIdentity({
         type: 'wallet',
-        label: 'Địa chỉ ví Solana',
+        label: t('send.solanaWalletAddress', { defaultValue: 'Địa chỉ ví Solana' }),
         maskedWallet: `${parsed.normalized.slice(0, 4)}...${parsed.normalized.slice(-4)}`,
       });
       setSearchError('');
@@ -360,7 +360,7 @@ export default function SendScreen() {
         if (!isMounted) return;
         setIsLoadingLookup(false);
         setSearchResults([]);
-        setSearchError('Lỗi kết nối khi tìm kiếm người nhận');
+        setSearchError(t('send.searchError', { defaultValue: 'Lỗi kết nối khi tìm kiếm người nhận' }));
         console.error('Off-chain search error:', err);
       });
 
@@ -479,7 +479,7 @@ export default function SendScreen() {
       });
 
       if (!result.success || !result.transactionHash) {
-        const errorMsg = result.error || 'Không thể thực hiện chuyển tiền.';
+        const errorMsg = result.error || t('send.transferFailed', { defaultValue: 'Không thể thực hiện chuyển tiền.' });
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -516,8 +516,8 @@ export default function SendScreen() {
       const newAct: ActivityItem = {
         id: txSignature,
         type: 'sent',
-        title: 'Chuyển tiền',
-        time: 'Vừa xong',
+        title: t('send.transferTitle', { defaultValue: 'Chuyển tiền' }),
+        time: t('activities.justNow', { defaultValue: 'Vừa xong' }),
         amount: `-$${numAmount.toFixed(2)}`,
         isPositive: false,
         iconBg: '#374151',
@@ -539,12 +539,12 @@ export default function SendScreen() {
       setReceiptData({
         amount: numAmount,
         currency: 'USD',
-        note: `Chuyển đến: ${recipientDisplayName}`,
+        note: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
         txHash: txSignature,
       });
 
       const currentUserState = useUserStore.getState();
-      const myUsername = currentUserState.username ? `@${currentUserState.username}.sol` : 'Ví của bạn';
+      const myUsername = currentUserState.username ? `@${currentUserState.username}.sol` : t('send.yourWallet', { defaultValue: 'Ví của bạn' });
       const myPhone = currentUserState.linkedPhone || undefined;
 
       // Tự động ghi nhận thông báo chuyển tiền trong app
@@ -562,7 +562,7 @@ export default function SendScreen() {
         recipientName: recipientDisplayName,
         recipientPhone: resolvedPhone || undefined,
         recipientWallet: finalRecipient,
-        senderNote: `Chuyển đến: ${recipientDisplayName}`,
+        senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
         network: 'Solana Devnet',
         fee: '0.000005 SOL',
       }).catch(console.error);
@@ -578,7 +578,7 @@ export default function SendScreen() {
         senderPhone: myPhone,
         recipientName: recipientDisplayName,
         recipientPhone: resolvedPhone || undefined,
-        senderNote: `Chuyển đến: ${recipientDisplayName}`,
+        senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
       }).catch(console.error);
 
       setShowReceiptModal(true);
@@ -632,7 +632,7 @@ export default function SendScreen() {
           </TouchableOpacity>
 
           {/* Bold Header Title with Neo-brutalism Text Shadow */}
-          <Text style={styles.headerTitle}>Transfer Money</Text>
+          <Text style={styles.headerTitle}>{t('send.headerTitle', { defaultValue: 'Transfer Money' })}</Text>
           <View style={{ width: 44 }} />
         </View>
 
@@ -650,7 +650,7 @@ export default function SendScreen() {
             borderRadius={22}
             offset={4}
           >
-            <Text style={styles.cardLabel}>Recipient (Phone or Account):</Text>
+            <Text style={styles.cardLabel}>{t('send.recipientLabel', { defaultValue: 'Recipient (Phone or Account):' })}</Text>
 
             {/* Input Box màu Beige/Hồng nhạt (#FDF5E6) với viền đen */}
             <View
@@ -673,7 +673,7 @@ export default function SendScreen() {
                   styles.recipientTextInput,
                   isLockedRecipient && styles.recipientTextInputLocked,
                 ]}
-                placeholder="Enter recipient phone number..."
+                placeholder={t('send.recipientPlaceholder', { defaultValue: 'Enter recipient phone number...' })}
                 placeholderTextColor="#94A3B8"
                 value={searchInput}
                 onChangeText={setSearchInput}
@@ -716,7 +716,7 @@ export default function SendScreen() {
             {searchResults.length > 0 && !isLockedRecipient && (
               <View style={styles.dropdownBox}>
                 <Text style={styles.dropdownSectionLabel}>
-                  Gợi ý người nhận ({searchResults.length}):
+                  {t('send.suggestedRecipients', { defaultValue: 'Gợi ý người nhận ({{count}}):', count: searchResults.length })}
                 </Text>
                 {searchResults.map((item, idx) => {
                   const masked = `${item.wallet_address.slice(0, 4)}...${item.wallet_address.slice(-4)}`;
@@ -756,7 +756,7 @@ export default function SendScreen() {
                           />
                         </View>
                         <Text style={styles.dropdownSubText}>
-                          Ví: {masked}
+                          {t('send.wallet', { defaultValue: 'Ví:' })} {masked}
                           {item.phone_number ? ` • ${getMaskedPhone(item.phone_number)}` : ''}
                         </Text>
                       </View>
@@ -800,7 +800,7 @@ export default function SendScreen() {
                     style={styles.lockedChangeBtn}
                     onPress={handleResetRecipient}
                   >
-                    <Text style={styles.lockedChangeBtnText}>Đổi</Text>
+                    <Text style={styles.lockedChangeBtnText}>{t('send.change', { defaultValue: 'Đổi' })}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -821,7 +821,7 @@ export default function SendScreen() {
             <View style={styles.balanceBadgeRow}>
               <View style={styles.balancePill}>
                 <Text style={styles.balancePillText}>
-                  Khả dụng: {formatFiatBalance(availableUsd, 'USD')}
+                  {t('send.available', { defaultValue: 'Khả dụng:' })} {formatFiatBalance(availableUsd, 'USD')}
                 </Text>
               </View>
             </View>
@@ -844,14 +844,14 @@ export default function SendScreen() {
 
             {/* Dòng quy đổi tỉ giá */}
             <Text style={styles.exchangeRateText}>
-              ≈ {vndEquivalent.toLocaleString('vi-VN')}đ ($1 = 25.000 đ)
+              ≈ {vndEquivalent.toLocaleString('vi-VN')}đ ({t('send.exchangeRateNote', { defaultValue: '$1 = 25.000 đ' })})
             </Text>
 
             {/* Freeship Badge (Viên thuốc màu Cyan + Icon tia sét đen) */}
             <View style={styles.freeshipRow}>
               <View style={styles.freeshipBadge}>
                 <Ionicons name="flash" size={14} color="#000000" />
-                <Text style={styles.freeshipText}>Miễn phí chuyển tiền</Text>
+                <Text style={styles.freeshipText}>{t('send.freeTransfer', { defaultValue: 'Miễn phí chuyển tiền' })}</Text>
               </View>
             </View>
 
@@ -926,7 +926,7 @@ export default function SendScreen() {
               ) : (
                 <View style={styles.confirmBtnInner}>
                   <Feather name="send" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.confirmBtnText}>Confirm Transfer</Text>
+                  <Text style={styles.confirmBtnText}>{t('send.confirmTransferBtn', { defaultValue: 'Xác nhận chuyển tiền' })}</Text>
                 </View>
               )}
             </TouchableOpacity>
