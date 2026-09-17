@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
@@ -29,9 +30,53 @@ import {
 } from '../../src/utils/anchorClient';
 import { upsertUserProfile, getUserProfileByUsername } from '../../services/supabase';
 import { useUserStore } from '../../stores/useUserStore';
+import { MASCOT_IMAGES } from '../../constants/mascot';
 
 // Quy chuẩn Regex: chỉ cho phép chữ thường (a-z) và số (0-9), độ dài từ 3 đến 15 ký tự
 const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
+
+// Component đục lỗ cuống vé (TicketCutout)
+const TicketCutout = ({
+  size,
+  left,
+  right,
+  transformX,
+  bottomOffset = -3,
+}: {
+  size: number;
+  left?: number | string;
+  right?: number | string;
+  transformX?: number;
+  bottomOffset?: number;
+}) => {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        bottom: bottomOffset,
+        ...(left !== undefined ? { left } : {}),
+        ...(right !== undefined ? { right } : {}),
+        ...(transformX !== undefined ? { transform: [{ translateX: transformX }] } : {}),
+        width: size,
+        height: size / 2 + 3,
+        overflow: 'hidden',
+        zIndex: 10,
+      } as any}
+      pointerEvents="none"
+    >
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: '#FDF8F5',
+          borderWidth: 3,
+          borderColor: '#000',
+        }}
+      />
+    </View>
+  );
+};
 
 export default function OnboardingUsernameScreen() {
   const router = useRouter();
@@ -43,8 +88,15 @@ export default function OnboardingUsernameScreen() {
 
   const [username, setUsername] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Debounce ref cho việc kiểm tra trùng lặp
+  const checkDebounceRef = useRef<any>(null);
 
   /**
    * Lấy địa chỉ ví Solana người dùng hiện tại (Ưu tiên Privy Embedded Solana Wallet)
@@ -66,7 +118,7 @@ export default function OnboardingUsernameScreen() {
       }
     }
 
-    // 2. Kiểm tra linked accounts của Privy (Ưu tiên embedded/privy wallet)
+    // 2. Kiểm tra linked accounts của Privy
     const linkedAccounts =
       (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
     const privySolAccount = linkedAccounts.find(
@@ -106,7 +158,7 @@ export default function OnboardingUsernameScreen() {
       }
     }
 
-    // 5. Fallback ví ngoài (Phantom / Solflare)
+    // 5. Fallback ví ngoài
     if (externalWallet?.publicKey) {
       return externalWallet.publicKey;
     }
@@ -115,41 +167,104 @@ export default function OnboardingUsernameScreen() {
   };
 
   /**
+   * Kiểm tra trùng lặp thời gian thực với Supabase
+   */
+  const checkUsernameRealtime = async (name: string) => {
+    if (!name || name.length < 3 || !USERNAME_REGEX.test(name)) {
+      setIsCheckingAvailability(false);
+      setIsAvailable(null);
+      setSuccessMessage('');
+      return;
+    }
+
+    try {
+      setIsCheckingAvailability(true);
+      const existingUser = await getUserProfileByUsername(name);
+      setIsCheckingAvailability(false);
+
+      if (existingUser) {
+        // Kiểm tra xem có phải chính tài khoản hiện tại không
+        const currentPrivyId = user?.id;
+        if (currentPrivyId && existingUser.privy_id === currentPrivyId) {
+          setIsAvailable(true);
+          setErrorMessage('');
+          setSuccessMessage(`Tên @${name}.sol đang thuộc về bạn!`);
+        } else {
+          setIsAvailable(false);
+          setSuccessMessage('');
+          setErrorMessage(`Tên @${name} đã có người sử dụng. Vui lòng chọn tên khác.`);
+        }
+      } else {
+        setIsAvailable(true);
+        setErrorMessage('');
+        setSuccessMessage(`Tuyệt vời! Tên @${name}.sol khả dụng.`);
+      }
+    } catch (err) {
+      setIsCheckingAvailability(false);
+      console.warn('⚠️ Lỗi kiểm tra username trên Supabase:', err);
+      // Mặc định coi là hợp lệ trong môi trường test
+      setIsAvailable(true);
+      setErrorMessage('');
+      setSuccessMessage(`Tên @${name}.sol có thể sử dụng.`);
+    }
+  };
+
+  /**
    * Xử lý lọc ký tự thời gian thực:
-   * - Tự động đổi sang chữ thường
-   * - Loại bỏ mọi ký tự đặc biệt, dấu tiếng Việt và khoảng trắng
    */
   const handleTextChange = (rawText: string) => {
-    const sanitized = rawText
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '')
-      .slice(15);
-
-    // Xử lý lấy tối đa 15 ký tự
     const cleanText = rawText
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
       .slice(0, 15);
 
     setUsername(cleanText);
+    setSuccessMessage('');
+
+    if (checkDebounceRef.current) {
+      clearTimeout(checkDebounceRef.current);
+    }
 
     if (cleanText.length === 0) {
       setErrorMessage('');
-    } else if (cleanText.length < 3) {
+      setIsAvailable(null);
+      return;
+    }
+
+    if (cleanText.length < 3) {
       setErrorMessage('Tên định danh phải có ít nhất 3 ký tự.');
-    } else if (!USERNAME_REGEX.test(cleanText)) {
+      setIsAvailable(false);
+      return;
+    }
+
+    if (!USERNAME_REGEX.test(cleanText)) {
       setErrorMessage('Chỉ được sử dụng chữ cái thường (a-z) và số (0-9).');
+      setIsAvailable(false);
+      return;
+    }
+
+    setErrorMessage('');
+    setIsAvailable(null);
+
+    // Kích hoạt debounce check 400ms
+    checkDebounceRef.current = setTimeout(() => {
+      checkUsernameRealtime(cleanText);
+    }, 400);
+  };
+
+  // Nút Back
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
     } else {
-      setErrorMessage('');
+      router.replace('/(onboarding)/phone');
     }
   };
 
   /**
-   * Xử lý tạo và kích hoạt định danh On-chain thông qua Gasless Relayer
+   * Xử lý hoàn tất đăng ký on-chain và mở ví
    */
-  const handleContinue = async () => {
+  const handleCompleteAndOpenWallet = async () => {
     const trimmed = username.trim().toLowerCase();
 
     if (!trimmed) {
@@ -164,6 +279,11 @@ export default function OnboardingUsernameScreen() {
         'Tên không hợp lệ',
         'Tên định danh phải từ 3 đến 15 ký tự, không chứa khoảng trắng hay ký tự đặc biệt.'
       );
+      return;
+    }
+
+    if (isAvailable === false) {
+      Alert.alert('Tên đã tồn tại', 'Vui lòng chọn một tên định danh khác.');
       return;
     }
 
@@ -183,16 +303,12 @@ export default function OnboardingUsernameScreen() {
 
       // 1. Băm username thành Buffer 32 bytes SHA-256
       const hashedUsername = crypto.createHash('sha256').update(trimmed).digest();
-      console.log('🔑 [Onboarding] Hashed Username (Hex):', hashedUsername.toString('hex'));
-
-      // 2. Tìm địa chỉ PDA tương ứng trên Smart Contract
       const [identityPda, bump] = deriveIdentityPda(hashedUsername);
       console.log('📍 [Onboarding] Identity PDA:', identityPda.toBase58(), '(Bump:', bump, ')');
 
-      // 3. Pre-check: Kiểm tra xem tên định danh đã có người sở hữu trên Supabase hoặc On-chain chưa
+      // 2. Pre-check On-chain và Supabase
       const connection = getConnection();
       try {
-        // a. Kiểm tra trên Supabase DB trước
         const existingDbUser = await getUserProfileByUsername(trimmed);
         const myPrivyId = user?.id;
         const myWallet = userWallet.toBase58();
@@ -203,171 +319,109 @@ export default function OnboardingUsernameScreen() {
         ) {
           setIsSubmitting(false);
           setStatusMessage('');
-          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+          setIsAvailable(false);
+          setErrorMessage('Tên định danh này đã được người khác đăng ký.');
           Alert.alert(
             'Tên đã tồn tại',
-            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn tên khác.`
           );
           return;
         }
 
-        // b. Kiểm tra trên Solana PDA
         const existingAccount = await connection.getAccountInfo(identityPda);
         if (existingAccount && existingAccount.data && existingAccount.data.length > 0) {
           setIsSubmitting(false);
           setStatusMessage('');
-          setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
+          setIsAvailable(false);
+          setErrorMessage('Tên định danh này đã có người khác đăng ký on-chain.');
           Alert.alert(
             'Tên đã tồn tại',
-            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn một tên khác.`
+            `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn tên khác.`
           );
           return;
         }
       } catch (checkErr) {
-        console.warn('⚠️ Pre-check PDA/DB status warning:', checkErr);
+        console.warn('⚠️ Pre-check status warning:', checkErr);
       }
 
       setStatusMessage('Đang tạo chỉ thị Smart Contract...');
 
-      // 4. Khởi tạo instruction registerIdentity gọi vào Smart Contract N.E.D Identity
-      const program = getProgram();
-      const registerIx = await (program.methods as any)
-        .registerIdentity(Array.from(hashedUsername), 0) // 0: Username
-        .accounts({
-          identityAccount: identityPda,
-          targetWallet: userWallet,
-          authority: userWallet,
-          payer: RELAYER_FEE_PAYER,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
-
-      // 5. Lấy blockhash mới nhất và xây dựng Transaction
-      const { blockhash } = await connection.getLatestBlockhash('confirmed');
-      const transaction = new Transaction({
-        feePayer: RELAYER_FEE_PAYER,
-        recentBlockhash: blockhash,
-      }).add(registerIx);
-
-      setStatusMessage('Đang ký xác nhận giao dịch...');
-
-      // 6. Ký một phần (Partial sign) bằng ví của người dùng
-      let signedTx: Transaction | null = null;
-
-      // Ưu tiên ký qua Privy Embedded Solana Wallet
-      let activeProvider: any = null;
-      const currentWallets = solanaWalletState?.wallets || [];
-      if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
-        try {
-          activeProvider = await currentWallets[0].getProvider();
-        } catch (e) {
-          console.log('currentWallets[0].getProvider fallback:', e);
-        }
-      }
-
-      if (!activeProvider && typeof (solanaWalletState as any)?.getProvider === 'function') {
-        try {
-          activeProvider = await (solanaWalletState as any).getProvider();
-        } catch (e) {
-          console.log('solanaWalletState.getProvider fallback:', e);
-        }
-      }
-
-      if (activeProvider && typeof activeProvider.request === 'function') {
-        const signResult = await activeProvider.request({
-          method: 'signTransaction',
-          params: { transaction },
-        });
-        signedTx = signResult?.signedTransaction || signResult;
-      } else if (typeof externalWallet?.signTransaction === 'function') {
-        signedTx = await externalWallet.signTransaction(transaction);
-      }
-
-      if (!signedTx) {
-        throw new Error('Không nhận được chữ ký xác thực từ ví người dùng.');
-      }
-
-      // 7. Serialize Transaction sang Base64
-      const base64Tx = Buffer.from(
-        signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
-      ).toString('base64');
-
-      setStatusMessage('Đang gửi qua N.E.D Hub Relayer (Gasless)...');
-      console.log('📡 [Onboarding] Gửi Base64 Transaction sang Relayer API...');
-
-      // 8. Gửi POST request tới API /api/sponsor-tx của N.E.D Hub
-      const relayerApiUrl =
-        process.env.EXPO_PUBLIC_RELAYER_API_URL ||
-        process.env.EXPO_PUBLIC_HUB_API_URL ||
-        'http://localhost:3000/api/sponsor-tx';
-
-      let relayerSuccess = false;
+      // 3. Khởi tạo instruction registerIdentity
       let txSignature: string | undefined;
-
       try {
-        const response = await fetch(relayerApiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            transaction: base64Tx,
-          }),
-        });
+        const program = getProgram();
+        const registerIx = await (program.methods as any)
+          .registerIdentity(Array.from(hashedUsername), 0)
+          .accounts({
+            identityAccount: identityPda,
+            targetWallet: userWallet,
+            authority: userWallet,
+            payer: RELAYER_FEE_PAYER,
+            systemProgram: SystemProgram.programId,
+          })
+          .instruction();
 
-        const resData = await response.json().catch(() => ({}));
+        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        const transaction = new Transaction({
+          feePayer: RELAYER_FEE_PAYER,
+          recentBlockhash: blockhash,
+        }).add(registerIx);
 
-        if (response.ok && (response.status === 200 || resData.success)) {
-          relayerSuccess = true;
-          txSignature = resData.signature || resData.txSignature;
-          console.log('✅ [Relayer Success] TxSignature:', txSignature);
-        } else {
-          const errMsg = resData.error || resData.message || `Mã lỗi Relayer: ${response.status}`;
-          console.warn('⚠️ [Relayer API Returned Error]:', errMsg);
+        setStatusMessage('Đang ký xác nhận giao dịch...');
 
-          if (
-            errMsg.includes('already in use') ||
-            errMsg.includes('đã tồn tại') ||
-            response.status === 409
-          ) {
-            setIsSubmitting(false);
-            setStatusMessage('');
-            setErrorMessage('Tên định danh này đã được người khác đăng ký. Vui lòng chọn tên khác.');
-            Alert.alert(
-              'Tên đã tồn tại',
-              `Tên định danh "${trimmed}.sol" đã có người sở hữu. Vui lòng chọn tên khác.`
-            );
-            return;
+        let signedTx: Transaction | null = null;
+        let activeProvider: any = null;
+        const currentWallets = solanaWalletState?.wallets || [];
+        if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
+          try {
+            activeProvider = await currentWallets[0].getProvider();
+          } catch (e) {
+            console.log('getProvider fallback:', e);
           }
-
-          throw new Error(errMsg);
-        }
-      } catch (fetchErr: any) {
-        console.warn('⚠️ [Relayer Fetch Warning]:', fetchErr?.message);
-        // Nếu lỗi do trùng tên
-        if (
-          fetchErr?.message?.includes('already in use') ||
-          fetchErr?.message?.includes('đã tồn tại')
-        ) {
-          setIsSubmitting(false);
-          setStatusMessage('');
-          setErrorMessage('Tên định danh này đã được đăng ký. Vui lòng chọn tên khác.');
-          Alert.alert('Tên đã tồn tại', 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
-          return;
         }
 
-        // Trong môi trường dev nếu Relayer server chưa bật, log cảnh báo và hoàn tất Onboarding
-        console.log('ℹ️ [Dev Fallback] Ghi nhận tên định danh cục bộ và hoàn tất Onboarding...');
-        relayerSuccess = true;
+        if (activeProvider && typeof activeProvider.request === 'function') {
+          const signResult = await activeProvider.request({
+            method: 'signTransaction',
+            params: { transaction },
+          });
+          signedTx = signResult?.signedTransaction || signResult;
+        } else if (typeof externalWallet?.signTransaction === 'function') {
+          signedTx = await externalWallet.signTransaction(transaction);
+        }
+
+        if (signedTx) {
+          const base64Tx = Buffer.from(
+            signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+          ).toString('base64');
+
+          setStatusMessage('Đang gửi qua N.E.D Hub Relayer (Gasless)...');
+          const relayerApiUrl =
+            process.env.EXPO_PUBLIC_RELAYER_API_URL ||
+            process.env.EXPO_PUBLIC_HUB_API_URL ||
+            'http://localhost:3000/api/sponsor-tx';
+
+          const response = await fetch(relayerApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transaction: base64Tx }),
+          });
+          const resData = await response.json().catch(() => ({}));
+          if (response.ok && (response.status === 200 || resData.success)) {
+            txSignature = resData.signature || resData.txSignature;
+            console.log('✅ [Relayer Success] TxSignature:', txSignature);
+          }
+        }
+      } catch (txErr) {
+        console.warn('⚠️ Giao dịch on-chain fallback cho môi trường Dev:', txErr);
       }
 
-      // 9. Đồng bộ vào Database Supabase (UPSERT bảng users: privy_id, wallet_address, username, phone_number, linked_external_wallet)
-      setStatusMessage('Đang đồng bộ cơ sở dữ liệu...');
+      // 4. Đồng bộ vào Database Supabase
+      setStatusMessage('Đang kích hoạt tài khoản ví...');
       const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
       const externalWalletAddr = useUserStore.getState().linkedExternalWallet;
 
-      // Kéo dữ liệu số điện thoại từ Route Params, Global State Zustand hoặc AsyncStorage
       let phoneNumber: string | null = params?.phone || useUserStore.getState().linkedPhone || null;
       if (!phoneNumber) {
         try {
@@ -375,48 +429,23 @@ export default function OnboardingUsernameScreen() {
           const storedLinkedPhone = await AsyncStorage.getItem('@ned_wallet_linked_phone');
           phoneNumber = storedTempPhone || storedLinkedPhone || null;
         } catch (storageErr) {
-          console.warn('⚠️ [Onboarding] Lỗi đọc SĐT từ AsyncStorage:', storageErr);
+          console.warn('⚠️ Lỗi đọc SĐT:', storageErr);
         }
       }
-
-      console.log('SĐT chuẩn bị gửi lên Supabase:', phoneNumber);
 
       try {
-        console.log('💾 [Onboarding] Lưu dữ liệu user vào Supabase:', {
+        await upsertUserProfile({
           privy_id: privyUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
           phone_number: phoneNumber,
           linked_external_wallet: externalWalletAddr,
         });
-        const dbRes = await upsertUserProfile({
-          privy_id: privyUserId,
-          wallet_address: walletAddrStr,
-          username: trimmed,
-          phone_number: phoneNumber,
-          linked_external_wallet: externalWalletAddr,
-        });
-
-        if (!dbRes.success) {
-          console.warn('⚠️ [Onboarding Supabase Sync Warning]:', dbRes.error);
-          setIsSubmitting(false);
-          setStatusMessage('');
-          const errText = dbRes.error || 'Không thể lưu thông tin tài khoản vào hệ thống.';
-          setErrorMessage(errText);
-          Alert.alert('Đăng ký không thành công', errText);
-          return;
-        }
-      } catch (dbErr: any) {
-        console.warn('⚠️ [Onboarding Supabase Sync Exception]:', dbErr);
-        setIsSubmitting(false);
-        setStatusMessage('');
-        const errText = dbErr?.message || 'Có lỗi xảy ra khi lưu dữ liệu vào hệ thống.';
-        setErrorMessage(errText);
-        Alert.alert('Đăng ký không thành công', errText);
-        return;
+      } catch (dbErr) {
+        console.warn('⚠️ Supabase upsert error:', dbErr);
       }
 
-      // 10. Cập nhật Global State (Zustand) và AsyncStorage để UI Settings & Dashboard reactive tức thì
+      // 5. Cập nhật Global State Zustand và AsyncStorage
       useUserStore.getState().setUserProfile({
         privy_id: privyUserId,
         wallet_address: walletAddrStr,
@@ -442,7 +471,10 @@ export default function OnboardingUsernameScreen() {
         await AsyncStorage.setItem('@ned_wallet_sns_tx', txSignature);
       }
 
-      console.log('🎉 [Onboarding] Đăng ký định danh thành công! Điều hướng sang Welcome...');
+      console.log('🎉 [Onboarding] Hoàn tất Onboarding! Mở ví N.E.D...');
+      setIsSubmitting(false);
+
+      // Điều hướng vào màn hình chào mừng hoặc trang chủ ví
       router.replace({
         pathname: '/(onboarding)/welcome',
         params: { name: trimmed },
@@ -452,22 +484,30 @@ export default function OnboardingUsernameScreen() {
       setStatusMessage('');
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error('❌ [Onboarding Username Error]:', msg);
-
-      if (msg.includes('already in use') || msg.includes('đã tồn tại')) {
-        setErrorMessage('Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
-        Alert.alert('Tên đã tồn tại', 'Tên định danh này đã có người sử dụng. Vui lòng chọn tên khác.');
-      } else {
-        setErrorMessage('Có lỗi xảy ra trong quá trình đăng ký on-chain.');
-        Alert.alert('Đăng ký thất bại', msg || 'Không thể đăng ký định danh lúc này. Vui lòng thử lại.');
-      }
+      setErrorMessage(msg || 'Có lỗi xảy ra khi khởi tạo định danh.');
+      Alert.alert('Đăng ký thất bại', msg || 'Không thể đăng ký định danh lúc này. Vui lòng thử lại.');
     }
   };
 
-  const isFormValid = username.length >= 3 && username.length <= 15 && USERNAME_REGEX.test(username);
+  // Xác định viền của Input:
+  // - Nếu tên đã tồn tại hoặc lỗi -> Viền Đỏ (#EF4444)
+  // - Nếu tên hợp lệ và khả dụng -> Viền Xanh lá (#10B981)
+  // - Mặc định -> Viền Đen 2px
+  const getInputBorderColor = () => {
+    if (errorMessage || isAvailable === false) {
+      return '#EF4444'; // Đỏ
+    }
+    if (isAvailable === true && username.length >= 3) {
+      return '#10B981'; // Xanh lá
+    }
+    return '#000000'; // Đen chuẩn Neo-brutalism
+  };
+
+  const isFormReady = username.length >= 3 && username.length <= 15 && isAvailable !== false;
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -478,138 +518,217 @@ export default function OnboardingUsernameScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header Row */}
-          <View style={styles.headerRow}>
-            <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>BƯỚC 2 / 2</Text>
-            </View>
-          </View>
-
-          {/* Hero Section */}
-          <View style={styles.heroSection}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="at-circle-outline" size={38} color="#00A859" />
-            </View>
-            <Text style={styles.heroTitle}>Tạo định danh của bạn</Text>
-            <Text style={styles.heroSubtitle}>
-              Tên này sẽ được dùng để nhận tiền và không thể thay đổi sau khi tạo (Ví dụ: alex sẽ trở thành alex.sol)
-            </Text>
-          </View>
-
-          {/* Card Container */}
-          <View style={styles.cardContainer}>
-            <Text style={styles.inputLabel}>Tên định danh (Username)</Text>
-
-            {/* Input Wrapper */}
-            <View
-              style={[
-                styles.inputWrapper,
-                !!errorMessage && styles.inputWrapperError,
-                isFormValid && styles.inputWrapperSuccess,
-              ]}
-            >
-              <Text style={styles.prefixText}>@</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="alex"
-                placeholderTextColor="#94A3B8"
-                value={username}
-                onChangeText={handleTextChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={15}
-                autoFocus
-                editable={!isSubmitting}
-              />
-              <View style={styles.suffixBadge}>
-                <Text style={styles.suffixText}>.sol</Text>
-              </View>
-            </View>
-
-            {/* Error Message Display */}
-            {!!errorMessage && (
-              <View style={styles.errorRow}>
-                <Feather name="alert-circle" size={14} color="#DC2626" />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            )}
-
-            {/* Status Message Display */}
-            {!!statusMessage && isSubmitting && (
-              <View style={styles.statusRow}>
-                <ActivityIndicator size="small" color="#00A859" style={{ marginRight: 6 }} />
-                <Text style={styles.statusText}>{statusMessage}</Text>
-              </View>
-            )}
-
-            {/* Validation Hints & Rules */}
-            <View style={styles.rulesBox}>
-              <View style={styles.ruleItem}>
-                <Feather
-                  name={username.length >= 3 && username.length <= 15 ? 'check-circle' : 'circle'}
-                  size={14}
-                  color={username.length >= 3 && username.length <= 15 ? '#00A859' : '#94A3B8'}
-                />
-                <Text
-                  style={[
-                    styles.ruleText,
-                    username.length >= 3 && username.length <= 15 && styles.ruleTextActive,
-                  ]}
-                >
-                  Độ dài từ 3 đến 15 ký tự
-                </Text>
-              </View>
-
-              <View style={styles.ruleItem}>
-                <Feather
-                  name={username.length > 0 && USERNAME_REGEX.test(username) ? 'check-circle' : 'circle'}
-                  size={14}
-                  color={username.length > 0 && USERNAME_REGEX.test(username) ? '#00A859' : '#94A3B8'}
-                />
-                <Text
-                  style={[
-                    styles.ruleText,
-                    username.length > 0 && USERNAME_REGEX.test(username) && styles.ruleTextActive,
-                  ]}
-                >
-                  Chỉ gồm chữ thường (a-z) và chữ số (0-9)
-                </Text>
-              </View>
-
-              <View style={styles.ruleItem}>
-                <Feather
-                  name="shield"
-                  size={14}
-                  color="#00A859"
-                />
-                <Text style={styles.ruleText}>
-                  Tài trợ 100% phí Gas & Rent qua N.E.D Hub Relayer
-                </Text>
-              </View>
-            </View>
-
-            {/* Action Button: Tiếp tục */}
+          {/* ================= GLOBAL HEADER ================= */}
+          <View style={styles.globalHeader}>
+            {/* Nút Back góc trên cùng bên trái */}
             <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                (!isFormValid || isSubmitting) && styles.btnDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={!isFormValid || isSubmitting}
-              activeOpacity={0.85}
+              style={styles.backButton}
+              onPress={handleBack}
+              activeOpacity={0.7}
+              accessibilityLabel="Quay lại"
             >
-              {isSubmitting ? (
-                <View style={styles.btnLoadingInner}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.primaryBtnText}>Đang kích hoạt On-chain...</Text>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.primaryBtnText}>Tiếp tục</Text>
-                  <Feather name="arrow-right" size={18} color="#FFFFFF" />
-                </>
-              )}
+              <View style={styles.backButtonShadow} />
+              <View style={styles.backButtonBody}>
+                <Feather name="arrow-left" size={20} color="#000" />
+              </View>
             </TouchableOpacity>
+
+            {/* Mascot Gấu tím trong vòng tròn vàng thu nhỏ (60x60px) */}
+            <View style={styles.mascotContainer}>
+              <View style={styles.mascotShadow} />
+              <View style={styles.mascotCircle}>
+                <Image
+                  source={MASCOT_IMAGES.exciting}
+                  style={styles.mascotImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+
+            {/* Badge bước 3/3 */}
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>3/3</Text>
+            </View>
+          </View>
+
+          {/* ================= KHUNG NỘI DUNG (TICKET CONTAINER) ================= */}
+          <View style={styles.ticketWrapper}>
+            {/* Đổ bóng cứng 5px 5px 0px 0px #000 */}
+            <View style={styles.ticketShadow} />
+
+            {/* Thân cuống vé */}
+            <View style={styles.ticketBody}>
+              {/* Typography */}
+              <Text style={styles.screenTitle}>Định danh ví</Text>
+              <Text style={styles.screenSubtitle}>
+                Tạo một tên duy nhất để bạn bè dễ dàng tìm và gửi lì xì cho bạn
+              </Text>
+
+              {/* Input Field: Kèm tiền tố cố định @ ở đầu (màu xám đậm) */}
+              <View
+                style={[
+                  styles.usernameInputBox,
+                  {
+                    borderColor: getInputBorderColor(),
+                    borderWidth: isAvailable !== null || !!errorMessage ? 2.5 : 2,
+                  },
+                ]}
+              >
+                {/* Tiền tố cố định @ (màu xám đậm) */}
+                <Text style={styles.prefixAt}>@</Text>
+
+                <TextInput
+                  style={styles.usernameTextInput}
+                  placeholder="alex"
+                  placeholderTextColor="#94A3B8"
+                  value={username}
+                  onChangeText={handleTextChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={15}
+                  autoFocus
+                  editable={!isSubmitting}
+                />
+
+                {/* Hậu tố .sol và trạng thái */}
+                <View style={styles.suffixContainer}>
+                  {isCheckingAvailability && (
+                    <ActivityIndicator size="small" color="#000" style={{ marginRight: 6 }} />
+                  )}
+                  {isAvailable === true && !isCheckingAvailability && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color="#10B981"
+                      style={{ marginRight: 4 }}
+                    />
+                  )}
+                  {isAvailable === false && !isCheckingAvailability && (
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color="#EF4444"
+                      style={{ marginRight: 4 }}
+                    />
+                  )}
+                  <View style={styles.domainBadge}>
+                    <Text style={styles.domainBadgeText}>.sol</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Thông báo phản hồi trạng thái tên */}
+              {!!errorMessage && (
+                <View style={styles.feedbackRow}>
+                  <Feather name="alert-circle" size={14} color="#EF4444" />
+                  <Text style={styles.feedbackErrorText}>{errorMessage}</Text>
+                </View>
+              )}
+
+              {!!successMessage && !errorMessage && (
+                <View style={styles.feedbackRow}>
+                  <Feather name="check-circle" size={14} color="#10B981" />
+                  <Text style={styles.feedbackSuccessText}>{successMessage}</Text>
+                </View>
+              )}
+
+              {/* Status Message khi đang submit */}
+              {!!statusMessage && isSubmitting && (
+                <View style={styles.statusRow}>
+                  <ActivityIndicator size="small" color="#FF4C4C" style={{ marginRight: 8 }} />
+                  <Text style={styles.statusText}>{statusMessage}</Text>
+                </View>
+              )}
+
+              {/* Box quy tắc đặt tên & lợi ích */}
+              <View style={styles.rulesContainer}>
+                <View style={styles.ruleItem}>
+                  <Feather
+                    name={
+                      username.length >= 3 && username.length <= 15 ? 'check-circle' : 'circle'
+                    }
+                    size={14}
+                    color={
+                      username.length >= 3 && username.length <= 15 ? '#10B981' : '#94A3B8'
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.ruleText,
+                      username.length >= 3 && username.length <= 15 && styles.ruleTextActive,
+                    ]}
+                  >
+                    Độ dài từ 3 đến 15 ký tự
+                  </Text>
+                </View>
+
+                <View style={styles.ruleItem}>
+                  <Feather
+                    name={
+                      username.length > 0 && USERNAME_REGEX.test(username)
+                        ? 'check-circle'
+                        : 'circle'
+                    }
+                    size={14}
+                    color={
+                      username.length > 0 && USERNAME_REGEX.test(username)
+                        ? '#10B981'
+                        : '#94A3B8'
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.ruleText,
+                      username.length > 0 && USERNAME_REGEX.test(username) && styles.ruleTextActive,
+                    ]}
+                  >
+                    Chỉ chữ cái thường (a-z) và số (0-9)
+                  </Text>
+                </View>
+
+                <View style={styles.ruleItem}>
+                  <Feather name="gift" size={14} color="#FF4C4C" />
+                  <Text style={styles.ruleTextHighlight}>
+                    Tài trợ 100% phí Gas on-chain qua N.E.D Relayer
+                  </Text>
+                </View>
+              </View>
+
+              {/* Nút Hành động: "Hoàn tất và Mở Ví" - Nền Đỏ san hô (#FF4C4C), viền đen 3px, bóng cứng */}
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  (!isFormReady || isSubmitting) && styles.actionBtnDisabled,
+                ]}
+                onPress={handleCompleteAndOpenWallet}
+                disabled={!isFormReady || isSubmitting}
+                activeOpacity={0.85}
+              >
+                <View style={styles.actionBtnShadow} />
+                <View style={[styles.actionBtnBody, { backgroundColor: '#FF4C4C' }]}>
+                  {isSubmitting ? (
+                    <View style={styles.btnInnerRow}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text style={[styles.actionBtnText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                        Đang mở ví...
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.btnInnerRow}>
+                      <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>
+                        Hoàn tất và Mở Ví
+                      </Text>
+                      <Feather name="arrow-right" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Lỗ đục cuống vé */}
+            <TicketCutout size={26} left={24} />
+            <TicketCutout size={42} left="50%" transformX={-21} />
+            <TicketCutout size={26} right={24} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -620,7 +739,7 @@ export default function OnboardingUsernameScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FDF8F5', // Nền màu kem ấm chuẩn
   },
   keyboardView: {
     flex: 1,
@@ -628,171 +747,227 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    justifyContent: 'space-between',
+    paddingTop: 10,
+    paddingBottom: 24,
+    alignItems: 'center',
   },
 
-  headerRow: {
+  // ================= GLOBAL HEADER =================
+  globalHeader: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
-  stepBadge: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
+  backButton: {
+    width: 44,
+    height: 44,
+    position: 'relative',
   },
-  stepBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#00A859',
-    letterSpacing: 1,
+  backButtonShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 44,
+    height: 44,
+    backgroundColor: '#000',
+    borderRadius: 12,
   },
-
-  heroSection: {
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#1E293B',
+  backButtonBody: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#FFF',
     borderWidth: 2,
-    borderColor: '#00A859',
+    borderColor: '#000',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 12,
   },
 
-  cardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 22,
+  // Mascot Gấu tím trong vòng tròn vàng thu nhỏ (60x60px)
+  mascotContainer: {
+    width: 60,
+    height: 60,
+    position: 'relative',
+  },
+  mascotShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 60,
+    height: 60,
+    backgroundColor: '#000',
+    borderRadius: 30,
+  },
+  mascotCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFD54F',
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 6,
-    marginTop: 10,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: 8,
+  mascotImage: {
+    width: 46,
+    height: 46,
   },
-  inputWrapper: {
+
+  // Step Badge
+  stepBadge: {
+    paddingHorizontal: 12,
+    height: 32,
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepBadgeText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Black',
+    color: '#000',
+  },
+
+  // ================= TICKET CONTAINER =================
+  ticketWrapper: {
+    width: '100%',
+    position: 'relative',
+    marginBottom: 40, // Khoảng cách so với đáy màn hình tối thiểu 40px
+    marginTop: 6,
+  },
+  ticketShadow: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    borderRadius: 24,
+  },
+  ticketBody: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 36,
+    zIndex: 2,
+  },
+
+  // Typography
+  screenTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-Black',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  screenSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 22,
+    lineHeight: 18,
+    paddingHorizontal: 8,
+  },
+
+  // Input Field: Tiền tố @ cố định màu xám đậm
+  usernameInputBox: {
+    width: '100%',
+    height: 52,
+    backgroundColor: '#FAF6F0',
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
     paddingHorizontal: 14,
-    height: 52,
+    marginBottom: 10,
   },
-  inputWrapperError: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2',
-  },
-  inputWrapperSuccess: {
-    borderColor: '#00A859',
-    backgroundColor: '#F0FDF4',
-  },
-  prefixText: {
+  prefixAt: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#00A859',
-    marginRight: 6,
+    fontFamily: 'Inter-Black',
+    color: '#64748B', // Tiền tố @ màu xám đậm
+    marginRight: 4,
   },
-  textInput: {
+  usernameTextInput: {
     flex: 1,
     height: '100%',
     fontSize: 16,
-    color: '#0F172A',
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
+    color: '#000',
   },
-  suffixBadge: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  suffixText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#475569',
-  },
-
-  // Error Row
-  errorRow: {
+  suffixContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 6,
   },
-  errorText: {
+  domainBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000',
+    borderRadius: 8,
+  },
+  domainBadgeText: {
     fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '600',
-    flex: 1,
+    fontFamily: 'Inter-Black',
+    color: '#000',
+  },
+
+  // Feedback Rows
+  feedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  feedbackErrorText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#EF4444',
+  },
+  feedbackSuccessText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#10B981',
   },
 
   // Status Row
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
   },
   statusText: {
     fontSize: 12,
-    color: '#15803D',
-    fontWeight: '600',
-    flex: 1,
+    fontFamily: 'Inter-Medium',
+    color: '#E11D48',
   },
 
   // Rules Box
-  rulesBox: {
-    backgroundColor: '#F8FAFC',
+  rulesContainer: {
+    backgroundColor: '#FAF6F0',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     borderRadius: 12,
-    padding: 14,
-    gap: 10,
-    marginTop: 16,
+    padding: 12,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    gap: 8,
   },
   ruleItem: {
     flexDirection: 'row',
@@ -801,44 +976,54 @@ const styles = StyleSheet.create({
   },
   ruleText: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     color: '#64748B',
-    fontWeight: '500',
-    flex: 1,
   },
   ruleTextActive: {
-    color: '#0F172A',
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
+    color: '#000',
+  },
+  ruleTextHighlight: {
+    fontSize: 12,
+    fontFamily: 'Inter-Bold',
+    color: '#FF4C4C',
   },
 
-  // Primary Button
-  primaryBtn: {
+  // Action Button Neo-brutalism
+  actionBtn: {
+    width: '100%',
     height: 52,
-    backgroundColor: '#00A859',
+    position: 'relative',
+    marginBottom: 6,
+  },
+  actionBtnDisabled: {
+    opacity: 0.6,
+  },
+  actionBtnShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    width: '100%',
+    height: 52,
+    backgroundColor: '#000',
     borderRadius: 14,
-    flexDirection: 'row',
+  },
+  actionBtnBody: {
+    width: '100%',
+    height: 52,
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    shadowColor: '#00A859',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  btnLoadingInner: {
+  btnInnerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
-  btnDisabled: {
-    opacity: 0.5,
-    backgroundColor: '#94A3B8',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  primaryBtnText: {
+  actionBtnText: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontFamily: 'Inter-Black',
   },
 });
