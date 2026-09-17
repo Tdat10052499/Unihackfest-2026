@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
-  Dimensions,
   Alert,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,8 +16,24 @@ import { Ionicons, Feather, MaterialCommunityIcons, FontAwesome5 } from '@expo/v
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
+import { useUserStore } from '../stores/useUserStore';
+import { getUserProfileByWallet } from '../services/supabase';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+/**
+ * Định dạng số điện thoại hiển thị rõ ràng, chuyên nghiệp
+ * VD: +84 912 345 678 hoặc 0912 345 678
+ */
+function formatDisplayPhone(phone?: string | null): string {
+  if (!phone) return '';
+  const cleaned = phone.trim().replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+84') && cleaned.length >= 11) {
+    return `+84 ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)} ${cleaned.slice(9)}`;
+  }
+  if (cleaned.startsWith('0') && cleaned.length >= 10) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
+  }
+  return phone.trim();
+}
 
 export default function NotificationDetailScreen() {
   const router = useRouter();
@@ -29,6 +45,141 @@ export default function NotificationDetailScreen() {
   // Tìm thông báo theo id truyền qua param hoặc dùng activeNotification
   const notification: InAppNotification | undefined =
     notifications.find((n) => n.id === id) || activeNotification || undefined;
+
+  // State quản lý thông tin Người chuyển & Người nhận
+  const [senderName, setSenderName] = useState<string>('');
+  const [senderPhone, setSenderPhone] = useState<string | null>(null);
+  const [senderWallet, setSenderWallet] = useState<string>('');
+
+  const [recipientName, setRecipientName] = useState<string>('');
+  const [recipientPhone, setRecipientPhone] = useState<string | null>(null);
+  const [recipientWallet, setRecipientWallet] = useState<string>('');
+
+  const [isResolving, setIsResolving] = useState<boolean>(true);
+
+  // Phân giải thông tin Người chuyển & Người nhận (Tên ví, Số điện thoại, Địa chỉ ví)
+  useEffect(() => {
+    if (!notification) return;
+
+    let isMounted = true;
+
+    async function resolveProfiles() {
+      setIsResolving(true);
+      const currentUser = useUserStore.getState();
+      const myWallet = currentUser.walletAddress || useNotificationStore.getState().activeWalletAddress || '';
+      const myUsername = currentUser.username ? `@${currentUser.username}.sol` : 'Ví của bạn';
+      const myPhone = currentUser.linkedPhone || null;
+
+      const isReceive = notification!.type === 'RECEIVE_MONEY';
+
+      // 1. Địa chỉ ví khởi tạo
+      const sWallet =
+        notification!.senderWallet ||
+        (isReceive ? 'Ví đối tác trên Solana' : myWallet || 'Ví của bạn');
+
+      const rWallet =
+        notification!.recipientWallet ||
+        (isReceive ? myWallet || 'Ví của bạn' : 'Ví người nhận trên Solana');
+
+      // 2. Tên & SĐT khởi tạo
+      let sName = notification!.senderName || '';
+      let sPhone = notification!.senderPhone || null;
+      let rName = notification!.recipientName || '';
+      let rPhone = notification!.recipientPhone || null;
+
+      // Nhận diện nếu ví người chuyển là ví của người dùng hiện tại
+      if (myWallet && sWallet.toLowerCase() === myWallet.toLowerCase()) {
+        sName = sName || myUsername;
+        sPhone = sPhone || myPhone;
+      } else if (!isReceive && !sName) {
+        sName = myUsername;
+        sPhone = sPhone || myPhone;
+      }
+
+      // Nhận diện nếu ví người nhận là ví của người dùng hiện tại
+      if (myWallet && rWallet.toLowerCase() === myWallet.toLowerCase()) {
+        rName = rName || myUsername;
+        rPhone = rPhone || myPhone;
+      } else if (isReceive && !rName) {
+        rName = myUsername;
+        rPhone = rPhone || myPhone;
+      }
+
+      // Phục hồi từ sender nếu có
+      if (!sName && notification!.sender && notification!.sender !== 'Bạn') {
+        sName = notification!.sender;
+      }
+
+      // Trích xuất từ senderNote (VD: "Chuyển đến: 0912345678" hoặc "Chuyển đến: @alice.sol")
+      if (notification!.senderNote) {
+        const matchTo = notification!.senderNote.match(/Chuyển đến:\s*(.+)/i);
+        if (matchTo && matchTo[1]) {
+          const val = matchTo[1].trim();
+          if (val.startsWith('0') || val.startsWith('+84')) {
+            if (!rPhone) rPhone = val;
+            if (!rName) rName = 'Người nhận';
+          } else if (!rName) {
+            rName = val;
+          }
+        }
+      }
+
+      // 3. Tra cứu hồ sơ Supabase nếu là địa chỉ Base58 hợp lệ
+      const isSolanaBase58 = (addr: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
+
+      try {
+        if (
+          isSolanaBase58(sWallet) &&
+          sWallet.toLowerCase() !== myWallet.toLowerCase() &&
+          (!sName || !sPhone || sName.includes('Solana'))
+        ) {
+          const profile = await getUserProfileByWallet(sWallet);
+          if (profile) {
+            if (profile.username) sName = `@${profile.username}.sol`;
+            if (profile.phone_number) sPhone = profile.phone_number;
+          }
+        }
+
+        if (
+          isSolanaBase58(rWallet) &&
+          rWallet.toLowerCase() !== myWallet.toLowerCase() &&
+          (!rName || !rPhone || rName.includes('Solana'))
+        ) {
+          const profile = await getUserProfileByWallet(rWallet);
+          if (profile) {
+            if (profile.username) rName = `@${profile.username}.sol`;
+            if (profile.phone_number) rPhone = profile.phone_number;
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ [NotificationDetail] Lỗi tra cứu profile:', err);
+      }
+
+      // Fallbacks hiển thị rõ ràng
+      if (!sName) {
+        sName = isReceive ? 'Ví đối tác trên Solana' : (myUsername || 'Ví của bạn');
+      }
+      if (!rName) {
+        rName = isReceive ? (myUsername || 'Ví của bạn') : 'Người nhận trên Solana';
+      }
+
+      if (isMounted) {
+        setSenderWallet(sWallet);
+        setRecipientWallet(rWallet);
+        setSenderName(sName);
+        setSenderPhone(sPhone);
+        setRecipientName(rName);
+        setRecipientPhone(rPhone);
+        setIsResolving(false);
+      }
+    }
+
+    resolveProfiles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [notification?.id, notification?.txHash]);
 
   const handleCopy = async (text: string, key: string, label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -63,12 +214,21 @@ export default function NotificationDetailScreen() {
     if (!notification) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const isReceive = notification.type === 'RECEIVE_MONEY';
       const content = [
         `[N.E.D Wallet - Chi tiết giao dịch]`,
         `Tiêu đề: ${notification.title}`,
-        notification.amount ? `Số tiền: +$${Number(notification.amount).toFixed(2)} ${notification.currency || 'USDC'}` : null,
-        notification.senderWallet ? `Ví gửi: ${notification.senderWallet}` : null,
-        notification.recipientWallet ? `Ví nhận: ${notification.recipientWallet}` : null,
+        notification.amount
+          ? `Số tiền: ${isReceive ? '+' : '-'}$${Number(notification.amount).toFixed(2)} ${notification.currency || 'USDC'}`
+          : null,
+        `--- Người chuyển ---`,
+        `Tên ví: ${senderName}`,
+        senderPhone ? `SĐT: ${senderPhone}` : 'SĐT: Chưa liên kết',
+        `Địa chỉ ví: ${senderWallet}`,
+        `--- Người nhận ---`,
+        `Tên ví: ${recipientName}`,
+        recipientPhone ? `SĐT: ${recipientPhone}` : 'SĐT: Chưa liên kết',
+        `Địa chỉ ví: ${recipientWallet}`,
         notification.txHash ? `TxHash: ${notification.txHash}` : null,
         notification.txHash ? `Solscan: https://solscan.io/tx/${notification.txHash}?cluster=devnet` : null,
       ]
@@ -104,7 +264,6 @@ export default function NotificationDetailScreen() {
   const isReceive = notification.type === 'RECEIVE_MONEY';
   const isTransfer = notification.type === 'TRANSFER';
   const isWarning = notification.type === 'WARNING';
-  const isSystem = notification.type === 'SYSTEM';
 
   const formattedDate = new Date(notification.createdAt).toLocaleString('vi-VN', {
     day: '2-digit',
@@ -114,17 +273,6 @@ export default function NotificationDetailScreen() {
     minute: '2-digit',
     second: '2-digit',
   });
-
-  const activeWallet =
-    useNotificationStore.getState().activeWalletAddress || '';
-
-  const senderAddress =
-    notification.senderWallet ||
-    (isReceive ? 'Ví đối tác trên Solana' : activeWallet || 'Ví của bạn');
-
-  const recipientAddress =
-    notification.recipientWallet ||
-    (isReceive ? activeWallet || 'Ví của bạn' : 'Ví người nhận trên Solana');
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right', 'bottom']}>
@@ -186,7 +334,7 @@ export default function NotificationDetailScreen() {
               )}
             </View>
 
-            {/* Trạng thái xác nhận */}
+            {/* Trạng thái xác nhận on-chain */}
             <View style={styles.statusPill}>
               <View style={styles.pulsingGreenDot} />
               <Text style={styles.statusPillText}>
@@ -212,89 +360,209 @@ export default function NotificationDetailScreen() {
           </View>
         </View>
 
-        {/* 3. KHỐI THÔNG TIN VÍ GỬI & VÍ GỬI ĐẾN (WALLET INFO CARD) */}
+        {/* 3. KHỐI NÊU RÕ THÔNG TIN NGƯỜI CHUYỂN & NGƯỜI NHẬN (VÍ TÊN GÌ, SĐT GÌ) */}
         <View style={styles.cardWrapper}>
           <View style={styles.cardShadow} />
           <View style={styles.cardBody}>
             <View style={styles.cardSectionHeader}>
-              <FontAwesome5 name="wallet" size={14} color="#000" />
-              <Text style={styles.cardSectionTitle}>THÔNG TIN VÍ GIAO DỊCH</Text>
+              <FontAwesome5 name="users" size={14} color="#000" />
+              <Text style={styles.cardSectionTitle}>THÔNG TIN NGƯỜI CHUYỂN & NGƯỜI NHẬN</Text>
             </View>
 
-            {/* VÍ GỬI (FROM) */}
-            <View style={styles.walletRowBox}>
-              <View style={styles.walletHeaderRow}>
-                <View style={styles.walletBadgeSender}>
-                  <Text style={styles.walletBadgeText}>VÍ GỬI (FROM)</Text>
+            {/* A. THÔNG TIN NGƯỜI CHUYỂN (SENDER) */}
+            <View style={styles.partyCard}>
+              <View style={styles.partyHeaderRow}>
+                <View style={[styles.partyBadge, { backgroundColor: '#E0E7FF' }]}>
+                  <Feather name="arrow-up-right" size={12} color="#000" />
+                  <Text style={styles.partyBadgeText}>NGƯỜI DÙNG CHUYỂN (FROM)</Text>
                 </View>
-                {notification.sender && (
-                  <Text style={styles.senderDisplayName}>{notification.sender}</Text>
+                {isReceive ? (
+                  <View style={styles.roleTag}>
+                    <Text style={styles.roleTagText}>Bên chuyển</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.roleTag, { backgroundColor: '#DCFCE7', borderColor: '#16A34A' }]}>
+                    <Text style={[styles.roleTagText, { color: '#16A34A' }]}>Ví của bạn</Text>
+                  </View>
                 )}
               </View>
 
-              <View style={styles.addressContainer}>
-                <Text style={styles.addressText} numberOfLines={2}>
-                  {senderAddress}
-                </Text>
-                <TouchableOpacity
-                  style={styles.copyIconBtn}
-                  onPress={() => handleCopy(senderAddress, 'sender', 'Ví gửi')}
-                  activeOpacity={0.7}
-                >
-                  <Feather
-                    name={copiedKey === 'sender' ? 'check' : 'copy'}
-                    size={14}
-                    color={copiedKey === 'sender' ? '#008000' : '#000'}
-                  />
-                  <Text style={styles.copyBtnText}>
-                    {copiedKey === 'sender' ? 'Đã chép' : 'Sao chép'}
+              {/* 1. TÊN VÍ NGƯỜI CHUYỂN */}
+              <View style={styles.infoFieldRow}>
+                <View style={styles.fieldLabelBox}>
+                  <Ionicons name="person-circle-outline" size={15} color="#4B5563" />
+                  <Text style={styles.fieldLabelText}>Tên ví:</Text>
+                </View>
+                <View style={styles.fieldValueContainer}>
+                  <Text style={styles.walletNameHighlight} numberOfLines={1}>
+                    {senderName || 'Chưa đặt tên ví'}
                   </Text>
-                </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* 2. SỐ ĐIỆN THOẠI NGƯỜI CHUYỂN */}
+              <View style={styles.infoFieldRow}>
+                <View style={styles.fieldLabelBox}>
+                  <Feather name="phone" size={13} color="#4B5563" />
+                  <Text style={styles.fieldLabelText}>Số điện thoại:</Text>
+                </View>
+                <View style={styles.fieldValueContainer}>
+                  {senderPhone ? (
+                    <View style={styles.phonePillBox}>
+                      <Text style={styles.phonePillText}>
+                        {formatDisplayPhone(senderPhone)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.inlineMiniCopyBtn}
+                        onPress={() => handleCopy(senderPhone, 'senderPhone', 'Số điện thoại người chuyển')}
+                        activeOpacity={0.7}
+                      >
+                        <Feather
+                          name={copiedKey === 'senderPhone' ? 'check' : 'copy'}
+                          size={11}
+                          color={copiedKey === 'senderPhone' ? '#16A34A' : '#000'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.unlinkedPillBox}>
+                      <Ionicons name="information-circle-outline" size={12} color="#9CA3AF" />
+                      <Text style={styles.unlinkedPillText}>Chưa liên kết SĐT</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* 3. ĐỊA CHỈ VÍ NGƯỜI CHUYỂN */}
+              <View style={styles.addressBlock}>
+                <View style={styles.addressLabelRow}>
+                  <FontAwesome5 name="wallet" size={11} color="#6B7280" />
+                  <Text style={styles.addressLabelText}>Địa chỉ ví Solana:</Text>
+                </View>
+                <View style={styles.addressBox}>
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    {senderWallet}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.copyIconBtn}
+                    onPress={() => handleCopy(senderWallet, 'senderWallet', 'Địa chỉ ví gửi')}
+                    activeOpacity={0.7}
+                  >
+                    <Feather
+                      name={copiedKey === 'senderWallet' ? 'check' : 'copy'}
+                      size={13}
+                      color={copiedKey === 'senderWallet' ? '#16A34A' : '#000'}
+                    />
+                    <Text style={styles.copyBtnText}>
+                      {copiedKey === 'senderWallet' ? 'Đã chép' : 'Sao chép'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
-            {/* MŨI TÊN CHỈ XUỐNG GIỮA 2 VÍ */}
-            <View style={styles.arrowBetweenWallets}>
-              <View style={styles.arrowLine} />
-              <View style={styles.arrowIconBox}>
+            {/* MŨI TÊN CHỈ XUỐNG BIỂU DIỄN DÒNG TIỀN */}
+            <View style={styles.arrowFlowContainer}>
+              <View style={styles.arrowFlowLine} />
+              <View style={styles.arrowFlowBadge}>
                 <Feather name="arrow-down" size={16} color="#000" />
               </View>
-              <View style={styles.arrowLine} />
+              <View style={styles.arrowFlowLine} />
             </View>
 
-            {/* VÍ GỬI ĐẾN (TO - RECIPIENT) */}
-            <View style={styles.walletRowBox}>
-              <View style={styles.walletHeaderRow}>
-                <View style={styles.walletBadgeRecipient}>
-                  <Text style={styles.walletBadgeText}>VÍ GỬI ĐẾN (TO / NHẬN)</Text>
+            {/* B. THÔNG TIN NGƯỜI NHẬN (RECIPIENT) */}
+            <View style={styles.partyCard}>
+              <View style={styles.partyHeaderRow}>
+                <View style={[styles.partyBadge, { backgroundColor: '#CCFF00' }]}>
+                  <Feather name="arrow-down-left" size={12} color="#000" />
+                  <Text style={styles.partyBadgeText}>NGƯỜI NHẬN (TO / RECIPIENT)</Text>
                 </View>
-                <Text style={styles.senderDisplayName}>
-                  {isReceive ? 'Ví của bạn (N.E.D Wallet)' : 'Người nhận'}
-                </Text>
+                {isReceive ? (
+                  <View style={[styles.roleTag, { backgroundColor: '#DCFCE7', borderColor: '#16A34A' }]}>
+                    <Text style={[styles.roleTagText, { color: '#16A34A' }]}>Ví của bạn</Text>
+                  </View>
+                ) : (
+                  <View style={styles.roleTag}>
+                    <Text style={styles.roleTagText}>Bên nhận</Text>
+                  </View>
+                )}
               </View>
 
-              <View style={styles.addressContainer}>
-                <Text style={styles.addressText} numberOfLines={2}>
-                  {recipientAddress}
-                </Text>
-                <TouchableOpacity
-                  style={styles.copyIconBtn}
-                  onPress={() => handleCopy(recipientAddress, 'recipient', 'Ví gửi đến')}
-                  activeOpacity={0.7}
-                >
-                  <Feather
-                    name={copiedKey === 'recipient' ? 'check' : 'copy'}
-                    size={14}
-                    color={copiedKey === 'recipient' ? '#008000' : '#000'}
-                  />
-                  <Text style={styles.copyBtnText}>
-                    {copiedKey === 'recipient' ? 'Đã chép' : 'Sao chép'}
+              {/* 1. TÊN VÍ NGƯỜI NHẬN */}
+              <View style={styles.infoFieldRow}>
+                <View style={styles.fieldLabelBox}>
+                  <Ionicons name="person-circle-outline" size={15} color="#4B5563" />
+                  <Text style={styles.fieldLabelText}>Tên ví:</Text>
+                </View>
+                <View style={styles.fieldValueContainer}>
+                  <Text style={styles.walletNameHighlight} numberOfLines={1}>
+                    {recipientName || 'Chưa đặt tên ví'}
                   </Text>
-                </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* 2. SỐ ĐIỆN THOẠI NGƯỜI NHẬN */}
+              <View style={styles.infoFieldRow}>
+                <View style={styles.fieldLabelBox}>
+                  <Feather name="phone" size={13} color="#4B5563" />
+                  <Text style={styles.fieldLabelText}>Số điện thoại:</Text>
+                </View>
+                <View style={styles.fieldValueContainer}>
+                  {recipientPhone ? (
+                    <View style={styles.phonePillBox}>
+                      <Text style={styles.phonePillText}>
+                        {formatDisplayPhone(recipientPhone)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.inlineMiniCopyBtn}
+                        onPress={() => handleCopy(recipientPhone, 'recipientPhone', 'Số điện thoại người nhận')}
+                        activeOpacity={0.7}
+                      >
+                        <Feather
+                          name={copiedKey === 'recipientPhone' ? 'check' : 'copy'}
+                          size={11}
+                          color={copiedKey === 'recipientPhone' ? '#16A34A' : '#000'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.unlinkedPillBox}>
+                      <Ionicons name="information-circle-outline" size={12} color="#9CA3AF" />
+                      <Text style={styles.unlinkedPillText}>Chưa liên kết SĐT</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* 3. ĐỊA CHỈ VÍ NGƯỜI NHẬN */}
+              <View style={styles.addressBlock}>
+                <View style={styles.addressLabelRow}>
+                  <FontAwesome5 name="wallet" size={11} color="#6B7280" />
+                  <Text style={styles.addressLabelText}>Địa chỉ ví Solana:</Text>
+                </View>
+                <View style={styles.addressBox}>
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    {recipientWallet}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.copyIconBtn}
+                    onPress={() => handleCopy(recipientWallet, 'recipientWallet', 'Địa chỉ ví nhận')}
+                    activeOpacity={0.7}
+                  >
+                    <Feather
+                      name={copiedKey === 'recipientWallet' ? 'check' : 'copy'}
+                      size={13}
+                      color={copiedKey === 'recipientWallet' ? '#16A34A' : '#000'}
+                    />
+                    <Text style={styles.copyBtnText}>
+                      {copiedKey === 'recipientWallet' ? 'Đã chép' : 'Sao chép'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
-            {/* LỜI NHẮN / GHI CHÚ */}
+            {/* LỜI NHẮN / GHI CHÚ GIAO DỊCH */}
             {(notification.senderNote || notification.message) && (
               <View style={styles.notePaperBox}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -309,7 +577,7 @@ export default function NotificationDetailScreen() {
           </View>
         </View>
 
-        {/* 4. KHỐI THÔNG TIN GIAO DỊCH ON-CHAIN (ON-CHAIN DETAILS) */}
+        {/* 4. KHỐI THÔNG SỐ ON-CHAIN (SOLANA DEVNET / MAINNET) */}
         <View style={styles.cardWrapper}>
           <View style={styles.cardShadow} />
           <View style={styles.cardBody}>
@@ -334,7 +602,7 @@ export default function NotificationDetailScreen() {
                     <Feather
                       name={copiedKey === 'txHash' ? 'check' : 'copy'}
                       size={14}
-                      color={copiedKey === 'txHash' ? '#008000' : '#000'}
+                      color={copiedKey === 'txHash' ? '#16A34A' : '#000'}
                     />
                     <Text style={styles.copyBtnText}>
                       {copiedKey === 'txHash' ? 'Đã chép' : 'Sao chép'}
@@ -344,7 +612,7 @@ export default function NotificationDetailScreen() {
               </View>
             ) : null}
 
-            {/* MẠNG LƯỚI & PHÍ MẠNG & BLOCK */}
+            {/* MẠNG LƯỚI & PHÍ MẠNG & SỐ KHỐI */}
             <View style={styles.gridParamsContainer}>
               <View style={styles.paramCell}>
                 <Text style={styles.paramLabel}>MẠNG LƯỚI</Text>
@@ -379,7 +647,7 @@ export default function NotificationDetailScreen() {
           </View>
         </View>
 
-        {/* 5. CÁC NÚT HÀNH ĐỘNG XEM TRÊN EXPLORER */}
+        {/* 5. CÁC NÚT HÀNH ĐỘNG XEM TRÊN EXPLORER ON-CHAIN */}
         {notification.txHash ? (
           <View style={styles.actionButtonsContainer}>
             {/* Nút 1: Xem trên Solscan */}
@@ -554,51 +822,135 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardSectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000000',
     letterSpacing: 0.5,
   },
-  walletRowBox: {
+  partyCard: {
     backgroundColor: '#F9FAFB',
     borderWidth: 2,
     borderColor: '#000000',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
+    gap: 10,
   },
-  walletHeaderRow: {
+  partyHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 2,
   },
-  walletBadgeSender: {
-    backgroundColor: '#E0E7FF',
+  partyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1.5,
     borderColor: '#000000',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  partyBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.3,
+  },
+  roleTag: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#9CA3AF',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  walletBadgeRecipient: {
-    backgroundColor: '#CCFF00',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  walletBadgeText: {
+  roleTagText: {
     fontSize: 10,
+    fontWeight: '800',
+    color: '#4B5563',
+  },
+  infoFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  fieldLabelBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: 110,
+  },
+  fieldLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  fieldValueContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  walletNameHighlight: {
+    fontSize: 14,
     fontWeight: '900',
     color: '#000000',
   },
-  senderDisplayName: {
+  phonePillBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  phonePillText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#374151',
+    color: '#000000',
+    fontFamily: 'monospace',
   },
-  addressContainer: {
+  inlineMiniCopyBtn: {
+    padding: 2,
+  },
+  unlinkedPillBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  unlinkedPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
+  addressBlock: {
+    marginTop: 2,
+    gap: 4,
+  },
+  addressLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  addressLabelText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 0.3,
+  },
+  addressBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -611,7 +963,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addressText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'monospace',
     fontWeight: '700',
     color: '#111827',
@@ -633,25 +985,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#000000',
   },
-  arrowBetweenWallets: {
+  arrowFlowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
     gap: 8,
   },
-  arrowLine: {
+  arrowFlowLine: {
     flex: 1,
     height: 1.5,
     backgroundColor: '#000000',
   },
-  arrowIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  arrowFlowBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#000000',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#CCFF00',
     alignItems: 'center',
     justifyContent: 'center',
   },

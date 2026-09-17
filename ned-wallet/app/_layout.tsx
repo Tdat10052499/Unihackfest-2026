@@ -11,6 +11,7 @@ import { sepolia, mainnet } from 'viem/chains';
 import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 import { MwaProvider } from '../contexts/MwaProvider';
 import { WalletProvider } from '../src/providers/WalletProvider';
+import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 
 const solanaDevnet = {
   id: 103,
@@ -106,6 +107,7 @@ export default function RootLayout() {
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
                     </Stack>
+                    <GlobalNotificationManager />
                   </View>
                 </GlobalPresenceProvider>
               </WalletProvider>

@@ -48,6 +48,7 @@ import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useNotificationStore } from '../stores/useNotificationStore';
+import { broadcastTransferNotification } from '../services/notificationService';
 
 /**
  * 🎨 Component NeoCard: Hỗ trợ tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
@@ -541,6 +542,10 @@ export default function SendScreen() {
         txHash: txSignature,
       });
 
+      const currentUserState = useUserStore.getState();
+      const myUsername = currentUserState.username ? `@${currentUserState.username}.sol` : 'Ví của bạn';
+      const myPhone = currentUserState.linkedPhone || undefined;
+
       // Tự động ghi nhận thông báo chuyển tiền trong app
       useNotificationStore.getState().addNotification({
         type: 'TRANSFER',
@@ -550,11 +555,29 @@ export default function SendScreen() {
         currency: 'USDC',
         txHash: txSignature,
         sender: 'Bạn',
+        senderName: myUsername,
+        senderPhone: myPhone,
         senderWallet: myAddress || undefined,
+        recipientName: recipientDisplayName,
+        recipientPhone: resolvedPhone || undefined,
         recipientWallet: finalRecipient,
         senderNote: `Chuyển đến: ${recipientDisplayName}`,
         network: 'Solana Devnet',
         fee: '0.000005 SOL',
+      }).catch(console.error);
+
+      // Bắn Realtime Broadcast thông báo nhận tiền trực tiếp đến ví người nhận
+      broadcastTransferNotification({
+        recipientWallet: finalRecipient,
+        senderWallet: myAddress || '',
+        amount: numAmount,
+        currency: 'USDC',
+        txHash: txSignature,
+        senderName: myUsername,
+        senderPhone: myPhone,
+        recipientName: recipientDisplayName,
+        recipientPhone: resolvedPhone || undefined,
+        senderNote: `Chuyển đến: ${recipientDisplayName}`,
       }).catch(console.error);
 
       setShowReceiptModal(true);

@@ -67,9 +67,7 @@ import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
 import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useNotificationStore } from '@/stores/useNotificationStore';
-import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { NotificationModal } from '@/components/NotificationModal';
-import { NotificationInAppBanner } from '@/components/NotificationInAppBanner';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -155,7 +153,6 @@ export default function HomeScreen() {
   // Hệ thống Thông báo (In-app Notifications)
   const { unreadCount } = useNotificationStore();
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  useNotificationRealtime(solanaAddress);
 
   // Quản lý Số dư Độc lập cho từng loại Stablecoin
   const [stablecoinBalances, setStablecoinBalances] = useState<StablecoinBalances>({
@@ -337,7 +334,10 @@ export default function HomeScreen() {
 
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
-            if (isMounted) fetchActivities(solanaAddress, true);
+            if (isMounted) {
+              fetchActivities(solanaAddress, true);
+              useNotificationStore.getState().loadNotifications(solanaAddress, true);
+            }
           }, 1500);
         },
         'confirmed'
@@ -357,6 +357,7 @@ export default function HomeScreen() {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
             fetchActivities(solanaAddress, true);
+            useNotificationStore.getState().loadNotifications(solanaAddress, true);
             return latestBal;
           } else if (prev === null) {
             cacheBalance(latestBal);
@@ -960,12 +961,11 @@ export default function HomeScreen() {
         onConfirmSwap={handleConfirmSwap}
       />
 
-      {/* Hệ thống Thông báo In-app Modal & Top Banner */}
+      {/* Hệ thống Thông báo In-app Modal */}
       <NotificationModal
         visible={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
       />
-      <NotificationInAppBanner />
     </View>
   );
 }

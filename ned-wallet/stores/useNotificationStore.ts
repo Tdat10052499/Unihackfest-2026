@@ -18,6 +18,10 @@ export interface InAppNotification {
   senderNote?: string;
   senderWallet?: string; // Địa chỉ ví người gửi
   recipientWallet?: string; // Địa chỉ ví nhận (ví gửi đến)
+  senderName?: string; // Tên ví người gửi (username / nhãn ví)
+  senderPhone?: string; // Số điện thoại người gửi
+  recipientName?: string; // Tên ví người nhận (username / nhãn ví)
+  recipientPhone?: string; // Số điện thoại người nhận
   network?: string; // Mạng lưới (Solana Devnet / Mainnet)
   fee?: string; // Phí mạng
   blockNumber?: number | string; // Số khối / Slot
@@ -30,7 +34,7 @@ interface NotificationState {
   bannerNotification: InAppNotification | null;
   activeWalletAddress: string | null;
 
-  loadNotifications: (walletAddress: string) => Promise<void>;
+  loadNotifications: (walletAddress: string, force?: boolean) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   addNotification: (
@@ -56,7 +60,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   bannerNotification: null,
   activeWalletAddress: null,
 
-  loadNotifications: async (walletAddress: string) => {
+  loadNotifications: async (walletAddress: string, force: boolean = false) => {
     if (!walletAddress) return;
     try {
       const cleanAddress = walletAddress.toLowerCase();
@@ -95,7 +99,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // 2. Kéo dữ liệu giao dịch On-Chain THỰC TẾ của ví từ Solana RPC
       let onChainNotifications: InAppNotification[] = [];
       try {
-        const onChainHistory: ActivityItem[] = await fetchOnChainHistory(walletAddress);
+        const { useUserStore } = await import('./useUserStore');
+        const userState = useUserStore.getState();
+        const myUsername = userState.username ? `@${userState.username}.sol` : 'Ví của bạn';
+        const myPhone = userState.linkedPhone || undefined;
+
+        const onChainHistory: ActivityItem[] = await fetchOnChainHistory(walletAddress, force);
         if (onChainHistory && onChainHistory.length > 0) {
           onChainNotifications = onChainHistory
             .filter((tx) => {
@@ -121,8 +130,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 isRead,
                 createdAt: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
                 txHash: tx.signature,
-                sender: isReceive ? 'Ví người gửi trên Solana' : 'Bạn',
+                sender: isReceive ? 'Ví người gửi trên Solana' : myUsername,
+                senderName: isReceive ? 'Ví đối tác trên Solana' : myUsername,
+                senderPhone: isReceive ? undefined : myPhone,
                 senderWallet: isReceive ? 'Ví đối tác trên Solana' : walletAddress,
+                recipientName: isReceive ? myUsername : 'Ví người nhận trên Solana',
+                recipientPhone: isReceive ? myPhone : undefined,
                 recipientWallet: isReceive ? walletAddress : 'Ví người nhận trên Solana',
                 network: 'Solana Devnet',
                 fee: '0.000005 SOL (~$0.0007)',
@@ -152,6 +165,29 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Sắp xếp thời gian giảm dần (mới nhất lên đầu)
       combined.sort((a, b) => b.createdAt - a.createdAt);
       const unreadCount = combined.filter((n) => !n.isRead).length;
+
+      // 4. Phát hiện giao dịch nhận tiền mới vừa xuất hiện trên chuỗi và kích hoạt Banner
+      const prevNotifications = get().notifications;
+      if (prevNotifications.length > 0) {
+        const prevKeys = new Set(prevNotifications.map((n) => n.txHash || n.id));
+        const newReceivedTx = combined.find(
+          (n) =>
+            n.type === 'RECEIVE_MONEY' &&
+            !prevKeys.has(n.txHash || n.id) &&
+            !n.isRead &&
+            Date.now() - n.createdAt < 15 * 60 * 1000
+        );
+
+        if (newReceivedTx) {
+          console.log('🎉 [useNotificationStore] Phát hiện giao dịch nhận tiền mới on-chain:', newReceivedTx);
+          set({ bannerNotification: newReceivedTx });
+          import('expo-haptics')
+            .then((Haptics) => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            })
+            .catch(() => {});
+        }
+      }
 
       set({
         notifications: combined,
@@ -229,6 +265,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       senderNote: payload.senderNote,
       senderWallet: payload.senderWallet,
       recipientWallet: payload.recipientWallet,
+      senderName: payload.senderName,
+      senderPhone: payload.senderPhone,
+      recipientName: payload.recipientName,
+      recipientPhone: payload.recipientPhone,
       network: payload.network || 'Solana Devnet',
       fee: payload.fee || '0.000005 SOL',
       blockNumber: payload.blockNumber,
