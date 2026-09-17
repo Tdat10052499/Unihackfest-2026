@@ -142,7 +142,7 @@ export default function HomeScreen() {
   const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
   
   // Wallet Cards Store
-  const { walletCards, loadCardsForWallet, resetCards } = useWalletCardsStore();
+  const { walletCards, loadCardsForWallet, resetCards, removeCard } = useWalletCardsStore();
   const [showAddStablecoinModal, setShowAddStablecoinModal] = useState(false);
 
   // Hệ thống Thông báo (In-app Notifications)
@@ -737,6 +737,9 @@ export default function HomeScreen() {
           onSwapActionPress={() => setShowSwapModal(true)}
           onCardChange={(card) => setActiveCardCurrency(card.currency)}
           onAddCardPress={() => setShowAddStablecoinModal(true)}
+          onDeleteCardPress={(card) => {
+            if (solanaAddress) removeCard(card.id, solanaAddress);
+          }}
         />
 
         {/* ========================================================================= */}

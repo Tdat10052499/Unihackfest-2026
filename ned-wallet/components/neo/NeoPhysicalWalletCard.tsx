@@ -45,6 +45,7 @@ export interface NeoPhysicalWalletCardProps {
   onSwapActionPress?: () => void;
   onCardChange?: (card: StablecoinCardData) => void;
   onAddCardPress?: () => void;
+  onDeleteCardPress?: (card: StablecoinCardData) => void;
 }
 
 // Cấu hình lò xo Snappy dứt khoát Neo-brutalism (stiffness: 280, damping: 20, mass: 0.8)
@@ -68,6 +69,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   onSwapActionPress,
   onCardChange,
   onAddCardPress,
+  onDeleteCardPress,
 }) => {
   // Mặc định 1 thẻ USDC nếu chưa truyền vào (đảm bảo mảng không bao giờ rỗng)
   const DEFAULT_USDC_CARD: StablecoinCardData = {
@@ -95,6 +97,20 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [deletingCard, setDeletingCard] = useState<StablecoinCardData | null>(null);
+
+  // Custom Neo-brutalism Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastVisible(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
 
   // Wiggle animation state cho các thẻ khi ở chế độ chỉnh sửa
   const wiggleRotate = useSharedValue(0);
@@ -124,22 +140,33 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
 
   const handleDeleteConfirm = () => {
     if (deletingCard) {
+      // 1. Kiểm tra balance
+      const balanceVal = parseFloat(deletingCard.balanceUsd.replace(/[^0-9.-]+/g, "")) || 0;
+      if (balanceVal > 0) {
+        setDeletingCard(null);
+        showToast();
+        return;
+      }
+
       // Tắt hiệu ứng wiggle và chế độ edit sau khi xóa
       setIsEditing(false);
       stopWiggle();
       
       // Xóa thẻ khỏi danh sách (trừ khi nó là thẻ đang active, tuỳ logic ví)
-      // Tạm thời gọi onAddCardPress() hoặc chỉ cần ẩn UI
-      setCardDataList(prev => prev.filter(c => c.id !== deletingCard.id));
-      setCardOrder(prev => {
-        // Cập nhật lại cardOrder để loại bỏ thẻ bị xoá
-        const idxToRemove = cardDataList.findIndex(c => c.id === deletingCard.id);
-        const filteredOrder = prev.filter(idx => idx !== idxToRemove);
-        // Normalize indices
-        return filteredOrder.map(idx => idx > idxToRemove ? idx - 1 : idx);
-      });
+      if (onDeleteCardPress) {
+        onDeleteCardPress(deletingCard);
+      } else {
+        // Fallback fallback UI
+        setCardDataList(prev => prev.filter(c => c.id !== deletingCard.id));
+        setCardOrder(prev => {
+          const idxToRemove = cardDataList.findIndex(c => c.id === deletingCard.id);
+          const filteredOrder = prev.filter(idx => idx !== idxToRemove);
+          return filteredOrder.map(idx => idx > idxToRemove ? idx - 1 : idx);
+        });
+      }
+
+      setDeletingCard(null);
     }
-    setDeletingCard(null);
   };
 
   // Chiều cao ví co giãn mượt mà theo dạng Accordion xuống dưới (không đẩy thẻ lên đè header)
@@ -899,6 +926,16 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
           </View>
         </Modal>
 
+      {/* 5. Custom Neo-brutalism Toast */}
+      {toastVisible && (
+        <View style={styles.toastContainer} pointerEvents="none">
+          <View style={styles.toastShadow} />
+          <View style={styles.toastCard}>
+            <Text style={styles.toastIcon}>⚠️</Text>
+            <Text style={styles.toastText}>Không thể xóa thẻ đang có số dư. Vui lòng chuyển tiền đi trước.</Text>
+          </View>
+        </View>
+      )}
       </View>
     </Animated.View>
   );
@@ -1375,5 +1412,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#000000',
+  },
+  
+  // TOAST STYLES
+  toastContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  toastShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000000',
+    borderRadius: 16,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF4C4C',
+    borderWidth: 3,
+    borderColor: '#000000',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  toastIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  toastText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk-Bold',
+    color: '#FFFFFF',
   },
 });
