@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   Image,
   LayoutAnimation,
   UIManager,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -24,6 +26,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { PhantomAuthButton } from '../../components/PhantomAuthButton';
+import { MASCOT_IMAGES } from '../../constants/mascot';
 
 // Kích hoạt LayoutAnimation trên Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -39,6 +42,13 @@ export default function AuthGatewayScreen() {
 
   // State chuyển đổi chế độ Đăng nhập / Đăng ký
   const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
+
+  // Animation states cho hiệu ứng chuyển tab mượt mà
+  const tabAnim = useRef(new Animated.Value(0)).current; // 0: Login, 1: Signup
+  const contentFadeAnim = useRef(new Animated.Value(1)).current;
+  const contentSlideAnim = useRef(new Animated.Value(0)).current;
+  const mascotScaleAnim = useRef(new Animated.Value(1)).current;
+  const [tabItemWidth, setTabItemWidth] = useState<number>(0);
 
   // State quản lý email OTP & các bước
   const [email, setEmail] = useState('');
@@ -139,9 +149,52 @@ export default function AuthGatewayScreen() {
   };
 
   const switchMode = (mode: boolean) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsLoginMode(mode);
+    if (mode === isLoginMode) return;
     setErrorMessage('');
+
+    // 1. Trượt con trỏ tab mượt mà, dứt khoát (190ms, không đàn hồi lò xo thừa)
+    Animated.timing(tabAnim, {
+      toValue: mode ? 0 : 1,
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+
+    // 2. Mascot nảy micro-pop nhẹ nhàng (150ms)
+    Animated.sequence([
+      Animated.timing(mascotScaleAnim, {
+        toValue: 1.08,
+        duration: 60,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(mascotScaleAnim, {
+        toValue: 1,
+        duration: 90,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 3. Chuyển đổi nội dung biểu mẫu tức thì kèm trượt nhẹ 180ms
+    setIsLoginMode(mode);
+    const direction = mode ? 1 : -1;
+    contentFadeAnim.setValue(0.35);
+    contentSlideAnim.setValue(direction * 8);
+    Animated.parallel([
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlideAnim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const isGoogleLoading = oAuthState?.status === 'loading';
@@ -163,13 +216,13 @@ export default function AuthGatewayScreen() {
         >
           {/* Top Brand Banner */}
           <View style={styles.brandHeader}>
-            <View style={styles.logoBadge}>
+            <Animated.View style={[styles.logoBadge, { transform: [{ scale: mascotScaleAnim }] }]}>
               <Image 
-                source={require('../../assets/images/mascot teddy - waving.png')} 
+                source={isLoginMode ? MASCOT_IMAGES.waving : MASCOT_IMAGES.exciting} 
                 style={styles.mascotImage} 
                 resizeMode="contain" 
               />
-            </View>
+            </Animated.View>
             <Text style={styles.brandTitle}>N.E.D WALLET</Text>
             <Text style={styles.brandSubtitle}>
               Ví Solana Thông Minh & Bảo Mật Tuyệt Đối
@@ -183,26 +236,72 @@ export default function AuthGatewayScreen() {
 
             {/* Ticket Body */}
             <View style={styles.ticketBody}>
-              {/* Mode Switcher Tabs */}
+              {/* Mode Switcher Tabs với Sliding Indicator Animation */}
               <View style={styles.tabContainer}>
+                {/* Sliding Pill Indicator */}
+                {tabItemWidth > 0 && (
+                  <Animated.View
+                    style={[
+                      styles.slidingIndicator,
+                      {
+                        width: tabItemWidth,
+                        transform: [
+                          {
+                            translateX: tabAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, tabItemWidth],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                )}
+
                 <TouchableOpacity
-                  style={[styles.tabButton, isLoginMode && styles.tabButtonActive]}
+                  style={styles.tabButton}
+                  onLayout={(e) => {
+                    const w = e.nativeEvent.layout.width;
+                    if (w > 0 && Math.abs(w - tabItemWidth) > 0.5) {
+                      setTabItemWidth(w);
+                    }
+                  }}
                   onPress={() => switchMode(true)}
-                  activeOpacity={0.9}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, isLoginMode && styles.tabTextActive]}>
+                  <Animated.Text
+                    style={[
+                      styles.tabText,
+                      {
+                        color: tabAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['#FFFFFF', '#555555'],
+                        }),
+                      },
+                    ]}
+                  >
                     Đăng nhập
-                  </Text>
+                  </Animated.Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.tabButton, !isLoginMode && styles.tabButtonActive]}
+                  style={styles.tabButton}
                   onPress={() => switchMode(false)}
-                  activeOpacity={0.9}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.tabText, !isLoginMode && styles.tabTextActive]}>
+                  <Animated.Text
+                    style={[
+                      styles.tabText,
+                      {
+                        color: tabAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['#555555', '#FFFFFF'],
+                        }),
+                      },
+                    ]}
+                  >
                     Đăng ký
-                  </Text>
+                  </Animated.Text>
                 </TouchableOpacity>
               </View>
 
@@ -215,8 +314,16 @@ export default function AuthGatewayScreen() {
               )}
 
               {step === 'INITIAL' ? (
-                /* Bước 1: Nhập Email & Lựa chọn phương thức */
-                <View style={styles.formSection}>
+                /* Bước 1: Nhập Email & Lựa chọn phương thức kèm Animation */
+                <Animated.View
+                  style={[
+                    styles.formSection,
+                    {
+                      opacity: contentFadeAnim,
+                      transform: [{ translateX: contentSlideAnim }],
+                    },
+                  ]}
+                >
                   <View style={styles.formHeader}>
                     <Text style={styles.formTitle}>
                       {isLoginMode ? 'Chào mừng trở lại!' : 'Tạo tài khoản mới'}
@@ -303,7 +410,7 @@ export default function AuthGatewayScreen() {
                       onComplete={(u, isNew, wasAuth) => handleAuthSuccess(u, isNew, wasAuth)}
                     />
                   </View>
-                </View>
+                </Animated.View>
               ) : (
                 /* Bước 2: Xác thực mã OTP qua Email */
                 <View style={styles.formSection}>
@@ -463,29 +570,34 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#000',
     borderRadius: 30,
-    padding: 4,
+    padding: 3,
     marginBottom: 24,
     backgroundColor: '#FAF6F0',
+    position: 'relative',
+    overflow: 'hidden', // Khóa chặt không cho phần tô tím tràn ra ngoài viền tổng
+  },
+  slidingIndicator: {
+    position: 'absolute',
+    top: 3,
+    bottom: 3,
+    left: 3,
+    backgroundColor: '#8A2BE2', // Tím Neo-brutalism
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 26,
+    zIndex: 1,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  tabButtonActive: {
-    backgroundColor: '#8A2BE2', // Tím
-    borderColor: '#000',
+    justifyContent: 'center',
+    borderRadius: 26,
+    zIndex: 2,
   },
   tabText: {
     fontSize: 14,
     fontFamily: 'Inter-Black',
-    color: '#555',
-  },
-  tabTextActive: {
-    color: '#FFF',
   },
 
   // Form Section

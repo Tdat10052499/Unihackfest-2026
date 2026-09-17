@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -56,6 +57,17 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   const [isProcessingVnpay, setIsProcessingVnpay] = useState(false);
   const [phoneState, setPhoneState] = useState<string | null>(null);
   const [isModalMounted, setIsModalMounted] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dọn dẹp timeout khi unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Reanimated Shared Values
   const backdropOpacity = useSharedValue(0);
@@ -69,6 +81,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
   // Luồng hoàn tất đóng Modal
   const finishClose = useCallback(() => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastVisible(false);
     setIsModalMounted(false);
     setCurrentView('OPTIONS');
     onClose();
@@ -76,6 +92,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
   // Kích hoạt animation đóng có kiểm soát (trượt dứt khoát & fade-out)
   const handleCloseWithAnimation = useCallback(() => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastVisible(false);
     backdropOpacity.value = withTiming(0, { duration: 200 });
     sheetTranslateY.value = withTiming(
       SCREEN_HEIGHT,
@@ -90,6 +110,24 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       }
     );
   }, [backdropOpacity, sheetTranslateY, finishClose]);
+
+  // Xử lý khi nhấn nút VNPAY đang phát triển (UX: rung nhẹ Haptics + hiện Toast)
+  const handleVnpayDisabledPress = useCallback(() => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Bỏ qua lỗi trên các nền tảng không hỗ trợ Haptics
+    }
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastVisible(true);
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastVisible(false);
+    }, 2200);
+  }, []);
 
   // Đồng bộ trạng thái mở / đóng khi prop `visible` thay đổi
   useEffect(() => {
@@ -228,12 +266,17 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               exiting={FadeOut.duration(150)}
               style={styles.optionsWrapper}
             >
-              {/* Khối 1: Cổng thanh toán nội địa VNPAY */}
+              {/* Khối 1: Cổng thanh toán nội địa VNPAY (Disabled với Badge Coming soon) */}
               <TouchableOpacity
-                style={styles.optionCard}
-                onPress={() => setCurrentView('VNPAY')}
-                activeOpacity={0.75}
+                style={[styles.optionCard, styles.vnpayCardDisabled]}
+                onPress={handleVnpayDisabledPress}
+                activeOpacity={0.6}
               >
+                {/* Badge "Coming soon" đặt đè lên góc trên bên phải của nút */}
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonBadgeText}>Coming soon</Text>
+                </View>
+
                 <View style={[styles.optionIconBox, { backgroundColor: '#E0F2FE' }]}>
                   <MaterialCommunityIcons
                     name="bank-transfer"
@@ -244,9 +287,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 <View style={styles.optionInfoCol}>
                   <View style={styles.optionTitleRow}>
                     <Text style={styles.optionTitle}>{t('deposit.vnpayCardTitle', { defaultValue: 'VNPAY (VND to USDC)' })}</Text>
-                    <View style={styles.fastTag}>
-                      <Text style={styles.fastTagText}>{t('deposit.instantTag', { defaultValue: 'Tức thì' })}</Text>
-                    </View>
                   </View>
                   <Text style={styles.optionSubtitle}>
                     {t('deposit.vnpayCardDesc', { defaultValue: 'Nạp tiền tức thì qua cổng ngân hàng nội địa' })}
@@ -377,6 +417,24 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             </Animated.View>
           )}
         </Animated.View>
+
+        {/* 3. TOAST THÔNG BÁO NEO-BRUTALISM */}
+        {toastVisible && (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(150)}
+            style={styles.toastContainer}
+            pointerEvents="none"
+          >
+            <View style={styles.toastShadow} />
+            <View style={styles.toastCard}>
+              <Text style={styles.toastIcon}>🚧</Text>
+              <Text style={styles.toastText}>
+                Cổng thanh toán đang trong quá trình phát triển.
+              </Text>
+            </View>
+          </Animated.View>
+        )}
       </View>
     </Modal>
   );
@@ -598,5 +656,68 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: 'center',
     paddingHorizontal: 8,
+  },
+  vnpayCardDisabled: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    opacity: 0.6,
+  },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    backgroundColor: '#FFD700',
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    zIndex: 10,
+  },
+  comingSoonBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 44 : 32,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 9999,
+    elevation: 50,
+  },
+  toastShadow: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: -3,
+    bottom: -3,
+    backgroundColor: '#000000',
+    borderRadius: 14,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8DC',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  toastIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+    textAlign: 'center',
   },
 });
