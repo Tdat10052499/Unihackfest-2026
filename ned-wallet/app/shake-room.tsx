@@ -40,6 +40,7 @@ import { useGlobalPresence } from '@/contexts/GlobalPresenceContext';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 // Tỷ giá quy đổi giả định: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
@@ -631,6 +632,18 @@ export default function ShakeRoomScreen() {
         note: billNote || 'Group lunch',
         txHash: txSignature,
       });
+
+      // Tự động ghi nhận thông báo chia tiền trong app
+      useNotificationStore.getState().addNotification({
+        type: 'TRANSFER',
+        title: 'Thanh toán Shake to Split',
+        message: `Đã thanh toán $${paymentAmountUSD.toFixed(2)} USD cho hóa đơn "${billNote || 'Group lunch'}".`,
+        amount: paymentAmountUSD,
+        currency: 'USDC',
+        txHash: txSignature,
+        senderNote: billNote || 'Group lunch',
+      }).catch(console.error);
+
       setShowReceiptModal(true);
     } catch (e: any) {
       setIsGuestPaying(false);

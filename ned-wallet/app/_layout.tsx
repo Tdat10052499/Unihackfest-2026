@@ -103,6 +103,7 @@ export default function RootLayout() {
                       <Stack.Screen name="onConnect" options={{ headerShown: false }} />
                       <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
                       <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
+                      <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
                     </Stack>
                   </View>

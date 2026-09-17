@@ -66,6 +66,10 @@ import { useExternalWallet } from '@/src/providers/WalletProvider';
 import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
 import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
+import { useNotificationStore } from '@/stores/useNotificationStore';
+import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
+import { NotificationModal } from '@/components/NotificationModal';
+import { NotificationInAppBanner } from '@/components/NotificationInAppBanner';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -147,6 +151,11 @@ export default function HomeScreen() {
   // Wallet Cards Store
   const { walletCards, loadCardsForWallet, resetCards } = useWalletCardsStore();
   const [showAddStablecoinModal, setShowAddStablecoinModal] = useState(false);
+
+  // Hệ thống Thông báo (In-app Notifications)
+  const { unreadCount } = useNotificationStore();
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  useNotificationRealtime(solanaAddress);
 
   // Quản lý Số dư Độc lập cho từng loại Stablecoin
   const [stablecoinBalances, setStablecoinBalances] = useState<StablecoinBalances>({
@@ -667,10 +676,7 @@ export default function HomeScreen() {
             style={[styles.bellBtn, isNight ? styles.bellBtnNight : styles.bellBtnDay]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              Alert.alert(
-                t('notifications', 'Thông báo'),
-                t('no_new_notifications', 'Hiện tại bạn chưa có thông báo mới nào.')
-              );
+              setShowNotificationModal(true);
             }}
             activeOpacity={0.8}
           >
@@ -679,6 +685,13 @@ export default function HomeScreen() {
               size={21}
               color={isNight ? '#FFFFFF' : '#000000'}
             />
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Mã QR Code: Sử dụng đúng component QR Code mở camera scanner đã cung cấp */}
@@ -946,6 +959,13 @@ export default function HomeScreen() {
         balances={stablecoinBalances}
         onConfirmSwap={handleConfirmSwap}
       />
+
+      {/* Hệ thống Thông báo In-app Modal & Top Banner */}
+      <NotificationModal
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
+      <NotificationInAppBanner />
     </View>
   );
 }
@@ -1082,6 +1102,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#25223D',
     borderColor: '#FFFFFF',
     shadowColor: '#000000',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    shadowOffset: { width: 1, height: 1 },
+    shadowColor: '#000000',
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  bellBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   qrCodeBtn: {
     width: 42,

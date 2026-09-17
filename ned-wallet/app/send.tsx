@@ -47,6 +47,7 @@ import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useNotificationStore } from '../stores/useNotificationStore';
 
 /**
  * 🎨 Component NeoCard: Hỗ trợ tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
@@ -539,6 +540,23 @@ export default function SendScreen() {
         note: `Chuyển đến: ${recipientDisplayName}`,
         txHash: txSignature,
       });
+
+      // Tự động ghi nhận thông báo chuyển tiền trong app
+      useNotificationStore.getState().addNotification({
+        type: 'TRANSFER',
+        title: 'Chuyển tiền thành công',
+        message: `Bạn đã chuyển ${numAmount.toFixed(2)} USD đến ${recipientDisplayName}.`,
+        amount: numAmount,
+        currency: 'USDC',
+        txHash: txSignature,
+        sender: 'Bạn',
+        senderWallet: myAddress || undefined,
+        recipientWallet: finalRecipient,
+        senderNote: `Chuyển đến: ${recipientDisplayName}`,
+        network: 'Solana Devnet',
+        fee: '0.000005 SOL',
+      }).catch(console.error);
+
       setShowReceiptModal(true);
     } catch (err: any) {
       console.error('Send Transaction Error:', err);
