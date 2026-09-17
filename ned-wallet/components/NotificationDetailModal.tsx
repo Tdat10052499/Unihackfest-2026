@@ -186,13 +186,13 @@ export function NotificationDetailModal({
                   </View>
                 ) : isReceive ? (
                   <Image
-                    source={require('../assets/images/mascot-love.png')}
+                    source={require('../assets/images/mascot teddy - embarrassed.png')}
                     style={styles.mascotImage}
                     resizeMode="contain"
                   />
                 ) : (
                   <Image
-                    source={require('../assets/images/mascot-happy.png')}
+                    source={require('../assets/images/mascot teddy - exciting.png')}
                     style={styles.mascotImage}
                     resizeMode="contain"
                   />

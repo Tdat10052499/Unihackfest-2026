@@ -1,33 +1,57 @@
 /**
  * N.E.D Wallet Mascot Asset Registry
- * Gấu tím có ria mép đặc trưng của thương hiệu N.E.D
+ * Gấu tím đặc trưng của thương hiệu N.E.D - 16 biểu cảm chính thức
  */
 
 export const MASCOT_IMAGES = {
-  /** Mascot vui vẻ, nháy mắt, giơ ngón cái (Thành công, chào mừng, hoàn tất) */
-  happy: require('@/assets/images/mascot-happy.png'),
-  /** Mascot buồn, rơi nước mắt (Thất bại, trống rỗng, không có dữ liệu) */
-  sad: require('@/assets/images/mascot-sad.png'),
-  /** Mascot thắc mắc, suy nghĩ với dấu hỏi chấm (Đang tìm kiếm, quét radar, xác nhận) */
-  question: require('@/assets/images/mascot-question.png'),
-  /** Mascot tức giận bốc khói, khoanh tay (Bị từ chối, lỗi nghiêm trọng, kick khỏi phòng) */
-  angry: require('@/assets/images/mascot-angry.png'),
-  /** Mascot ngại ngùng có tim bay, má hồng (Nhận tiền, quà tặng, lời cảm ơn) */
-  love: require('@/assets/images/mascot-love.png'),
-  /** Mascot chào mừng truyền thống */
-  welcome: require('@/assets/images/mascot-welcome.png'),
-  /** Mascot buồn ngủ (Phòng chờ) */
-  sleepy: require('@/assets/images/mascot-sleepy.png'),
+  // 16 Mascot chính thức từ thư viện thiết kế
+  angry: require('@/assets/images/mascot teddy - angry.png'),
+  confused: require('@/assets/images/mascot teddy - confused.png'),
+  crying: require('@/assets/images/mascot teddy - crying.png'),
+  curious: require('@/assets/images/mascot teddy - curious.png'),
+  embarrassed: require('@/assets/images/mascot teddy - embarrassed.png'),
+  exciting: require('@/assets/images/mascot teddy - exciting.png'),
+  frustrated: require('@/assets/images/mascot teddy - frustrated.png'),
+  happy: require('@/assets/images/mascot teddy - happy.png'),
+  laughing: require('@/assets/images/mascot teddy - laughing.png'),
+  proud: require('@/assets/images/mascot teddy - proud.png'),
+  sad: require('@/assets/images/mascot teddy - sad.png'),
+  scared: require('@/assets/images/mascot teddy - scared.png'),
+  sleepy: require('@/assets/images/mascot teddy - sleepy.png'),
+  surprised: require('@/assets/images/mascot teddy - surprised.png'),
+  thinking: require('@/assets/images/mascot teddy - thinking.png'),
+  waving: require('@/assets/images/mascot teddy - waving.png'),
+
+  // Các bí danh (Aliases) để tương thích và thuận tiện sử dụng
+  welcome: require('@/assets/images/mascot teddy - waving.png'),
+  love: require('@/assets/images/mascot teddy - embarrassed.png'),
+  question: require('@/assets/images/mascot teddy - curious.png'),
+  peekingThinking: require('@/assets/images/mascot teddy - thinking.png'),
 } as const;
 
 export type MascotMood = keyof typeof MASCOT_IMAGES;
 
 export const MASCOT_LABELS: Record<MascotMood, string> = {
-  happy: 'Vui vẻ / Thành công',
-  sad: 'Buồn bã / Trống',
-  question: 'Thắc mắc / Đang quét',
-  angry: 'Tức giận / Bị từ chối',
-  love: 'Yêu thích / Nhận quà',
-  welcome: 'Chào mừng',
-  sleepy: 'Buồn ngủ / Chờ đợi',
+  angry: 'Tức giận bốc khói',
+  confused: 'Bối rối / Lúng túng',
+  crying: 'Khóc / Buồn rầu',
+  curious: 'Tò mò / Thắc mắc',
+  embarrassed: 'Ngại ngùng / Trái tim',
+  exciting: 'Hào hứng / Ăn mừng',
+  frustrated: 'Bực bội / Khó chịu',
+  happy: 'Vui vẻ / Hạnh phúc',
+  laughing: 'Cười tươi',
+  proud: 'Tự hào / Hãnh diện',
+  sad: 'Buồn bã',
+  scared: 'Hoảng sợ',
+  sleepy: 'Buồn ngủ / Zzzz',
+  surprised: 'Ngạc nhiên / Bất ngờ',
+  thinking: 'Đang suy nghĩ',
+  waving: 'Vẫy tay chào / Welcome',
+
+  // Aliases
+  welcome: 'Chào mừng (Vẫy tay)',
+  love: 'Yêu thích (Ngại ngùng)',
+  question: 'Dấu hỏi (Tò mò)',
+  peekingThinking: 'Gấu ngó suy nghĩ thanh toán',
 };

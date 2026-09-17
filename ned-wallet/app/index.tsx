@@ -69,7 +69,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Image 
-          source={require('../assets/images/mascot-happy.png')} 
+          source={require('../assets/images/mascot teddy - waving.png')} 
           style={styles.mascotImage}
           resizeMode="contain"
         />

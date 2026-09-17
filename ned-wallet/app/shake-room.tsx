@@ -16,7 +16,9 @@ import {
   Platform,
   Share,
   Image,
+  Dimensions,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
@@ -48,6 +50,38 @@ import type { PresenceUser } from '@/contexts/GlobalPresenceContext';
 
 // Tỷ giá quy đổi giả định: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+/**
+ * Tạo đường dẫn SVG cho cuống vé thanh toán của Guest
+ * Mép trên bo tròn mềm mại, mép dưới răng cưa ziczac
+ */
+function getGuestTicketPath(
+  width: number,
+  height: number,
+  cornerRadius: number = 24,
+  toothWidth: number = 14,
+  toothHeight: number = 8
+): string {
+  if (width <= 0 || height <= 0) return '';
+  const numTeeth = Math.max(1, Math.round(width / toothWidth));
+  const tw = width / numTeeth;
+
+  let d = `M 0 ${cornerRadius} `;
+  d += `A ${cornerRadius} ${cornerRadius} 0 0 1 ${cornerRadius} 0 `;
+  d += `L ${width - cornerRadius} 0 `;
+  d += `A ${cornerRadius} ${cornerRadius} 0 0 1 ${width} ${cornerRadius} `;
+  d += `L ${width} ${height - toothHeight} `;
+  for (let i = numTeeth - 1; i >= 0; i--) {
+    const xMid = (i + 0.5) * tw;
+    const xStart = i * tw;
+    d += `L ${xMid} ${height} L ${xStart} ${height - toothHeight} `;
+  }
+  d += `L 0 ${height - toothHeight} Z`;
+
+  return d;
+}
 
 /**
  * 🎨 Component NeoCard: Tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
@@ -104,6 +138,66 @@ const NeoCard: React.FC<NeoCardProps> = ({
         ]}
       >
         {children}
+      </View>
+    </View>
+  );
+};
+
+/**
+ * 💈 Component StripedProgressBar:
+ * Thanh loading dạng kẹo sọc (barber-pole / candy-cane) chuyển động mượt mà
+ * Màu tím (#8A5BE8) và xanh mint (#C4F1F9) theo đúng thiết kế Neo-brutalism
+ */
+const StripedProgressBar: React.FC = () => {
+  const stripeOffset = useSharedValue(0);
+
+  React.useEffect(() => {
+    stripeOffset.value = withRepeat(
+      withTiming(-24, { duration: 800, easing: Easing.linear }),
+      -1,
+      false
+    );
+    return () => {
+      cancelAnimation(stripeOffset);
+    };
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: stripeOffset.value }],
+  }));
+
+  const numCycles = 18;
+  const cycleW = 24;
+
+  return (
+    <View style={styles.stripedBarBorder}>
+      <View style={styles.stripedBarInner}>
+        <Reanimated.View
+          style={[
+            {
+              flexDirection: 'row',
+              width: numCycles * cycleW,
+              height: 24,
+            },
+            animatedStyle,
+          ]}
+        >
+          <Svg width={numCycles * cycleW} height={24}>
+            {Array.from({ length: numCycles }).map((_, idx) => {
+              const i = idx - 2;
+              const x = i * cycleW;
+              const dPurple = `M ${x + 10} 0 L ${x + 22} 0 L ${x + 12} 24 L ${x} 24 Z`;
+              const dCyan = `M ${x + 22} 0 L ${x + 34} 0 L ${x + 24} 24 L ${x + 12} 24 Z`;
+
+              return (
+                <React.Fragment key={idx}>
+                  <Path d={dPurple} fill="#8A5BE8" stroke="#000000" strokeWidth={1.2} />
+                  <Path d={dCyan} fill="#C4F1F9" stroke="#000000" strokeWidth={1.2} />
+                </React.Fragment>
+              );
+            })}
+          </Svg>
+        </Reanimated.View>
       </View>
     </View>
   );
@@ -844,6 +938,10 @@ export default function ShakeRoomScreen() {
     ? decodeURIComponent(hostName)
     : (searchParams.hostName ? decodeURIComponent(searchParams.hostName) : 'Đạt Tuấn');
 
+  const [ticketContentHeight, setTicketContentHeight] = useState(390);
+  const guestCardWidth = Math.min(SCREEN_WIDTH - 48, 330);
+  const guestTicketSvgPath = getGuestTicketPath(guestCardWidth, ticketContentHeight, 24, 14, 8);
+
   if (!isReady) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -862,23 +960,39 @@ export default function ShakeRoomScreen() {
       {/* Loading Overlay khi giao dịch đang xử lý */}
       {(isGuestPaying || isExecutingTransfer) && (
         <View style={[StyleSheet.absoluteFill, styles.loadingOverlay, { zIndex: 9999 }]}>
-          <NeoCard
-            backgroundColor="#FFFFFF"
-            shadowColor="#000000"
-            borderRadius={22}
-            borderWidth={2.5}
-            offset={4}
-            containerStyle={{ width: '85%' }}
-            style={{ alignItems: 'center', padding: 24 }}
-          >
-            <ActivityIndicator size="large" color="#8B5CF6" />
-            <Text style={styles.loadingCardTitle}>
-              {transferStatusMessage || 'Đang xử lý thanh toán on-chain...'}
-            </Text>
-            <Text style={styles.loadingCardSubtitle}>
-              Vui lòng giữ ứng dụng và không đóng màn hình
-            </Text>
-          </NeoCard>
+          <View style={styles.loadingModalContainer}>
+            {/* Mascot gấu tím ngại ngùng ngồi tì hai tay lên mép thẻ */}
+            <View style={styles.loadingMascotWrapper}>
+              <Image
+                source={require('@/assets/images/mascot teddy - embarrassed.png')}
+                style={styles.loadingMascotImg}
+                resizeMode="contain"
+              />
+            </View>
+
+            <NeoCard
+              backgroundColor="#FAF3E8"
+              shadowColor="#000000"
+              borderRadius={22}
+              borderWidth={2.5}
+              offset={4}
+              containerStyle={styles.loadingNeoCardContainer}
+              style={styles.loadingNeoCardInner}
+            >
+              <Text style={styles.loadingModalTitle}>
+                Đang xác nhận trên thiết bị...
+              </Text>
+              <Text style={styles.loadingModalSubtitle}>
+                Vui lòng giữ ứng dụng và chờ trong giây lát
+              </Text>
+
+              <StripedProgressBar />
+
+              <Text style={styles.loadingModalFooterStatus}>
+                {transferStatusMessage || 'Đang xử lí giao dịch...'}
+              </Text>
+            </NeoCard>
+          </View>
         </View>
       )}
 
@@ -938,7 +1052,7 @@ export default function ShakeRoomScreen() {
                 {/* Mascot Section */}
                 <View style={styles.mascotCenterArea}>
                   <Image
-                    source={require('@/assets/images/mascot-sleepy.png')}
+                    source={require('@/assets/images/mascot teddy - sleepy.png')}
                     style={styles.mascotImage}
                     resizeMode="contain"
                   />
@@ -981,6 +1095,136 @@ export default function ShakeRoomScreen() {
                   <View style={styles.bottomChevronContainer}>
                     <Feather name="chevron-up" size={20} color="#334155" />
                   </View>
+                </View>
+              </View>
+            ) : !isHost && guestPhase === 'READY_TO_PAY' ? (
+              /* ========================================================= */
+              /* 2B. GIAO DIỆN THANH TOÁN HÓA ĐƠN CHO GUEST (READY_TO_PAY) */
+              /* ========================================================= */
+              <View style={styles.guestPaymentWrapper}>
+                {/* Mascot Peeking from behind/on top of ticket */}
+                <View style={styles.guestMascotPeekingArea}>
+                  <Image
+                    source={require('@/assets/images/mascot teddy - thinking.png')}
+                    style={styles.guestMascotPeekingImg}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                {/* Ticket Card with Scalloped Bottom Edge */}
+                <View style={[styles.guestTicketWrapper, { width: guestCardWidth }]}>
+                  {/* SVG Scalloped Border + Hard Drop Shadow */}
+                  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <Svg
+                      width={guestCardWidth + 12}
+                      height={ticketContentHeight + 12}
+                      viewBox={`0 0 ${guestCardWidth + 12} ${ticketContentHeight + 12}`}
+                    >
+                      {/* Bóng đổ đen cứng lệch 5px 5px */}
+                      <Path d={guestTicketSvgPath} fill="#000000" transform="translate(5, 5)" />
+                      {/* Vỏ vé trắng viền đen 2.5px */}
+                      <Path
+                        d={guestTicketSvgPath}
+                        fill="#FFFFFF"
+                        stroke="#000000"
+                        strokeWidth={2.5}
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  </View>
+
+                  {/* Nội dung bên trong vé */}
+                  <View
+                    style={[styles.guestTicketContent, { width: guestCardWidth }]}
+                    onLayout={(e) => {
+                      const { height } = e.nativeEvent.layout;
+                      if (height > 50 && Math.abs(height - ticketContentHeight) > 2) {
+                        setTicketContentHeight(Math.ceil(height));
+                      }
+                    }}
+                  >
+                    {/* Header Hóa đơn */}
+                    <View style={styles.guestTicketHeaderRow}>
+                      <MaterialCommunityIcons
+                        name="receipt-text-outline"
+                        size={22}
+                        color="#000000"
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={styles.guestTicketTitle}>Chi tiết hóa đơn</Text>
+                    </View>
+
+                    {/* Subtitle Host đã chốt số tiền */}
+                    <Text style={styles.guestTicketSubtitle}>
+                      Người chủ trì{' '}
+                      <Text style={styles.guestTicketHostName}>{displayHostName}</Text>{' '}
+                      đã chốt số tiền
+                    </Text>
+
+                    {/* Khối màu tím nhạt hiển thị số tiền cần thanh toán */}
+                    <View style={styles.guestLavenderBox}>
+                      <Text style={styles.guestLavenderLabel}>
+                        Số tiền bạn cần thanh toán:
+                      </Text>
+                      <View style={styles.guestLavenderAmountRow}>
+                        <Text style={styles.guestLavenderDollar}>$ </Text>
+                        <Text style={styles.guestLavenderAmountText}>
+                          {parsedSplitAmount.toFixed(2)}
+                        </Text>
+                        <Text style={styles.guestLavenderCurrency}> USD</Text>
+                      </View>
+                      <Text style={styles.guestLavenderNote}>
+                        Ghi chú: {billNote || 'Group lunch'}
+                      </Text>
+                    </View>
+
+                    {/* Đường phân cách nét đứt (Dotted Divider) */}
+                    <View style={styles.guestDottedDivider} />
+
+                    {/* Tổng hóa đơn phòng */}
+                    <Text style={styles.guestTotalBillText}>
+                      Tổng hóa đơn phòng: $ {parsedTotalBill.toFixed(2)} USD
+                    </Text>
+
+                    {/* Nút hành động Thanh toán màu đỏ san hô */}
+                    <TouchableOpacity
+                      style={[
+                        styles.guestTicketPayBtn,
+                        hasGuestPaid && styles.guestTicketPayBtnPaid,
+                      ]}
+                      onPress={handleGuestPay}
+                      disabled={hasGuestPaid || isGuestPaying}
+                      activeOpacity={0.88}
+                    >
+                      {isGuestPaying ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : hasGuestPaid ? (
+                        <Text style={styles.guestTicketPayBtnText}>
+                          ✓ Đã thanh toán thành công
+                        </Text>
+                      ) : (
+                        <View style={styles.guestPayBtnInner}>
+                          <Ionicons
+                            name="flash"
+                            size={18}
+                            color="#FFFFFF"
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={styles.guestTicketPayBtnText}>
+                            Thanh toán $ {parsedSplitAmount.toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Spacer đẩy mũi tên xuống dưới */}
+                <View style={{ flex: 1 }} />
+
+                {/* Mũi tên kép / chevron-up dưới đáy màn hình */}
+                <View style={styles.guestBottomChevronWrapper}>
+                  <Feather name="chevron-up" size={22} color="#000000" />
                 </View>
               </View>
             ) : (
@@ -1344,23 +1588,73 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  loadingCardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#000000',
-    marginTop: 14,
-    textAlign: 'center',
+  loadingModalContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  loadingCardSubtitle: {
-    fontSize: 12.5,
-    color: '#64748B',
-    marginTop: 6,
+  loadingMascotWrapper: {
+    zIndex: 10,
+    marginBottom: -18,
+    alignItems: 'center',
+  },
+  loadingMascotImg: {
+    width: 145,
+    height: 115,
+  },
+  loadingNeoCardContainer: {
+    width: '85%',
+    maxWidth: 330,
+  },
+  loadingNeoCardInner: {
+    alignItems: 'center',
+    paddingTop: 26,
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+  },
+  loadingModalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#000000',
     textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  loadingModalSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+    paddingHorizontal: 6,
+  },
+  stripedBarBorder: {
+    width: '100%',
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2.2,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  stripedBarInner: {
+    flex: 1,
+    borderRadius: 11,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  loadingModalFooterStatus: {
+    fontSize: 11.5,
+    fontStyle: 'italic',
+    color: '#8A8A8A',
+    textAlign: 'center',
+    marginTop: 12,
   },
 
   // 1. Header & Room Info
@@ -1986,5 +2280,150 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  guestPaymentWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    width: '100%',
+  },
+  guestMascotPeekingArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: -12,
+    zIndex: 10,
+  },
+  guestMascotPeekingImg: {
+    width: 175,
+    height: 135,
+  },
+  guestTicketWrapper: {
+    position: 'relative',
+    alignSelf: 'center',
+  },
+  guestTicketContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 26,
+    zIndex: 2,
+  },
+  guestTicketHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  guestTicketTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
+    fontFamily: 'Outfit-Bold',
+  },
+  guestTicketSubtitle: {
+    fontSize: 13.5,
+    color: '#4B5563',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  guestTicketHostName: {
+    color: '#7C3AED',
+    fontWeight: '900',
+  },
+  guestLavenderBox: {
+    backgroundColor: '#EBE5F7',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  guestLavenderLabel: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  guestLavenderAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginVertical: 4,
+  },
+  guestLavenderDollar: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#432C81',
+    fontFamily: 'Outfit-Bold',
+  },
+  guestLavenderAmountText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#432C81',
+    fontFamily: 'Outfit-Bold',
+  },
+  guestLavenderCurrency: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#432C81',
+    fontFamily: 'Outfit-Bold',
+  },
+  guestLavenderNote: {
+    fontSize: 12.5,
+    fontStyle: 'italic',
+    color: '#6B7280',
+    marginTop: 6,
+  },
+  guestDottedDivider: {
+    borderTopWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#9CA3AF',
+    marginVertical: 14,
+  },
+  guestTotalBillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  guestTicketPayBtn: {
+    backgroundColor: '#FF5B5B',
+    borderWidth: 2.5,
+    borderColor: '#000000',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginTop: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  guestTicketPayBtnPaid: {
+    backgroundColor: '#10B981',
+  },
+  guestPayBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestTicketPayBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    fontFamily: 'Outfit-Bold',
+  },
+  guestBottomChevronWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 10,
   },
 });

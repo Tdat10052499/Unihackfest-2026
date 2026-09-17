@@ -191,7 +191,7 @@ export default function AuthGatewayScreen() {
           <View style={styles.brandHeader}>
             <View style={styles.logoBadge}>
               <Image 
-                source={require('../../assets/images/mascot-happy.png')} 
+                source={require('../../assets/images/mascot teddy - waving.png')} 
                 style={styles.mascotImage} 
                 resizeMode="contain" 
               />
