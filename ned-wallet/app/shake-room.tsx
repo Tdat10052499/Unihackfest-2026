@@ -49,28 +49,6 @@ import type { PresenceUser } from '@/contexts/GlobalPresenceContext';
 // Tỷ giá quy đổi giả định: 1 SOL = $150 USD
 const SOL_USD_RATE = 150;
 
-// Danh sách thiết bị ở gần mặc định theo phong cách Apple AirDrop (chuẩn thiết kế)
-const DEFAULT_DISCOVERED_DEVICES: PresenceUser[] = [
-  {
-    user_id: 'device-macbook-valerie',
-    name: 'MacBook Air\ncủa valerie',
-    avatar: 'V',
-    lat: 10.762622,
-    lng: 106.660172,
-    wallet_address: 'Vale7x...MacBookAir',
-    distanceMeters: 1.5,
-  },
-  {
-    user_id: 'device-al-fone',
-    name: 'Al-fone',
-    avatar: 'A',
-    lat: 10.762635,
-    lng: 106.660185,
-    wallet_address: 'Alfo9z...iPhone15Pro',
-    distanceMeters: 2.8,
-  },
-];
-
 /**
  * 🎨 Component NeoCard: Tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
  * Chuẩn Neo-brutalism 0 blur trên cả Android, iOS & Web.
@@ -131,10 +109,70 @@ const NeoCard: React.FC<NeoCardProps> = ({
   );
 };
 
+/**
+ * 🖼️ Component WalletUserAvatar:
+ * Hiển thị avatar tròn đúng theo thông tin ví (ảnh avatar nếu có, hoặc icon AirDrop silhouette)
+ */
+interface WalletUserAvatarProps {
+  avatarUrl?: string | null;
+  avatarLetter?: string;
+  name?: string;
+  size?: number;
+}
+
+const WalletUserAvatar: React.FC<WalletUserAvatarProps> = ({
+  avatarUrl,
+  avatarLetter,
+  name,
+  size = 56,
+}) => {
+  const isImage = Boolean(
+    avatarUrl && (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('data:image'))
+  );
+
+  if (isImage) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          overflow: 'hidden',
+          backgroundColor: '#E2E8F0',
+          borderWidth: 1.8,
+          borderColor: '#000000',
+        }}
+      >
+        <Image
+          source={{ uri: avatarUrl! }}
+          style={{ width: size, height: size }}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        overflow: 'hidden',
+        borderWidth: 1.8,
+        borderColor: '#000000',
+      }}
+    >
+      <AirDropUserIcon size={size} id={`avatar_${name || 'user'}_${size}`} />
+    </View>
+  );
+};
+
 interface RoomMember {
   user_id: string;
   name: string;
   avatar: string;
+  avatar_url?: string | null;
   wallet_address?: string;
   isHost: boolean;
   status: 'pending' | 'paid';
@@ -205,7 +243,11 @@ export default function ShakeRoomScreen() {
   // State Thành viên phòng
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [isInvitingNearby, setIsInvitingNearby] = useState(false);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [invitedStatusMap, setInvitedStatusMap] = useState<{
+    [userId: string]: 'inviting' | 'invited' | 'rejected' | 'joined';
+  }>({});
+
+  const currentUserStateAvatarUrl = useUserStore((s) => s.avatarUrl);
 
   // State Thanh toán phía Guest & Nhận tiền phía Host
   const [isGuestPaying, setIsGuestPaying] = useState(false);
@@ -240,29 +282,9 @@ export default function ShakeRoomScreen() {
   const mySolanaAddress = getSolanaAddress();
 
   // Lọc bạn bè thực tế trong bán kính 50m từ Global Presence
-  const candidateNearbyUsers = nearbyUsers.filter(
-    (u) => u.distanceMeters === undefined || u.distanceMeters <= 50
+  const candidateNearbyUsers: PresenceUser[] = nearbyUsers.filter(
+    (u: PresenceUser) => u.distanceMeters === undefined || u.distanceMeters <= 50
   );
-
-  // Danh sách thiết bị ở gần hiển thị lên bảng: Ưu tiên thiết bị thực tế, fallback thiết bị mẫu chuẩn AirDrop
-  const displayNearbyUsers =
-    candidateNearbyUsers.length > 0 ? candidateNearbyUsers : DEFAULT_DISCOVERED_DEVICES;
-
-  // Tự động đồng bộ danh sách đã chọn khi có thiết bị mới
-  useEffect(() => {
-    const validIds = displayNearbyUsers.map((u) => u.user_id);
-    setSelectedUserIds((prev) => {
-      const filtered = prev.filter((id) => validIds.includes(id));
-      return filtered.length > 0 ? filtered : validIds;
-    });
-  }, [candidateNearbyUsers.length]);
-
-  const toggleUserSelection = (userId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
-  };
 
   // Vòng lặp Animations: Pulse & Radar sóng quét
   useEffect(() => {
@@ -329,20 +351,82 @@ export default function ShakeRoomScreen() {
         if (payload?.user_id && payload.user_id !== user.id) {
           setMembers((prev) => {
             const exists = prev.some((m) => m.user_id === payload.user_id);
-            if (exists) return prev;
+            if (exists) {
+              return prev.map((m) =>
+                m.user_id === payload.user_id
+                  ? {
+                      ...m,
+                      name: payload.name || m.name,
+                      avatar: payload.avatar || m.avatar,
+                      avatar_url: payload.avatar_url || m.avatar_url,
+                      wallet_address: payload.wallet_address || m.wallet_address,
+                    }
+                  : m
+              );
+            }
             return [
               ...prev,
               {
                 user_id: payload.user_id,
                 name: payload.name || 'Bạn mới',
                 avatar: payload.avatar || 'U',
+                avatar_url: payload.avatar_url || null,
                 wallet_address: payload.wallet_address,
                 isHost: false,
                 status: 'pending',
               },
             ];
           });
+          setInvitedStatusMap((prev) => ({ ...prev, [payload.user_id]: 'joined' }));
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      })
+      .on('broadcast', { event: 'room_reject' }, ({ payload }) => {
+        console.log('❌ [ShakeRoom Realtime] Khách từ chối tham gia phòng:', payload);
+        if (payload?.user_id) {
+          setMembers((prev) => prev.filter((m) => m.user_id !== payload.user_id));
+          setInvitedStatusMap((prev) => ({ ...prev, [payload.user_id]: 'rejected' }));
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          Alert.alert(
+            'Từ chối tham gia',
+            `${payload.name || 'Người dùng'} đã từ chối tham gia phòng chia tiền.`
+          );
+        }
+      })
+      .on('broadcast', { event: 'room_kick' }, ({ payload }) => {
+        console.log('🚪 [ShakeRoom Realtime] Nhận sự kiện room_kick:', payload);
+        if (payload?.target_user_id === user?.id) {
+          // Bị Host xóa khỏi phòng -> Đẩy thiết bị ra khỏi room
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          Alert.alert(
+            'Rời khỏi phòng',
+            payload.reason || 'Chủ phòng đã xóa bạn khỏi phòng chia tiền.',
+            [
+              {
+                text: 'Đồng ý',
+                onPress: () => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(tabs)/transfer-hub');
+                  }
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+
+          // Tự động đẩy ra sau 1.2s
+          setTimeout(() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/transfer-hub');
+            }
+          }, 1200);
+        } else if (payload?.target_user_id) {
+          // Các thiết bị khác cập nhật xóa thành viên khỏi danh sách phòng
+          setMembers((prev) => prev.filter((m) => m.user_id !== payload.target_user_id));
         }
       })
       .on('broadcast', { event: 'room_split' }, ({ payload }) => {
@@ -372,14 +456,16 @@ export default function ShakeRoomScreen() {
         console.log(`📡 [ShakeRoom] Trạng thái phòng room_${roomId}:`, status);
         if (status === 'SUBSCRIBED' && !isHost) {
           // Báo cho Host biết Guest đã vào phòng
+          const userState = useUserStore.getState();
           roomChannel.send({
             type: 'broadcast',
             event: 'room_join',
             payload: {
               room_id: roomId,
               user_id: user.id,
-              name: currentUserProfile.name,
+              name: userState.username || currentUserProfile.name,
               avatar: currentUserProfile.avatar,
+              avatar_url: userState.avatarUrl || null,
               wallet_address: mySolanaAddress,
             },
           });
@@ -401,34 +487,19 @@ export default function ShakeRoomScreen() {
       return;
     }
 
-    const invitedGuestCount =
-      selectedUserIds.length > 0
-        ? selectedUserIds.length
-        : Math.max(members.filter((m) => !m.isHost).length, 1);
-    const totalParticipants = invitedGuestCount + 1; // Host + Guests
+    const actualGuests = members.filter((m) => !m.isHost);
+    if (actualGuests.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        'Chưa có thành viên tham gia',
+        'Vui lòng chạm vào icon bạn bè ở gần để mời họ vào phòng trước khi chia bill.'
+      );
+      return;
+    }
+
+    const totalParticipants = actualGuests.length + 1; // Host + Guests
     const calculatedSplit = Number((bill / totalParticipants).toFixed(2));
     setSplitAmount(calculatedSplit.toString());
-
-    // Tự động thêm các thiết bị đã chọn vào danh sách thành viên nếu chưa có
-    const selectedDevices = displayNearbyUsers.filter((u) =>
-      selectedUserIds.includes(u.user_id)
-    );
-    if (selectedDevices.length > 0) {
-      setMembers((prev) => {
-        const existingIds = new Set(prev.map((m) => m.user_id));
-        const newMembers: RoomMember[] = selectedDevices
-          .filter((u) => !existingIds.has(u.user_id))
-          .map((u) => ({
-            user_id: u.user_id,
-            name: u.name.replace('\n', ' '),
-            avatar: u.avatar,
-            wallet_address: u.wallet_address,
-            isHost: false,
-            status: 'pending',
-          }));
-        return [...prev, ...newMembers];
-      });
-    }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setHostPhase('WAITING');
@@ -486,66 +557,93 @@ export default function ShakeRoomScreen() {
         accelerometerSubRef.current = null;
       }
     };
-  }, [isHost, hostPhase, totalBill, members, billNote, selectedUserIds, mySolanaAddress]);
+  }, [isHost, hostPhase, totalBill, members, billNote, mySolanaAddress]);
 
-  // Host: Mời bạn bè qua Global Presence
-  const handleInviteNearbyFriends = async () => {
-    const targetIds =
-      selectedUserIds.length > 0
-        ? selectedUserIds
-        : displayNearbyUsers.map((u) => u.user_id);
-
-    if (targetIds.length === 0) {
-      handleShareRoomCode();
+  // Host: Chạm vào Icon để mời trực tiếp 1 bạn bè vào phòng chia tiền
+  const handleInviteSingleUser = async (targetUser: PresenceUser) => {
+    if (members.some((m) => m.user_id === targetUser.user_id)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Đã tham gia', `${targetUser.name} đã ở trong phòng chia tiền.`);
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsInvitingNearby(true);
+    setInvitedStatusMap((prev) => ({ ...prev, [targetUser.user_id]: 'inviting' }));
+
     const bill = parseFloat(totalBill.replace(/,/g, '')) || 0;
-    const totalParticipants = Math.max(targetIds.length + 1, 2);
+    const currentGuests = members.filter((m) => !m.isHost).length;
+    const totalParticipants = Math.max(currentGuests + 2, 2);
     const calculatedSplit = Number((bill / totalParticipants).toFixed(2));
 
     try {
-      if (candidateNearbyUsers.length > 0) {
-        await broadcastInvite(roomId, targetIds, {
-          totalBill: bill,
-          splitAmount: calculatedSplit,
-          note: billNote,
+      const success = await broadcastInvite(roomId, [targetUser.user_id], {
+        totalBill: bill,
+        splitAmount: calculatedSplit,
+        note: billNote,
+      });
+
+      if (success) {
+        setInvitedStatusMap((prev) => ({ ...prev, [targetUser.user_id]: 'invited' }));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          'Đã gửi lời mời 🎉',
+          `Đã gửi lời mời tham gia phòng đến ${targetUser.name}. Đang đợi bạn ấy chấp nhận!`
+        );
+      } else {
+        setInvitedStatusMap((prev) => {
+          const next = { ...prev };
+          delete next[targetUser.user_id];
+          return next;
         });
       }
-
-      // Tự động thêm các bạn bè được mời vào danh sách thành viên với trạng thái 'pending'
-      const invitedFriends = displayNearbyUsers.filter((u) =>
-        targetIds.includes(u.user_id)
-      );
-
-      if (invitedFriends.length > 0) {
-        setMembers((prev) => {
-          const existingIds = new Set(prev.map((m) => m.user_id));
-          const newMembers: RoomMember[] = invitedFriends
-            .filter((u) => !existingIds.has(u.user_id))
-            .map((u) => ({
-              user_id: u.user_id,
-              name: u.name.replace('\n', ' '),
-              avatar: u.avatar,
-              wallet_address: u.wallet_address,
-              isHost: false,
-              status: 'pending',
-            }));
-          return [...prev, ...newMembers];
-        });
-      }
-
-      setIsInvitingNearby(false);
-      Alert.alert(
-        'Đã gửi lời mời 🎉',
-        `Đã gửi lời mời tham gia phòng đến ${targetIds.length} người bạn gần bạn!`
-      );
-    } catch (e) {
-      setIsInvitingNearby(false);
-      Alert.alert('Thông báo', 'Không thể gửi lời mời lúc này. Vui lòng thử lại.');
+    } catch (err) {
+      console.error('Error inviting user:', err);
+      setInvitedStatusMap((prev) => {
+        const next = { ...prev };
+        delete next[targetUser.user_id];
+        return next;
+      });
+      Alert.alert('Lỗi gửi lời mời', 'Không thể gửi lời mời đến thiết bị này.');
     }
+  };
+
+  // Xóa thành viên khỏi phòng & Đẩy thiết bị của thành viên đó ra khỏi room
+  const handleRemoveMember = (memberUserId: string, memberName: string) => {
+    Alert.alert('Xóa thành viên', `Bạn có chắc muốn xóa ${memberName} khỏi phòng?`, [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa',
+        style: 'destructive',
+        onPress: () => {
+          // 1. Xóa khỏi danh sách thành viên cục bộ của Host
+          setMembers((prev) => prev.filter((m) => m.user_id !== memberUserId));
+          setInvitedStatusMap((prev) => {
+            const next = { ...prev };
+            delete next[memberUserId];
+            return next;
+          });
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+          // 2. Phát sóng sự kiện 'room_kick' để đẩy thiết bị guest ra khỏi phòng
+          try {
+            const roomChannel = supabase.channel(`room_${roomId}`);
+            roomChannel.send({
+              type: 'broadcast',
+              event: 'room_kick',
+              payload: {
+                room_id: roomId,
+                target_user_id: memberUserId,
+                target_name: memberName,
+                reason: 'Chủ phòng đã xóa bạn khỏi phòng chia tiền.',
+              },
+            });
+            console.log(`🚪 [ShakeRoom] Đã phát sóng room_kick cho user ${memberUserId}`);
+          } catch (err) {
+            console.error('❌ [ShakeRoom] Lỗi khi phát sóng room_kick:', err);
+          }
+        },
+      },
+    ]);
   };
 
   // Sao chép và Chia sẻ Mã Phòng
@@ -951,117 +1049,138 @@ export default function ShakeRoomScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Phần giữa của Card: Icon Radar / Vòng tròn đồng tâm nghệ thuật */}
+                  {/* PHẦN DISCOVERY & RADAR QUÉT THIẾT BỊ */}
                   <View style={styles.radarSection}>
-                    <TouchableOpacity
-                      style={styles.radarTouchable}
-                      onPress={isHost && hostPhase === 'SETUP' ? handleHostTriggerSplit : undefined}
-                      activeOpacity={0.9}
-                    >
-                      <Animated.View
-                        style={[
-                          styles.radarConcentricOuter,
-                          { transform: [{ scale: radarWaveAnim }] },
-                        ]}
-                      >
-                        <View style={styles.radarConcentricMiddle}>
-                          <View style={styles.radarConcentricInner}>
-                            <View style={styles.radarCenterTarget}>
-                              {/* Icon Target / Radar đồng tâm theo chuẩn thiết kế */}
-                              <MaterialCommunityIcons
-                                name="target"
-                                size={36}
-                                color="#6B4F3A"
-                              />
+                    {candidateNearbyUsers.length === 0 ? (
+                      /* TRẠNG THÁI 1: LOADING - Chưa phát hiện thiết bị xung quanh */
+                      <View style={styles.loadingScanContainer}>
+                        <TouchableOpacity
+                          style={styles.radarTouchable}
+                          onPress={isHost && hostPhase === 'SETUP' ? handleHostTriggerSplit : undefined}
+                          activeOpacity={0.9}
+                        >
+                          <Animated.View
+                            style={[
+                              styles.radarConcentricOuter,
+                              { transform: [{ scale: radarWaveAnim }] },
+                            ]}
+                          >
+                            <View style={styles.radarConcentricMiddle}>
+                              <View style={styles.radarConcentricInner}>
+                                <View style={styles.radarCenterTarget}>
+                                  <MaterialCommunityIcons
+                                    name="radar"
+                                    size={34}
+                                    color="#6B4F3A"
+                                  />
+                                </View>
+                              </View>
                             </View>
-                          </View>
+                          </Animated.View>
+                        </TouchableOpacity>
+
+                        <View style={styles.loadingTextRow}>
+                          <ActivityIndicator size="small" color="#6B4F3A" style={{ marginRight: 8 }} />
+                          <Text style={styles.scanningTitle}>
+                            Đang quét tìm thiết bị xung quanh...
+                          </Text>
                         </View>
-                      </Animated.View>
-                    </TouchableOpacity>
-
-                    <Text style={styles.scanningText}>
-                      {displayNearbyUsers.length > 0
-                        ? `Đã nhận diện ${displayNearbyUsers.length} thiết bị ở gần`
-                        : 'Scanning for friends ...'}
-                    </Text>
-
-                    {/* BẢNG OTHER DEVICES PHONG CÁCH AIRDROP CHUẨN THIẾT KẾ */}
-                    {displayNearbyUsers.length > 0 && (
-                      <View style={styles.otherDevicesSection}>
-                        <View style={styles.otherDevicesDivider} />
-
-                        <View style={styles.otherDevicesHeader}>
-                          <Text style={styles.otherDevicesTitle}>Other Devices</Text>
-                          <View style={styles.deviceStatusPill}>
+                        <Text style={styles.scanningSubText}>
+                          Hãy mở app N.E.D Wallet trên các máy gần nhau để tự động nhận diện
+                        </Text>
+                      </View>
+                    ) : (
+                      /* TRẠNG THÁI 2: ĐÃ PHÁT HIỆN THIẾT BỊ - Hiển thị Icon User hình tròn (tối đa 4 icon / hàng) */
+                      <View style={styles.devicesDetectedContainer}>
+                        <View style={styles.devicesHeaderRow}>
+                          <View style={styles.devicesTitleWithDot}>
                             <View style={styles.pulseGreenDot} />
-                            <Text style={styles.deviceStatusText}>
-                              {selectedUserIds.length > 0
-                                ? `${selectedUserIds.length} đã chọn`
-                                : 'Chạm để chọn'}
+                            <Text style={styles.devicesCountTitle}>
+                              Thiết bị ở gần ({candidateNearbyUsers.length})
                             </Text>
                           </View>
+                          <Text style={styles.devicesTapHint}>
+                            Chạm icon để mời
+                          </Text>
                         </View>
 
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.otherDevicesRow}
-                        >
-                          {displayNearbyUsers.map((device, idx) => {
-                            const isSelected = selectedUserIds.includes(device.user_id);
+                        {/* GRID USER: Tối đa 4 icon user mỗi hàng */}
+                        <View style={styles.deviceGrid}>
+                          {candidateNearbyUsers.map((u) => {
+                            const inviteStatus = invitedStatusMap[u.user_id];
+                            const isJoined = members.some((m) => m.user_id === u.user_id);
+
                             return (
                               <TouchableOpacity
-                                key={device.user_id}
-                                style={styles.deviceItem}
-                                onPress={() => toggleUserSelection(device.user_id)}
-                                activeOpacity={0.75}
+                                key={u.user_id}
+                                style={styles.deviceGridItem}
+                                onPress={() => handleInviteSingleUser(u)}
+                                disabled={isJoined || inviteStatus === 'inviting'}
+                                activeOpacity={0.7}
                               >
-                                <View style={styles.deviceAvatarContainer}>
-                                  <View
-                                    style={[
-                                      styles.deviceIconCircle,
-                                      isSelected && styles.deviceIconCircleSelected,
-                                    ]}
-                                  >
-                                    <AirDropUserIcon
-                                      size={68}
-                                      id={`airdrop_user_${device.user_id}_${idx}`}
-                                    />
-                                  </View>
+                                <View style={styles.deviceAvatarWrapper}>
+                                  <WalletUserAvatar
+                                    avatarUrl={u.avatar_url}
+                                    avatarLetter={u.avatar}
+                                    name={u.name}
+                                    size={58}
+                                  />
 
-                                  {isSelected && (
-                                    <View style={styles.deviceSelectedBadge}>
-                                      <Feather name="check" size={11} color="#FFFFFF" />
+                                  {/* Badge trạng thái mời */}
+                                  {isJoined ? (
+                                    <View style={styles.joinedBadge}>
+                                      <Feather name="check" size={10} color="#FFFFFF" />
+                                    </View>
+                                  ) : inviteStatus === 'inviting' ? (
+                                    <View style={styles.invitingBadge}>
+                                      <ActivityIndicator size={8} color="#FFFFFF" />
+                                    </View>
+                                  ) : inviteStatus === 'invited' ? (
+                                    <View style={styles.invitedBadge}>
+                                      <Feather name="send" size={8} color="#FFFFFF" />
+                                    </View>
+                                  ) : inviteStatus === 'rejected' ? (
+                                    <View style={styles.rejectedBadge}>
+                                      <Feather name="x" size={9} color="#FFFFFF" />
+                                    </View>
+                                  ) : (
+                                    <View style={styles.plusInviteBadge}>
+                                      <Feather name="plus" size={10} color="#FFFFFF" />
                                     </View>
                                   )}
                                 </View>
 
-                                <Text style={styles.deviceNameText} numberOfLines={2}>
-                                  {device.name}
+                                {/* Tên hiển thị theo đúng thông tin ví */}
+                                <Text style={styles.deviceWalletName} numberOfLines={1}>
+                                  {u.name || (u.wallet_address ? `${u.wallet_address.slice(0, 4)}...${u.wallet_address.slice(-4)}` : 'Ẩn danh')}
                                 </Text>
 
-                                {device.distanceMeters !== undefined && (
-                                  <Text style={styles.deviceDistanceText}>
-                                    ~{device.distanceMeters.toFixed(1)}m
-                                  </Text>
-                                )}
+                                {/* Trạng thái hoặc khoảng cách */}
+                                <Text
+                                  style={[
+                                    styles.deviceStatusText,
+                                    isJoined && styles.statusJoinedText,
+                                    inviteStatus === 'invited' && styles.statusInvitedText,
+                                    inviteStatus === 'rejected' && styles.statusRejectedText,
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {isJoined
+                                    ? 'Đã vào'
+                                    : inviteStatus === 'inviting'
+                                    ? 'Đang gửi...'
+                                    : inviteStatus === 'invited'
+                                    ? 'Đã mời'
+                                    : inviteStatus === 'rejected'
+                                    ? 'Từ chối'
+                                    : u.distanceMeters !== undefined
+                                    ? `${Math.round(u.distanceMeters)}m`
+                                    : 'Gần đây'}
+                                </Text>
                               </TouchableOpacity>
                             );
                           })}
-                        </ScrollView>
-
-                        {isHost && hostPhase === 'SETUP' && (
-                          <TouchableOpacity
-                            style={styles.addDevicesBtn}
-                            onPress={handleInviteNearbyFriends}
-                            activeOpacity={0.8}
-                          >
-                            <Feather name="user-plus" size={13} color="#FFFFFF" />
-                            <Text style={styles.addDevicesBtnText}>
-                              Thêm vào phòng chia ({selectedUserIds.length})
-                            </Text>
-                          </TouchableOpacity>
-                        )}
+                        </View>
                       </View>
                     )}
                   </View>
@@ -1076,14 +1195,22 @@ export default function ShakeRoomScreen() {
                     </Text>
 
                     <View style={styles.avatarListRow}>
-                      {/* 1. Host Avatar (Viền đỏ, chữ H in đậm) */}
+                      {/* 1. Host Avatar */}
                       <View style={styles.avatarItemCol}>
                         <View style={styles.hostAvatarCircle}>
-                          <Text style={styles.hostAvatarLetter}>
-                            {currentUserProfile?.avatar || 'H'}
-                          </Text>
+                          {currentUserStateAvatarUrl ? (
+                            <Image
+                              source={{ uri: currentUserStateAvatarUrl }}
+                              style={styles.memberAvatarImg}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <Text style={styles.hostAvatarLetter}>
+                              {currentUserProfile?.avatar || 'H'}
+                            </Text>
+                          )}
                         </View>
-                        <Text style={styles.avatarSubLabel}>Host</Text>
+                        <Text style={styles.avatarSubLabel} numberOfLines={1}>Host</Text>
                       </View>
 
                       {/* 2. Danh sách các khách đã tham gia */}
@@ -1095,24 +1222,43 @@ export default function ShakeRoomScreen() {
                               g.status === 'paid' && styles.guestAvatarPaid,
                             ]}
                           >
-                            <Text style={styles.guestAvatarLetter}>{g.avatar || 'U'}</Text>
+                            {g.avatar_url ? (
+                              <Image
+                                source={{ uri: g.avatar_url }}
+                                style={styles.memberAvatarImg}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <Text style={styles.guestAvatarLetter}>{g.avatar || 'U'}</Text>
+                            )}
                           </View>
                           <Text style={styles.avatarSubLabel} numberOfLines={1}>
-                            {g.name.split(' ').pop()}
+                            {g.name.split(' ').pop() || g.name}
                           </Text>
+
+                          {/* Nút xóa thành viên nếu Host muốn gỡ */}
+                          {isHost && hostPhase === 'SETUP' && (
+                            <TouchableOpacity
+                              style={styles.removeMemberBtn}
+                              onPress={() => handleRemoveMember(g.user_id, g.name)}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                              <Feather name="x" size={9} color="#FFFFFF" />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))}
 
-                      {/* 3. Nút "+ Invite" (Viền nét đứt) */}
+                      {/* 3. Nút "+ Share" (Viền nét đứt) */}
                       <TouchableOpacity
                         style={styles.avatarItemCol}
-                        onPress={handleInviteNearbyFriends}
+                        onPress={handleShareRoomCode}
                         activeOpacity={0.75}
                       >
                         <View style={styles.inviteDashedCircle}>
-                          <Feather name="plus" size={18} color="#000000" />
+                          <Feather name="share-2" size={16} color="#000000" />
                         </View>
-                        <Text style={styles.avatarSubLabel}>+ Invite</Text>
+                        <Text style={styles.avatarSubLabel}>+ Share</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1450,128 +1596,189 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 14,
   },
-  // Bảng Other Devices (AirDrop style chuẩn thiết kế)
-  otherDevicesSection: {
+  // Loading state khi chưa phát hiện thiết bị
+  loadingScanContainer: {
+    alignItems: 'center',
     width: '100%',
-    marginTop: 8,
   },
-  otherDevicesDivider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
+  loadingTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  scanningTitle: {
+    fontSize: 13.5,
+    color: '#1F2937',
+    fontWeight: '700',
+  },
+  scanningSubText: {
+    fontSize: 11,
+    color: '#78716C',
+    fontWeight: '500',
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+
+  // Danh sách thiết bị dạng Grid (Tối đa 4 icon user mỗi hàng)
+  devicesDetectedContainer: {
     width: '100%',
-    marginBottom: 14,
+    marginTop: 2,
   },
-  otherDevicesHeader: {
+  devicesHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    width: '100%',
+    marginBottom: 8,
     paddingHorizontal: 2,
   },
-  otherDevicesTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4B5563', // Màu xám trung tính đậm như trong ảnh thiết kế của user
-    letterSpacing: -0.2,
-  },
-  deviceStatusPill: {
+  devicesTitleWithDot: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 9,
-    paddingVertical: 3.5,
-    borderRadius: 12,
-    gap: 5,
+    gap: 6,
   },
   pulseGreenDot: {
-    width: 6.5,
-    height: 6.5,
+    width: 7,
+    height: 7,
     borderRadius: 3.5,
     backgroundColor: '#10B981',
   },
-  deviceStatusText: {
+  devicesCountTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  devicesTapHint: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#4338CA',
+    fontWeight: '600',
+    color: '#4F46E5',
   },
-  otherDevicesRow: {
+  deviceGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    gap: 24,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    flexWrap: 'wrap',
+    marginTop: 10,
+    width: '100%',
   },
-  deviceItem: {
+  deviceGridItem: {
+    width: '25%', // Tối đa 4 icon user mỗi hàng
     alignItems: 'center',
-    width: 86,
+    marginBottom: 14,
+    paddingHorizontal: 2,
   },
-  deviceAvatarContainer: {
+  deviceAvatarWrapper: {
     position: 'relative',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  deviceIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  deviceIconCircleSelected: {
-    borderWidth: 2.5,
-    borderColor: '#4C6EF5',
-    borderRadius: 38,
-    padding: 1.5,
-  },
-  deviceSelectedBadge: {
+  joinedBadge: {
     position: 'absolute',
     top: -2,
     right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#4C6EF5',
-    borderWidth: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#10B981',
+    borderWidth: 1.5,
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
   },
-  deviceNameText: {
-    fontSize: 12.5,
-    fontWeight: '500',
-    color: '#111827',
-    textAlign: 'center',
-    lineHeight: 16.5,
-  },
-  deviceDistanceText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginTop: 3,
-  },
-  addDevicesBtn: {
-    flexDirection: 'row',
+  invitingBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#3B82F6',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: '#000000',
   },
-  addDevicesBtnText: {
-    fontSize: 12.5,
+  invitedBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#6366F1',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rejectedBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusInviteBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#000000',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deviceWalletName: {
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#111827',
+    textAlign: 'center',
+    width: '100%',
+  },
+  deviceStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  statusJoinedText: {
+    color: '#10B981',
+    fontWeight: '800',
+  },
+  statusInvitedText: {
+    color: '#6366F1',
+    fontWeight: '800',
+  },
+  statusRejectedText: {
+    color: '#EF4444',
+    fontWeight: '800',
+  },
+  removeMemberBtn: {
+    position: 'absolute',
+    top: -4,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  memberAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 23,
   },
 
   cardDivider: {

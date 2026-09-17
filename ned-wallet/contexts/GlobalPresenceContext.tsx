@@ -5,11 +5,13 @@ import { useRouter } from 'expo-router';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { supabase } from '@/services/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useUserStore } from '@/stores/useUserStore';
 
 export interface PresenceUser {
   user_id: string;
   name: string;
   avatar: string;
+  avatar_url?: string | null;
   lat: number;
   lng: number;
   wallet_address?: string;
@@ -29,7 +31,7 @@ interface GlobalPresenceContextType {
   hasLocationPermission: boolean;
   isTracking: boolean;
   nearbyUsers: PresenceUser[];
-  currentUserProfile: { name: string; avatar: string };
+  currentUserProfile: { name: string; avatar: string; avatar_url?: string | null };
   refreshLocation: () => Promise<void>;
   broadcastInvite: (
     roomId: string,
@@ -112,9 +114,12 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     return solAccount?.address || null;
   };
 
-  // Lấy tên hiển thị & avatar người dùng
+  // Lấy tên hiển thị & avatar người dùng theo đúng thông tin ví
   const getUserProfile = () => {
-    if (!user) return { name: 'Đạt Tuấn', avatar: 'Đ' };
+    const userState = useUserStore.getState();
+    const walletUsername = userState.username;
+    const walletAvatarUrl = userState.avatarUrl;
+
     const googleAcc =
       (user as any)?.google ||
       (user as any)?.linked_accounts?.find(
@@ -123,12 +128,13 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     const emailAcc = (user as any)?.email;
 
     const name =
+      walletUsername ||
       googleAcc?.name ||
       (googleAcc?.email ? googleAcc.email.split('@')[0] : null) ||
       (emailAcc?.address ? emailAcc.address.split('@')[0] : 'Đạt Tuấn');
 
     const avatar = name.charAt(0).toUpperCase();
-    return { name, avatar };
+    return { name, avatar, avatar_url: walletAvatarUrl || null };
   };
 
   // Hàm đẩy tọa độ lên Supabase Presence với cơ chế Throttle (Chống bão tin nhắn)
@@ -151,13 +157,14 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
       return;
     }
 
-    const { name, avatar } = getUserProfile();
-    const solAddress = getSolanaAddress();
+    const { name, avatar, avatar_url } = getUserProfile();
+    const solAddress = getSolanaAddress() || useUserStore.getState().walletAddress;
 
     const payload: PresenceUser = {
       user_id: user.id,
       name,
       avatar,
+      avatar_url: avatar_url || undefined,
       lat,
       lng,
       wallet_address: solAddress || undefined,
@@ -274,6 +281,27 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
                 style: 'cancel',
                 onPress: () => {
                   console.log('❌ [Guest] Đã từ chối lời mời phòng:', payload.room_id);
+                  try {
+                    const rejectChannel = supabase.channel(`room_${payload.room_id}`);
+                    rejectChannel.subscribe((subStatus) => {
+                      if (subStatus === 'SUBSCRIBED') {
+                        rejectChannel.send({
+                          type: 'broadcast',
+                          event: 'room_reject',
+                          payload: {
+                            room_id: payload.room_id,
+                            user_id: userId,
+                            name: getUserProfile().name,
+                          },
+                        });
+                        setTimeout(() => {
+                          supabase.removeChannel(rejectChannel);
+                        }, 1200);
+                      }
+                    });
+                  } catch (err) {
+                    console.error('Error broadcasting room_reject:', err);
+                  }
                 },
               },
               {
