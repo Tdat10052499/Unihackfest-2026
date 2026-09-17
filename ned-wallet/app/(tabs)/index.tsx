@@ -73,7 +73,7 @@ import LoginScreen from '../login';
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isNight, greeting } = useTimeOfDay();
+  const { greeting } = useTimeOfDay();
   const { t } = useTranslation();
   
   const { isReady, user, logout } = usePrivy();
@@ -614,17 +614,17 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.safeContainer}>
-      <StatusBar barStyle={isNight ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="dark-content" />
 
       {/* ========================================================================= */}
-      {/* 1. STICKY HEADER (Tự động thích ứng Ban ngày / Ban đêm theo thời gian thực) */}
+      {/* 1. STICKY HEADER (Cố định nền Trắng #FFFFFF thuần khiết chuẩn Neo-brutalism) */}
       {/* ========================================================================= */}
       <View
         style={[
           styles.stickyHeader,
           {
             paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 6,
-            backgroundColor: isNight ? '#161426' : '#FDF8F5',
+            backgroundColor: '#FFFFFF',
           },
         ]}
       >
@@ -638,12 +638,12 @@ export default function HomeScreen() {
             }}
             activeOpacity={0.85}
           >
-            <View style={[styles.profileBtnShadow, isNight && styles.profileBtnShadowNight]} />
-            <View style={[styles.profileBtnBody, isNight && styles.profileBtnBodyNight]}>
+            <View style={styles.profileBtnShadow} />
+            <View style={styles.profileBtnBody}>
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
               ) : (
-                <Feather name="user" size={20} color={isNight ? '#FFFFFF' : '#000000'} />
+                <Feather name="user" size={20} color="#000000" />
               )}
             </View>
           </TouchableOpacity>
@@ -652,7 +652,7 @@ export default function HomeScreen() {
             <Text
               style={[
                 styles.headerGreetingTitle,
-                { color: isNight ? '#FFFFFF' : '#000000' },
+                { color: '#000000' },
               ]}
               numberOfLines={1}
             >
@@ -661,7 +661,7 @@ export default function HomeScreen() {
             <Text
               style={[
                 styles.headerGreetingSubtitle,
-                { color: isNight ? '#A5A1C0' : '#4B5563' },
+                { color: '#4B5563' },
               ]}
               numberOfLines={1}
             >
@@ -674,7 +674,7 @@ export default function HomeScreen() {
         <View style={styles.actionsGroup}>
           {/* Icon Chuông (Notification) - Style Neo-brutalism */}
           <TouchableOpacity
-            style={[styles.bellBtn, isNight ? styles.bellBtnNight : styles.bellBtnDay]}
+            style={[styles.bellBtn, styles.bellBtnDay]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowNotificationModal(true);
@@ -684,7 +684,7 @@ export default function HomeScreen() {
             <Ionicons
               name="notifications-outline"
               size={21}
-              color={isNight ? '#FFFFFF' : '#000000'}
+              color="#000000"
             />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
@@ -704,7 +704,7 @@ export default function HomeScreen() {
             <Ionicons
               name="qr-code-outline"
               size={28}
-              color={isNight ? '#FFFFFF' : '#000000'}
+              color="#000000"
             />
           </TouchableOpacity>
         </View>
@@ -725,8 +725,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handlePullToRefresh}
-            colors={[isNight ? '#FFFFFF' : '#000000']}
-            tintColor={isNight ? '#FFFFFF' : '#000000'}
+            colors={['#000000']}
+            tintColor="#000000"
             progressViewOffset={Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 68}
           />
         }
@@ -1001,6 +1001,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

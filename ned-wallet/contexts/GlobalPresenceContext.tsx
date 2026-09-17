@@ -138,7 +138,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
   };
 
   // Hàm đẩy tọa độ lên Supabase Presence với cơ chế Throttle (Chống bão tin nhắn)
-  const trackPresence = (lat: number, lng: number, force: boolean = false) => {
+  const trackPresence = (lat: number = 0, lng: number = 0, force: boolean = false) => {
     if (!channelRef.current || !user || !isChannelSubscribedRef.current) {
       return;
     }
@@ -148,7 +148,7 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
     const lastCoords = lastTrackedCoordsRef.current;
 
     let distanceMoved = 999;
-    if (lastCoords) {
+    if (lastCoords && lat !== 0 && lng !== 0) {
       distanceMoved = calculateDistanceMeters(lastCoords.lat, lastCoords.lng, lat, lng);
     }
 
@@ -223,9 +223,9 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
           if (presences && presences.length > 0) {
             const p = presences[presences.length - 1];
             // Bỏ qua chính bản thân thiết bị
-            if (p.user_id !== userId && p.lat && p.lng) {
+            if (p.user_id !== userId) {
               let distMeters: number | undefined;
-              if (currentLoc) {
+              if (currentLoc && p.lat && p.lng && (p.lat !== 0 || p.lng !== 0)) {
                 distMeters = calculateDistanceMeters(
                   currentLoc.latitude,
                   currentLoc.longitude,
@@ -309,7 +309,13 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
                 onPress: () => {
                   console.log('🚀 [Guest] Chấp nhận lời mời, chuyển sang phòng:', payload.room_id);
                   if (isCoinToss) {
-                    router.push(`/coin-toss-room?roomId=${payload.room_id}&isHost=false`);
+                    router.push(
+                      `/coin-toss-room?roomId=${payload.room_id}&isHost=false&hostId=${payload.host_id}&hostName=${encodeURIComponent(
+                        payload.host_name || ''
+                      )}&hostWallet=${encodeURIComponent(
+                        payload.host_wallet || ''
+                      )}&hostAvatar=${encodeURIComponent(payload.host_avatar || 'H')}`
+                    );
                   } else {
                     router.push(
                       `/shake-room?roomId=${payload.room_id}&isHost=false&hostId=${payload.host_id}&hostName=${encodeURIComponent(
@@ -337,6 +343,8 @@ export const GlobalPresenceProvider: React.FC<{ children: React.ReactNode }> = (
               latestLocationRef.current.longitude,
               true
             );
+          } else {
+            trackPresence(0, 0, true);
           }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           isChannelSubscribedRef.current = false;

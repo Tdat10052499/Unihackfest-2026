@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Platform,
   StatusBar,
   Modal,
+  Image,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -33,6 +35,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { supabase } from '../services/supabase';
 import { getUsdcTokenBalance } from '../services/solana';
 import { resolveActiveSolanaAddress } from '../services/identity';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
@@ -45,6 +48,7 @@ interface RoomMember {
   user_id: string;
   name: string;
   avatar: string;
+  avatar_url?: string | null;
   wallet_address?: string;
   is_host?: boolean;
   joined_at?: number;
@@ -63,6 +67,10 @@ export default function CoinTossRoomScreen() {
 
   const roomId = (params.roomId as string) || 'Coin_mthbc98';
   const isHost = String(params.isHost) === 'true';
+  const hostId = (params.hostId as string) || '';
+  const hostName = (params.hostName as string) || 'Host';
+  const hostWallet = (params.hostWallet as string) || '';
+  const hostAvatar = (params.hostAvatar as string) || 'H';
 
   const { user } = usePrivy();
   const externalWallet = useExternalWallet();
@@ -81,6 +89,9 @@ export default function CoinTossRoomScreen() {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitedUserIds, setInvitedUserIds] = useState<string[]>([]);
+
+  // Kênh Realtime đồng bộ phòng
+  const roomChannelRef = useRef<any>(null);
 
   // Danh sách thành viên trong phòng Realtime
   const [members, setMembers] = useState<RoomMember[]>([]);
@@ -117,21 +128,34 @@ export default function CoinTossRoomScreen() {
 
   const myAddress = getMySolanaAddress();
 
-  // Lấy tên hiển thị của người dùng
+  // Lấy tên hiển thị và avatar của người dùng theo đúng thông tin ví
   const getMyProfile = () => {
-    if (!user) return { name: 'Người chơi', avatar: 'H' };
+    const userState = useUserStore.getState();
+    const walletUsername = userState.username;
+    const walletAvatarUrl = userState.avatarUrl;
+
+    if (!user) {
+      return {
+        name: walletUsername || 'Người chơi',
+        avatar: (walletUsername || 'N').charAt(0).toUpperCase(),
+        avatar_url: walletAvatarUrl || null,
+      };
+    }
     const googleAcc =
       (user as any)?.google ||
-      (user as any)?.linked_accounts?.find((a: any) => a.type === 'google_oauth' || a.type === 'google');
+      (user as any)?.linked_accounts?.find(
+        (a: any) => a.type === 'google_oauth' || a.type === 'google'
+      );
     const emailAcc = (user as any)?.email;
 
     const name =
+      walletUsername ||
       googleAcc?.name ||
       (googleAcc?.email ? googleAcc.email.split('@')[0] : null) ||
       (emailAcc?.address ? emailAcc.address.split('@')[0] : 'Người chơi');
 
     const avatar = name.charAt(0).toUpperCase();
-    return { name, avatar };
+    return { name, avatar, avatar_url: walletAvatarUrl || null };
   };
 
   const myProfile = useMemo(() => getMyProfile(), [user]);
@@ -152,7 +176,7 @@ export default function CoinTossRoomScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
-  // 1. KHỞI TẠO THÀNH VIÊN PHÒNG
+  // 1. KHỞI TẠO THÀNH VIÊN BAN ĐẦU
   useEffect(() => {
     if (!user?.id || !roomId) return;
 
@@ -160,13 +184,203 @@ export default function CoinTossRoomScreen() {
       user_id: user.id,
       name: myProfile.name,
       avatar: isHost ? 'H' : myProfile.avatar,
+      avatar_url: myProfile.avatar_url,
       wallet_address: myAddress || undefined,
       is_host: isHost,
       joined_at: Date.now(),
     };
 
-    setMembers([currentMember]);
-  }, [user?.id, roomId, myAddress, myProfile, isHost]);
+    if (isHost) {
+      setMembers([currentMember]);
+    } else {
+      const initial: RoomMember[] = [];
+      if (hostId && hostId !== user.id) {
+        initial.push({
+          user_id: hostId,
+          name: decodeURIComponent(hostName),
+          avatar: decodeURIComponent(hostAvatar) || 'H',
+          wallet_address: decodeURIComponent(hostWallet) || undefined,
+          is_host: true,
+          joined_at: Date.now() - 1000,
+        });
+      }
+      initial.push(currentMember);
+      setMembers(initial);
+    }
+  }, [user?.id, roomId, myAddress, myProfile, isHost, hostId, hostName, hostWallet, hostAvatar]);
+
+  // 2. KẾT NỐI KÊNH SUPABASE REALTIME (room_${roomId}) ĐỂ MỜI & ĐỒNG BỘ THÀNH VIÊN
+  useEffect(() => {
+    if (!roomId || !user?.id) return;
+
+    console.log(`📡 [CoinTossRoom] Đăng ký kênh phòng: room_${roomId}`);
+    const channel = supabase.channel(`room_${roomId}`, {
+      config: { broadcast: { ack: true } },
+    });
+
+    channel
+      .on('broadcast', { event: 'room_join' }, ({ payload }) => {
+        console.log('👋 [CoinTossRoom] Thành viên tham gia:', payload);
+        if (payload?.user_id && payload.user_id !== user.id) {
+          const newMember: RoomMember = {
+            user_id: payload.user_id,
+            name: payload.name || 'Người chơi',
+            avatar: payload.avatar || 'U',
+            avatar_url: payload.avatar_url || null,
+            wallet_address: payload.wallet_address,
+            is_host: Boolean(payload.is_host),
+            joined_at: Date.now(),
+          };
+
+          setMembers((prev) => {
+            const exists = prev.some((m) => m.user_id === payload.user_id);
+            if (exists) {
+              return prev.map((m) =>
+                m.user_id === payload.user_id ? { ...m, ...newMember } : m
+              );
+            }
+            return [...prev, newMember];
+          });
+
+          setInvitedUserIds((prev) =>
+            prev.includes(payload.user_id) ? prev : [...prev, payload.user_id]
+          );
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          // Nếu là Host, phản hồi gửi toàn bộ danh sách thành viên hiện có cho Guest
+          if (isHost) {
+            setMembers((currentMembers) => {
+              const fullList = currentMembers.some((m) => m.user_id === payload.user_id)
+                ? currentMembers
+                : [...currentMembers, newMember];
+
+              channel.send({
+                type: 'broadcast',
+                event: 'room_sync_members',
+                payload: {
+                  members: fullList,
+                  amount: amount,
+                },
+              });
+              return fullList;
+            });
+          }
+        }
+      })
+      .on('broadcast', { event: 'room_sync_members' }, ({ payload }) => {
+        console.log('🔄 [CoinTossRoom] Đồng bộ danh sách thành viên:', payload);
+        if (!isHost && Array.isArray(payload?.members) && payload.members.length > 0) {
+          setMembers(payload.members);
+          if (payload.amount) {
+            setAmount(payload.amount);
+          }
+        }
+      })
+      .on('broadcast', { event: 'room_reject' }, ({ payload }) => {
+        console.log('❌ [CoinTossRoom] Khách từ chối tham gia:', payload);
+        if (payload?.user_id && isHost) {
+          setInvitedUserIds((prev) => prev.filter((id) => id !== payload.user_id));
+          Alert.alert(
+            'Từ chối tham gia',
+            `${payload.name || 'Người dùng'} đã từ chối tham gia phòng lì xì.`
+          );
+        }
+      })
+      .on('broadcast', { event: 'room_kick' }, ({ payload }) => {
+        console.log('🚪 [CoinTossRoom] Thành viên bị xóa:', payload);
+        if (payload?.target_user_id === user.id) {
+          Alert.alert('Rời khỏi phòng', 'Bạn đã được mời rời khỏi phòng lì xì.', [
+            {
+              text: 'Đồng ý',
+              onPress: () => {
+                if (router.canGoBack()) router.back();
+                else router.replace('/(tabs)/transfer-hub');
+              },
+            },
+          ]);
+        } else if (payload?.target_user_id) {
+          setMembers((prev) => prev.filter((m) => m.user_id !== payload.target_user_id));
+        }
+      })
+      .on('broadcast', { event: 'room_amount_update' }, ({ payload }) => {
+        if (!isHost && payload?.amount) {
+          setAmount(payload.amount);
+        }
+      })
+      .on('broadcast', { event: 'coin_toss_start' }, ({ payload }) => {
+        console.log('🎲 [CoinTossRoom] Host tung đồng xu:', payload);
+        if (!isHost) {
+          setIsTossing(true);
+          setTossStatusText('Chủ phòng đang tung đồng xu lì xì...');
+          coinOpacity.value = withTiming(1, { duration: 80 });
+          coinTranslateY.value = withTiming(
+            -450,
+            {
+              duration: 700,
+              easing: Easing.out(Easing.quad),
+            },
+            (finished) => {
+              if (finished) {
+                coinTranslateY.value = withSpring(0, { damping: 12, stiffness: 100 });
+                coinScale.value = withSpring(1, { damping: 14, stiffness: 150 });
+              }
+            }
+          );
+          coinScale.value = withSequence(
+            withTiming(1.35, { duration: 320 }),
+            withTiming(1, { duration: 380 })
+          );
+          coinRotateY.value = withTiming(coinRotateY.value + 1800, {
+            duration: 1600,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          });
+        }
+      })
+      .on('broadcast', { event: 'coin_toss_result' }, ({ payload }) => {
+        console.log('🎉 [CoinTossRoom] Kết quả tung đồng xu:', payload);
+        if (payload?.winner) {
+          setWinner(payload.winner);
+          setWonAmount(payload.amount);
+          setLastTxSignature(payload.txSignature || null);
+          setIsTossing(false);
+          setShowWinnerModal(true);
+          winnerModalScale.value = 0.3;
+          winnerModalScale.value = withSpring(1, { damping: 10, stiffness: 120 });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setTossStatusText('Đã trao lì xì thành công!');
+        }
+      })
+      .subscribe((status) => {
+        console.log(`📡 [CoinTossRoom] Trạng thái phòng:`, status);
+        if (status === 'SUBSCRIBED') {
+          if (!isHost) {
+            // Guest thông báo cho Host biết mình đã vào phòng
+            const userState = useUserStore.getState();
+            channel.send({
+              type: 'broadcast',
+              event: 'room_join',
+              payload: {
+                room_id: roomId,
+                user_id: user.id,
+                name: userState.username || myProfile.name,
+                avatar: myProfile.avatar,
+                avatar_url: userState.avatarUrl || null,
+                wallet_address: myAddress,
+                is_host: false,
+              },
+            });
+          }
+        }
+      });
+
+    roomChannelRef.current = channel;
+
+    return () => {
+      console.log(`🧹 [CoinTossRoom] Hủy kênh room_${roomId}`);
+      supabase.removeChannel(channel);
+      roomChannelRef.current = null;
+    };
+  }, [roomId, user?.id, isHost, myAddress]);
 
   // 2. THỰC THI GIAO DỊCH ON-CHAIN VỚI STABLECOIN (USDC)
   const handleHostExecuteCoinToss = async () => {
@@ -259,6 +473,17 @@ export default function CoinTossRoomScreen() {
       setIsTossing(false);
       setTossStatusText('Đã trao lì xì thành công!');
 
+      // Phát sóng kết quả cho toàn bộ phòng Realtime
+      roomChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'coin_toss_result',
+        payload: {
+          winner: chosenGuest,
+          amount: numAmount,
+          txSignature,
+        },
+      });
+
       winnerModalScale.value = 0.3;
       winnerModalScale.value = withSpring(1, { damping: 10, stiffness: 120 });
 
@@ -275,6 +500,13 @@ export default function CoinTossRoomScreen() {
   // KÍCH HOẠT HIỆU ỨNG TUNG ĐỒNG XU BAY LÊN & THỰC THI
   const launchCoinToss = () => {
     if (isTossing || !isHost) return;
+
+    // Phát sóng bắt đầu tung đồng xu cho các máy Guest cùng thấy hiệu ứng
+    roomChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'coin_toss_start',
+      payload: { amount: parseFloat(amount) },
+    });
 
     coinOpacity.value = withTiming(1, { duration: 80 });
     coinTranslateY.value = withTiming(
@@ -404,14 +636,85 @@ export default function CoinTossRoomScreen() {
   const handleInviteUser = async (targetUser: any) => {
     try {
       Haptics.selectionAsync();
-      await broadcastInvite(roomId, [targetUser.user_id], {
+      const success = await broadcastInvite(roomId, [targetUser.user_id], {
         roomType: 'coin_toss',
         note: 'Vào phòng tung đồng xu nhận lì xì USDC may mắn!',
       });
-      setInvitedUserIds((prev) => [...prev, targetUser.user_id]);
-      Alert.alert('Đã gửi lời mời! 📩', `Đã gửi lời mời tham gia phòng tới ${targetUser.name}`);
+      if (success) {
+        setInvitedUserIds((prev) =>
+          prev.includes(targetUser.user_id) ? prev : [...prev, targetUser.user_id]
+        );
+        Alert.alert('Đã gửi lời mời! 📩', `Đã gửi lời mời tham gia phòng tới ${targetUser.name}`);
+      } else {
+        Alert.alert('Thông báo', 'Không thể gửi lời mời. Vui lòng kiểm tra lại kết nối mạng.');
+      }
     } catch (e) {
       console.log('Error inviting:', e);
+    }
+  };
+
+  // Chia sẻ mã phòng qua Share API
+  const handleShareRoom = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Share.share({
+        title: 'Tham gia phòng Lì Xì N.E.D!',
+        message: `Mời bạn vào phòng Lì Xì Tung Đồng Xu may mắn trên N.E.D Wallet! Mã phòng: ${roomId}`,
+      });
+    } catch (err) {
+      console.log('Error sharing room:', err);
+    }
+  };
+
+  // Host xóa thành viên khỏi phòng (Kick)
+  const handleKickMember = (targetUserId: string, targetName: string) => {
+    if (!isHost) return;
+    Alert.alert(
+      'Xóa thành viên',
+      `Bạn có chắc muốn mời ${targetName} ra khỏi phòng lì xì không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: () => {
+            setMembers((prev) => prev.filter((m) => m.user_id !== targetUserId));
+            setInvitedUserIds((prev) => prev.filter((id) => id !== targetUserId));
+            roomChannelRef.current?.send({
+              type: 'broadcast',
+              event: 'room_kick',
+              payload: { target_user_id: targetUserId },
+            });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          },
+        },
+      ]
+    );
+  };
+
+  // Thay đổi số tiền lì xì và đồng bộ tới các Guest
+  const handleAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    setAmount(cleaned);
+    if (isHost && roomChannelRef.current) {
+      roomChannelRef.current.send({
+        type: 'broadcast',
+        event: 'room_amount_update',
+        payload: { amount: cleaned },
+      });
+    }
+  };
+
+  // Chọn nhanh số tiền preset
+  const handlePresetSelect = (val: string) => {
+    Haptics.selectionAsync();
+    setAmount(val);
+    if (isHost && roomChannelRef.current) {
+      roomChannelRef.current.send({
+        type: 'broadcast',
+        event: 'room_amount_update',
+        payload: { amount: val },
+      });
     }
   };
 
@@ -519,16 +822,34 @@ export default function CoinTossRoomScreen() {
               {members.map((m) => {
                 const displayInitial = m.is_host ? 'H' : (m.avatar || 'U');
                 return (
-                  <View key={m.user_id} style={styles.participantItem}>
+                  <TouchableOpacity
+                    key={m.user_id}
+                    style={styles.participantItem}
+                    onPress={() => {
+                      if (isHost && !m.is_host) {
+                        handleKickMember(m.user_id, m.name);
+                      }
+                    }}
+                    activeOpacity={isHost && !m.is_host ? 0.7 : 1}
+                  >
                     <View style={styles.participantAvatarCircle}>
-                      <Text style={styles.participantAvatarText}>{displayInitial}</Text>
+                      {m.avatar_url ? (
+                        <Image source={{ uri: m.avatar_url }} style={styles.participantAvatarImg} />
+                      ) : (
+                        <Text style={styles.participantAvatarText}>{displayInitial}</Text>
+                      )}
+                      {isHost && !m.is_host && (
+                        <View style={styles.removeMemberBadge}>
+                          <Ionicons name="close" size={10} color="#FFFFFF" />
+                        </View>
+                      )}
                     </View>
                     <View style={styles.participantRolePill}>
-                      <Text style={styles.participantRolePillText}>
-                        {m.is_host ? 'Host' : 'Guest'}
+                      <Text style={styles.participantRolePillText} numberOfLines={1}>
+                        {m.is_host ? 'Host' : (m.name.length > 8 ? m.name.slice(0, 7) + '..' : m.name)}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
 
@@ -564,14 +885,11 @@ export default function CoinTossRoomScreen() {
                 <TextInput
                   style={styles.amountInputField}
                   value={amount}
-                  onChangeText={(text) => {
-                    const cleaned = text.replace(/[^0-9.]/g, '');
-                    setAmount(cleaned);
-                  }}
+                  onChangeText={handleAmountChange}
                   keyboardType="decimal-pad"
                   placeholder="5.00"
                   placeholderTextColor="#A0AEC0"
-                  editable={!isTossing}
+                  editable={isHost && !isTossing}
                 />
               </View>
             </View>
@@ -619,11 +937,8 @@ export default function CoinTossRoomScreen() {
                       { backgroundColor: item.bg },
                       isSelected && styles.presetPillActive,
                     ]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setAmount(item.value);
-                    }}
-                    disabled={isTossing}
+                    onPress={() => handlePresetSelect(item.value)}
+                    disabled={!isHost || isTossing}
                     activeOpacity={0.85}
                   >
                     <Text style={[styles.presetPillText, { color: item.textColor }]}>
@@ -779,7 +1094,19 @@ export default function CoinTossRoomScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 320 }}>
+              {/* Nút chia sẻ mã phòng / link mời nhanh */}
+              <TouchableOpacity
+                style={styles.shareRoomActionBtn}
+                onPress={handleShareRoom}
+                activeOpacity={0.8}
+              >
+                <Feather name="share-2" size={16} color="#000000" style={{ marginRight: 8 }} />
+                <Text style={styles.shareRoomActionBtnText}>
+                  Chia sẻ mã phòng: {roomId}
+                </Text>
+              </TouchableOpacity>
+
+              <ScrollView style={{ maxHeight: 300 }}>
                 {nearbyUsers.map((u) => {
                   const isAlreadyIn = members.some((m) => m.user_id === u.user_id);
                   const isInvited = invitedUserIds.includes(u.user_id);
@@ -787,7 +1114,11 @@ export default function CoinTossRoomScreen() {
                   return (
                     <View key={u.user_id} style={styles.nearbyUserRow}>
                       <View style={styles.nearbyAvatar}>
-                        <Text style={styles.nearbyAvatarText}>{u.avatar}</Text>
+                        {u.avatar_url ? (
+                          <Image source={{ uri: u.avatar_url }} style={styles.nearbyAvatarImg} />
+                        ) : (
+                          <Text style={styles.nearbyAvatarText}>{u.avatar}</Text>
+                        )}
                       </View>
                       <View style={styles.nearbyInfo}>
                         <Text style={styles.nearbyName}>{u.name}</Text>
@@ -830,7 +1161,7 @@ export default function CoinTossRoomScreen() {
                   <View style={styles.emptyNearbyBox}>
                     <Feather name="users" size={32} color="#94A3B8" />
                     <Text style={styles.emptyNearbyText}>
-                      Chưa phát hiện thiết bị nào khác đang mở app quanh đây.
+                      Chưa phát hiện thiết bị nào khác đang mở app quanh đây. Bạn có thể sao chép mã phòng hoặc bấm nút chia sẻ ở trên để mời bạn bè!
                     </Text>
 
                     {/* Nút bổ sung người chơi Test cho Dev/Demo */}
@@ -1022,6 +1353,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     color: '#000000',
+  },
+  participantAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+  },
+  removeMemberBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   participantRolePill: {
     backgroundColor: '#FFFFFF',
@@ -1508,6 +1857,28 @@ const styles = StyleSheet.create({
   nearbyAvatarText: {
     fontSize: 16,
     fontWeight: '900',
+    color: '#000000',
+  },
+  nearbyAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  shareRoomActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD8A8',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  shareRoomActionBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
     color: '#000000',
   },
   nearbyInfo: {
