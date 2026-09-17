@@ -35,48 +35,7 @@ import { MASCOT_IMAGES } from '../../constants/mascot';
 // Quy chuẩn Regex: chỉ cho phép chữ thường (a-z) và số (0-9), độ dài từ 3 đến 15 ký tự
 const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
 
-// Component đục lỗ cuống vé (TicketCutout)
-const TicketCutout = ({
-  size,
-  left,
-  right,
-  transformX,
-  bottomOffset = -3,
-}: {
-  size: number;
-  left?: number | string;
-  right?: number | string;
-  transformX?: number;
-  bottomOffset?: number;
-}) => {
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        bottom: bottomOffset,
-        ...(left !== undefined ? { left } : {}),
-        ...(right !== undefined ? { right } : {}),
-        ...(transformX !== undefined ? { transform: [{ translateX: transformX }] } : {}),
-        width: size,
-        height: size / 2 + 3,
-        overflow: 'hidden',
-        zIndex: 10,
-      } as any}
-      pointerEvents="none"
-    >
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: '#FDF8F5',
-          borderWidth: 3,
-          borderColor: '#000',
-        }}
-      />
-    </View>
-  );
-};
+
 
 export default function OnboardingUsernameScreen() {
   const router = useRouter();
@@ -724,11 +683,6 @@ export default function OnboardingUsernameScreen() {
                 </View>
               </TouchableOpacity>
             </View>
-
-            {/* Lỗ đục cuống vé */}
-            <TicketCutout size={26} left={24} />
-            <TicketCutout size={42} left="50%" transformX={-21} />
-            <TicketCutout size={26} right={24} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -854,13 +808,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#000',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 36,
+    paddingBottom: 28,
     zIndex: 2,
   },
 

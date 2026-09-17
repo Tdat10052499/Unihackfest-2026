@@ -25,32 +25,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { PhantomAuthButton } from '../../components/PhantomAuthButton';
 
-// Component đục lỗ cuống vé (Clipped Container Technique)
-const TicketCutout = ({ size, left, right, transformX, bottomOffset = -3 }: { size: number, left?: number | string, right?: number | string, transformX?: number, bottomOffset?: number }) => {
-  return (
-    <View style={{
-      position: 'absolute',
-      bottom: bottomOffset, // Nâng lên 3px (độ dày viền) để đè khít viền dưới của Ticket
-      ...(left !== undefined ? { left } : {}),
-      ...(right !== undefined ? { right } : {}),
-      ...(transformX !== undefined ? { transform: [{ translateX: transformX }] } : {}),
-      width: size,
-      height: (size / 2) + 3, // Chỉ hiển thị nửa trên + độ dày viền
-      overflow: 'hidden', // Cắt xén hoàn hảo nửa dưới, KHÔNG cần dùng mask đè lên shadow!
-      zIndex: 10,
-    } as any}>
-      <View style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: '#FDF8F5',
-        borderWidth: 3,
-        borderColor: '#000',
-      }} />
-    </View>
-  );
-};
-
 // Kích hoạt LayoutAnimation trên Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -403,11 +377,6 @@ export default function AuthGatewayScreen() {
                 </Text>
               </View>
             </View>
-
-            {/* Cutouts (Lỗ đục cuống vé) */}
-            <TicketCutout size={28} left={30} />
-            <TicketCutout size={44} left="50%" transformX={-22} />
-            <TicketCutout size={28} right={30} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

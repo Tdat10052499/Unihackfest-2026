@@ -15,48 +15,7 @@ import { MASCOT_IMAGES } from '../../constants/mascot';
 
 const { width } = Dimensions.get('window');
 
-// Component đục lỗ cuống vé (TicketCutout)
-const TicketCutout = ({
-  size,
-  left,
-  right,
-  transformX,
-  bottomOffset = -3,
-}: {
-  size: number;
-  left?: number | string;
-  right?: number | string;
-  transformX?: number;
-  bottomOffset?: number;
-}) => {
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        bottom: bottomOffset,
-        ...(left !== undefined ? { left } : {}),
-        ...(right !== undefined ? { right } : {}),
-        ...(transformX !== undefined ? { transform: [{ translateX: transformX }] } : {}),
-        width: size,
-        height: size / 2 + 3,
-        overflow: 'hidden',
-        zIndex: 10,
-      } as any}
-      pointerEvents="none"
-    >
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: '#FDF8F5',
-          borderWidth: 3,
-          borderColor: '#000',
-        }}
-      />
-    </View>
-  );
-};
+
 
 export default function OnboardingWelcomeScreen() {
   const router = useRouter();
@@ -164,11 +123,6 @@ export default function OnboardingWelcomeScreen() {
               </View>
             </View>
           </View>
-
-          {/* Cutouts */}
-          <TicketCutout size={26} left={24} />
-          <TicketCutout size={42} left="50%" transformX={-21} />
-          <TicketCutout size={26} right={24} />
         </Animated.View>
       </View>
     </SafeAreaView>
@@ -205,13 +159,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#000',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 32,
-    paddingBottom: 40,
+    paddingBottom: 36,
     alignItems: 'center',
     zIndex: 2,
   },
