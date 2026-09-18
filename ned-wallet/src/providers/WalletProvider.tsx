@@ -11,7 +11,7 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import { Linking, Alert } from 'react-native';
+import { Linking, Alert, Platform } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
@@ -387,6 +387,31 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       try {
         setConnecting(true);
 
+        if (Platform.OS === 'web') {
+          const provider = typeof window !== 'undefined' ? (window as any).phantom?.solana : null;
+          if (provider && provider.isPhantom) {
+            try {
+              const resp = await provider.connect();
+              const pubKey = new PublicKey(resp.publicKey.toString());
+              setPublicKey(pubKey);
+              setWalletType('phantom');
+              setConnecting(false);
+              publicKeyRef.current = pubKey;
+              try {
+                useUserStore.getState().setWalletAddress(pubKey.toBase58());
+              } catch {}
+              return pubKey;
+            } catch (err: any) {
+              setConnecting(false);
+              throw new Error(err.message || 'Kết nối ví bị từ chối');
+            }
+          } else {
+            setConnecting(false);
+            Alert.alert("Lỗi", "Vui lòng cài đặt Phantom Wallet Extension trên trình duyệt của bạn.");
+            return null;
+          }
+        }
+
         const keyPair = nacl.box.keyPair();
         dappKeyPairRef.current = keyPair;
 
@@ -432,6 +457,16 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   // Hàm mã hóa & gửi thông điệp ký SIWS (Phase 3)
   const signMessage = useCallback(
     async (message: string): Promise<string> => {
+      if (Platform.OS === 'web') {
+        const provider = typeof window !== 'undefined' ? (window as any).phantom?.solana : null;
+        if (!provider || !provider.isPhantom) {
+          throw new Error("Không tìm thấy ví Phantom Extension");
+        }
+        const encodedMessage = new TextEncoder().encode(message);
+        const signedMessage = await provider.signMessage(encodedMessage, "utf8");
+        return bs58.encode(signedMessage.signature);
+      }
+
       const sec = sharedSecretRef.current;
       const sess = sessionTokenRef.current;
       const keyPair = dappKeyPairRef.current;
@@ -486,6 +521,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   // Hàm mã hóa & gửi Transaction sang Phantom để ký
   const signTransaction = useCallback(
     async <T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> => {
+      if (Platform.OS === 'web') {
+        const provider = typeof window !== 'undefined' ? (window as any).phantom?.solana : null;
+        if (!provider || !provider.isPhantom) {
+          throw new Error("Không tìm thấy ví Phantom Extension");
+        }
+        const signedTx = await provider.signTransaction(transaction);
+        return signedTx;
+      }
+
       const sec = sharedSecretRef.current;
       const sess = sessionTokenRef.current;
       const keyPair = dappKeyPairRef.current;
@@ -567,7 +611,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
 
   const disconnect = useCallback(async (revokePhantomSession: boolean = false) => {
     try {
-      if (
+      if (Platform.OS === 'web' && revokePhantomSession) {
+         const provider = typeof window !== 'undefined' ? (window as any).phantom?.solana : null;
+         if (provider && provider.isPhantom) {
+            await provider.disconnect();
+         }
+      } else if (
         revokePhantomSession &&
         sessionTokenRef.current &&
         sharedSecretRef.current &&

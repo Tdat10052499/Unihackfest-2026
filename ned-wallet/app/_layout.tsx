@@ -1,7 +1,7 @@
 import '../polyfill';
 import '../services/i18n';
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import { View, StyleSheet, AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -12,6 +12,14 @@ import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 import { MwaProvider } from '../contexts/MwaProvider';
 import { WalletProvider } from '../src/providers/WalletProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
+import * as WebBrowser from 'expo-web-browser';
+import { useFonts } from 'expo-font';
+import { Ionicons, Feather } from '@expo/vector-icons';
+
+// Completes the OAuth flow if the app was opened from an auth redirect on the Web
+if (Platform.OS === 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 const solanaDevnet = {
   id: 103,
@@ -40,6 +48,11 @@ const PRIVY_CONFIG = {
 
 export default function RootLayout() {
   const appState = useRef(AppState.currentState);
+
+  const [loaded] = useFonts({
+    ...Ionicons.font,
+    ...Feather.font,
+  });
 
   useEffect(() => {
     console.log("🚀 [Phase 1] Privy App ID:", process.env.EXPO_PUBLIC_PRIVY_APP_ID);
