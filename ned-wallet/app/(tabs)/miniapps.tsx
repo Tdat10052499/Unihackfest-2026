@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 
 import { useTranslation } from '@/services/i18n';
 
@@ -32,55 +33,29 @@ export default function MiniAppsScreen() {
   const [toastMessage, setToastMessage] = useState('');
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const router = useRouter();
+
   const MINI_APPS_DATA: MiniAppItem[] = [
     {
-      id: '1',
-      title: t('miniapps.solanaPayTitle', { defaultValue: 'Solana Pay Merchant' }),
-      category: t('miniapps.solanaPayCategory', { defaultValue: 'Payments & Merchant' }),
-      description: t('miniapps.solanaPayDesc', { defaultValue: 'Generate QR code invoices for cafes, retail shops and receive instant USDC/VND payments.' }),
-      iconName: 'qr-code',
+      id: 'test-bridge',
+      title: 'DApp Test Bridge',
+      category: 'Developer Tools',
+      description: 'Môi trường kiểm thử Web3 Bridge (In-app Browser) cho N.E.D Wallet.',
+      iconName: 'code-slash',
       iconType: 'ionicons',
-      iconBg: '#E0FFFF',
+      iconBg: '#E6F4FE',
       categoryColor: '#0891B2',
-      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
-    },
-    {
-      id: '2',
-      title: t('miniapps.jupiterSwapTitle', { defaultValue: 'Jupiter Swap Lite' }),
-      category: t('miniapps.jupiterSwapCategory', { defaultValue: 'DeFi & Token Swap' }),
-      description: t('miniapps.jupiterSwapDesc', { defaultValue: 'Swap tokens swiftly with optimal rates routed by Jupiter Aggregator.' }),
-      iconName: 'swap-horizontal',
-      iconType: 'ionicons',
-      iconBg: '#E6E6FA',
-      categoryColor: '#0891B2',
-      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
-    },
-    {
-      id: '3',
-      title: t('miniapps.microSavingsTitle', { defaultValue: 'Micro Savings' }),
-      category: t('miniapps.microSavingsCategory', { defaultValue: 'Personal Finance' }),
-      description: t('miniapps.microSavingsDesc', { defaultValue: 'Auto-round up spare change to accumulate SOL and earn daily yield.' }),
-      iconName: 'trending-up',
-      iconType: 'feather',
-      iconBg: '#FFFFFF',
-      categoryColor: '#0891B2',
-      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
-    },
-    {
-      id: '4',
-      title: t('miniapps.giftCardsTitle', { defaultValue: 'Web3 Gift Cards' }),
-      category: t('miniapps.giftCardsCategory', { defaultValue: 'Gift Cards & Vouchers' }),
-      description: t('miniapps.giftCardsDesc', { defaultValue: 'Purchase and gift digital cards (Grab, Shopee, Starbucks) using N.E.D balance.' }),
-      iconName: 'gift-outline',
-      iconType: 'ionicons',
-      iconBg: '#FFE4E1',
-      categoryColor: '#0891B2',
-      status: t('miniapps.comingSoon', { defaultValue: 'Coming soon' }),
-    },
+      status: 'Ready',
+    }
   ];
 
-  const handleCardPress = (item: MiniAppItem | { title: string; status?: string }) => {
+  const handleCardPress = (item: MiniAppItem | { id?: string, title: string; status?: string }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if ('id' in item && item.id === 'test-bridge') {
+      router.push('/mini-app?url=http://192.168.1.5:3000&title=Test DApp Bridge');
+      return;
+    }
 
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);

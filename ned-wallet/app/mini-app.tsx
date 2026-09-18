@@ -77,6 +77,7 @@ export default function MiniAppViewerScreen() {
 
   const handleMessage = async (event: any) => {
     try {
+      console.log('WebView Message received:', event.nativeEvent.data);
       const data: Web3BridgeMessage = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'connect') {
