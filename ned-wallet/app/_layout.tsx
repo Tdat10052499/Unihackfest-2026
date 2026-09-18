@@ -88,13 +88,19 @@ export default function RootLayout() {
       }
     : undefined;
 
+  const activeClientId = Platform.OS === 'web' 
+    ? process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID_WEB 
+    : process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID;
+
+  const fallbackClientId = PRIVY_CLIENT_ID;
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider style={styles.root} initialMetrics={initialMetrics}>
         <View style={styles.root}>
           <PrivyProvider
             appId={process.env.EXPO_PUBLIC_PRIVY_APP_ID || PRIVY_APP_ID}
-            clientId={process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || PRIVY_CLIENT_ID}
+            clientId={activeClientId || fallbackClientId}
             supportedChains={PRIVY_SUPPORTED_CHAINS as any}
             config={PRIVY_CONFIG}
           >
