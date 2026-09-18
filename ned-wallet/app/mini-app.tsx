@@ -26,7 +26,7 @@ export default function MiniAppViewerScreen() {
   const [shouldRender, setShouldRender] = useState(false);
   const [webviewKey, setWebviewKey] = useState(0);
   const [isSigning, setIsSigning] = useState(false);
-  const [signatureRequest, setSignatureRequest] = useState<{ id: number; transaction: any } | null>(null);
+  const [signatureRequest, setSignatureRequest] = useState<{ id: number; transaction?: any; transactionBase64?: string } | null>(null);
 
   // Wallets
   const { user } = usePrivy();
@@ -111,10 +111,15 @@ export default function MiniAppViewerScreen() {
     
     setIsSigning(true);
     try {
-      const { id, transaction: txData } = signatureRequest;
+      const { id, transactionBase64, transaction: txData } = signatureRequest;
       
-      // Khôi phục Transaction từ Array byte
-      const txBuffer = Buffer.from(txData);
+      // Khôi phục Transaction từ Base64 hoặc Array byte
+      let txBuffer: Buffer;
+      if (transactionBase64) {
+        txBuffer = Buffer.from(transactionBase64, 'base64');
+      } else {
+        txBuffer = Buffer.from(txData);
+      }
       let tx: any;
       try {
         tx = VersionedTransaction.deserialize(txBuffer);

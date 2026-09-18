@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <script src="https://unpkg.com/@solana/web3.js@1.87.0/lib/index.iife.js"></script>
+  <script>
+    setTimeout(async () => {
+      const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'));
+      const dummyKeypair = solanaWeb3.Keypair.generate();
+      const blockhash = '4Nd1m1aD11111111111111111111111111111111111'; // Dummy
+      const dummyTransaction = new solanaWeb3.Transaction({
+        recentBlockhash: blockhash,
+        feePayer: dummyKeypair.publicKey
+      }).add(
+        solanaWeb3.SystemProgram.transfer({
+          fromPubkey: dummyKeypair.publicKey,
+          toPubkey: dummyKeypair.publicKey,
+          lamports: 100
+        })
+      );
+      const serialized = dummyTransaction.serialize({ requireAllSignatures: false });
+      const txArray = Array.from(serialized);
+      console.log('Array length:', txArray.length);
+      console.log('First 5:', txArray.slice(0, 5));
+      
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'result';
+      debugDiv.innerText = txArray.length + ' ' + txArray.slice(0, 5).join(',');
+      document.body.appendChild(debugDiv);
+    }, 1000);
+  </script>
+</body>
+</html>

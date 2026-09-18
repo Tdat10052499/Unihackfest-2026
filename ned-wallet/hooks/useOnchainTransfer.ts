@@ -310,12 +310,16 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
         const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
 
+        // Lấy Relayer thay vì người gửi để tài trợ mọi phí gas
+        const relayerPubkeyStr = process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER;
+        const relayerPubkey = relayerPubkeyStr ? new PublicKey(relayerPubkeyStr) : fromPubkey;
+
         const toAtaInfo = await solanaConnection.getAccountInfo(toATA, 'confirmed');
         if (!toAtaInfo) {
           console.log('ℹ️ [ATA] Khởi tạo Associated Token Account cho người nhận:', toATA.toBase58());
           transaction.add(
             createAssociatedTokenAccountInstruction(
-              fromPubkey,
+              relayerPubkey, // payer
               toATA,
               toPubkey,
               mintPubkey,
@@ -334,9 +338,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           )
         );
 
-        // Gán feePayer là Relayer thay vì người gửi
-        const relayerPubkey = process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER;
-        transaction.feePayer = relayerPubkey ? new PublicKey(relayerPubkey) : fromPubkey;
+        transaction.feePayer = relayerPubkey;
         transaction.recentBlockhash = blockhash;
 
         setStatusMessage('Đang chuẩn bị xác nhận...');

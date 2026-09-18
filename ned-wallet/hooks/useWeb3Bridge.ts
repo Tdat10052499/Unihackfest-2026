@@ -56,13 +56,23 @@ export function useWeb3Bridge(publicKey: string | null) {
               window._solanaPromises = window._solanaPromises || {};
               window._solanaPromises[id] = { resolve, reject };
               
-              // Chuyển Uint8Array / Buffer thành mảng số để serialize qua bridge
-              const txArray = Array.from(transaction.serialize ? transaction.serialize({ requireAllSignatures: false }) : transaction);
+              let serializedTx;
+              if (transaction.serialize) {
+                serializedTx = transaction.serialize({ requireAllSignatures: false });
+              } else {
+                serializedTx = transaction;
+              }
+              const u8 = new Uint8Array(serializedTx);
+              let binary = '';
+              for (let i = 0; i < u8.length; i++) {
+                binary += String.fromCharCode(u8[i]);
+              }
+              const base64Tx = btoa(binary);
               
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'signTransaction',
                 id: id,
-                payload: { transaction: txArray }
+                payload: { transactionBase64: base64Tx }
               }));
             });
           },

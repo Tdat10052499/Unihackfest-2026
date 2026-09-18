@@ -76,6 +76,9 @@
     <div class="log-line">DApp Initialized. Đợi Injector...</div>
   </div>
 
+  <!-- Load Solana Web3.js from CDN -->
+  <script src="https://unpkg.com/@solana/web3.js@1.87.0/lib/index.iife.js"></script>
+
   <script>
     const connectBtn = document.getElementById('connectBtn');
     const signBtn = document.getElementById('signBtn');
@@ -123,14 +126,24 @@
       try {
         log('Đang gửi yêu cầu signTransaction...');
         
-        // Tạo một mảng byte giả lập Transaction (64 bytes dummy data)
-        const dummyTxData = new Uint8Array(64);
-        dummyTxData.fill(1); // Fill data test
+        // Tạo một giao dịch hợp lệ sử dụng @solana/web3.js
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'));
+        const dummyKeypair = solanaWeb3.Keypair.generate();
         
-        // Tạo Dummy Transaction Object mô phỏng cú pháp Solana Web3.js
-        const dummyTransaction = {
-          serialize: () => dummyTxData
-        };
+        // Fetch recent blockhash (cần thiết cho transaction)
+        const { blockhash } = await connection.getLatestBlockhash();
+        
+        // Tạo transaction chuyển 0 SOL (dummy)
+        const dummyTransaction = new solanaWeb3.Transaction({
+          recentBlockhash: blockhash,
+          feePayer: new solanaWeb3.PublicKey(window.solana.publicKey.toString())
+        }).add(
+          solanaWeb3.SystemProgram.transfer({
+            fromPubkey: new solanaWeb3.PublicKey(window.solana.publicKey.toString()),
+            toPubkey: dummyKeypair.publicKey,
+            lamports: 100 // 0.0000001 SOL
+          })
+        );
 
         const signedTx = await window.solana.signTransaction(dummyTransaction);
         
