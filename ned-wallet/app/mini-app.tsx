@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -224,37 +224,46 @@ export default function MiniAppViewerScreen() {
       </View>
 
       <View style={styles.content}>
-        <WebView
-          key={webviewKey}
-          ref={webviewRef}
-          source={isMockBridge ? { html: MOCK_DAPP_HTML, baseUrl: 'https://localhost' } : { uri: url }}
-          style={styles.webview}
-          injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
-          onMessage={handleMessage}
-          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          onLoadStart={() => setIsLoading(true)}
-          onLoadEnd={() => setIsLoading(false)}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          allowsInlineMediaPlayback={true}
-          renderError={(errorName) => (
-            <View style={styles.errorContainer}>
-              <View style={styles.errorCard}>
-                <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
-                <Text style={styles.errorTitle}>Không thể tải Mini-App</Text>
-                <Text style={styles.errorDesc}>
-                  Trang web này hiện không phản hồi hoặc liên kết đã thay đổi:
-                </Text>
-                <Text style={styles.errorUrl} numberOfLines={2}>{url}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-                  <Text style={styles.retryButtonText}>Thử tải lại</Text>
-                </TouchableOpacity>
+        {Platform.OS === 'web' ? (
+          <iframe
+            src={isMockBridge ? undefined : url}
+            srcDoc={isMockBridge ? MOCK_DAPP_HTML : undefined}
+            style={{ width: '100%', height: '100%', border: 'none' } as any}
+            title={title}
+          />
+        ) : (
+          <WebView
+            key={webviewKey}
+            ref={webviewRef}
+            source={isMockBridge ? { html: MOCK_DAPP_HTML, baseUrl: 'https://localhost' } : { uri: url }}
+            style={styles.webview}
+            injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
+            onMessage={handleMessage}
+            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+            onLoadStart={() => setIsLoading(true)}
+            onLoadEnd={() => setIsLoading(false)}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            allowsInlineMediaPlayback={true}
+            renderError={(errorName) => (
+              <View style={styles.errorContainer}>
+                <View style={styles.errorCard}>
+                  <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
+                  <Text style={styles.errorTitle}>Không thể tải Mini-App</Text>
+                  <Text style={styles.errorDesc}>
+                    Trang web này hiện không phản hồi hoặc liên kết đã thay đổi:
+                  </Text>
+                  <Text style={styles.errorUrl} numberOfLines={2}>{url}</Text>
+                  <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                    <Text style={styles.retryButtonText}>Thử tải lại</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
-        />
+            )}
+          />
+        )}
         
-        {isLoading && (
+        {isLoading && Platform.OS !== 'web' && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF4500" />
             <Text style={styles.loadingText}>Đang tải N.E.D Mini-app...</Text>

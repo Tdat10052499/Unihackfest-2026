@@ -24,8 +24,12 @@
       "package": "com.anonymous.nedwallet"
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "themeColor": "#FDF8F5",
+      "backgroundColor": "#FDF8F5",
+      "display": "standalone"
     },
     "plugins": [
       "expo-router",
