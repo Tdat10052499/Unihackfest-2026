@@ -53,7 +53,7 @@ export default function MiniAppsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if ('id' in item && item.id === 'test-bridge') {
-      router.push('/mini-app?url=http://192.168.1.5:3000&title=Test DApp Bridge');
+      router.push('/mini-app?url=https://ned-mock-dapp.vercel.app&title=Test DApp Bridge');
       return;
     }
 
