@@ -1,4 +1,4 @@
-<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="https://drive.google.com/file/d/1-_vEHjZ99ItGIbcL0nQlDXA9aIQlhWw6/view?usp=drive_link" />
+<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="./assets/images/banner.jpg" />
 
 > A Next-Generation Web3 Smart Wallet on Solana Network
 
@@ -43,11 +43,9 @@ The application integrates:
 
 ## UI Showcase
 
-*(Please replace the `YOUR_IMAGE_LINK` placeholders with actual image direct links or local paths like `./assets/images/home.png`)*
-
 | Home Dashboard | Analytics View | QR Scan & Transfer | Authentication |
 | :---: | :---: | :---: | :---: |
-| <img src="YOUR_HOME_IMAGE_LINK" width="250" /> | <img src="YOUR_ANALYTICS_IMAGE_LINK" width="250" /> | <img src="YOUR_SCAN_IMAGE_LINK" width="250" /> | <img src="YOUR_AUTH_IMAGE_LINK" width="250" /> |
+| <img src="./assets/images/home.png" width="250" /> | <img src="./assets/images/analytics.png" width="250" /> | <img src="./assets/images/scan.png" width="250" /> | <img src="./assets/images/auth.png" width="250" /> |
 
 ---
 
