@@ -42,12 +42,15 @@ export function getCleanSupabaseAnonKey(): string {
 export const SUPABASE_URL = getCleanSupabaseUrl();
 export const SUPABASE_ANON_KEY = getCleanSupabaseAnonKey();
 
-// Adapter AsyncStorage cho Supabase Auth
+// Adapter AsyncStorage/LocalStorage cho Supabase Auth
 const isBrowserOrNative = Platform.OS !== 'web' || typeof window !== 'undefined';
 const safeStorage = {
   getItem: async (key: string): Promise<string | null> => {
     if (!isBrowserOrNative) return null;
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
       return await AsyncStorage.getItem(key);
     } catch {
       return null;
@@ -56,12 +59,20 @@ const safeStorage = {
   setItem: async (key: string, value: string): Promise<void> => {
     if (!isBrowserOrNative) return;
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+        return;
+      }
       await AsyncStorage.setItem(key, value);
     } catch {}
   },
   removeItem: async (key: string): Promise<void> => {
     if (!isBrowserOrNative) return;
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+        return;
+      }
       await AsyncStorage.removeItem(key);
     } catch {}
   },

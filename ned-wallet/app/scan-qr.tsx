@@ -349,6 +349,12 @@ export default function ScanQrScreen() {
               <Text style={styles.permissionCardDesc}>
                 {t('scanQr.cameraPermDesc', { defaultValue: 'Để quét mã QR nhận hoặc chuyển tiền Solana Pay tức thì, N.E.D Wallet cần bạn cấp quyền truy cập máy ảnh.' })}
               </Text>
+              
+              {Platform.OS === 'web' && (
+                <Text style={[styles.permissionCardDesc, { color: '#FF4C4C', fontWeight: 'bold', marginTop: 4 }]}>
+                  {t('scanQr.webCameraNotice', { defaultValue: 'Lưu ý: Tính năng Quét QR cần được cấp quyền sử dụng Webcam trên trình duyệt. Nếu không khả dụng, vui lòng tải ảnh QR từ máy.' })}
+                </Text>
+              )}
 
               <TouchableOpacity
                 style={styles.permissionPrimaryBtn}

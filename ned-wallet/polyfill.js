@@ -4,6 +4,10 @@ import processPolyfill from 'process/browser';
 
 global.Buffer = Buffer;
 
+if (typeof window !== 'undefined') {
+  window.Buffer = Buffer;
+}
+
 if (typeof global.process === 'undefined') {
   global.process = processPolyfill;
 } else {
@@ -40,4 +44,12 @@ if (typeof global.process === 'undefined') {
       global.process.cwd = () => '/';
     }
   } catch (e) {}
+}
+
+if (typeof window !== 'undefined') {
+  window.process = window.process || { env: processPolyfill.env || {} };
+  window.process.browser = true;
+  if (!window.process.version) {
+    window.process.version = 'v18.0.0';
+  }
 }

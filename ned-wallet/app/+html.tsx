@@ -45,5 +45,30 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  height: 100vh;
+  max-height: -webkit-fill-available;
+  overflow: hidden;
+  display: flex;
+  flex: 1;
 }
+
+html, #root {
+  height: 100vh;
+  max-height: -webkit-fill-available;
+  display: flex;
+  flex: 1;
+}
+
+@media (hover: hover) {
+  /* Hiệu ứng nảy nút (neo-brutalism) khi hover trên desktop */
+  [role="button"]:hover, button:hover, a:hover {
+    transform: translateY(-1px);
+    transition: transform 0.1s ease-in-out;
+  }
+  
+  [role="button"]:active, button:active, a:active {
+    transform: translateY(2px);
+  }
+}
+
 `;

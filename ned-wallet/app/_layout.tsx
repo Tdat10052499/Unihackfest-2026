@@ -81,9 +81,16 @@ export default function RootLayout() {
     };
   }, []);
 
+  const initialMetrics = Platform.OS === 'web' 
+    ? {
+        frame: { x: 0, y: 0, width: 0, height: 0 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }
+    : undefined;
+
   return (
     <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider style={styles.root}>
+      <SafeAreaProvider style={styles.root} initialMetrics={initialMetrics}>
         <View style={styles.root}>
           <PrivyProvider
             appId={process.env.EXPO_PUBLIC_PRIVY_APP_ID || PRIVY_APP_ID}
