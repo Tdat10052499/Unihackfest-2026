@@ -2,6 +2,7 @@
   "name": "ned-wallet",
   "main": "index.js",
   "version": "1.0.0",
+  "homepage": "https://tdat10052499.github.io/Unihackfest-2026",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -12,7 +13,10 @@
     "postinstall": "node ./scripts/patch-privy.js",
     "test:web3": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-connection.ts",
     "test:stablecoin": "ts-node -O '{\"module\":\"commonjs\"}' test-stablecoin.ts",
-    "test:transfer": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-transfer-tx.ts"
+    "test:transfer": "ts-node -O '{\"module\":\"commonjs\"}' scripts/test-transfer-tx.ts",
+    "deploy:web": "node scripts/deploy-web.js",
+    "predeploy": "npx expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll",
+    "deploy": "gh-pages -d dist -t --nojekyll"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
@@ -92,6 +96,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~57.0.2",
+    "gh-pages": "^6.3.0",
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3"
   },
