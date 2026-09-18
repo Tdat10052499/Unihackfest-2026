@@ -1,0 +1,23 @@
+{
+  "name": "ned-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@solana/web3.js": "^1.99.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "@vercel/node": "^13.0.1",
+    "typescript": "^5.9.3"
+  }
+}

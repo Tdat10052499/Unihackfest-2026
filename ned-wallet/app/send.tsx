@@ -12,6 +12,7 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -127,6 +128,7 @@ export default function SendScreen() {
   } = useOnchainTransfer();
 
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [searchInput, setSearchInput] = useState((params.recipient as string) || '');
   const [debouncedInput, setDebouncedInput] = useState((params.recipient as string) || '');
@@ -480,6 +482,11 @@ export default function SendScreen() {
 
       if (!result.success || !result.transactionHash) {
         const errorMsg = result.error || t('send.transferFailed', { defaultValue: 'Không thể thực hiện chuyển tiền.' });
+        if (errorMsg === 'LIMIT_REACHED') {
+          setShowLimitModal(true);
+          return;
+        }
+        
         if (
           errorMsg.includes('timeout') ||
           errorMsg.includes('user-signer') ||
@@ -951,6 +958,27 @@ export default function SendScreen() {
         note={receiptData.note}
         txHash={receiptData.txHash}
       />
+
+      <Modal
+        visible={showLimitModal}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.limitModalContainer}>
+            <Text style={styles.limitModalTitle}>Giới Hạn Lượt Dùng</Text>
+            <Text style={styles.limitModalText}>
+              Bạn đã hết 5 lượt giao dịch hôm nay. Vui lòng quay lại vào ngày mai.
+            </Text>
+            <TouchableOpacity 
+              style={styles.limitModalBtn}
+              onPress={() => setShowLimitModal(false)}
+            >
+              <Text style={styles.limitModalBtnText}>Đã hiểu</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1331,5 +1359,59 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+  },
+  
+  // Neo-brutalism Limit Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  limitModalContainer: {
+    width: '85%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  limitModalTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  limitModalText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333333',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  limitModalBtn: {
+    backgroundColor: '#FF4500',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  limitModalBtnText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

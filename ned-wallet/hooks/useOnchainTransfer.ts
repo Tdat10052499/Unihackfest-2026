@@ -334,7 +334,9 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           )
         );
 
-        transaction.feePayer = fromPubkey;
+        // Gán feePayer là Relayer thay vì người gửi
+        const relayerPubkey = process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER;
+        transaction.feePayer = relayerPubkey ? new PublicKey(relayerPubkey) : fromPubkey;
         transaction.recentBlockhash = blockhash;
 
         setStatusMessage('Đang chuẩn bị xác nhận...');
@@ -441,13 +443,32 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
 
         setStatusMessage('Đang phát sóng lên mạng lưới...');
 
-        // 8. Phát sóng On-chain trực tiếp lên Solana Devnet
-        const rawTx = signedTransaction.serialize();
-        const txSignature = await solanaConnection.sendRawTransaction(rawTx, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
+        // 8. Phát sóng thông qua NED-Hub Relayer API (Gasless)
+        const rawTxBase64 = signedTransaction.serialize({ requireAllSignatures: false }).toString('base64');
+        const token = typeof getAccessToken === 'function' ? await getAccessToken() : '';
+        const userId = user?.id || '';
+
+        const relayerApiUrl = process.env.EXPO_PUBLIC_RELAYER_API_URL || 'http://localhost:3000/api/transactions/sponsor';
+        const response = await fetch(relayerApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ transaction: rawTxBase64, userId }),
         });
-        console.log('⚡ [On-chain Broadcasted] TxSignature:', txSignature);
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+             throw new Error('LIMIT_REACHED');
+          }
+          throw new Error(data.error || 'Lỗi từ Relayer.');
+        }
+
+        const txSignature = data.txHash;
+        console.log('⚡ [On-chain Broadcasted via Relayer] TxSignature:', txSignature);
 
         setStatusMessage('Đang chờ xác nhận giao dịch...');
         await solanaConnection.confirmTransaction(txSignature, 'confirmed');
