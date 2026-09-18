@@ -117,20 +117,22 @@ export function useWeb3Bridge(publicKey: string | null) {
 
   // Helper function sinh mã JS để gọi callback về cho DApp
   const generateResolveScript = (id: number, data: any) => {
+    const hasPublicKey = data && typeof data === 'object' && data.publicKey ? true : false;
+    const hasSignedTx = data && typeof data === 'object' && data.signedTx ? true : false;
+
     return `
       if (window._solanaPromises && window._solanaPromises[${id}]) {
-        if (${data && typeof data === 'object' && data.publicKey}) {
+        if (${hasPublicKey}) {
           // Xử lý connect
           window.solana.publicKey = {
-            toString: () => "${data.publicKey}",
-            toBase58: () => "${data.publicKey}"
+            toString: () => "${data?.publicKey}",
+            toBase58: () => "${data?.publicKey}"
           };
           window.solana.isConnected = true;
           window._solanaPromises[${id}].resolve({ publicKey: window.solana.publicKey });
-        } else if (${data && typeof data === 'object' && data.signedTx}) {
+        } else if (${hasSignedTx}) {
           // Xử lý signTransaction (Data là Uint8Array hoặc Array)
-          // Tạo một object có hàm serialize trả về mảng byte
-          const txData = new Uint8Array([${data.signedTx}]);
+          const txData = new Uint8Array([${data?.signedTx}]);
           window._solanaPromises[${id}].resolve({ serialize: () => txData });
         } else {
           window._solanaPromises[${id}].resolve(${JSON.stringify(data)});
