@@ -231,19 +231,6 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
 
         console.log(`💰 [useOnchainTransfer] Sender: ${from} | USDC Bal: ${senderUsdcBal} | SOL Bal: ${senderSolBal}`);
 
-        // Tự động cấp gas Devnet SOL nếu ví chưa có phí mạng
-        if (senderSolBal < 0.003 && process.env.EXPO_PUBLIC_SOLANA_CLUSTER !== 'mainnet-beta') {
-          console.log('ℹ️ [Gas Sponsor] Tự động cấp gas Devnet SOL cho ví người gửi...');
-          try {
-            const airdropSig = await solanaConnection.requestAirdrop(fromPubkey, 0.05 * LAMPORTS_PER_SOL);
-            await solanaConnection.confirmTransaction(airdropSig, 'confirmed');
-            senderSolBal = await getSolanaBalance(from, true);
-            console.log('✅ [Gas Sponsor] Cấp gas thành công, số dư SOL mới:', senderSolBal);
-          } catch (gasErr) {
-            console.warn('⚠️ [Gas Sponsor Devnet Notice]:', gasErr);
-          }
-        }
-
         const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
         const transaction = new Transaction();
 
@@ -445,12 +432,18 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
 
         setStatusMessage('Đang phát sóng lên mạng lưới...');
 
-        // 8. Phát sóng thông qua NED-Hub Relayer API (Gasless)
-        const rawTxBase64 = signedTransaction.serialize({ requireAllSignatures: false }).toString('base64');
+        // Bước 3: Serialize giao dịch vừa ký và gửi qua HTTP POST bằng lệnh fetch tới endpoint ${process.env.EXPO_PUBLIC_NED_HUB_URL}/api/relayer
+        const rawTxBase64 = Buffer.from(
+          signedTransaction.serialize({ requireAllSignatures: false, verifySignatures: false })
+        ).toString('base64');
         const token = typeof getAccessToken === 'function' ? await getAccessToken() : '';
         const userId = user?.id || '';
 
-        const relayerApiUrl = process.env.EXPO_PUBLIC_RELAYER_API_URL || 'http://localhost:3000/api/transactions/sponsor';
+        const hubBaseUrl = process.env.EXPO_PUBLIC_NED_HUB_URL || 'http://localhost:3001';
+        const relayerApiUrl = `${hubBaseUrl}/api/relayer`;
+
+        console.log('Calling Relayer API at:', relayerApiUrl);
+
         const response = await fetch(relayerApiUrl, {
           method: 'POST',
           headers: {
@@ -460,7 +453,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           body: JSON.stringify({ transaction: rawTxBase64, userId }),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         
         if (!response.ok) {
           if (response.status === 429) {
@@ -469,8 +462,28 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           throw new Error(data.error || 'Lỗi từ Relayer.');
         }
 
-        const txSignature = data.txHash;
-        console.log('⚡ [On-chain Broadcasted via Relayer] TxSignature:', txSignature);
+        // Bước 4: Nhận lại chuỗi giao dịch đã được backend ký hoàn tất, giải mã (deserialize) và sử dụng connection.sendRawTransaction() để đẩy lên mạng Solana
+        const signedBackendTx = data.signedTransaction || data.transaction;
+        let txSignature: string;
+
+        if (signedBackendTx) {
+          const backendTxBuffer = Buffer.from(signedBackendTx, 'base64');
+          const fullySignedTx = Transaction.from(backendTxBuffer);
+          const rawBroadcastBytes = fullySignedTx.serialize();
+
+          txSignature = await solanaConnection.sendRawTransaction(rawBroadcastBytes, {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+            maxRetries: 3,
+          });
+        } else if (data.txHash) {
+          // Fallback nếu backend đã broadcast sẵn
+          txSignature = data.txHash;
+        } else {
+          throw new Error('Không nhận được giao dịch đã ký từ Relayer backend.');
+        }
+
+        console.log('⚡ [On-chain Broadcasted] TxSignature:', txSignature);
 
         setStatusMessage('Đang chờ xác nhận giao dịch...');
         await solanaConnection.confirmTransaction(txSignature, 'confirmed');

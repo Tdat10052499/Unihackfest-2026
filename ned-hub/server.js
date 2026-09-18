@@ -4,7 +4,8 @@ require('dotenv').config({ path: '.env.local' });
 // Compile TS on the fly
 require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'CommonJS', moduleResolution: 'node' } });
 
-const handler = require('./api/transactions/sponsor.ts').default;
+const sponsorHandler = require('./api/transactions/sponsor.ts').default;
+const relayerHandler = require('./api/relayer.ts').default;
 
 const app = express();
 app.use(express.json());
@@ -12,7 +13,16 @@ app.use(express.json());
 app.all('/api/transactions/sponsor', async (req, res) => {
   // Mock VercelRequest and VercelResponse
   try {
-    await handler(req, res);
+    await sponsorHandler(req, res);
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.all('/api/relayer', async (req, res) => {
+  try {
+    await relayerHandler(req, res);
   } catch(e) {
     console.error(e);
     res.status(500).json({ error: e.message });
