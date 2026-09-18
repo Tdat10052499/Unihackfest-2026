@@ -59,15 +59,30 @@ sequenceDiagram
 Dự án được xây dựng với các công nghệ hiện đại và mạnh mẽ nhất:
 
 * **Framework & UI:**
-  * ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-  * ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
-  * ![Reanimated](https://img.shields.io/badge/Reanimated-FF4154?style=for-the-badge)
+
+| Công nghệ | Vai trò trong hệ thống |
+| :--- | :--- |
+| ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) | Nền tảng cốt lõi phát triển giao diện Cross-platform |
+| ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white) | Quản lý vòng đời ứng dụng, cấp quyền thiết bị & build hệ thống |
+| ![Reanimated](https://img.shields.io/badge/Reanimated-FF4154?style=for-the-badge) | Xử lý hiệu ứng mượt mà (60fps) mang phong cách Neo-brutalism |
+
 * **Blockchain (Solana):**
-  * ![@solana/web3.js](https://img.shields.io/badge/Solana_Web3.js-14F195?style=for-the-badge&logo=solana&logoColor=white)
-  * ![Anchor](https://img.shields.io/badge/Anchor-000000?style=for-the-badge&logo=anchor)
+
+| Công nghệ | Vai trò trong hệ thống |
+| :--- | :--- |
+| ![@solana/web3.js](https://img.shields.io/badge/Solana_Web3.js-14F195?style=for-the-badge&logo=solana&logoColor=white) | Tương tác trực tiếp với RPC và đọc/ghi dữ liệu lên mạng Solana |
+| ![Anchor](https://img.shields.io/badge/Anchor-000000?style=for-the-badge&logo=anchor) | SDK chuẩn hóa tương tác với các Smart Contracts (Programs) |
+
 * **Backend-as-a-Service & Auth:**
-  * ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
-  * ![Privy](https://img.shields.io/badge/Privy_Auth-6B46C1?style=for-the-badge)
+
+| Công nghệ | Vai trò trong hệ thống |
+| :--- | :--- |
+| ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) | Lưu trữ Database (PostgreSQL) & phân quyền Row Level Security (RLS) |
+| ![Privy](https://img.shields.io/badge/Privy_Auth-6B46C1?style=for-the-badge) | Giải pháp xác thực an toàn, khởi tạo ví Web3 nhúng (Embedded Wallet) |
+
 * **State Management & Utils:**
-  * ![Zustand](https://img.shields.io/badge/Zustand-454545?style=for-the-badge)
-  * ![i18next](https://img.shields.io/badge/i18next-26A69A?style=for-the-badge)
+
+| Công nghệ | Vai trò trong hệ thống |
+| :--- | :--- |
+| ![Zustand](https://img.shields.io/badge/Zustand-454545?style=for-the-badge) | Quản lý State tập trung, phân tách logic on-chain & UI tinh gọn |
+| ![i18next](https://img.shields.io/badge/i18next-26A69A?style=for-the-badge) | Khung chuyển đổi đa ngôn ngữ (Localization - Tiếng Việt/Anh) |
