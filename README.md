@@ -21,7 +21,6 @@
 - [Project Structure](#project-structure)
 - [Setup & Installation](#setup--installation)
 - [Guidelines](#guidelines)
-- [Team](#team)
 
 ---
 
@@ -256,16 +255,6 @@ npm run start
 
 ---
 
-## Team
-
-**Core Development Team**
-- Developer: Nguyễn Minh Chính - 2275106050051
-- Developer: Nguyễn Thành Phát - 2474802016639
-- Developer: Nguyễn Hữu Đồng - 2474802010087
-- Developer: Võ Việt Tiến - 2474802010391
-- Project Lead & Designer: Hồ Du Tuấn Đạt - 2374802010097
-
----
 
 ## License
 
