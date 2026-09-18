@@ -21,6 +21,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '@/services/i18n';
 
 export interface StablecoinCardData {
   id: string;
@@ -71,6 +72,8 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
   onAddCardPress,
   onDeleteCardPress,
 }) => {
+  const { t } = useTranslation();
+
   // Mặc định 1 thẻ USDC nếu chưa truyền vào (đảm bảo mảng không bao giờ rỗng)
   const DEFAULT_USDC_CARD: StablecoinCardData = {
     id: 'usdc_default',
@@ -801,7 +804,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
             <View style={styles.swapBtnShadow} />
             <View style={[styles.swapBtnBody, isAnimating && styles.swapBtnBodyActive]}>
               <Ionicons name="swap-horizontal" size={15} color="#000000" />
-              <Text style={styles.swapBtnText}>Swap</Text>
+              <Text style={styles.swapBtnText}>{t('home.swap', { defaultValue: 'Swap' })}</Text>
               <View style={styles.swapBadgeNext}>
                 <Text style={styles.swapBadgeNextText}>{nextCard.currency}</Text>
               </View>
@@ -826,7 +829,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
           </Animated.View>
 
           <View style={styles.balanceSubRow}>
-            <Text style={styles.pouchBalanceLabel}>Total Balance</Text>
+            <Text style={styles.pouchBalanceLabel}>{t('home.totalBalance', { defaultValue: 'Total Balance' })}</Text>
             <View style={styles.activeCurrencyTag}>
               <Text style={styles.activeCurrencyTagText}>{activeFrontCard.currency}</Text>
             </View>
@@ -885,7 +888,7 @@ export const NeoPhysicalWalletCard: React.FC<NeoPhysicalWalletCardProps> = ({
             <View style={styles.pouchActionBtnShadow} />
             <View style={[styles.pouchActionBtnBody, { backgroundColor: '#CCFF00' }]}>
               <Ionicons name="swap-horizontal" size={16} color="#000000" />
-              <Text style={styles.pouchActionBtnText}>Đổi</Text>
+              <Text style={styles.pouchActionBtnText}>{t('home.swap', { defaultValue: 'Swap' })}</Text>
             </View>
           </TouchableOpacity>
         </View>

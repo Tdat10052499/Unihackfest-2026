@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/services/i18n';
 
 export type TimeOfDay = 'day' | 'night';
 
@@ -21,14 +22,14 @@ export function getTimeOfDay(): TimeOfDay {
  * - Chiều (Afternoon): 12:00 - 17:59 -> "Good Afternoon"
  * - Tối / Đêm (Evening): 18:00 - 04:59 -> "Good Evening"
  */
-export function getTimeGreeting(): string {
+export function getTimeGreeting(t: any): string {
   const hours = new Date().getHours();
   if (hours >= 5 && hours < 12) {
-    return 'Good Morning';
+    return t ? t('home.goodMorning', { defaultValue: 'Good Morning' }) : 'Good Morning';
   } else if (hours >= 12 && hours < 18) {
-    return 'Good Afternoon';
+    return t ? t('home.goodAfternoon', { defaultValue: 'Good Afternoon' }) : 'Good Afternoon';
   } else {
-    return 'Good Evening';
+    return t ? t('home.goodEvening', { defaultValue: 'Good Evening' }) : 'Good Evening';
   }
 }
 
@@ -37,13 +38,14 @@ export function getTimeGreeting(): string {
  * Tự động đồng bộ và cập nhật mỗi phút.
  */
 export function useTimeOfDay() {
+  const { t } = useTranslation();
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getTimeOfDay);
-  const [greeting, setGreeting] = useState<string>(getTimeGreeting);
+  const [greeting, setGreeting] = useState<string>(() => getTimeGreeting(t));
 
   useEffect(() => {
     const update = () => {
       setTimeOfDay(getTimeOfDay());
-      setGreeting(getTimeGreeting());
+      setGreeting(getTimeGreeting(t));
     };
     // Cập nhật giá trị ban đầu
     update();

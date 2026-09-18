@@ -26,7 +26,16 @@
     "linkedPhoneTapToManage": "Linked: {{phone}} (Tap to manage)",
     "signedInTapToAddPhone": "Signed in securely (Tap to add phone)",
     "makeDeposit": "Make a deposit",
-    "readyHint": "Then you're ready"
+    "readyHint": "Then you're ready",
+    "expenses": "Expenses",
+    "recentTransaction": "Recent Transaction",
+    "directBank": "Direct Bank",
+    "welcomeBack": "Welcome Back!",
+    "connecting": "Connecting N.E.D account...",
+    "swap": "Swap",
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon",
+    "goodEvening": "Good Evening"
   },
   "activities": {
     "title": "Transaction History",
@@ -231,5 +240,21 @@
     "txFailedOnChain": "Transaction failed on-chain: {{err}}",
     "userCancelled": "You canceled signing the transaction.",
     "txFailed": "Failed to execute On-chain transaction on Solana Devnet."
+  },
+  "overview": {
+    "headerTitle": "Analytics",
+    "available": "Available",
+    "savings": "Savings/Vault",
+    "earned": "Earned (In)",
+    "spent": "Spent (Out)",
+    "spending": "Spending",
+    "monthlyOutflowCap": "Monthly Outflow Cap",
+    "amount": "Amount:",
+    "cashFlowTrend": "Cash Flow Trend",
+    "topDrainers": "Top Drainers",
+    "noSpendingTx": "No spending transactions for {{cardName}} yet.",
+    "cashFlowOverview": "Cash Flow Overview",
+    "balance": "Balance:",
+    "loading": "Loading..."
   }
 }

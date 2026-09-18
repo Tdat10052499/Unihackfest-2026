@@ -26,7 +26,16 @@
     "linkedPhoneTapToManage": "Đã liên kết: {{phone}} (Chạm để quản lý)",
     "signedInTapToAddPhone": "Đã đăng nhập an toàn (Chạm để thêm SĐT)",
     "makeDeposit": "Nạp tiền vào ví",
-    "readyHint": "Sau đó bạn đã sẵn sàng"
+    "readyHint": "Sau đó bạn đã sẵn sàng",
+    "expenses": "Chi tiêu",
+    "recentTransaction": "Giao dịch gần đây",
+    "directBank": "Ngân hàng trực tiếp",
+    "welcomeBack": "Chào mừng trở lại!",
+    "connecting": "Đang kết nối tài khoản N.E.D...",
+    "swap": "Hoán đổi",
+    "goodMorning": "Chào buổi sáng",
+    "goodAfternoon": "Chào buổi chiều",
+    "goodEvening": "Chào buổi tối"
   },
   "activities": {
     "title": "Lịch sử giao dịch",
@@ -231,5 +240,21 @@
     "txFailedOnChain": "Giao dịch thất bại trên chuỗi: {{err}}",
     "userCancelled": "Bạn đã hủy ký giao dịch.",
     "txFailed": "Không thể thực hiện giao dịch On-chain trên Solana Devnet."
+  },
+  "overview": {
+    "headerTitle": "Phân tích",
+    "available": "Khả dụng",
+    "savings": "Tiết kiệm/Két",
+    "earned": "Thu vào",
+    "spent": "Chi tiêu",
+    "spending": "Chi tiêu",
+    "monthlyOutflowCap": "Hạn mức chi tiêu tháng",
+    "amount": "Số tiền:",
+    "cashFlowTrend": "Xu hướng dòng tiền",
+    "topDrainers": "Chi tiêu nhiều nhất",
+    "noSpendingTx": "Chưa có giao dịch chi tiêu nào cho thẻ {{cardName}}.",
+    "cashFlowOverview": "Tổng quan dòng tiền",
+    "balance": "Số dư:",
+    "loading": "Đang tải..."
   }
 }
