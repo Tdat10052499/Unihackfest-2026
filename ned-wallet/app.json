@@ -21,7 +21,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.nedwallet"
+      "package": "com.anonymous.nedwallet",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -67,6 +73,18 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "baseUrl": "/Unihackfest-2026"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "69a9bc8d-ff78-4645-9d95-d44696d7a6a6"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/69a9bc8d-ff78-4645-9d95-d44696d7a6a6"
     }
   }
 }

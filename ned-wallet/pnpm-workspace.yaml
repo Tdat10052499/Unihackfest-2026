@@ -14,3 +14,4 @@ minimumReleaseAgeExclude:
   - '@expo/metro-file-map@57.0.3'
   - babel-preset-expo@57.0.11
   - expo-glass-effect@57.0.2
+  - expo-updates@57.0.23
