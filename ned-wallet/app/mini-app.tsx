@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,11 +14,15 @@ import { resolveActiveSolanaAddress } from '../services/identity';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
+import { MOCK_DAPP_HTML } from '../constants/mockDAppHtml';
+
 export default function MiniAppViewerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const url = (params.url as string) || 'https://jup.ag';
+  const rawUrl = (params.url as string) || '';
   const title = (params.title as string) || 'Mini App';
+  const isMockBridge = rawUrl === 'local-bridge' || rawUrl.includes('ned-mock-dapp') || title.includes('Test Bridge');
+  const url = isMockBridge ? '' : (rawUrl || 'https://jup.ag');
 
   const webviewRef = useRef<WebView>(null);
   
@@ -67,7 +72,13 @@ export default function MiniAppViewerScreen() {
 
   const onShouldStartLoadWithRequest = (request: any) => {
     const { url: reqUrl } = request;
-    if (reqUrl.startsWith('http://') || reqUrl.startsWith('https://')) {
+    if (
+      reqUrl.startsWith('http://') ||
+      reqUrl.startsWith('https://') ||
+      reqUrl.startsWith('about:') ||
+      reqUrl.startsWith('blob:') ||
+      reqUrl.startsWith('data:')
+    ) {
       return true;
     }
     // Block deep links and unknown schemes
@@ -216,7 +227,7 @@ export default function MiniAppViewerScreen() {
         <WebView
           key={webviewKey}
           ref={webviewRef}
-          source={{ uri: url }}
+          source={isMockBridge ? { html: MOCK_DAPP_HTML, baseUrl: 'https://localhost' } : { uri: url }}
           style={styles.webview}
           injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
           onMessage={handleMessage}
@@ -226,6 +237,21 @@ export default function MiniAppViewerScreen() {
           javaScriptEnabled={true}
           domStorageEnabled={true}
           allowsInlineMediaPlayback={true}
+          renderError={(errorName) => (
+            <View style={styles.errorContainer}>
+              <View style={styles.errorCard}>
+                <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
+                <Text style={styles.errorTitle}>Không thể tải Mini-App</Text>
+                <Text style={styles.errorDesc}>
+                  Trang web này hiện không phản hồi hoặc liên kết đã thay đổi:
+                </Text>
+                <Text style={styles.errorUrl} numberOfLines={2}>{url}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                  <Text style={styles.retryButtonText}>Thử tải lại</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         />
         
         {isLoading && (
@@ -311,5 +337,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#000000',
-  }
+  },
+  errorContainer: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 6,
+  },
+  errorCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000000',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorDesc: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorUrl: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: '#0891B2',
+    backgroundColor: '#F0FDFA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#00E5FF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  retryButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#000000',
+  },
 });

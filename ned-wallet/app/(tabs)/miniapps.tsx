@@ -13,12 +13,14 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
 import { useTranslation } from '@/services/i18n';
+import { supabase } from '@/services/supabase';
 
 interface MiniAppItem {
   id: string;
   title: string;
   category: string;
   description: string;
+  url?: string;
   iconName: string;
   iconType: 'feather' | 'ionicons';
   iconBg: string;
@@ -27,33 +29,79 @@ interface MiniAppItem {
   status?: string;
 }
 
+const DEFAULT_MINI_APPS: MiniAppItem[] = [
+  {
+    id: 'test-bridge',
+    title: 'DApp Test Bridge',
+    category: 'Developer Tools',
+    description: 'Môi trường kiểm thử Web3 Bridge (In-app Browser) cho N.E.D Wallet.',
+    url: 'local-bridge',
+    iconName: 'code-slash',
+    iconType: 'ionicons',
+    iconBg: '#E6F4FE',
+    categoryColor: '#0891B2',
+    status: 'Ready',
+  },
+  {
+    id: 'jupiter-exchange',
+    title: 'Jupiter DEX',
+    category: 'DeFi & Swap',
+    description: 'Sàn giao dịch phi tập trung và tổng hợp thanh khoản số 1 trên Solana.',
+    url: 'https://jup.ag',
+    iconName: 'repeat',
+    iconType: 'feather',
+    iconBg: '#FEF3C7',
+    categoryColor: '#D97706',
+    status: 'Popular',
+  }
+];
+
 export default function MiniAppsScreen() {
   const { t } = useTranslation();
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [miniAppsList, setMiniAppsList] = useState<MiniAppItem[]>(DEFAULT_MINI_APPS);
 
   const router = useRouter();
 
-  const MINI_APPS_DATA: MiniAppItem[] = [
-    {
-      id: 'test-bridge',
-      title: 'DApp Test Bridge',
-      category: 'Developer Tools',
-      description: 'Môi trường kiểm thử Web3 Bridge (In-app Browser) cho N.E.D Wallet.',
-      iconName: 'code-slash',
-      iconType: 'ionicons',
-      iconBg: '#E6F4FE',
-      categoryColor: '#0891B2',
-      status: 'Ready',
-    }
-  ];
+  // Tự động tải danh sách Mini-apps động từ Supabase (nếu có table mini_apps)
+  React.useEffect(() => {
+    async function loadDynamicMiniApps() {
+      try {
+        const { data, error } = await supabase
+          .from('mini_apps')
+          .select('*')
+          .eq('is_active', true)
+          .order('order_index', { ascending: true });
 
-  const handleCardPress = (item: MiniAppItem | { id?: string, title: string; status?: string }) => {
+        if (!error && data && data.length > 0) {
+          const formatted: MiniAppItem[] = data.map((item: any) => ({
+            id: item.id || item.slug,
+            title: item.title || item.name,
+            category: item.category || 'Web3 DApp',
+            description: item.description || '',
+            url: item.url,
+            iconName: item.icon_name || 'globe',
+            iconType: item.icon_type === 'ionicons' ? 'ionicons' : 'feather',
+            iconBg: item.icon_bg || '#E6F4FE',
+            categoryColor: item.category_color || '#0891B2',
+            status: item.status || 'Ready',
+          }));
+          setMiniAppsList(formatted);
+        }
+      } catch (e) {
+        // Fallback danh sách mặc định nếu table chưa tạo
+      }
+    }
+    loadDynamicMiniApps();
+  }, []);
+
+  const handleCardPress = (item: MiniAppItem | { id?: string; title: string; url?: string; status?: string }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    if ('id' in item && item.id === 'test-bridge') {
-      router.push('/mini-app?url=https://ned-mock-dapp.vercel.app&title=Test DApp Bridge');
+    if ('url' in item && item.url) {
+      router.push(`/mini-app?url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}`);
       return;
     }
 
@@ -110,8 +158,8 @@ export default function MiniAppsScreen() {
         {/* Tiêu đề phụ "Featured Apps" */}
         <Text style={styles.sectionTitle}>{t('miniapps.featuredSection', { defaultValue: 'Featured Apps' })}</Text>
 
-        {/* Danh sách các thẻ ứng dụng Mock Data */}
-        {MINI_APPS_DATA.map((item) => (
+        {/* Danh sách các ứng dụng động */}
+        {miniAppsList.map((item) => (
           <View key={item.id} style={styles.cardWrapper}>
             {/* Hard Shadow Layer phía sau (Neo-brutalism) */}
             <View style={styles.cardShadow} />
