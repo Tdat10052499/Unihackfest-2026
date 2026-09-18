@@ -1,88 +1,284 @@
-# N.E.D Wallet 🚀
+<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="YOUR_BANNER_IMAGE_ID_OR_LINK" />
 
-![N.E.D Wallet Banner](https://drive.google.com/uc?export=view&id=YOUR_BANNER_IMAGE_ID)
+> A Next-Generation Web3 Smart Wallet on Solana Network
 
-## 1. Giới thiệu dự án (Project Overview)
+[![Solana Network](https://img.shields.io/badge/Solana-14F195?style=flat&logo=solana&logoColor=white)](https://solana.com/)
+[![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)](https://supabase.com/)
 
-**Tên dự án:** N.E.D Wallet
-
-**Mô tả:** N.E.D Wallet là một ví Web3 thông minh trên nền tảng Solana, được thiết kế tập trung vào trải nghiệm người dùng liền mạch (chuẩn Web2.5). Ứng dụng mang phong cách thiết kế **Neo-brutalism** phá cách, độc đáo và cung cấp giải pháp quản lý linh hoạt, an toàn cho các tài sản Stablecoin của bạn.
+**N.E.D Wallet** is a smart Web3 wallet built on the Solana blockchain, focusing on delivering a seamless Web2.5 user experience. It combines a bold Neo-brutalism design language with robust stablecoin asset management and gasless transactions.
 
 ---
 
-## 2. Hình ảnh minh họa (Screenshots & Assets)
+## Table of Contents
 
-*(Lưu ý: Thay thế `YOUR_IMAGE_ID` trong các link dưới đây bằng ID thực tế của từng ảnh trên Google Drive để GitHub render trực tiếp)*
+- [Overview](#overview)
+- [UI Showcase](#ui-showcase)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture & Data Flow](#architecture--data-flow)
+- [Project Structure](#project-structure)
+- [Setup & Installation](#setup--installation)
+- [Guidelines](#guidelines)
+- [Team](#team)
 
-| Home | Analytics | QR Scan | Auth |
+---
+
+## Overview
+
+N.E.D Wallet is a decentralized mobile application where users can:
+- Manage their stablecoin assets across multiple accounts safely.
+- Execute transactions without holding native SOL for gas fees.
+- Experience a striking Neo-brutalism interface with hard shadows and haptic feedback.
+- Seamlessly switch between Vietnamese and English languages.
+
+The application integrates:
+- **Solana Blockchain** for high-speed, low-cost decentralized transactions.
+- **Supabase** for secure user identity management and Row Level Security (RLS).
+- **React Native (Expo)** for a smooth, cross-platform mobile experience.
+- **NED-Hub (Relayer)** to sponsor network fees for users.
+
+---
+
+## UI Showcase
+
+*(Please replace the `YOUR_IMAGE_LINK` placeholders with actual image direct links or local paths like `./assets/images/home.png`)*
+
+| Home Dashboard | Analytics View | QR Scan & Transfer | Authentication |
 | :---: | :---: | :---: | :---: |
-| ![Home](https://drive.google.com/uc?export=view&id=YOUR_HOME_IMAGE_ID) | ![Analytics](https://drive.google.com/uc?export=view&id=YOUR_ANALYTICS_IMAGE_ID) | ![QR Scan](https://drive.google.com/uc?export=view&id=YOUR_SCAN_IMAGE_ID) | ![Auth](https://drive.google.com/uc?export=view&id=YOUR_AUTH_IMAGE_ID) |
-
-> 🎨 **Toàn bộ tài nguyên thiết kế:** [Xem trên Google Drive](https://drive.google.com/drive/folders/1e1gSUG-g5Ha5jdqUT4mdwWAhQoJOlz68?usp=drive_link)
+| <img src="YOUR_HOME_IMAGE_LINK" width="250" /> | <img src="YOUR_ANALYTICS_IMAGE_LINK" width="250" /> | <img src="YOUR_SCAN_IMAGE_LINK" width="250" /> | <img src="YOUR_AUTH_IMAGE_LINK" width="250" /> |
 
 ---
 
-## 3. Tính năng nổi bật (Key Features)
+## Features
 
-* 🎨 **Giao diện Neo-brutalism:** Hệ thống UI/UX độc đáo với viền đen dày, bóng đổ cứng (hard shadows) và tích hợp các hiệu ứng phản hồi haptic sinh động mang lại cảm giác chân thực.
-* ⚡ **Gasless Transactions:** Trải nghiệm Web2.5 hoàn hảo. Ví tài trợ phí mạng lưới (network fee) thông qua Relayer (NED-Hub), giúp người dùng thực hiện giao dịch hoàn toàn miễn phí mà không cần giữ SOL làm phí gas.
-* 🌍 **Đa ngôn ngữ (i18n):** Hỗ trợ chuyển đổi toàn diện và mượt mà giữa Tiếng Việt và Tiếng Anh trên toàn bộ ứng dụng.
-* 🔒 **Bảo mật & Quản lý:** Tách biệt dữ liệu thẻ Stablecoin của từng tài khoản một cách an toàn thông qua chính sách bảo mật Row Level Security (RLS) của Supabase.
+### Core Capabilities
+- **Gasless Transactions**: A built-in Relayer (NED-Hub) sponsors the network fees. Users can transfer stablecoins instantly without needing to hold SOL in their wallets.
+- **Neo-brutalism Design**: A unique UI/UX system featuring thick black borders, hard shadows, vibrant colors, and precise haptic feedback for every interaction.
+- **Stablecoin Management**: Dedicated interfaces for tracking and managing stable assets like USDC, completely shielding the complexity of crypto volatility.
+- **Multi-language Support (i18n)**: Comprehensive localization architecture supporting seamless switching between Vietnamese and English.
+
+### User Security
+- **Embedded Wallet Authentication**: Powered by Privy, allowing smooth Web3 onboarding without the burden of seed phrases.
+- **Row Level Security (RLS)**: Data separation for stablecoin cards and profiles via Supabase RLS, ensuring users can only access their own data.
+- **Local Biometrics**: Optional integration with device-level security (FaceID/TouchID) for transaction signing.
 
 ---
 
-## 4. Kiến trúc hệ thống (Architecture)
+## Tech Stack
 
-N.E.D Wallet hoạt động dựa trên cơ chế ký giao dịch một phần (partial sign) kết hợp với Relayer Server để đài thọ phí giao dịch cho người dùng.
+### Frontend & UI
+- **React Native 0.86 / Expo 57** - Cross-platform mobile framework
+- **TypeScript** - Type safety and strict compilation
+- **Zustand** - Lightweight state management
+- **React Native Reanimated** - 60fps smooth animations and transitions
+- **i18next** - Internationalization framework
+
+### Blockchain
+- **Solana Network (@solana/web3.js)** - Blockchain infrastructure and RPC interaction
+- **Anchor Framework (@coral-xyz/anchor)** - Standardized smart contract (Program) interaction
+- **BS58 & TweetNaCl** - Cryptography and key pair handling
+
+### Backend & Auth
+- **Supabase** - PostgreSQL Database, Realtime Subscriptions, and RLS
+- **Privy (@privy-io/expo)** - Web3 Auth and Embedded Wallet management
+
+---
+
+## Architecture & Data Flow
+
+### 1. Infrastructure Architecture
+
+The following diagram illustrates the high-level infrastructure components of N.E.D Wallet:
+
+```mermaid
+graph TD
+    subgraph Client Layer
+        APP[N.E.D Wallet Mobile App\nReact Native / Expo]
+        UI[Neo-brutalism UI\nZustand State]
+    end
+
+    subgraph Authentication & DB Layer
+        PRIVY[Privy\nEmbedded Wallet Auth]
+        SUPA[(Supabase PostgreSQL\nwith RLS)]
+    end
+
+    subgraph Relayer Layer
+        HUB[NED-Hub Server\nFee Payer / Rate Limiter]
+    end
+
+    subgraph Blockchain Layer
+        SOL((Solana Network\nRPC Nodes))
+    end
+
+    APP <--> |Auth / Key Management| PRIVY
+    APP <--> |Read/Write User Data| SUPA
+    APP --> |Submit Partial Signed Tx| HUB
+    HUB --> |Sponsor Gas & Submit Tx| SOL
+    SOL --> |Return Tx Signature| HUB
+```
+
+### 2. Transaction Data Flow (Gasless Transfer)
+
+This sequence diagram demonstrates the flow of data when a user initiates a gasless transfer:
 
 ```mermaid
 sequenceDiagram
-    participant C as Client (N.E.D Wallet)
-    participant S as Supabase (Database)
-    participant R as NED-Hub (Relayer Server)
-    participant B as Solana Network
+    participant User as User / Mobile App
+    participant Supabase as Supabase DB
+    participant Hub as NED-Hub (Relayer)
+    participant Solana as Solana Network
 
-    C->>S: Xác thực người dùng & Truy xuất ví (RLS)
-    S-->>C: Trả về thông tin danh mục Stablecoin
-    C->>C: Khởi tạo giao dịch & User ký (Partial Sign)
-    C->>R: Gửi giao dịch đã ký một phần lên Relayer
-    R->>R: Kiểm tra Rate Limit & Thêm chữ ký Fee Payer (Tài trợ Gas)
-    R->>B: Đẩy giao dịch hoàn chỉnh lên mạng Solana
-    B-->>R: Trả về trạng thái giao dịch (Tx Hash)
-    R-->>C: Thông báo giao dịch thành công/thất bại
+    User->>Supabase: Fetch Wallet Assets & Balances
+    Supabase-->>User: Return Data (RLS Protected)
+    
+    User->>User: Create Transfer Transaction
+    User->>User: Sign Transaction with Embedded Key (Partial Sign)
+    
+    User->>Hub: Send Partial Signed Transaction via API
+    
+    activate Hub
+    Hub->>Hub: Validate Rate Limits & Security Checks
+    Hub->>Hub: Add Relayer Signature (Fee Payer)
+    Hub->>Solana: Broadcast Fully Signed Transaction
+    
+    Solana-->>Hub: Confirm Transaction (Signature)
+    deactivate Hub
+    
+    Hub-->>User: Return Success Status & Tx Hash
+    User->>User: Update Local State & Show Notification
 ```
 
 ---
 
-## 5. Công cụ & Công nghệ (Tech Stack)
+## Project Structure
 
-Dự án được xây dựng với các công nghệ hiện đại và mạnh mẽ nhất:
+```text
+Unihackfest-2026/
+├── ned-wallet/                   # Frontend mobile application
+│   ├── app/                      # Expo Router pages
+│   │   ├── (tabs)/               # Bottom tab navigation (Home, Analytics, etc.)
+│   │   ├── history.tsx           # Transaction history screen
+│   │   └── settings/             # Settings & developer screens
+│   ├── assets/                   # Static images, fonts, and icons
+│   ├── components/               # Reusable UI components
+│   ├── constants/                # Global variables, themes, and configs
+│   ├── contexts/                 # React Context providers
+│   ├── hooks/                    # Custom React hooks (e.g., useOnchainTransfer)
+│   ├── locales/                  # i18n translation files (vi.json, en.json)
+│   ├── scripts/                  # Development and build scripts
+│   ├── services/                 # External API integrations
+│   ├── stores/                   # Zustand state stores
+│   ├── package.json              # App dependencies
+│   └── app.json                  # Expo configuration
+├── ned_program/                  # Solana Smart Contracts (Anchor)
+│   └── tsconfig.json             # Program TS config
+└── README.md                     # This documentation file
+```
 
-* **Framework & UI:**
+---
 
-| Công nghệ | Vai trò trong hệ thống |
-| :--- | :--- |
-| ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) | Nền tảng cốt lõi phát triển giao diện Cross-platform |
-| ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white) | Quản lý vòng đời ứng dụng, cấp quyền thiết bị & build hệ thống |
-| ![Reanimated](https://img.shields.io/badge/Reanimated-FF4154?style=for-the-badge) | Xử lý hiệu ứng mượt mà (60fps) mang phong cách Neo-brutalism |
+## Setup & Installation
 
-* **Blockchain (Solana):**
+### Prerequisites
 
-| Công nghệ | Vai trò trong hệ thống |
-| :--- | :--- |
-| ![@solana/web3.js](https://img.shields.io/badge/Solana_Web3.js-14F195?style=for-the-badge&logo=solana&logoColor=white) | Tương tác trực tiếp với RPC và đọc/ghi dữ liệu lên mạng Solana |
-| ![Anchor](https://img.shields.io/badge/Anchor-000000?style=for-the-badge&logo=anchor) | SDK chuẩn hóa tương tác với các Smart Contracts (Programs) |
+Before you begin, ensure you have:
+- **Node.js** v18+ and npm/yarn/pnpm
+- **Expo CLI** installed globally
+- **Supabase Account** and Project credentials
+- **Privy App ID** for embedded wallets
+- **iOS Simulator** or **Android Emulator** (or physical device with Expo Go)
 
-* **Backend-as-a-Service & Auth:**
+### Installation Steps
 
-| Công nghệ | Vai trò trong hệ thống |
-| :--- | :--- |
-| ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) | Lưu trữ Database (PostgreSQL) & phân quyền Row Level Security (RLS) |
-| ![Privy](https://img.shields.io/badge/Privy_Auth-6B46C1?style=for-the-badge) | Giải pháp xác thực an toàn, khởi tạo ví Web3 nhúng (Embedded Wallet) |
+#### 1. Clone the Repository
 
-* **State Management & Utils:**
+```bash
+git clone https://github.com/your-org/Unihackfest-2026.git
+cd Unihackfest-2026/ned-wallet
+```
 
-| Công nghệ | Vai trò trong hệ thống |
-| :--- | :--- |
-| ![Zustand](https://img.shields.io/badge/Zustand-454545?style=for-the-badge) | Quản lý State tập trung, phân tách logic on-chain & UI tinh gọn |
-| ![i18next](https://img.shields.io/badge/i18next-26A69A?style=for-the-badge) | Khung chuyển đổi đa ngôn ngữ (Localization - Tiếng Việt/Anh) |
+#### 2. Install Dependencies
+
+```bash
+npm install
+# or
+pnpm install
+```
+
+#### 3. Configure Environment Variables
+
+Create `.env` and `.env.local` files in the `ned-wallet` directory with your credentials:
+
+```env
+# Authentication (Privy)
+EXPO_PUBLIC_PRIVY_APP_ID=your_privy_app_id
+
+# Database (Supabase)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+
+# Blockchain / Relayer
+EXPO_PUBLIC_RPC_URL=https://api.devnet.solana.com
+EXPO_PUBLIC_NED_HUB_URL=https://relayer.yourdomain.com
+```
+
+#### 4. Post-install Patching
+
+Ensure the Privy patches are applied (runs automatically on postinstall):
+```bash
+npm run postinstall
+```
+
+#### 5. Run Development Server
+
+```bash
+npm run start
+# Press 'i' to open iOS simulator
+# Press 'a' to open Android emulator
+```
+
+---
+
+## Guidelines
+
+### For Developers
+
+#### Code Standards
+- **TypeScript**: Strict mode enabled. Define interfaces for all API payloads and state objects.
+- **Styling**: Adhere strictly to the **Neo-brutalism** design system defined in `constants/`. Do not use arbitrary colors or border radii.
+- **Localization**: Never hardcode English or Vietnamese strings in UI components. Always map via `i18n` using `useTranslation`.
+- **State Management**: Keep UI components thin. Delegate complex logic to custom hooks (e.g., `useOnchainTransfer`) or Zustand stores.
+
+#### Git Workflow
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Commit changes using Conventional Commits: `feat: add awesome feature`
+3. Push to the branch and open a Pull Request.
+
+---
+
+## Team
+
+**Core Development Team**
+- Developer: Nguyễn Minh Chính - 2275106050051
+- Developer: Nguyễn Thành Phát - 2474802016639
+- Developer: Nguyễn Hữu Đồng - 2474802010087
+- Developer: Võ Việt Tiến - 2474802010391
+- Project Lead & Designer: Hồ Du Tuấn Đạt - 2374802010097
+
+---
+
+## License
+
+This project is licensed under the **MIT License**.
+
+---
+
+<div align="center">
+
+**Built with dedication for Unihackfest 2026**
+
+[⬆ Back to Top](#table-of-contents)
+
+</div>
