@@ -1,4 +1,4 @@
-<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="YOUR_BANNER_IMAGE_ID_OR_LINK" />
+<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="https://drive.google.com/file/d/1-_vEHjZ99ItGIbcL0nQlDXA9aIQlhWw6/view?usp=drive_link" />
 
 > A Next-Generation Web3 Smart Wallet on Solana Network
 
