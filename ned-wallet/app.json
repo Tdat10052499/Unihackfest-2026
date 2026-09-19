@@ -2,6 +2,8 @@
   "expo": {
     "name": "ned-wallet",
     "slug": "ned-wallet",
+    "owner": "teichidev",
+    "sdkVersion": "57.0.0",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -79,9 +81,6 @@
       "eas": {
         "projectId": "69a9bc8d-ff78-4645-9d95-d44696d7a6a6"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/69a9bc8d-ff78-4645-9d95-d44696d7a6a6"
