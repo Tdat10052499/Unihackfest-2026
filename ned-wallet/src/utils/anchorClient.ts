@@ -226,13 +226,6 @@ export function deriveUserProfilePda(
 export const IDENTITY_SEED = Buffer.from('identity');
 
 /**
- * Địa chỉ ví Relayer của N.E.D Hub (Tài trợ phí Gas)
- */
-export const RELAYER_FEE_PAYER = new PublicKey(
-  process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER || 'b7TFMuVZzZneuHSMuoWiV3d52yRF7pLTLVF7HDKNWqz'
-);
-
-/**
  * Helper: Tính toán địa chỉ PDA cho `IdentityAccount`
  * Seeds: [b"identity", hashedIdentifier]
  */

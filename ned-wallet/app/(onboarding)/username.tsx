@@ -20,12 +20,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import * as crypto from 'crypto';
-import { Buffer } from 'buffer';
 import { useExternalWallet } from '../../src/providers/WalletProvider';
 import {
   getProgram,
   deriveIdentityPda,
-  RELAYER_FEE_PAYER,
   getConnection,
 } from '../../src/utils/anchorClient';
 import { upsertUserProfile, getUserProfileByUsername } from '../../services/supabase';
@@ -315,14 +313,14 @@ export default function OnboardingUsernameScreen() {
             identityAccount: identityPda,
             targetWallet: userWallet,
             authority: userWallet,
-            payer: RELAYER_FEE_PAYER,
+            payer: userWallet,
             systemProgram: SystemProgram.programId,
           })
           .instruction();
 
         const { blockhash } = await connection.getLatestBlockhash('confirmed');
         const transaction = new Transaction({
-          feePayer: RELAYER_FEE_PAYER,
+          feePayer: userWallet,
           recentBlockhash: blockhash,
         }).add(registerIx);
 
@@ -350,26 +348,14 @@ export default function OnboardingUsernameScreen() {
         }
 
         if (signedTx) {
-          const base64Tx = Buffer.from(
-            signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
-          ).toString('base64');
-
-          setStatusMessage('Đang gửi qua N.E.D Hub Relayer (Gasless)...');
-          const relayerApiUrl =
-            process.env.EXPO_PUBLIC_RELAYER_API_URL ||
-            process.env.EXPO_PUBLIC_HUB_API_URL ||
-            'http://localhost:3000/api/sponsor-tx';
-
-          const response = await fetch(relayerApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transaction: base64Tx }),
+          // Tạm thời người dùng tự trả phí (Phase 1 bật Dynamic Gas Sponsorship)
+          setStatusMessage('Đang gửi giao dịch lên mạng lưới...');
+          txSignature = await connection.sendRawTransaction(signedTx.serialize(), {
+            preflightCommitment: 'confirmed',
+            maxRetries: 3,
           });
-          const resData = await response.json().catch(() => ({}));
-          if (response.ok && (response.status === 200 || resData.success)) {
-            txSignature = resData.signature || resData.txSignature;
-            console.log('✅ [Relayer Success] TxSignature:', txSignature);
-          }
+          await connection.confirmTransaction(txSignature, 'confirmed');
+          console.log('✅ [registerIdentity] TxSignature:', txSignature);
         }
       } catch (txErr) {
         console.warn('⚠️ Giao dịch on-chain fallback cho môi trường Dev:', txErr);
@@ -645,12 +631,6 @@ export default function OnboardingUsernameScreen() {
                   </Text>
                 </View>
 
-                <View style={styles.ruleItem}>
-                  <Feather name="gift" size={14} color="#FF4C4C" />
-                  <Text style={styles.ruleTextHighlight}>
-                    Tài trợ 100% phí Gas on-chain qua N.E.D Relayer
-                  </Text>
-                </View>
               </View>
 
               {/* Nút Hành động: "Hoàn tất và Mở Ví" - Nền Đỏ san hô (#FF4C4C), viền đen 3px, bóng cứng */}
@@ -933,11 +913,6 @@ const styles = StyleSheet.create({
   ruleTextActive: {
     fontFamily: 'Inter-Bold',
     color: '#000',
-  },
-  ruleTextHighlight: {
-    fontSize: 12,
-    fontFamily: 'Inter-Bold',
-    color: '#FF4C4C',
   },
 
   // Action Button Neo-brutalism
