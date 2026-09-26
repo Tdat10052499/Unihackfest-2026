@@ -44,6 +44,14 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 - Nhận `Transaction` và `VersionedTransaction` của `@solana/web3.js`.
 
 ### SVM Gas Sponsorship
+
+> **Quyết định 26/09/2026**: công tắc SVM Gas Sponsorship trên Console **bị khoá** (project không ở gói Enterprise). Environment `sandbox` cũng báo `svmGasSponsorshipEnabled: false`. → **Dùng phương án dự phòng T1.6**:
+> - người dùng tự trả phí + rent bằng SOL devnet;
+> - nạp sẵn SOL cho các tài khoản demo;
+> - thêm nút **Get test SOL** (airdrop devnet);
+> - pitch: "Production: Dynamic SVM Gas Sponsorship (Enterprise)".
+>
+> ZeroDev (Console › Sponsor Gas › External Providers) chỉ dành cho **EVM** (ERC-4337/7702), không dùng được cho Solana.
 - ⚠️ Tài liệu ghi: **"SVM Gas Sponsorship is an enterprise-only feature"** → phải kiểm tra gói của project trên Console. Nếu không bật được: bước (c) sẽ báo `SponsorTransactionError`.
 - Bật tại: Console › Settings › Embedded Wallets › **SVM Gas Sponsorship**. Chỉ áp dụng cho **ví nhúng MPC V3**. Hỗ trợ Solana **Mainnet và Devnet**.
 - Cơ chế:
@@ -71,7 +79,7 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 | `ned-wallet/polyfill.js` | Thêm `crypto.randomUUID` (expo-crypto) và `globalThis.location` |
 | `ned-wallet/src/poc/dynamicConstants.ts` | Hằng `universalLink` / `nativeLink` |
 | `ned-wallet/src/poc/dynamicClient.ts` | Tạo client (`autoInitialize: false`), `openAuthSession` bằng expo-web-browser, `addWaasSolanaExtension` |
-| `ned-wallet/app/poc-dynamic.tsx` | Màn PoC với 5 nút; tự bọc `QueryClientProvider` + `DynamicProvider` |
+| `ned-wallet/app/poc-dynamic.tsx` | Màn PoC với 5 nút; tự bọc `QueryClientProvider` + `DynamicProvider`. Nút (d) đo rent do người dùng trả |
 | `ned-wallet/.env.example` | Thêm `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` |
 
 **Privy**: giữ nguyên, không cô lập. Dynamic chỉ khởi tạo khi mở màn PoC. Privy không đọc `window.location` (đã kiểm tra mã nguồn), nên shim `location` không ảnh hưởng.
@@ -84,13 +92,18 @@ Thiết bị: … · Android … · Dev build EAS: …
 |---|---|---|---|---|
 | 1 | Đăng nhập Google → ví Solana nhúng + số dư devnet | ⏳ | | |
 | 2 | Ký & gửi memo devnet (người dùng trả phí) | ⏳ | | |
-| 3 | Memo từ ví **0 SOL** — gas sponsorship có trả phí? | ⏳ | | |
-| 4 | Tạo ATA USDC từ ví **0 SOL** — rent có được tài trợ? | ⏳ | | |
+| 3 | Memo từ ví **0 SOL** — gas sponsorship có trả phí? | ❌ Không khả dụng | — | Công tắc bị khoá (không phải gói Enterprise) → phương án dự phòng T1.6 |
+| 4 | Tạo ATA USDC (**người dùng trả**) — số SOL rent + phí thực tế | ⏳ | | Rent không được tài trợ (không có sponsorship); đo để tính SOL nạp sẵn cho T1.6 |
 | 5 | scrypt `+84901234567` (r=8, p=1, dkLen=32) — N=2^14 / 2^15, TB 3 lần | ⏳ | | |
 
-**Kết luận**: ⏳ GO / NO-GO (GO nếu 1–3 chạy; 4 thất bại → phương án rent ở T1.6).
+**Kết luận**: ⏳ GO / NO-GO. GO nếu 1–2 chạy (mục 3 đã chốt: không có sponsorship → phương án dự phòng T1.6).
 
 ## 4. Cách chạy test
-- Ví **0 SOL** cho (c) và (d): đăng nhập bằng tài khoản Google mới, **chưa** airdrop. Chạy (c) và (d) **trước** (b), vì (b) cần SOL.
-- Sau đó airdrop SOL devnet cho ví (faucet.solana.com) để chạy (b).
-- Nếu ví đã có ATA USDC, (d) sẽ báo "already exists" → cần tài khoản Google khác.
+1. (a) Login.
+2. (c) tuỳ chọn: chỉ để chụp lỗi `SponsorTransactionError` làm bằng chứng.
+3. Airdrop SOL devnet cho ví (faucet.solana.com).
+4. (b) Send memo.
+5. (d) Create USDC ATA: ghi lại dòng "Rent locked in ATA" và "Total deducted".
+6. (e) Benchmark scrypt.
+
+Nếu ví đã có ATA USDC, (d) sẽ báo "already exists" → cần tài khoản Google khác.

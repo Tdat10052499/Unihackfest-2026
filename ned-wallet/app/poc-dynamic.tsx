@@ -231,6 +231,8 @@ function PocContent() {
       };
     });
 
+  // Phương án dự phòng T1.6 (SVM Gas Sponsorship bị khoá — không phải gói Enterprise):
+  // người dùng tự trả phí + rent → đo số SOL thực tế bị trừ khi tạo ATA USDC
   const createUsdcAta = () =>
     run('ata', async () => {
       const account = requireAccount();
@@ -238,7 +240,7 @@ function PocContent() {
       const connection = await switchToDevnet(client, account);
       const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, owner);
       if (await connection.getAccountInfo(ata, 'confirmed')) {
-        throw new Error(`USDC ATA already exists (${ata.toBase58()}) — use a fresh wallet to test rent`);
+        throw new Error(`USDC ATA already exists (${ata.toBase58()}) — use a fresh wallet to measure rent`);
       }
       const before = await connection.getBalance(owner, 'confirmed');
       const tx = await prepare(
@@ -246,14 +248,20 @@ function PocContent() {
         connection,
         owner
       );
-      const { signature } = await signAndSendSponsoredTransaction({ transaction: tx, walletAccount: account }, client);
+      const { signature } = await signAndSendTransaction(
+        { transaction: tx, walletAccount: account, sponsorshipMode: 'off' },
+        client
+      );
       await connection.confirmTransaction(signature, 'confirmed');
       const after = await connection.getBalance(owner, 'confirmed');
+      const rent = await connection.getBalance(ata, 'confirmed');
       return {
         lines: [
           `ATA: ${ata.toBase58()}`,
-          `Balance before: ${formatSol(before)}${before > 0 ? '  ⚠️ not a 0 SOL wallet' : ''}`,
+          `Balance before: ${formatSol(before)}`,
           `Balance after: ${formatSol(after)}`,
+          `Rent locked in ATA: ${formatSol(rent)} (${rent} lamports)`,
+          `Total deducted (rent + fee): ${formatSol(before - after)}`,
           `Signature: ${signature}`,
           ...(await describeFeePayer(connection, signature, account.address)),
         ],
@@ -295,7 +303,7 @@ function PocContent() {
         <PocButton title="a. Login with Google" onPress={login} result={results.login} />
         <PocButton title="b. Send memo (devnet)" onPress={sendMemo} result={results.memo} />
         <PocButton title="c. Memo from 0 SOL wallet" onPress={sendMemoZeroSol} result={results.memoZero} />
-        <PocButton title="d. Create USDC ATA (devnet)" onPress={createUsdcAta} result={results.ata} />
+        <PocButton title="d. Create USDC ATA (user pays)" onPress={createUsdcAta} result={results.ata} />
         <PocButton title="e. Benchmark scrypt" onPress={benchmarkScrypt} result={results.scrypt} />
 
         {user ? (
