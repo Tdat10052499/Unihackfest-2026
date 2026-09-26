@@ -70,6 +70,15 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 - Tài liệu yêu cầu xử lý **device registration** và **step-up auth** thủ công trước khi nhận API version `2026_04_01` (Console › Developers › API & SDK Keys). PoC chưa xử lý; nếu đăng nhập báo lỗi liên quan, xem mục này.
 - `@dynamic-labs-sdk/solana` ghim `@solana/web3.js` **1.98.1**, app dùng 1.98.4. Hai bản song song làm hỏng kiểu và có thể làm hỏng `instanceof` lúc chạy → đã ép một bản duy nhất bằng `overrides` trong `pnpm-workspace.yaml`.
 
+### Bản web (quyết định 26/09/2026: ưu tiên web)
+- Lý do: chủ dự án chỉ có iPhone, không có tài khoản Apple Developer trả phí → không cài được bản native lên iOS. Bản web cho mọi người (iOS, Android, desktop) test bằng một link; APK Android là bản phụ.
+- Trên web, SDK dùng build `index.esm.js`, không cần module native hay polyfill `location`.
+- Đăng nhập trên web:
+  - `signInWithSocialRedirect({ provider: 'google', redirectUrl })` → trang chuyển sang Google;
+  - khi quay lại: `detectSocialRedirectUrl` + `completeSocialRedirect`.
+- Cần khai báo trong Console › Security › **Allowed Origins**: `https://tdat10052499.github.io` (và `http://localhost:8081` nếu test trên máy).
+- URL màn PoC: `https://tdat10052499.github.io/Unihackfest-2026/poc-dynamic`.
+
 ## 2. Thay đổi trên nhánh PoC
 
 | File | Thay đổi |
@@ -78,7 +87,7 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 | `ned-wallet/pnpm-workspace.yaml` | `allowBuilds: false` cho `bigint-buffer`, `protobufjs`, `react-native-inappbrowser-reborn` (script cài đặt không cần cho RN). Thêm `overrides` `@solana/web3.js: 1.98.4` |
 | `ned-wallet/polyfill.js` | Thêm `crypto.randomUUID` (expo-crypto) và `globalThis.location` |
 | `ned-wallet/src/poc/dynamicConstants.ts` | Hằng `universalLink` / `nativeLink` |
-| `ned-wallet/src/poc/dynamicClient.ts` | Tạo client (`autoInitialize: false`), `openAuthSession` bằng expo-web-browser, `addWaasSolanaExtension` |
+| `ned-wallet/src/poc/dynamicClient.ts` | Tạo client (`autoInitialize: false`), `addWaasSolanaExtension`. Native: `openAuthSession` bằng expo-web-browser. Web: không cần `nativeLink` |
 | `ned-wallet/app/poc-dynamic.tsx` | Màn PoC với 5 nút; tự bọc `QueryClientProvider` + `DynamicProvider`. Nút (d) đo rent do người dùng trả |
 | `ned-wallet/.env.example` | Thêm `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` |
 
@@ -86,7 +95,7 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 
 ## 3. Kết quả PoC (điền sau khi chạy trên điện thoại)
 
-Thiết bị: … · Android … · Dev build EAS: …
+Thiết bị: … · Trình duyệt / hệ điều hành: … · Bản: web (GitHub Pages) / dev build Android
 
 | # | Hạng mục | Kết quả | Thời gian | Ghi chú / lỗi |
 |---|---|---|---|---|

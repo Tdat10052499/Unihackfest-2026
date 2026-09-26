@@ -1,15 +1,18 @@
 // PoC T0.4 — kiểm tra Dynamic SDK trên Expo SDK 57 (nhánh poc/dynamic, không merge vào main).
 // Mở bằng deep link: nedwallet://poc-dynamic
 import React, { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  completeSocialRedirect,
+  detectSocialRedirectUrl,
   getNetworksData,
   getWalletAccounts,
   initializeClient,
   logout,
   signInWithSocialPopUp,
+  signInWithSocialRedirect,
   switchActiveNetwork,
   type DynamicClient,
 } from '@dynamic-labs-sdk/client';
@@ -44,6 +47,9 @@ const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 const SCRYPT_INPUT = '+84901234567';
 const SCRYPT_SALT = 'ned-poc-salt-v1';
 const SCRYPT_RUNS = 3;
+const IS_WEB = Platform.OS === 'web';
+// Web: lưu thời điểm bấm Login để đo cả thời gian ở trang Google (trang bị tải lại sau redirect)
+const LOGIN_STARTED_KEY = 'ned_poc_login_started_at';
 
 const queryClient = new QueryClient();
 
@@ -107,6 +113,16 @@ async function describeFeePayer(connection: Connection, signature: string, owner
   ];
 }
 
+// Dùng chung 1 promise để listener userChanged và nút Login không tạo ví 2 lần song song
+let creatingWallet: Promise<void> | null = null;
+function ensureSolanaWallet(client: DynamicClient): Promise<void> {
+  if (!getChainsMissingWaasWalletAccounts(client).includes('SOL')) return Promise.resolve();
+  creatingWallet ??= createWaasWalletAccounts({ chains: ['SOL'] }, client).finally(() => {
+    creatingWallet = null;
+  });
+  return creatingWallet;
+}
+
 export default function PocDynamicScreen() {
   if (!dynamicClient) {
     return (
@@ -137,9 +153,25 @@ function PocContent() {
   const [results, setResults] = useState<Partial<Record<StepKey, StepResult>>>({});
 
   useEffect(() => {
-    if (initStatus === 'uninitialized') {
-      initializeClient(client).catch((err) => console.warn('[Dynamic PoC] initializeClient failed:', err));
-    }
+    if (initStatus !== 'uninitialized') return;
+    initializeClient(client)
+      .then(async () => {
+        // Web: quay về từ trang Google → hoàn tất đăng nhập
+        if (!IS_WEB) return;
+        const url = new URL(window.location.href);
+        if (!(await detectSocialRedirectUrl({ url }, client))) return;
+        run('login', async () => {
+          await completeSocialRedirect({ url }, client);
+          window.history.replaceState(null, '', url.pathname);
+          const lines = await finishLogin();
+          const startedAt = Number(window.sessionStorage.getItem(LOGIN_STARTED_KEY));
+          window.sessionStorage.removeItem(LOGIN_STARTED_KEY);
+          if (startedAt) lines.push(`Total incl. Google page: ${Date.now() - startedAt} ms`);
+          return { lines };
+        });
+      })
+      .catch((err) => console.warn('[Dynamic PoC] initializeClient failed:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, initStatus]);
 
   // Ví nhúng không tự tạo sau khi đăng nhập — tạo khi user thay đổi (theo React Native Quickstart)
@@ -147,10 +179,7 @@ function PocContent() {
     event: 'userChanged',
     listener: async ({ user: changedUser }) => {
       if (!changedUser) return;
-      const missing = getChainsMissingWaasWalletAccounts(client);
-      if (missing.includes('SOL')) {
-        await createWaasWalletAccounts({ chains: ['SOL'] }, client);
-      }
+      await ensureSolanaWallet(client);
     },
   });
 
@@ -174,21 +203,27 @@ function PocContent() {
     return solanaAccount;
   };
 
+  /** Tạo ví Solana nhúng (nếu thiếu) → trả về địa chỉ + số dư devnet */
+  const finishLogin = async (): Promise<string[]> => {
+    await ensureSolanaWallet(client);
+    const account = await waitForSolanaAccount(client);
+    const connection = await switchToDevnet(client, account);
+    const balance = await connection.getBalance(new PublicKey(account.address), 'confirmed');
+    return [`Wallet: ${account.address}`, `Balance (devnet): ${formatSol(balance)}`];
+  };
+
   const login = () =>
     run('login', async () => {
       if (!user) {
+        if (IS_WEB) {
+          // Trang sẽ chuyển sang Google rồi quay lại — phần còn lại chạy trong useEffect ở trên
+          window.sessionStorage.setItem(LOGIN_STARTED_KEY, String(Date.now()));
+          await signInWithSocialRedirect({ provider: 'google', redirectUrl: window.location.href }, client);
+          return { lines: ['Redirecting to Google…'] };
+        }
         await signInWithSocialPopUp({ provider: 'google' }, client);
       }
-      const missing = getChainsMissingWaasWalletAccounts(client);
-      if (missing.includes('SOL')) {
-        await createWaasWalletAccounts({ chains: ['SOL'] }, client);
-      }
-      const account = await waitForSolanaAccount(client);
-      const connection = await switchToDevnet(client, account);
-      const balance = await connection.getBalance(new PublicKey(account.address), 'confirmed');
-      return {
-        lines: [`Wallet: ${account.address}`, `Balance (devnet): ${formatSol(balance)}`],
-      };
+      return { lines: await finishLogin() };
     });
 
   const sendMemo = () =>
