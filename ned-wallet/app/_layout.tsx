@@ -120,14 +120,8 @@ export default function RootLayout() {
                       <Stack.Screen name="home" options={{ headerShown: false }} />
                       <Stack.Screen name="history" options={{ headerShown: false }} />
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
-                      <Stack.Screen name="developer-mode" options={{ headerShown: false }} />
                       <Stack.Screen name="login" options={{ headerShown: false }} />
-                      <Stack.Screen name="shake-room" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
-                      <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
-                      <Stack.Screen name="onConnect" options={{ headerShown: false }} />
-                      <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
-                      <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
                       <Stack.Screen name="scan-qr" options={{ headerShown: false, animation: 'fade' }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />

@@ -25,7 +25,6 @@ import {
 } from '@privy-io/expo';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { PhantomAuthButton } from '../../components/PhantomAuthButton';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 import { useTranslation } from '@/services/i18n';
 
@@ -404,14 +403,6 @@ export default function AuthGatewayScreen() {
                       )}
                     </View>
                   </TouchableOpacity>
-
-                  <View style={styles.phantomWrapper}>
-                    <PhantomAuthButton
-                      mode={isLoginMode ? 'login' : 'signup'}
-                      onSuccess={(u, isNew) => handleAuthSuccess(u, isNew, false)}
-                      onComplete={(u, isNew, wasAuth) => handleAuthSuccess(u, isNew, wasAuth)}
-                    />
-                  </View>
                 </Animated.View>
               ) : (
                 /* Bước 2: Xác thực mã OTP qua Email */
@@ -751,9 +742,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Black',
     color: '#000',
     marginRight: 24, // Để cân bằng với icon bên trái
-  },
-  phantomWrapper: {
-    width: '100%',
   },
 
   // OTP Styles
