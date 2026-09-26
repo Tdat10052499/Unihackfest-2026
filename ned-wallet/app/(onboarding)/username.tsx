@@ -26,7 +26,8 @@ import {
   deriveIdentityPda,
   getConnection,
 } from '../../src/utils/anchorClient';
-import { upsertUserProfile, getUserProfileByUsername } from '../../services/supabase';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
+import { upsertUserProfile, getUserProfileByUsername } from '../../services/profile';
 import { useUserStore } from '../../stores/useUserStore';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 
@@ -124,7 +125,7 @@ export default function OnboardingUsernameScreen() {
   };
 
   /**
-   * Kiểm tra trùng lặp thời gian thực với Supabase
+   * Kiểm tra trùng lặp username (hồ sơ cục bộ — TODO(T1.5): Name PDA)
    */
   const checkUsernameRealtime = async (name: string) => {
     if (!name || name.length < 3 || !USERNAME_REGEX.test(name)) {
@@ -158,7 +159,7 @@ export default function OnboardingUsernameScreen() {
       }
     } catch (err) {
       setIsCheckingAvailability(false);
-      console.warn('⚠️ Lỗi kiểm tra username trên Supabase:', err);
+      console.warn('⚠️ Lỗi kiểm tra username:', err);
       // Mặc định coi là hợp lệ trong môi trường test
       setIsAvailable(true);
       setErrorMessage('');
@@ -263,7 +264,7 @@ export default function OnboardingUsernameScreen() {
       const [identityPda, bump] = deriveIdentityPda(hashedUsername);
       console.log('📍 [Onboarding] Identity PDA:', identityPda.toBase58(), '(Bump:', bump, ')');
 
-      // 2. Pre-check On-chain và Supabase
+      // 2. Pre-check On-chain và hồ sơ
       const connection = getConnection();
       try {
         const existingDbUser = await getUserProfileByUsername(trimmed);
@@ -361,7 +362,7 @@ export default function OnboardingUsernameScreen() {
         console.warn('⚠️ Giao dịch on-chain fallback cho môi trường Dev:', txErr);
       }
 
-      // 4. Đồng bộ vào Database Supabase
+      // 4. Lưu hồ sơ (cục bộ — TODO(T1.5): create_profile)
       setStatusMessage('Đang kích hoạt tài khoản ví...');
       const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
@@ -387,7 +388,7 @@ export default function OnboardingUsernameScreen() {
           linked_external_wallet: externalWalletAddr,
         });
       } catch (dbErr) {
-        console.warn('⚠️ Supabase upsert error:', dbErr);
+        console.warn('⚠️ Profile upsert error:', dbErr);
       }
 
       // 5. Cập nhật Global State Zustand và AsyncStorage

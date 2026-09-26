@@ -22,10 +22,11 @@ import {
   getAccountIdentifier,
   getMaskedPhone,
 } from '../services/identity';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import {
   searchUsersOffchain,
   UserSearchResult,
-} from '../services/supabase';
+} from '../services/profile';
 import { getLinkedPhone } from '../services/storage';
 import { formatFiatBalance, USD_TO_VND_RATE, getAccountDisplayBalance } from '../services/solana';
 import { useTranslation } from '../services/i18n';
@@ -118,7 +119,7 @@ export const SendModal: React.FC<SendModalProps> = ({
     };
   }, [searchInput, isLockedRecipient]);
 
-  // 2. Tra cứu danh tính Off-chain qua Supabase với Fallback On-chain
+  // 2. Tra cứu danh tính (hồ sơ cục bộ — TODO(T1.5): Dual PDA) với Fallback On-chain
   useEffect(() => {
     if (isLockedRecipient) return;
 
@@ -172,7 +173,7 @@ export const SendModal: React.FC<SendModalProps> = ({
       return;
     }
 
-    // Trường hợp 2: Tra cứu Off-chain qua Supabase Database
+    // Trường hợp 2: Tra cứu hồ sơ (TODO(T1.5): Name/Phone PDA + SNS)
     let isMounted = true;
     setIsLoadingLookup(true);
     setSearchError('');
@@ -201,7 +202,7 @@ export const SendModal: React.FC<SendModalProps> = ({
           }
         }
 
-        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu Supabase chưa có bản ghi
+        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu chưa có hồ sơ
         console.log('ℹ️ [Off-chain Search] Thử fallback tra cứu On-chain PDA:', debouncedInput);
         try {
           const onchainRes = await resolveIdentityOnchain(debouncedInput);
@@ -491,7 +492,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                 </View>
               </View>
 
-              {/* 2. Autocomplete Dropdown Danh Sách Kết Quả từ Supabase */}
+              {/* 2. Autocomplete Dropdown Danh Sách Kết Quả tra cứu hồ sơ */}
               {searchResults.length > 0 && !isLockedRecipient && (
                 <View style={styles.dropdownContainer}>
                   <View style={styles.dropdownHeader}>

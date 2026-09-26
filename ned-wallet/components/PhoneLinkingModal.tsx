@@ -72,7 +72,7 @@ export const PhoneLinkingModal: React.FC<PhoneLinkingModalProps> = ({
     setIsLoading(true);
 
     try {
-      // 1. Ghi nhận lên Supabase bảng phone_wallets (UPSERT)
+      // 1. Liên kết SĐT (TODO(T1.5): instruction link_phone → Phone PDA)
       const res = await linkPhoneNumber(userId, walletAddress, phone);
 
       if (!res.success) {

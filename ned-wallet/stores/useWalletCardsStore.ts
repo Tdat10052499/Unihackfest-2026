@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getSupabaseClient } from '../services/supabase';
 
 // Re-declare interface to avoid circular dependency with NeoPhysicalWalletCard
 export interface StablecoinCardData {
@@ -148,61 +147,32 @@ export const useWalletCardsStore = create<WalletCardsState>((set, get) => ({
     const storageKey = getWalletCardsStorageKey(walletAddress);
     const masked = `**** ${walletAddress.slice(-4)}`;
 
-    // 1. Đọc nhanh từ cache AsyncStorage có nối walletAddress vào tên key
+    // Danh sách ví con lưu cục bộ theo ví (AsyncStorage)
+    let cachedCards: StablecoinCardData[] = [];
     try {
       const cached = await AsyncStorage.getItem(storageKey);
       if (cached) {
         const parsed: StablecoinCardData[] = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          set({ walletCards: parsed });
+        if (Array.isArray(parsed)) {
+          cachedCards = parsed;
         }
       }
     } catch (err) {
       console.warn('⚠️ [useWalletCardsStore] Lỗi đọc cache AsyncStorage:', err);
     }
 
-    // 2. Fetch dữ liệu từ Supabase: supabase.from('wallet_assets').select('*').eq('wallet_address', walletAddress)
-    try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('wallet_assets')
-        .select('*')
-        .eq('wallet_address', walletAddress);
+    // Luôn đảm bảo thẻ USDC mặc định nằm ở vị trí đầu tiên
+    const mergedList: StablecoinCardData[] = [
+      {
+        ...DEFAULT_USDC_CARD,
+        accountName,
+        maskedWallet: masked,
+      },
+      ...cachedCards.filter((c) => c.currency !== 'USDC'),
+    ];
 
-      if (error) {
-        console.warn('⚠️ [useWalletCardsStore] Lỗi khi tải wallet_assets từ Supabase:', error);
-        set({ isLoading: false });
-        return;
-      }
-
-      // Luôn đảm bảo thẻ USDC mặc định nằm ở vị trí đầu tiên
-      const mergedList: StablecoinCardData[] = [
-        {
-          ...DEFAULT_USDC_CARD,
-          accountName,
-          maskedWallet: masked,
-        },
-      ];
-
-      if (Array.isArray(data) && data.length > 0) {
-        data.forEach((row: any) => {
-          const cur = (row.currency || '').toUpperCase();
-          if (cur && cur !== 'USDC' && !mergedList.some((c) => c.currency === cur)) {
-            mergedList.push(
-              buildCardDataFromCurrency(cur, accountName, masked, row.color)
-            );
-          }
-        });
-      }
-
-      set({ walletCards: mergedList, isLoading: false });
-
-      // Cập nhật lại cache AsyncStorage gắn với ví
-      await AsyncStorage.setItem(storageKey, JSON.stringify(mergedList));
-    } catch (syncErr) {
-      console.error('❌ [useWalletCardsStore] Lỗi sync Supabase wallet_assets:', syncErr);
-      set({ isLoading: false });
-    }
+    set({ walletCards: mergedList, isLoading: false });
+    await AsyncStorage.setItem(storageKey, JSON.stringify(mergedList)).catch(() => {});
   },
 
   addCard: async (card: StablecoinCardData, walletAddress?: string) => {
@@ -214,33 +184,14 @@ export const useWalletCardsStore = create<WalletCardsState>((set, get) => ({
     set({ walletCards: updatedCards });
 
     if (targetWallet) {
-      // 1. Lưu vào AsyncStorage có gắn walletAddress: AsyncStorage.getItem('stablecoins_' + walletAddress)
+      // Lưu vào AsyncStorage có gắn walletAddress
       const storageKey = getWalletCardsStorageKey(targetWallet);
       AsyncStorage.setItem(storageKey, JSON.stringify(updatedCards)).catch(() => {});
-
-      // 2. Bắn API Supabase lưu vào bảng wallet_assets
-      try {
-        const supabase = getSupabaseClient();
-        const { error } = await supabase.from('wallet_assets').insert({
-          wallet_address: targetWallet,
-          currency: card.currency,
-          network: 'Solana',
-          color: card.themeColor,
-        });
-        if (error) {
-          console.warn('⚠️ [useWalletCardsStore] Lỗi khi insert wallet_assets vào Supabase:', error);
-        } else {
-          console.log(`✅ [useWalletCardsStore] Đã lưu thẻ ${card.currency} vào Supabase cho ví: ${targetWallet}`);
-        }
-      } catch (dbErr) {
-        console.error('❌ [useWalletCardsStore] Exception insert wallet_assets:', dbErr);
-      }
     }
   },
 
   removeCard: async (id: string, walletAddress?: string) => {
     const targetWallet = walletAddress || get().activeWalletAddress;
-    const cardToRemove = get().walletCards.find((c) => c.id === id);
     const updated = get().walletCards.filter((c) => c.id !== id);
     if (updated.length === 0) {
       updated.push(DEFAULT_USDC_CARD);
@@ -250,17 +201,6 @@ export const useWalletCardsStore = create<WalletCardsState>((set, get) => ({
     if (targetWallet) {
       const storageKey = getWalletCardsStorageKey(targetWallet);
       AsyncStorage.setItem(storageKey, JSON.stringify(updated)).catch(() => {});
-
-      if (cardToRemove && cardToRemove.currency !== 'USDC') {
-        try {
-          const supabase = getSupabaseClient();
-          await supabase
-            .from('wallet_assets')
-            .delete()
-            .eq('wallet_address', targetWallet)
-            .eq('currency', cardToRemove.currency);
-        } catch {}
-      }
     }
   },
 }));

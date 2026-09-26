@@ -157,7 +157,7 @@ export default function HomeScreen() {
   });
   const [activeCardCurrency, setActiveCardCurrency] = useState<string>('USDC');
 
-  // Đồng bộ thẻ theo từng ví (walletAddress), cô lập dữ liệu và fetch từ Supabase
+  // Đồng bộ thẻ theo từng ví (walletAddress), cô lập dữ liệu (lưu cục bộ AsyncStorage)
   useEffect(() => {
     if (solanaAddress) {
       loadCardsForWallet(solanaAddress, username || 'N.E.D User');

@@ -876,7 +876,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
 
 /**
  * Thực thi giao dịch chuyển tiền 100% On-chain trên mạng lưới Solana Devnet
- * - Hỗ trợ cả địa chỉ ví Base58 và số điện thoại định danh (tự động mapping qua Supabase)
+ * - Hỗ trợ cả địa chỉ ví Base58 và số điện thoại định danh (tự động mapping qua on-chain identity)
  * - Tự động kiểm tra số dư và phí gas
  * - Ký số qua Privy Embedded Solana Wallet
  * - Broadcast và chờ xác nhận khối (confirmTransaction)

@@ -298,7 +298,7 @@ export async function unlinkPhoneNumber(
  * Trích xuất địa chỉ ví Solana hoạt động chính xác từ tất cả các nguồn theo độ ưu tiên:
  * 1. Ví ngầm Embedded Solana Wallet của Privy (solanaWalletState.wallets[0])
  * 2. Ví Solana nhúng trong Privy Session (linked_accounts có chain_type === 'solana')
- * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage / Supabase)
+ * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage)
  * 4. user.wallet
  * 5. Ví ngoài Phantom (Chỉ làm fallback cuối cùng khi không có ví Privy)
  */
@@ -349,7 +349,7 @@ export function resolveActiveSolanaAddress(
     }
   }
 
-  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (Profile đăng ký trên Supabase / AsyncStorage)
+  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (hồ sơ cục bộ / AsyncStorage)
   if (storeAddressOverride && typeof storeAddressOverride === 'string' && storeAddressOverride.length >= 32) {
     return storeAddressOverride;
   }
