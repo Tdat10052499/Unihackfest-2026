@@ -32,7 +32,7 @@ import {
   signAndSendTransaction,
   type SolanaWalletAccount,
 } from '@dynamic-labs-sdk/solana';
-import { LAMPORTS_PER_SOL, PublicKey, Transaction, TransactionInstruction, type Connection } from '@solana/web3.js';
+import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { Buffer } from 'buffer';
@@ -43,6 +43,8 @@ import {
   USDC_DEVNET_MINT,
 } from '../services/solana';
 
+// RPC công khai của Solana cho requestAirdrop (RPC devnet của Dynamic/Helius có thể không hỗ trợ airdrop)
+const PUBLIC_DEVNET_RPC = 'https://api.devnet.solana.com';
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const SCRYPT_INPUT = '+84901234567';
 const SCRYPT_SALT = 'ned-poc-salt-v1';
@@ -61,7 +63,7 @@ type StepResult = {
   error?: string;
 };
 
-type StepKey = 'login' | 'memo' | 'memoZero' | 'ata' | 'scrypt';
+type StepKey = 'login' | 'airdrop' | 'memo' | 'memoZero' | 'ata' | 'scrypt';
 
 const explorerTx = (signature: string) => `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
 const formatSol = (lamports: number) => `${(lamports / LAMPORTS_PER_SOL).toFixed(6)} SOL`;
@@ -94,6 +96,13 @@ function memoTransaction(owner: PublicKey, text: string): Transaction {
 }
 
 /** Đặt blockhash + feePayer = ví người dùng (khi được tài trợ, Dynamic thay feePayer) */
+/** Ví 0 SOL → báo rõ thay vì lỗi mô phỏng "no record of a prior credit" */
+async function requireSol(connection: Connection, owner: PublicKey): Promise<void> {
+  if ((await connection.getBalance(owner, 'confirmed')) === 0) {
+    throw new Error('Wallet has 0 SOL on devnet — tap "Get test SOL" first');
+  }
+}
+
 async function prepare(tx: Transaction, connection: Connection, owner: PublicKey): Promise<Transaction> {
   const { blockhash } = await connection.getLatestBlockhash('confirmed');
   tx.recentBlockhash = blockhash;
@@ -226,11 +235,28 @@ function PocContent() {
       return { lines: await finishLogin() };
     });
 
+  // Nút "Get test SOL" của phương án dự phòng T1.6 — airdrop devnet (có thể bị giới hạn tần suất)
+  const getTestSol = () =>
+    run('airdrop', async () => {
+      const account = requireAccount();
+      const owner = new PublicKey(account.address);
+      const faucet = new Connection(PUBLIC_DEVNET_RPC, 'confirmed');
+      const signature = await faucet.requestAirdrop(owner, LAMPORTS_PER_SOL);
+      await faucet.confirmTransaction(signature, 'confirmed');
+      const connection = await switchToDevnet(client, account);
+      const balance = await connection.getBalance(owner, 'confirmed');
+      return {
+        lines: [`Airdropped 1 SOL`, `Balance (devnet): ${formatSol(balance)}`, `Signature: ${signature}`],
+        link: explorerTx(signature),
+      };
+    });
+
   const sendMemo = () =>
     run('memo', async () => {
       const account = requireAccount();
       const owner = new PublicKey(account.address);
       const connection = await switchToDevnet(client, account);
+      await requireSol(connection, owner);
       const tx = await prepare(memoTransaction(owner, `N.E.D PoC memo ${Date.now()}`), connection, owner);
       // sponsorshipMode 'off' → kiểm tra riêng việc ký + gửi, người dùng tự trả phí
       const { signature } = await signAndSendTransaction(
@@ -277,6 +303,7 @@ function PocContent() {
       if (await connection.getAccountInfo(ata, 'confirmed')) {
         throw new Error(`USDC ATA already exists (${ata.toBase58()}) — use a fresh wallet to measure rent`);
       }
+      await requireSol(connection, owner);
       const before = await connection.getBalance(owner, 'confirmed');
       const tx = await prepare(
         new Transaction().add(createAssociatedTokenAccountInstruction(owner, ata, owner, USDC_DEVNET_MINT)),
@@ -336,6 +363,7 @@ function PocContent() {
         <Text style={styles.meta}>Solana wallet: {solanaAccount?.address ?? '—'}</Text>
 
         <PocButton title="a. Login with Google" onPress={login} result={results.login} />
+        <PocButton title="Get test SOL (devnet airdrop)" onPress={getTestSol} result={results.airdrop} />
         <PocButton title="b. Send memo (devnet)" onPress={sendMemo} result={results.memo} />
         <PocButton title="c. Memo from 0 SOL wallet" onPress={sendMemoZeroSol} result={results.memoZero} />
         <PocButton title="d. Create USDC ATA (user pays)" onPress={createUsdcAta} result={results.ata} />
