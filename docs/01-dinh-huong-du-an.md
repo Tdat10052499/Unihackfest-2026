@@ -11,12 +11,13 @@ Tài liệu này hợp nhất: (1) bản tổng hợp hội thoại trước đ�
 N.E.D Wallet là ví thông minh Web3 trên Solana, dự thi **UniHackfest 2026**, hướng đến trải nghiệm "Web2.5".
 
 - **Frontend**: React Native / Expo SDK 54, TypeScript, Zustand, Reanimated, i18next (song ngữ Việt–Anh).
-- **Auth (code hiện tại)**: Privy (`@privy-io/expo`) — Email OTP / Google, ví nhúng, không seed phrase.
-- **Backend (code hiện tại)**: Supabase (PostgreSQL + RLS + Realtime).
-- **Relayer gas**: `ned-hub` (Vercel serverless, `relayer.ts`) — giới hạn 5 giao dịch miễn phí/ngày/user.
+- **Auth & ví (đã chốt 26/09)**: **Dynamic SDK** — đăng nhập **chỉ bằng Google**, ví nhúng **MPC** (không seed phrase), tài trợ phí gas cho người dùng. **Không dùng Privy nữa.**
+- **RPC**: Helius. **Lưu trữ cục bộ**: MMKV. **Tên miền**: SNS (`.sol`).
+- **Hướng kiến trúc**: không backend riêng; ngoại lệ duy nhất là 1 proxy serverless nhỏ giữ khoá LLM và khoá Jupiter (xem `03-ky-thuat/dev-handoff.md` mục 7).
+- ⚠️ **Code trên `main` vẫn là stack cũ**: Privy (`@privy-io/expo`) + Supabase (PostgreSQL + RLS + Realtime) + relayer `ned-hub` (Vercel, 5 giao dịch miễn phí/ngày/user). Việc chuyển sang Dynamic là **hạng mục code chưa làm** (xem mục 8–9).
 - **Smart contract**: Anchor `ned_program` (Rust) — hồ sơ người dùng, chuyển stablecoin qua `TransferChecked`, định danh qua PDA (username/số điện thoại → ví).
 
-Monorepo gồm: `ned-wallet/` (app), `ned-hub/` (relayer), `ned_program/` (on-chain program).
+Monorepo gồm: `ned-wallet/` (app), `ned-hub/` (relayer — thuộc stack cũ), `ned_program/` (on-chain program).
 
 ## 2. Nguồn bằng chứng đã dùng
 
@@ -47,7 +48,7 @@ Mentor gợi ý **hai chế độ ví**: "tiền mặt" (tự quy đổi về US
 
 ## 5. Đối chiếu với hiện trạng repo (commit `7c98c16`)
 
-**Đã có**: Auth Privy + ví nhúng Solana; số dư USDC thật qua Helius RPC, lịch sử giao dịch, WebSocket realtime; chuyển P2P qua số điện thoại/username (Supabase), gasless qua `ned-hub`; MWA + Cluster Guard; Shake to Split, Coin Toss Room, Geo-Red Packet; tab MiniApps (danh sách dApp mở trình duyệt nhúng).
+**Đã có** (stack cũ, sẽ thay phần auth): Auth Privy + ví nhúng Solana; số dư USDC thật qua Helius RPC, lịch sử giao dịch, WebSocket realtime; chuyển P2P qua số điện thoại/username (Supabase), gasless qua `ned-hub`; MWA + Cluster Guard; Shake to Split, Coin Toss Room, Geo-Red Packet; tab MiniApps (danh sách dApp mở trình duyệt nhúng).
 
 **Chưa có**: Jupiter Swap/Quote API thật (`NeoSwapModal` chỉ đổi hiển thị USD↔VND), xStocks, Jupiter Lend, trợ lý AI.
 
@@ -75,6 +76,15 @@ Tiêu chí chấm: giá trị AI mang lại, cách tích hợp vào sản phẩm
 - **Coin Toss Room**: giữ như tính năng phụ, cắt ngay nếu làm lệch trọng tâm.
 - **Thứ tự P1**: xStocks trước Simple Earn.
 - **Quy mô đội**: 5 thành viên, **chỉ 1 người code**.
+
+### Cập nhật 26/09
+
+- **Auth chuyển từ Privy sang Dynamic**: chỉ đăng nhập Google (bỏ Email OTP), bỏ liên kết ví ngoài (Phantom/Solflare); ví nhúng MPC; gas do N.E.D tài trợ qua Dynamic. Chế độ Crypto chỉ là cách hiển thị khác của cùng ví N.E.D.
+- **Phân biệt người mới / quay lại**: tra reverse PDA `[b"reverse", wallet]` trong `ned_program` sau khi Dynamic trả ví.
+- **Còn phải chốt** (ảnh hưởng trực tiếp đến code):
+  1. **Supabase** bỏ hẳn hay giữ? Nếu bỏ: tra cứu SĐT/username chuyển hoàn toàn sang PDA `ned_program`; nhưng **Shake to Split, Coin Toss Room, Geo-Red Packet đang dựa vào Supabase Realtime** sẽ ngừng chạy.
+  2. **`ned-hub` relayer** bỏ hẳn (thay bằng tài trợ gas của Dynamic) hay giữ làm dự phòng?
+  3. ⚠️ Chưa xác minh: gói SDK Dynamic cho Expo/React Native và khả năng tài trợ gas trên Solana — kiểm tra tài liệu Dynamic trước khi code.
 
 ## 9. Lộ trình 15 ngày (25/09 → 10/10, 1 dev)
 
@@ -110,6 +120,9 @@ Không đụng trong 15 ngày: Simple Earn (chỉ làm nếu dư thời gian), C
 | dApp Browser polish | 6–10h |
 | Test/tích hợp | 10–14h |
 | **Tổng** | **~72–98h** |
+| *Chuyển auth Privy → Dynamic (phát sinh 26/09, ước tính của Claude, chưa kiểm chứng)* | *~6–12h* |
+
+⚠️ Hạng mục chuyển auth **chưa có trong ngân sách ban đầu** → tổng có thể lên ~78–110h, sát hoặc vượt ngân sách 90–100h. Nếu thiếu thời gian, AI (stretch) vẫn là mục cắt đầu tiên.
 
 **Kiến trúc Jupiter đã chốt (nền tảng, giữ nguyên khi code)**: Jupiter chỉ có thanh khoản thật trên **Mainnet** → gọi API Mainnet để lấy giá/APY **thật**, nhưng **không broadcast giao dịch** — giả lập kết quả thành công để demo.
 
