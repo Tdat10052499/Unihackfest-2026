@@ -93,24 +93,46 @@ Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/ap
 
 **Privy**: giữ nguyên, không cô lập. Dynamic chỉ khởi tạo khi mở màn PoC. Privy không đọc `window.location` (đã kiểm tra mã nguồn), nên shim `location` không ảnh hưởng.
 
-## 3. Kết quả PoC (điền sau khi chạy trên điện thoại)
+## 3. Kết quả PoC (26/09/2026)
 
-Thiết bị: … · Trình duyệt / hệ điều hành: … · Bản: web (GitHub Pages) / dev build Android
+Thiết bị: iPhone · Safari · Bản: web (GitHub Pages, nhánh `poc/dynamic`) · Ví nhúng: `9PZwK7pZmZnqfq1D5Xm9JvmoFQbPSjCoxj4AHiVLrhkW`
 
-| # | Hạng mục | Kết quả | Thời gian | Ghi chú / lỗi |
+| # | Hạng mục | Kết quả | Thời gian | Ghi chú |
 |---|---|---|---|---|
-| 1 | Đăng nhập Google → ví Solana nhúng + số dư devnet | ⏳ | | |
-| 2 | Ký & gửi memo devnet (người dùng trả phí) | ⏳ | | |
-| 3 | Memo từ ví **0 SOL** — gas sponsorship có trả phí? | ❌ Không khả dụng | — | Công tắc bị khoá (không phải gói Enterprise) → phương án dự phòng T1.6 |
-| 4 | Tạo ATA USDC (**người dùng trả**) — số SOL rent + phí thực tế | ⏳ | | Rent không được tài trợ (không có sponsorship); đo để tính SOL nạp sẵn cho T1.6 |
-| 5 | scrypt `+84901234567` (r=8, p=1, dkLen=32) — N=2^14 / 2^15, TB 3 lần | ⏳ | | |
+| 1 | Đăng nhập Google → ví Solana nhúng + số dư devnet | ✅ OK | 12 990 ms (lần đầu, tính cả trang Google) · 477 ms (khi còn phiên) | Redirect Google → quay lại → tạo ví SOL (MPC V3) chạy trên Safari iOS |
+| 2 | Ký & gửi memo devnet (người dùng trả phí) | ✅ OK | 3 683 ms | Tx [`4dnwALqq…`](https://explorer.solana.com/tx/4dnwALqqkbgMDgxk6M2btMvq2EXRgtunP9smu37rhKK4JHg4Q9zfXnA8E4tVZd7qdD4GhYNxXbCzHx9MZseTyMKe?cluster=devnet), phí 5 000 lamports, người trả = ví người dùng. Đã đối chiếu on-chain (`err: null`) |
+| 3 | Memo từ ví **0 SOL** — gas sponsorship có trả phí? | ❌ Không khả dụng | 2 156 ms | `SponsorTransactionError: Failed to sponsor transaction`. Công tắc bị khoá (không phải gói Enterprise) → phương án dự phòng T1.6 |
+| 4 | Tạo ATA USDC (**người dùng trả**) | ✅ OK | 4 030 ms | Rent **1 488 440 lamports (0.001488 SOL)** + phí 5 000 → trừ tổng **0.001493 SOL**. Tx [`5eTEpCW2…`](https://explorer.solana.com/tx/5eTEpCW26JBUSkV9qP1FFsEnzfcKZQpsqBK7dkjrT5dYXwvKhRixZoF8k1m994wBhenzk4WLbJBV9AQCJr2FmuxW?cluster=devnet). Rent **không** được tài trợ |
+| 5 | scrypt `+84901234567` (r=8, p=1, dkLen=32), TB 3 lần | ✅ OK | N=2^14: **85 ms** · N=2^15: **187 ms** | Safari iOS. Hash giống hệt bản chạy trên máy tính (`6ba260ad…`, `aef8e4c1…`) → kết quả xác định, dùng chéo nền tảng được |
+| — | Airdrop devnet trong app (`requestAirdrop`) | ❌ 429 | 8 098 ms | "reached your airdrop limit today or the faucet has run dry" → không thể dựa vào khi demo; dùng faucet.solana.com (đăng nhập GitHub) |
 
-**Kết luận**: ⏳ GO / NO-GO. GO nếu 1–2 chạy (mục 3 đã chốt: không có sponsorship → phương án dự phòng T1.6).
+**Kết luận: ✅ GO.** Dynamic JS SDK chạy được (đăng nhập Google, ví nhúng Solana, ký + gửi giao dịch devnet) trên **web / Safari iOS**. Bản native Android chưa build nhưng JS bundle đã build thành công.
+
+### Hệ quả cho các task sau
+- **Nền tảng demo: web trước** (GitHub Pages), APK Android là phụ.
+- **Trước khi tích hợp Dynamic vào app chính** (Phase 1), phải sửa luồng web của Privy hoặc bỏ Privy:
+  - `patch-privy.js` đã được sửa trên nhánh này;
+  - bản web trên `main` cũng đang bị màn trắng vì lỗi này → cần đưa bản sửa sang `main`.
+- **T1.6 (không có sponsorship)**:
+  - Người dùng tự trả phí (5 000 lamports/tx) và rent.
+  - Chi phí ước tính khi onboarding (theo `getMinimumBalanceForRentExemption` trên devnet; kích thước PDA là ước lượng, chốt ở T1.5):
+    - Name (~49 B): 899 160 lamports;
+    - Reverse (~67 B): 990 600 lamports;
+    - Phone (~49 B, tuỳ chọn): 899 160 lamports;
+    - ATA USDC: 1 488 440 lamports.
+    - **Tổng ≈ 0.0043 SOL** + phí.
+  - Nạp sẵn **≥ 0.05 SOL** cho mỗi tài khoản demo (dư cho vài chục giao dịch).
+  - Nút "Get test SOL" chỉ để dự phòng, khi lỗi 429 thì hiện link faucet.solana.com.
+- **T1.5 (scrypt)**:
+  - Mục tiêu 0.2–0.5 s/lần.
+  - N=2^15 ≈ 0.19 s trên iPhone Safari, sát mức dưới. N=2^16 ước ~0.37 s (chưa đo).
+  - **Đề xuất N=2^16** nếu chỉ băm khi cần (SĐT của mình + số đang tra); dùng N=2^15 nếu phải băm hàng loạt danh bạ.
+  - Đo lại trên Android (Hermes) khi có máy.
 
 ## 4. Cách chạy test
 1. (a) Login.
 2. (c) tuỳ chọn: chỉ để chụp lỗi `SponsorTransactionError` làm bằng chứng.
-3. Airdrop SOL devnet cho ví (faucet.solana.com).
+3. Nạp SOL devnet: nút "Get test SOL", hoặc faucet.solana.com nếu bị 429.
 4. (b) Send memo.
 5. (d) Create USDC ATA: ghi lại dòng "Rent locked in ATA" và "Total deducted".
 6. (e) Benchmark scrypt.
