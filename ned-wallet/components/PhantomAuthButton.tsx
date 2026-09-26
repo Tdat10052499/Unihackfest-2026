@@ -100,7 +100,7 @@ export const PhantomAuthButton: React.FC<PhantomAuthButtonProps> = ({
           address: phantomAddress,
         },
         from: {
-          domain: 'com.anonymous.nedwallet', // Định danh Mobile đã đăng ký trên Privy
+          domain: 'com.teichidev.nedwallet', // Định danh Mobile đã đăng ký trên Privy
           uri: 'nedwallet://',               // Scheme di động
         },
       });

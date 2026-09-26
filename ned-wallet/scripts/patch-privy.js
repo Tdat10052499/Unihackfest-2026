@@ -65,11 +65,11 @@ function findAndPatch(dir) {
         patchFile(fullPath, [
           {
             from: 'if(typeof A!="string")throw new T({error:"Cannot determine native application ID. Please make sure `expo-application` is installed as a dependency and that `ios.bundleId` or `android.package` is set.",code:"invalid_native_app_id"})',
-            to: 'if(typeof A!="string")return"com.anonymous.nedwallet"'
+            to: 'if(typeof A!="string")return"com.teichidev.nedwallet"'
           },
           {
             from: 'if(typeof _expoapplication.applicationId!="string")throw new (0, _jssdkcore.PrivyClientError)({error:"Cannot determine native application ID. Please make sure `expo-application` is installed as a dependency and that `ios.bundleId` or `android.package` is set.",code:"invalid_native_app_id"})',
-            to: 'if(typeof _expoapplication.applicationId!="string")return"com.anonymous.nedwallet"'
+            to: 'if(typeof _expoapplication.applicationId!="string")return"com.teichidev.nedwallet"'
           },
           {
             from: 'return a.getItemAsync(e,{keychainAccessible:a.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY})',
