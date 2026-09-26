@@ -1,6 +1,8 @@
 import 'react-native-get-random-values';
 import { Buffer } from 'buffer';
 import processPolyfill from 'process/browser';
+import { randomUUID } from 'expo-crypto';
+import { DYNAMIC_UNIVERSAL_LINK } from './src/poc/dynamicConstants';
 
 global.Buffer = Buffer;
 
@@ -52,4 +54,14 @@ if (typeof window !== 'undefined') {
   if (!window.process.version) {
     window.process.version = 'v18.0.0';
   }
+}
+
+// Dynamic SDK (PoC T0.4): crypto.randomUUID + globalThis.location (origin phải trùng metadata.universalLink)
+// https://www.dynamic.xyz/docs/javascript/react-native/expo
+if (global.crypto && !global.crypto.randomUUID) {
+  global.crypto.randomUUID = randomUUID;
+}
+
+if (!globalThis.location) {
+  globalThis.location = { origin: DYNAMIC_UNIVERSAL_LINK };
 }

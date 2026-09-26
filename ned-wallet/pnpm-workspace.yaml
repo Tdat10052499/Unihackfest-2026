@@ -1,5 +1,8 @@
 allowBuilds:
+  bigint-buffer: false
   bufferutil: true
+  protobufjs: false
+  react-native-inappbrowser-reborn: false
   unrs-resolver: true
   utf-8-validate: true
 minimumReleaseAgeExclude:
@@ -15,3 +18,5 @@ minimumReleaseAgeExclude:
   - babel-preset-expo@57.0.11
   - expo-glass-effect@57.0.2
   - expo-updates@57.0.23
+overrides:
+  '@solana/web3.js': 1.98.4
