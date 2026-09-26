@@ -11,7 +11,7 @@ import bs58 from 'bs58';
 import { useWeb3Bridge, Web3BridgeMessage } from '../hooks/useWeb3Bridge';
 import { MiniAppSignatureModal } from '../components/MiniAppSignatureModal';
 import { resolveActiveSolanaAddress } from '../services/identity';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
 import { MOCK_DAPP_HTML } from '../constants/mockDAppHtml';

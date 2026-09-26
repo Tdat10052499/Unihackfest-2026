@@ -28,7 +28,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 import { resolveActiveSolanaAddress, getMaskedPhone, getAccountIdentifier } from '../services/identity';
 import { getLinkedPhone } from '../services/storage';

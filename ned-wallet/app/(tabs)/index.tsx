@@ -61,7 +61,7 @@ import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal, StablecoinBalances } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import { useOnchainBalance } from '@/hooks/useOnchainBalance';
-import { useExternalWallet } from '@/src/providers/WalletProvider';
+import { useExternalWallet } from '@/contexts/WalletProvider';
 import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
 import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';

@@ -30,7 +30,7 @@ import { getUserPhoneNumberFromDB, getAccountIdentifier, resolveActiveSolanaAddr
 import { uploadUserAvatarFile } from '../services/profile';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
 // ==========================================

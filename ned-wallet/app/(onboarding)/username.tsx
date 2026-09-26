@@ -20,12 +20,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import * as crypto from 'crypto';
-import { useExternalWallet } from '../../src/providers/WalletProvider';
+import { useExternalWallet } from '../../contexts/WalletProvider';
 import {
   getProgram,
   deriveIdentityPda,
   getConnection,
-} from '../../src/utils/anchorClient';
+} from '../../services/anchorClient';
 // TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import { upsertUserProfile, getUserProfileByUsername } from '../../services/profile';
 import { useUserStore } from '../../stores/useUserStore';

@@ -36,7 +36,7 @@ import { LAMPORTS_PER_SOL, PublicKey, Transaction, TransactionInstruction, type 
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { Buffer } from 'buffer';
-import { dynamicClient } from '../src/poc/dynamicClient';
+import { dynamicClient } from '../poc/dynamicClient';
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,

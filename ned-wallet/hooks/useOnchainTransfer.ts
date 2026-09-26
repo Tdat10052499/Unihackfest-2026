@@ -21,7 +21,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from '../services/solana';
 import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 
 export interface OnchainTransferParams {
   recipientAddressOrPhone: string;

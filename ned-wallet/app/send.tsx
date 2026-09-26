@@ -48,7 +48,7 @@ import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useNotificationStore } from '../stores/useNotificationStore';
 
 /**

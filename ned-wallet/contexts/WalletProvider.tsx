@@ -18,9 +18,9 @@ import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 
-import { AnchorWallet } from '../utils/anchorClient';
-import { useNetworkStore } from '../../stores/useNetworkStore';
-import { useUserStore } from '../../stores/useUserStore';
+import { AnchorWallet } from '../services/anchorClient';
+import { useNetworkStore } from '../stores/useNetworkStore';
+import { useUserStore } from '../stores/useUserStore';
 
 if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;

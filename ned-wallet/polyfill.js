@@ -2,7 +2,7 @@ import 'react-native-get-random-values';
 import { Buffer } from 'buffer';
 import processPolyfill from 'process/browser';
 import { randomUUID } from 'expo-crypto';
-import { DYNAMIC_UNIVERSAL_LINK } from './src/poc/dynamicConstants';
+import { DYNAMIC_UNIVERSAL_LINK } from './poc/dynamicConstants';
 
 global.Buffer = Buffer;
 

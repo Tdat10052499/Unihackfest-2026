@@ -9,7 +9,7 @@ import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { sepolia, mainnet } from 'viem/chains';
 import { MwaProvider } from '../contexts/MwaProvider';
-import { WalletProvider } from '../src/providers/WalletProvider';
+import { WalletProvider } from '../contexts/WalletProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import * as WebBrowser from 'expo-web-browser';
 import { useFonts } from 'expo-font';

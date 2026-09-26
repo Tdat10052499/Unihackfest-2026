@@ -6,7 +6,7 @@ import {
   getProgram,
   PROGRAM_ID,
   ReadOnlyWallet,
-} from '../src/utils/anchorClient';
+} from '../services/anchorClient';
 
 const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
