@@ -17,7 +17,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
 import { useUserStore } from '../stores/useUserStore';
-import { getUserProfileByWallet } from '../services/supabase';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
+import { getUserProfileByWallet } from '../services/profile';
 
 /**
  * Định dạng số điện thoại hiển thị rõ ràng, chuyên nghiệp
@@ -124,7 +125,7 @@ export default function NotificationDetailScreen() {
         }
       }
 
-      // 3. Tra cứu hồ sơ Supabase nếu là địa chỉ Base58 hợp lệ
+      // 3. Tra cứu hồ sơ (TODO(T1.5): Reverse PDA + SNS) nếu là địa chỉ Base58 hợp lệ
       const isSolanaBase58 = (addr: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
 
       try {

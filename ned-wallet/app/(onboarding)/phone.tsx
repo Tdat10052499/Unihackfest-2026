@@ -22,7 +22,8 @@ import { Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { usePrivy, useLinkSMS } from '@privy-io/expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '../../stores/useUserStore';
-import { checkPhoneExists } from '../../services/supabase';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
+import { checkPhoneExists } from '../../services/profile';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 
 // Kích hoạt LayoutAnimation trên Android
@@ -166,7 +167,7 @@ export default function OnboardingPhoneScreen() {
 
     setErrorMessage('');
 
-    // 1. Pre-check trùng lặp Số điện thoại trên Supabase
+    // 1. Pre-check trùng lặp Số điện thoại (TODO(T1.5): Phone PDA)
     try {
       setIsCheckingPhone(true);
       const isDuplicate = await checkPhoneExists(formatted, user?.id);

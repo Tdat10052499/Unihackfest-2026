@@ -29,10 +29,11 @@ import {
   getMaskedPhone,
   resolveActiveSolanaAddress,
 } from '../services/identity';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import {
   searchUsersOffchain,
   UserSearchResult,
-} from '../services/supabase';
+} from '../services/profile';
 import {
   getSolanaBalance,
   getAccountDisplayBalance,
@@ -47,9 +48,8 @@ import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useNotificationStore } from '../stores/useNotificationStore';
-import { broadcastTransferNotification } from '../services/notificationService';
 
 /**
  * 🎨 Component NeoCard: Hỗ trợ tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
@@ -222,7 +222,7 @@ export default function SendScreen() {
     };
   }, [searchInput, isLockedRecipient]);
 
-  // 2. Tra cứu danh tính Off-chain qua Supabase với Fallback On-chain
+  // 2. Tra cứu danh tính (hồ sơ cục bộ — TODO(T1.5): Dual PDA) với Fallback On-chain
   useEffect(() => {
     if (isLockedRecipient) return;
 
@@ -280,7 +280,7 @@ export default function SendScreen() {
       return;
     }
 
-    // Trường hợp 2: Tra cứu Off-chain qua Supabase Database
+    // Trường hợp 2: Tra cứu hồ sơ (TODO(T1.5): Name/Phone PDA + SNS)
     let isMounted = true;
     setIsLoadingLookup(true);
     setSearchError('');
@@ -308,7 +308,7 @@ export default function SendScreen() {
           }
         }
 
-        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu Supabase chưa có bản ghi
+        // Trường hợp 3: Fallback tra cứu On-chain PDA nếu chưa có hồ sơ
         console.log('ℹ️ [Off-chain Search] Thử fallback tra cứu On-chain PDA:', debouncedInput);
         try {
           const onchainRes = await resolveIdentityOnchain(debouncedInput);
@@ -572,20 +572,6 @@ export default function SendScreen() {
         senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
         network: 'Solana Devnet',
         fee: '0.000005 SOL',
-      }).catch(console.error);
-
-      // Bắn Realtime Broadcast thông báo nhận tiền trực tiếp đến ví người nhận
-      broadcastTransferNotification({
-        recipientWallet: finalRecipient,
-        senderWallet: myAddress || '',
-        amount: numAmount,
-        currency: 'USDC',
-        txHash: txSignature,
-        senderName: myUsername,
-        senderPhone: myPhone,
-        recipientName: recipientDisplayName,
-        recipientPhone: resolvedPhone || undefined,
-        senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
       }).catch(console.error);
 
       setShowReceiptModal(true);

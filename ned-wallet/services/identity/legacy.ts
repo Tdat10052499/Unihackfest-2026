@@ -84,45 +84,6 @@ export function getAccountIdentifier(user?: any, phone?: string | null): string 
   return 'NED-ACC';
 }
 
-/**
- * Tính khoảng cách giữa hai tọa độ GPS theo công thức Haversine (đơn vị: mét)
- */
-export function calculateDistanceInMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371e3; // Bán kính Trái Đất theo mét
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // mét
-}
-
-export interface GeoRedPacket {
-  id: string;
-  creator_wallet: string;
-  amount: number;
-  lat: number;
-  lng: number;
-  radius: number; // mét
-  message?: string;
-  status: 'active' | 'claimed' | 'expired';
-  tx_signature?: string;
-  claimed_by?: string;
-  claimed_at?: string;
-  created_at: string;
-  distanceMeters?: number;
-}
-
 import { PublicKey, Connection } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import * as crypto from 'crypto';
@@ -334,58 +295,10 @@ export async function unlinkPhoneNumber(
 }
 
 /**
- * Tạo bản ghi Geo Red Packet mới
- */
-export async function createGeoRedPacketRecord(_params: {
-  creator_wallet: string;
-  amount: number;
-  lat: number;
-  lng: number;
-  radius?: number;
-  message?: string;
-  tx_signature: string;
-}): Promise<{ success: boolean; data?: GeoRedPacket; error?: string }> {
-  return { success: true };
-}
-
-/**
- * Lấy danh sách các bao lì xì đang hoạt động lân cận
- */
-export async function fetchActiveGeoRedPackets(
-  _userLat?: number,
-  _userLng?: number,
-  _maxRadiusMeters: number = 2000
-): Promise<GeoRedPacket[]> {
-  return [];
-}
-
-/**
- * Gửi yêu cầu nhận lì xì
- */
-export async function claimGeoRedPacketViaBackend(_params: {
-  packet_id: string;
-  user_wallet: string;
-  user_lat: number;
-  user_lng: number;
-}): Promise<{
-  success: boolean;
-  amount?: number;
-  message?: string;
-  creator_wallet?: string;
-  txSignature?: string;
-  error?: string;
-}> {
-  return {
-    success: false,
-    error: 'Tính năng đang chuyển đổi sang On-chain Anchor Program.',
-  };
-}
-
-/**
  * Trích xuất địa chỉ ví Solana hoạt động chính xác từ tất cả các nguồn theo độ ưu tiên:
  * 1. Ví ngầm Embedded Solana Wallet của Privy (solanaWalletState.wallets[0])
  * 2. Ví Solana nhúng trong Privy Session (linked_accounts có chain_type === 'solana')
- * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage / Supabase)
+ * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage)
  * 4. user.wallet
  * 5. Ví ngoài Phantom (Chỉ làm fallback cuối cùng khi không có ví Privy)
  */
@@ -436,7 +349,7 @@ export function resolveActiveSolanaAddress(
     }
   }
 
-  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (Profile đăng ký trên Supabase / AsyncStorage)
+  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (hồ sơ cục bộ / AsyncStorage)
   if (storeAddressOverride && typeof storeAddressOverride === 'string' && storeAddressOverride.length >= 32) {
     return storeAddressOverride;
   }

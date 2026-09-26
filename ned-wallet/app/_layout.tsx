@@ -8,9 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { sepolia, mainnet } from 'viem/chains';
-import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 import { MwaProvider } from '../contexts/MwaProvider';
-import { WalletProvider } from '../src/providers/WalletProvider';
+import { WalletProvider } from '../contexts/WalletProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import * as WebBrowser from 'expo-web-browser';
 import { useFonts } from 'expo-font';
@@ -113,7 +112,6 @@ export default function RootLayout() {
                     : 'devnet'
                 }
               >
-                <GlobalPresenceProvider>
                   <View style={styles.root}>
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -122,21 +120,14 @@ export default function RootLayout() {
                       <Stack.Screen name="home" options={{ headerShown: false }} />
                       <Stack.Screen name="history" options={{ headerShown: false }} />
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
-                      <Stack.Screen name="developer-mode" options={{ headerShown: false }} />
                       <Stack.Screen name="login" options={{ headerShown: false }} />
-                      <Stack.Screen name="shake-room" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
-                      <Stack.Screen name="coin-toss-room" options={{ headerShown: false }} />
-                      <Stack.Screen name="onConnect" options={{ headerShown: false }} />
-                      <Stack.Screen name="onSignMessage" options={{ headerShown: false }} />
-                      <Stack.Screen name="onSignTransaction" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
                       <Stack.Screen name="scan-qr" options={{ headerShown: false, animation: 'fade' }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
                     </Stack>
                     <GlobalNotificationManager />
                   </View>
-                </GlobalPresenceProvider>
               </WalletProvider>
             </MwaProvider>
           </PrivyProvider>

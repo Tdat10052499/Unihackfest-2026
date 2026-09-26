@@ -93,7 +93,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
     }, 600);
   };
 
-  // 2. Luồng Thay Đổi: Xác thực Mock OTP và UPDATE Supabase
+  // 2. Luồng Thay Đổi: Xác thực Mock OTP và cập nhật liên kết SĐT
   const handleVerifyUpdateOtp = async () => {
     const trimmedOtp = otpCode.trim();
     if (trimmedOtp !== '123456') {
@@ -105,7 +105,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Gọi API UPDATE / Upsert Supabase
+      // TODO(T1.5): cập nhật Phone PDA (unlink_phone + link_phone)
       const res = await updatePhoneNumber(userId, walletAddress, newPhone);
 
       if (!res.success) {
@@ -131,7 +131,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
     }
   };
 
-  // 3. Luồng Hủy: Xác nhận chuỗi nhập và DELETE Supabase
+  // 3. Luồng Hủy: Xác nhận chuỗi nhập và huỷ liên kết SĐT
   const isDeleteMatching = (): boolean => {
     if (!currentPhone) return false;
     const inputCleaned = confirmDeleteInput.trim().replace(/[^\d+]/g, '');
@@ -156,7 +156,7 @@ export const PhoneManagementModal: React.FC<PhoneManagementModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Gọi API DELETE Supabase
+      // TODO(T1.5): instruction unlink_phone (đóng Phone PDA)
       const res = await unlinkPhoneNumber(userId, currentPhone || undefined);
 
       if (!res.success) {

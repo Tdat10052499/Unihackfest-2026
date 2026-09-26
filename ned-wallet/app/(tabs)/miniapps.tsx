@@ -13,7 +13,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
 import { useTranslation } from '@/services/i18n';
-import { supabase } from '@/services/supabase';
 
 interface MiniAppItem {
   id: string;
@@ -61,41 +60,9 @@ export default function MiniAppsScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [miniAppsList, setMiniAppsList] = useState<MiniAppItem[]>(DEFAULT_MINI_APPS);
+  const miniAppsList = DEFAULT_MINI_APPS;
 
   const router = useRouter();
-
-  // Tự động tải danh sách Mini-apps động từ Supabase (nếu có table mini_apps)
-  React.useEffect(() => {
-    async function loadDynamicMiniApps() {
-      try {
-        const { data, error } = await supabase
-          .from('mini_apps')
-          .select('*')
-          .eq('is_active', true)
-          .order('order_index', { ascending: true });
-
-        if (!error && data && data.length > 0) {
-          const formatted: MiniAppItem[] = data.map((item: any) => ({
-            id: item.id || item.slug,
-            title: item.title || item.name,
-            category: item.category || 'Web3 DApp',
-            description: item.description || '',
-            url: item.url,
-            iconName: item.icon_name || 'globe',
-            iconType: item.icon_type === 'ionicons' ? 'ionicons' : 'feather',
-            iconBg: item.icon_bg || '#E6F4FE',
-            categoryColor: item.category_color || '#0891B2',
-            status: item.status || 'Ready',
-          }));
-          setMiniAppsList(formatted);
-        }
-      } catch (e) {
-        // Fallback danh sách mặc định nếu table chưa tạo
-      }
-    }
-    loadDynamicMiniApps();
-  }, []);
 
   const handleCardPress = (item: MiniAppItem | { id?: string; title: string; url?: string; status?: string }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

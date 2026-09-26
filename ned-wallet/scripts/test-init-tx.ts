@@ -19,7 +19,7 @@ import {
   deriveUserProfilePda,
   AnchorWallet,
   PROGRAM_ID,
-} from '../src/utils/anchorClient';
+} from '../services/anchorClient';
 
 async function main() {
   console.log('\n======================================================');

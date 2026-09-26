@@ -10,7 +10,7 @@ import {
   getProgram,
   deriveUserProfilePda,
   PROGRAM_ID,
-} from '../src/utils/anchorClient';
+} from '../services/anchorClient';
 
 async function main() {
   console.log('\n======================================================');

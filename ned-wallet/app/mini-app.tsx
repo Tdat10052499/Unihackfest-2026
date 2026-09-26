@@ -11,7 +11,7 @@ import bs58 from 'bs58';
 import { useWeb3Bridge, Web3BridgeMessage } from '../hooks/useWeb3Bridge';
 import { MiniAppSignatureModal } from '../components/MiniAppSignatureModal';
 import { resolveActiveSolanaAddress } from '../services/identity';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
 import { MOCK_DAPP_HTML } from '../constants/mockDAppHtml';
@@ -21,7 +21,7 @@ export default function MiniAppViewerScreen() {
   const params = useLocalSearchParams();
   const rawUrl = (params.url as string) || '';
   const title = (params.title as string) || 'Mini App';
-  const isMockBridge = rawUrl === 'local-bridge' || rawUrl.includes('ned-mock-dapp') || title.includes('Test Bridge');
+  const isMockBridge = rawUrl === 'local-bridge' || title.includes('Test Bridge');
   const url = isMockBridge ? '' : (rawUrl || 'https://jup.ag');
 
   const webviewRef = useRef<WebView>(null);

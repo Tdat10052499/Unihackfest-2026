@@ -10,9 +10,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { ActivityItem } from '@/services/solana';
@@ -169,13 +168,6 @@ export default function TransferHubScreen() {
     }
   };
 
-  // Mở Shake to Split (Host Workspace)
-  const handleOpenShakeToSplit = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const roomId = 'room_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
-    router.push(`/shake-room?roomId=${roomId}&isHost=true`);
-  };
-
   // Bảo vệ State Giao diện: Chỉ hiển thị khi ví và tài khoản đã sẵn sàng
   if (!isReady) {
     return (
@@ -212,20 +204,7 @@ export default function TransferHubScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. THẺ: Shake & Split bill (Nền Tím Nhạt #F3EBFF) */}
-        <NeoFeatureCard
-          title={t('transferHub.shakeSplitTitle', { defaultValue: 'Shake & Split bill' })}
-          description={t('transferHub.shakeSplitSubtitle', { defaultValue: 'Shake phones with nearby friends to auto-discover and split bills on-chain.' })}
-          iconNode={
-            <MaterialCommunityIcons name="cellphone-nfc" size={22} color="#FFFFFF" />
-          }
-          iconBgColor="#5B21B6"
-          cardBgColor="#F3EBFF"
-          dividerColor="#E9D5FF"
-          onPress={handleOpenShakeToSplit}
-        />
-
-        {/* 2. THẺ: Transfer by Phone Number (Nền Xanh Ngọc Nhạt #E6FAF8) */}
+        {/* THẺ: Transfer by Phone Number (Nền Xanh Ngọc Nhạt #E6FAF8) */}
         <NeoFeatureCard
           title={t('transferHub.phoneTransferTitle', { defaultValue: 'Transfer by Phone Number' })}
           description={t('transferHub.phoneTransferSubtitle', { defaultValue: 'Send SOL directly to recipient via linked phone number.' })}
@@ -234,23 +213,6 @@ export default function TransferHubScreen() {
           cardBgColor="#E6FAF8"
           dividerColor="#CCFBF1"
           onPress={() => router.push('/send')}
-        />
-
-        {/* 3. THẺ: Coin Toss Lì Xì Room (Nền Trắng #FFFFFF) */}
-        <NeoFeatureCard
-          title={t('transferHub.coinTossTitle', { defaultValue: 'Coin Toss Lì Xì Room' })}
-          description={t('transferHub.coinTossSubtitle', { defaultValue: 'Create a room, invite nearby friends, and swipe to toss the lucky coin to pick a winner for on-chain SOL.' })}
-          iconNode={
-            <MaterialCommunityIcons name="bitcoin" size={22} color="#FFFFFF" />
-          }
-          iconBgColor="#78350F"
-          cardBgColor="#FFFFFF"
-          dividerColor="#E2E8F0"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const roomId = 'coin_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
-            router.push(`/coin-toss-room?roomId=${roomId}&isHost=true` as any);
-          }}
         />
 
         {/* Khoảng trống đệm */}

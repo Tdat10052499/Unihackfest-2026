@@ -19,8 +19,6 @@ export const SOLANA_DEVNET_RPC =
   process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
   'https://api.devnet.solana.com';
 
-// Địa chỉ ví Treasury Escrow trên Solana Devnet
-export const GEO_REDPACKET_TREASURY = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 
 // USDC Mint chuẩn trên Solana Devnet (Decimals = 6)
 export const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
@@ -356,34 +354,6 @@ export async function getAccountDisplayBalance(
       usdcBalance: 0,
       formattedUsd: '$0.00',
       formattedVnd: 'đ 0',
-    };
-  }
-}
-
-/**
- * Cơ chế Tài trợ Phí Mạng (Gasless Fee Payer Relayer)
- * Gửi transaction đã được người dùng Partial Sign lên Backend để Treasury ký Fee Payer và Broadcast
- */
-export async function sponsorAndBroadcastTransaction(
-  serializedPartialTxBase64: string
-): Promise<{ success: boolean; txSignature?: string; error?: string }> {
-  // Broadcast trực tiếp nếu transaction đã đủ điều kiện trên Devnet
-  try {
-    const txBuffer = Buffer.from(serializedPartialTxBase64, 'base64');
-    const transaction = Transaction.from(txBuffer);
-    const rawTx = transaction.serialize();
-    const txSignature = await solanaConnection.sendRawTransaction(rawTx, {
-      skipPreflight: false,
-      preflightCommitment: 'confirmed',
-    });
-    await solanaConnection.confirmTransaction(txSignature, 'confirmed');
-    console.log('✅ [Direct Broadcast Confirmed] TxSignature:', txSignature);
-    return { success: true, txSignature };
-  } catch (err: any) {
-    console.error('❌ [sponsorAndBroadcastTransaction] Lỗi broadcast:', err);
-    return {
-      success: false,
-      error: err?.message || 'Không thể phát sóng giao dịch lên Solana Devnet.',
     };
   }
 }
@@ -878,7 +848,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
 
 /**
  * Thực thi giao dịch chuyển tiền 100% On-chain trên mạng lưới Solana Devnet
- * - Hỗ trợ cả địa chỉ ví Base58 và số điện thoại định danh (tự động mapping qua Supabase)
+ * - Hỗ trợ cả địa chỉ ví Base58 và số điện thoại định danh (tự động mapping qua on-chain identity)
  * - Tự động kiểm tra số dư và phí gas
  * - Ký số qua Privy Embedded Solana Wallet
  * - Broadcast và chờ xác nhận khối (confirmTransaction)

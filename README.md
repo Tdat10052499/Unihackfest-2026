@@ -7,9 +7,10 @@
 [![Solana Network](https://img.shields.io/badge/Solana-14F195?style=flat&logo=solana&logoColor=white)](https://solana.com/)
 [![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Jupiter](https://img.shields.io/badge/Jupiter-C7F284?style=flat&logoColor=black)](https://jup.ag/)
+[![Dynamic](https://img.shields.io/badge/Dynamic-4779FE?style=flat&logoColor=white)](https://www.dynamic.xyz/)
 
-**N.E.D Wallet** is a smart Web3 wallet built on the Solana blockchain, focusing on delivering a seamless Web2.5 user experience. It combines a bold Neo-brutalism design language with robust stablecoin asset management and gasless transactions.
+**N.E.D Wallet** is a smart Web3 wallet built on the Solana blockchain, focusing on delivering a seamless Web2.5 user experience. It combines a bold Neo-brutalism design language with stablecoin asset management, P2P USDC transfers and real market data from Jupiter — with **no custom backend**: shared data lives on-chain.
 
 ---
 
@@ -28,17 +29,18 @@
 
 ## Overview
 
-N.E.D Wallet is a decentralized mobile application where users can:
-- Manage their stablecoin assets across multiple accounts safely.
-- Execute transactions without holding native SOL for gas fees.
-- Experience a striking Neo-brutalism interface with hard shadows and haptic feedback.
-- Seamlessly switch between Vietnamese and English languages.
+N.E.D Wallet is a decentralized wallet (web first, Android via EAS) where users can:
+- Sign in with Google and get an embedded Solana wallet — no seed phrase.
+- Send USDC peer-to-peer to a wallet address, an `@username` or a phone number.
+- Swap tokens and explore tokenized stocks (xStocks) with real Jupiter prices *(in progress — Demo mode, not broadcast)*.
+- Browse Solana dApps in a built-in dApp Browser.
+- Switch between Vietnamese and English.
 
 The application integrates:
-- **Solana Blockchain** for high-speed, low-cost decentralized transactions.
-- **Supabase** for secure user identity management and Row Level Security (RLS).
-- **React Native (Expo)** for a smooth, cross-platform mobile experience.
-- **NED-Hub (Relayer)** to sponsor network fees for users.
+- **Solana** (devnet for P2P transfers) and the **`ned_program`** Anchor program for on-chain identity.
+- **Dynamic** for Google login and embedded MPC wallets *(Phase 1 — currently still Privy)*.
+- **Helius** RPC for balances, history and incoming-transfer notifications.
+- **Jupiter** (mainnet) for swap quotes and xStocks prices; **SNS** for `.sol` names.
 
 ---
 
@@ -53,100 +55,83 @@ The application integrates:
 ## Features
 
 ### Core Capabilities
-- **Gasless Transactions**: A built-in Relayer (NED-Hub) sponsors the network fees. Users can transfer stablecoins instantly without needing to hold SOL in their wallets.
-- **Neo-brutalism Design**: A unique UI/UX system featuring thick black borders, hard shadows, vibrant colors, and precise haptic feedback for every interaction.
-- **Stablecoin Management**: Dedicated interfaces for tracking and managing stable assets like USDC, completely shielding the complexity of crypto volatility.
-- **Multi-language Support (i18n)**: Comprehensive localization architecture supporting seamless switching between Vietnamese and English.
+- **P2P USDC transfers**: send to an address, `@username` or phone number (identity via on-chain PDAs — Phase 1).
+- **Neo-brutalism Design**: thick black borders, hard shadows, vibrant colors and haptic feedback.
+- **Stablecoin Management**: USDC-first balance cards and sub-wallet cards stored on-device.
+- **dApp Browser**: open Solana dApps in a WebView with an injected wallet bridge and a signing prompt.
+- **Multi-language Support (i18n)**: Vietnamese and English.
 
 ### User Security
-- **Embedded Wallet Authentication**: Powered by Privy, allowing smooth Web3 onboarding without the burden of seed phrases.
-- **Row Level Security (RLS)**: Data separation for stablecoin cards and profiles via Supabase RLS, ensuring users can only access their own data.
-- **Local Biometrics**: Optional integration with device-level security (FaceID/TouchID) for transaction signing.
+- **Embedded wallet, no seed phrase**: Google login + MPC wallet via Dynamic *(migrating from Privy in Phase 1)*.
+- **No secrets in the app**: every `EXPO_PUBLIC_*` value is public by design; there is no server holding user data.
+- **Phone numbers never go on-chain in clear**: only a scrypt hash is used as the PDA key (Phase 1).
+
+> Network fees: users pay devnet SOL for now. Dynamic SVM Gas Sponsorship requires an Enterprise plan — see [`docs/poc-dynamic.md`](docs/poc-dynamic.md).
 
 ---
 
 ## Tech Stack
 
 ### Frontend & UI
-- **React Native 0.86 / Expo 57** - Cross-platform mobile framework
-- **TypeScript** - Type safety and strict compilation
-- **Zustand** - Lightweight state management
-- **React Native Reanimated** - 60fps smooth animations and transitions
-- **i18next** - Internationalization framework
+- **React Native 0.86 / Expo SDK 57** (Expo Router, react-native-web) — web first, Android via EAS
+- **TypeScript** (strict), **Zustand**, **React Native Reanimated**, **i18next**
 
-### Blockchain
-- **Solana Network (@solana/web3.js)** - Blockchain infrastructure and RPC interaction
-- **Anchor Framework (@coral-xyz/anchor)** - Standardized smart contract (Program) interaction
-- **BS58 & TweetNaCl** - Cryptography and key pair handling
+### Blockchain & data
+- **Solana (@solana/web3.js)** and **Anchor (@coral-xyz/anchor)** — `ned_program` for identity PDAs
+- **Helius RPC** — balances, history, notifications
+- **Jupiter** — swap quotes and xStocks (mainnet, read-only in Demo mode)
+- **SNS (Bonfida)** — `.sol` name resolution
 
-### Backend & Auth
-- **Supabase** - PostgreSQL Database, Realtime Subscriptions, and RLS
-- **Privy (@privy-io/expo)** - Web3 Auth and Embedded Wallet management
+### Auth
+- **Dynamic JS SDK** (`@dynamic-labs-sdk/*`) — Google login + embedded Solana MPC wallet *(Phase 1)*
+- **Privy** — current login, removed once Dynamic lands (T1.4)
 
 ---
 
 ## Architecture & Data Flow
 
-### 1. Infrastructure Architecture
-
-The following diagram illustrates the high-level infrastructure components of N.E.D Wallet:
+No backend: the app talks directly to Dynamic, Solana RPC, the `ned_program` and public APIs. Full folder map and data flow: [`ned-wallet/ARCHITECTURE.md`](ned-wallet/ARCHITECTURE.md).
 
 ```mermaid
 graph TD
-    subgraph Client Layer
-        APP[N.E.D Wallet Mobile App\nReact Native / Expo]
-        UI[Neo-brutalism UI\nZustand State]
+    subgraph Client
+        APP[N.E.D Wallet\nExpo / React Native Web]
+    end
+    subgraph Auth
+        DYN[Dynamic\nGoogle login + MPC wallet]
+    end
+    subgraph Solana devnet
+        RPC((Helius RPC))
+        PROG[ned_program\nName / Reverse / Phone PDAs]
+    end
+    subgraph Mainnet read-only
+        JUP[Jupiter\nquotes, xStocks]
+        SNS[SNS\n.sol names]
     end
 
-    subgraph Authentication & DB Layer
-        PRIVY[Privy\nEmbedded Wallet Auth]
-        SUPA[(Supabase PostgreSQL\nwith RLS)]
-    end
-
-    subgraph Relayer Layer
-        HUB[NED-Hub Server\nFee Payer / Rate Limiter]
-    end
-
-    subgraph Blockchain Layer
-        SOL((Solana Network\nRPC Nodes))
-    end
-
-    APP <--> |Auth / Key Management| PRIVY
-    APP <--> |Read/Write User Data| SUPA
-    APP --> |Submit Partial Signed Tx| HUB
-    HUB --> |Sponsor Gas & Submit Tx| SOL
-    SOL --> |Return Tx Signature| HUB
+    APP <--> |login, sign tx| DYN
+    APP <--> |balances, history, send USDC| RPC
+    APP <--> |identity lookup / create_profile| PROG
+    APP --> |prices & quotes| JUP
+    APP --> |resolve names| SNS
 ```
 
-### 2. Transaction Data Flow (Gasless Transfer)
-
-This sequence diagram demonstrates the flow of data when a user initiates a gasless transfer:
+### P2P transfer flow
 
 ```mermaid
 sequenceDiagram
-    participant User as User / Mobile App
-    participant Supabase as Supabase DB
-    participant Hub as NED-Hub (Relayer)
-    participant Solana as Solana Network
+    participant U as User / App
+    participant P as ned_program (PDA)
+    participant W as Embedded wallet (Dynamic)
+    participant S as Solana devnet
 
-    User->>Supabase: Fetch Wallet Assets & Balances
-    Supabase-->>User: Return Data (RLS Protected)
-    
-    User->>User: Create Transfer Transaction
-    User->>User: Sign Transaction with Embedded Key (Partial Sign)
-    
-    User->>Hub: Send Partial Signed Transaction via API
-    
-    activate Hub
-    Hub->>Hub: Validate Rate Limits & Security Checks
-    Hub->>Hub: Add Relayer Signature (Fee Payer)
-    Hub->>Solana: Broadcast Fully Signed Transaction
-    
-    Solana-->>Hub: Confirm Transaction (Signature)
-    deactivate Hub
-    
-    Hub-->>User: Return Success Status & Tx Hash
-    User->>User: Update Local State & Show Notification
+    U->>P: Resolve @username / phone hash → wallet
+    P-->>U: Recipient wallet (+ "Unverified number" warning for phones)
+    U->>U: Build USDC transfer (create recipient ATA if missing)
+    U->>W: Sign transaction
+    W-->>U: Signed transaction
+    U->>S: Send & confirm (user pays fee + rent)
+    S-->>U: Signature → receipt + on-chain history
 ```
 
 ---
@@ -155,25 +140,18 @@ sequenceDiagram
 
 ```text
 Unihackfest-2026/
-├── ned-wallet/                   # Frontend mobile application
-│   ├── app/                      # Expo Router pages
-│   │   ├── (tabs)/               # Bottom tab navigation (Home, Analytics, etc.)
-│   │   ├── history.tsx           # Transaction history screen
-│   │   └── settings/             # Settings & developer screens
-│   ├── assets/                   # Static images, fonts, and icons
-│   ├── components/               # Reusable UI components
-│   ├── constants/                # Global variables, themes, and configs
-│   ├── contexts/                 # React Context providers
-│   ├── hooks/                    # Custom React hooks (e.g., useOnchainTransfer)
-│   ├── locales/                  # i18n translation files (vi.json, en.json)
-│   ├── scripts/                  # Development and build scripts
-│   ├── services/                 # External API integrations
-│   ├── stores/                   # Zustand state stores
-│   ├── package.json              # App dependencies
-│   └── app.json                  # Expo configuration
-├── ned_program/                  # Solana Smart Contracts (Anchor)
-│   └── tsconfig.json             # Program TS config
-└── README.md                     # This documentation file
+├── docs/                 # Product direction, 40 screen designs, tech handoff, code plan (VN)
+├── ned-wallet/           # Expo app — see ned-wallet/ARCHITECTURE.md
+│   ├── app/              # Expo Router routes: (auth), (onboarding), (tabs), send, mini-app (dApp Browser)…
+│   ├── components/       # Shared UI (neo/*, modals, notifications)
+│   ├── contexts/         # MwaProvider, WalletProvider (temporary)
+│   ├── hooks/            # Balance, transfer, notification sync, dApp bridge
+│   ├── services/         # auth/, identity/, jupiter/, solana.ts, anchorClient.ts, profile.ts…
+│   ├── stores/           # Zustand stores
+│   ├── idl/              # ned_program IDL
+│   └── locales/          # vi.json, en.json
+├── ned_program/          # Anchor program (identity PDAs, stablecoin transfer)
+└── README.md
 ```
 
 ---
@@ -182,60 +160,35 @@ Unihackfest-2026/
 
 ### Prerequisites
 
-Before you begin, ensure you have:
-- **Node.js** v18+ and npm/yarn/pnpm
-- **Expo CLI** installed globally
-- **Supabase Account** and Project credentials
-- **Privy App ID** for embedded wallets
-- **iOS Simulator** or **Android Emulator** (or physical device with Expo Go)
+- **Node.js** 20+ and **pnpm**
+- A **Dynamic** environment ID (and, until Phase 1 lands, a **Privy** app ID)
+- For Android: an **EAS** account (development builds run in the cloud; Expo Go is not supported)
 
 ### Installation Steps
 
-#### 1. Clone the Repository
+#### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-org/Unihackfest-2026.git
+git clone https://github.com/Tdat10052499/Unihackfest-2026.git
 cd Unihackfest-2026/ned-wallet
+pnpm install   # postinstall applies scripts/patch-privy.js (removed with Privy in T1.4)
 ```
 
-#### 2. Install Dependencies
+#### 2. Configure environment variables
+
+Copy `ned-wallet/.env.example` to `ned-wallet/.env` and fill it in. **Every `EXPO_PUBLIC_*` value ships inside the app bundle — never put a secret there.**
+
+#### 3. Run
 
 ```bash
-npm install
-# or
-pnpm install
+pnpm web                                   # web (http://localhost:8081)
+npx expo start --dev-client --tunnel       # Android dev build (see docs/04-ke-hoach-code.md, T0.3)
 ```
 
-#### 3. Configure Environment Variables
-
-Create `.env` and `.env.local` files in the `ned-wallet` directory with your credentials:
-
-```env
-# Authentication (Privy)
-EXPO_PUBLIC_PRIVY_APP_ID=your_privy_app_id
-
-# Database (Supabase)
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-
-# Blockchain / Relayer
-EXPO_PUBLIC_RPC_URL=https://api.devnet.solana.com
-EXPO_PUBLIC_NED_HUB_URL=https://relayer.yourdomain.com
-```
-
-#### 4. Post-install Patching
-
-Ensure the Privy patches are applied (runs automatically on postinstall):
-```bash
-npm run postinstall
-```
-
-#### 5. Run Development Server
+#### 4. Deploy the web build (GitHub Pages)
 
 ```bash
-npm run start
-# Press 'i' to open iOS simulator
-# Press 'a' to open Android emulator
+pnpm run predeploy && pnpm run deploy
 ```
 
 ---

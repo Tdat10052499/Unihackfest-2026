@@ -32,7 +32,7 @@ import {
 import { useTranslation } from '../services/i18n';
 import { resolveActiveSolanaAddress } from '../services/identity';
 import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 

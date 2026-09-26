@@ -2,12 +2,12 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useUserStore } from '../stores/useUserStore';
 import { useNotificationStore } from '../stores/useNotificationStore';
-import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
+import { useNotificationSync } from '../hooks/useNotificationSync';
 import { NotificationInAppBanner } from './NotificationInAppBanner';
 
 /**
  * Quản lý Thông báo Toàn cục (Global Notification Manager)
- * Đảm bảo lắng nghe Realtime & On-chain trên toàn bộ các màn hình của ứng dụng
+ * Đảm bảo đồng bộ thông báo on-chain trên toàn bộ các màn hình của ứng dụng
  * và hiển thị NotificationInAppBanner trượt từ trên xuống khi nhận tiền
  */
 export function GlobalNotificationManager() {
@@ -16,8 +16,8 @@ export function GlobalNotificationManager() {
 
   const activeWallet = userWallet || activeWalletStore;
 
-  // Lắng nghe Realtime Broadcast & Polling On-chain liên tục
-  useNotificationRealtime(activeWallet);
+  // Polling on-chain liên tục
+  useNotificationSync(activeWallet);
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">

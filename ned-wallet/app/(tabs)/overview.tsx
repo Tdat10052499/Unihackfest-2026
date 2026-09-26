@@ -26,7 +26,7 @@ import { resolveActiveSolanaAddress } from '../../services/identity';
 import { useTranslation } from '../../services/i18n';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
 import { getCachedActivities } from '../../services/storage';
-import { useExternalWallet } from '../../src/providers/WalletProvider';
+import { useExternalWallet } from '../../contexts/WalletProvider';
 import { useWalletCardsStore, DEFAULT_USDC_CARD } from '../../stores/useWalletCardsStore';
 import { useOnchainBalance } from '../../hooks/useOnchainBalance';
 

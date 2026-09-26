@@ -26,11 +26,11 @@ import {
   executeHardReset,
 } from '../services/storage';
 import { getUserPhoneNumberFromDB, getAccountIdentifier, resolveActiveSolanaAddress } from '../services/identity';
-import { uploadUserAvatarFile } from '../services/supabase';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
+import { uploadUserAvatarFile } from '../services/profile';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
-import { useNetworkStore } from '../stores/useNetworkStore';
-import { useExternalWallet } from '../src/providers/WalletProvider';
+import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
 // ==========================================
@@ -116,7 +116,6 @@ export default function SettingsScreen() {
     SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   // State cấu hình mạng lưới (Solana Network - Helius RPC)
-  const { activeNetwork } = useNetworkStore();
 
   // Lấy địa chỉ ví Solana đã liên kết (Ưu tiên Privy Embedded Solana Wallet)
   const getSolanaAddress = (): string | null => {
@@ -140,7 +139,7 @@ export default function SettingsScreen() {
     }, [user?.id, loadFromStorage, fetchUserProfile])
   );
 
-  // Nạp SĐT đã liên kết (Ưu tiên Source of Truth Supabase)
+  // Nạp SĐT đã liên kết (hồ sơ cục bộ — TODO(T1.5): Phone PDA)
   useEffect(() => {
     const loadPhone = async () => {
       if (user?.id) {
@@ -196,7 +195,7 @@ export default function SettingsScreen() {
     return name.trim().charAt(0).toUpperCase() || 'D';
   };
 
-  // Xử lý chọn ảnh & Upload lên Supabase Storage bucket 'avatars'
+  // Xử lý chọn ảnh & lưu ảnh đại diện (data URI cục bộ)
   const handlePickAvatar = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -248,7 +247,7 @@ export default function SettingsScreen() {
         }
         Alert.alert('Thành công 🎉', 'Đã cập nhật ảnh đại diện mới thành công!');
       } else {
-        Alert.alert(t('settings.imageErrorTitle', { defaultValue: 'Lỗi tải ảnh' }), uploadRes.error || t('settings.imageUploadFailed', { defaultValue: 'Không thể upload ảnh lên Supabase.' }));
+        Alert.alert(t('settings.imageErrorTitle', { defaultValue: 'Lỗi tải ảnh' }), uploadRes.error || t('settings.imageUploadFailed', { defaultValue: 'Không thể lưu ảnh đại diện.' }));
       }
     } catch (err: any) {
       console.error('❌ [handlePickAvatar] Lỗi chọn/upload avatar:', err);
@@ -465,31 +464,6 @@ export default function SettingsScreen() {
             <View style={styles.langPillRight}>
               <Text style={styles.langPillText}>
                 {currentLangObj.flag} {currentLangObj.nativeName} &gt;
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </NeoCard>
-
-        {/* CARD 2: Developer Mode */}
-        <NeoCard>
-          <TouchableOpacity
-            style={styles.menuRowItem}
-            activeOpacity={0.7}
-            onPress={() => router.push('/developer-mode')}
-          >
-            <View style={styles.menuRowLeft}>
-              <CircleIcon backgroundColor="#EDE9FE">
-                <Feather name="terminal" size={18} color="#6366F1" />
-              </CircleIcon>
-              <View style={styles.menuTextCol}>
-                <Text style={styles.menuItemTitleText}>{t('settings.developerMode', { defaultValue: 'Developer Mode' })}</Text>
-                <Text style={styles.menuItemSubText}>{t('settings.developerModeSub', { defaultValue: 'Cấu hình mạng Solana' })}</Text>
-              </View>
-            </View>
-
-            <View style={styles.devnetPillRight}>
-              <Text style={styles.devnetPillText}>
-                {activeNetwork === 'mainnet-beta' ? 'Mainnet' : 'Devnet'} &gt;
               </Text>
             </View>
           </TouchableOpacity>

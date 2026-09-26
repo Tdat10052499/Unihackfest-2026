@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import {
   getUserProfileFromDB,
   upsertUserProfile,
   UserProfile,
-} from '../services/supabase';
+} from '../services/profile';
 import { clearSolanaCache } from '../services/solana';
 
 const STORAGE_KEYS = {
@@ -175,7 +176,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         set({ linkedExternalWallet: cachedExternal });
       }
 
-      // 2. Fetch Source of Truth từ Supabase DB
+      // 2. Đọc hồ sơ (cục bộ — TODO(T1.5): Reverse PDA)
       const dbProfile = await getUserProfileFromDB(privyId);
       if (dbProfile) {
         set({
@@ -250,7 +251,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, params.avatar_url);
       }
 
-      // 3. Upsert vào Supabase
+      // 3. Lưu hồ sơ (cục bộ — TODO(T1.5): create_profile)
       const res = await upsertUserProfile({
         ...params,
         linked_external_wallet: externalWalletToSave,
