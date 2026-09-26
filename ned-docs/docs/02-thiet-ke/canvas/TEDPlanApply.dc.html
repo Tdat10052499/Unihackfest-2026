@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — T.E.D, apply plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(170deg, #110822 0%, #0D0618 30%, #080812 60%, #06060E 100%); color: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #FFFFFF">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#FFFFFF"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#FFFFFF"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#FFFFFF"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.25)"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="rgba(255,255,255,0.3)"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="rgba(255,255,255,0.3)"></rect></svg>
+    </div>
+  </div>
+  <div style="padding: 4px 20px 0; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2">
+    <a href="TEDPlanResult.dc.html" aria-label="Back to plan" style="width: 44px; height: 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Apply your plan</h1>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 16px 20px 16px; position: relative; z-index: 1">
+    <div style="padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-size: 13px; color: rgba(255,255,255,0.65)">{{planName}}</span>
+        <span style="font-size: 13px; font-weight: 700">{{doneText}}</span>
+      </div>
+      <div role="img" aria-label="{{barLabel}}" style="margin-top: 12px; display: flex; gap: 2px; height: 12px">
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="3"><div style="{{r.seg}}"></div></sc-for>
+            </div>
+      <div style="margin-top: 8px; display: flex; gap: 14px; font-size: 11px; color: rgba(255,255,255,0.7)">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="3"><span style="display: flex; align-items: center; gap: 5px"><span style="{{r.dot}}"></span>{{r.name}} {{r.pct}}</span></sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: 14px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(34,197,94,0.1); border: 1px solid rgba(74,222,128,0.35)">
+        <img src="/_blob/22f5490f03888bc46a04dbf909a17ab4" alt="" style="width: 64px; height: 46px; object-fit: contain; flex-shrink: 0">
+        <div style="flex: 1; font-size: 13px; line-height: 1.45"><strong>Your plan is in place.</strong> Ask T.E.D anytime to update it.</div>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+        <div style="{{s.card}}">
+          <div style="{{s.badge}}">{{s.num}}</div>
+          <div style="flex: 1; min-width: 0">
+            <div style="{{s.titleStyle}}">{{s.title}}</div>
+            <div style="margin-top: 3px; font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.65)">{{s.sub}}</div>
+            <sc-if value="{{s.showBtn}}" hint-placeholder-val="{{ true }}">
+              <a href="{{s.href}}" style="margin-top: 10px; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; background: linear-gradient(135deg, #7B2FBE, #6366F1); font-size: 13px; font-weight: 700; color: #FFFFFF; text-decoration: none">{{s.cta}}</a>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.04)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6z"></path></svg>
+      <div style="font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.72)">Each step opens the usual screen with the amount filled in. You review and confirm it yourself. T.E.D never moves money on its own.</div>
+    </div>
+    <div style="margin-top: 8px; font-size: 11px; line-height: 1.45; color: rgba(255,255,255,0.5)">A suggestion to help you decide, not financial advice.</div>
+  </div>
+  <div style="padding: 8px 20px 28px; position: relative; z-index: 1">
+    <a href="TEDBotV1.dc.html" style="height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none">{{footer}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"plan":{"editor":"enum","options":["original","safer"],"default":"original"},"done":{"editor":"enum","options":["1","2","3"],"default":"1"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function money(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function mk(name, amt, pct, color, why, data, first, last) {
+      return { name: name, amt: money(amt), pct: pct + '%', why: why, data: data,
+        dot: 'width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; background: ' + color,
+        seg: 'flex: ' + pct + '; background: ' + color + '; border-radius: ' + (first ? '4px 0 0 4px' : last ? '0 4px 4px 0' : '0') };
+    }
+    var PLANS = {
+      original: [
+        mk('Cash', 351.71, 40, '#3987E5', 'Tuition ≈ $190 due in December, plus a safety buffer.', 'Ready to spend anytime', true, false),
+        mk('Earn', 320, 37, '#199E70', "Money you won't need for 3–12 months earns interest.", '4.0% APY now · variable · Jupiter Lend', false, false),
+        mk('xStocks', 200, 23, '#9B4FDE', "A small slice for growth. You're new to investing and would wait out a drop.", 'Your Apple $121.71 + SPYx $78.29', false, true)
+      ],
+      safer: [
+        mk('Cash', 351.71, 40, '#3987E5', 'Tuition ≈ $190 due in December, plus a safety buffer.', 'Ready to spend anytime', true, false),
+        mk('Earn', 398.29, 46, '#199E70', 'More of your money earns steady interest.', '4.0% APY now · variable · Jupiter Lend', false, false),
+        mk('xStocks', 121.71, 14, '#9B4FDE', 'Just the Apple you already own. No new stock purchase.', 'Your Apple $121.71', false, true)
+      ]
+    };
+    var safer = (this.props.plan ?? 'original') === 'safer';
+    var rows = safer ? PLANS.safer : PLANS.original;
+    var done = parseInt(this.props.done ?? '1', 10) || 1;
+    var S = safer ? [
+      ['Keep $351.71 in Cash', 'Already there. Nothing to do.', '', ''],
+      ['Move $398.29 to Simple Earn', 'Earns 4.0% APY now (variable). Withdraw when you need it.', 'Move to Earn', 'EarnDeposit.dc.html'],
+      ['Keep your Apple', 'No new stock purchase in the safer plan.', '', '']
+    ] : [
+      ['Keep $351.71 in Cash', 'Already there. Nothing to do.', '', ''],
+      ['Move $320.00 to Simple Earn', 'Earns 4.0% APY now (variable). Withdraw when you need it.', 'Move to Earn', 'EarnDeposit.dc.html'],
+      ['Buy $78.29 of SPYx', 'Your $121.71 of Apple already counts. SPYx spreads the rest across 500 US companies.', 'Buy SPYx', 'XStockBuy.dc.html']
+    ];
+    if (safer && done < 3) done = Math.max(done, 1);
+    var steps = S.map(function (s, i) {
+      var isDone = i < done || (safer && i === 2 && done >= 2);
+      var next = !isDone && (i === done);
+      return {
+        num: isDone ? '✓' : String(i + 1), title: s[0], sub: s[1], cta: s[2], href: s[3] || '#',
+        showBtn: next && !!s[2],
+        titleStyle: 'font-size: 15px; font-weight: 600; ' + (isDone ? 'color: rgba(255,255,255,0.7); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.35)' : 'color: #FFFFFF'),
+        badge: 'width: 30px; height: 30px; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: \'Space Grotesk\', sans-serif; font-size: 14px; font-weight: 700; ' + (isDone ? 'background: #1F7A4A; color: #FFFFFF' : next ? 'background: #9B4FDE; color: #FFFFFF' : 'background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7)'),
+        card: 'display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 18px; ' + (next ? 'background: rgba(155,79,222,0.12); border: 1px solid rgba(184,122,237,0.45)' : 'background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08)')
+      };
+    });
+    var doneCount = steps.filter(function (s) { return s.num === '✓'; }).length;
+    var all = doneCount >= 3;
+    return {
+      rows: rows, planName: safer ? 'Safer plan · $871.71' : 'Your money plan · $871.71',
+      barLabel: safer ? 'Cash 40%, Earn 46%, xStocks 14%' : 'Cash 40%, Earn 37%, xStocks 23%',
+      steps: steps, doneText: doneCount + ' of 3 done', allDone: all,
+      footer: all ? 'Back to T.E.D' : 'Finish later'
+    };
+  }
+}
+</script>
+</body>
+</html>

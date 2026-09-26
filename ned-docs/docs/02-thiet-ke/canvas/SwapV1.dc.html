@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Swap</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#080812}
+a{color:#B87AED}a:hover{color:#D4AEF6}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:rgba(255,255,255,0.35)}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #110822 0%, #0D0618 30%, #080812 60%, #06060E 100%); color: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <div style="position: absolute; top: -40px; left: -30px; width: 240px; height: 240px; background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%); pointer-events: none"></div>
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #FFFFFF">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#FFFFFF"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#FFFFFF"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#FFFFFF"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.25)"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="rgba(255,255,255,0.3)"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="rgba(255,255,255,0.3)"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 4px 20px 0; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 4">
+    <a href="HomeV4.dc.html" aria-label="Back to Home" style="width: 44px; height: 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Swap</h1>
+    <button onClick="{{toggleSlip}}" aria-label="Max price change setting" aria-expanded="{{slipOpen}}" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #FFFFFF; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+      {{slipLabel}}
+    </button>
+  </div>
+
+  <sc-if value="{{slipOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; top: 108px; right: 20px; width: 300px; padding: 16px; box-sizing: border-box; border-radius: 18px; background: #1A1428; border: 1px solid rgba(184,122,237,0.3); box-shadow: 0 18px 40px rgba(0,0,0,0.55); z-index: 6">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700">Max price change</div>
+      <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.65)">If the price moves more than this before your swap goes through, it's cancelled and nothing is swapped.</div>
+      <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{slips}}" as="o" hint-placeholder-count="4">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" style="{{o.style}}">{{o.label}}</button>
+        </sc-for>
+      </div>
+      <div style="{{slipNoteStyle}}">{{slipNote}}</div>
+    </div>
+  </sc-if>
+
+  <div style="padding: 14px 20px 0; position: relative; z-index: 1">
+    <div style="padding: 14px 16px 16px; border-radius: 22px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6)">You pay</span>
+        <div style="display: flex; align-items: center; gap: 6px">
+          <span style="font-size: 12px; color: rgba(255,255,255,0.6)">Balance {{fromBal}}</span>
+          <button onClick="{{half}}" style="height: 28px; padding: 0 9px; border-radius: 8px; background: rgba(123,47,190,0.18); border: 1px solid rgba(155,79,222,0.35); color: #D8B4FE; font-size: 11px; font-weight: 700; cursor: pointer">50%</button>
+          <button onClick="{{max}}" style="height: 28px; padding: 0 9px; border-radius: 8px; background: rgba(123,47,190,0.18); border: 1px solid rgba(155,79,222,0.35); color: #D8B4FE; font-size: 11px; font-weight: 700; cursor: pointer">Max</button>
+        </div>
+      </div>
+      <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px">
+        <div style="min-width: 0">
+          <div style="{{amtStyle}}">{{amount}}</div>
+          <div style="margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.55)">≈ ${{usd}}</div>
+        </div>
+        <a href="SwapTokenPick.dc.html" aria-label="Change token, now {{fromSym}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; min-height: 44px; box-sizing: border-box; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 9999px; text-decoration: none; color: #FFFFFF">
+            <div style="{{fromIcon}}">{{fromMono}}</div>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{fromSym}}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </a>
+      </div>
+    </div>
+
+    <div style="height: 8px; position: relative; z-index: 3">
+      <button onClick="{{flip}}" aria-label="Swap direction" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 14px; background: #1C1530; border: 3px solid #0D0618; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A2F2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v16M4 16l4 4 4-4M16 20V4M12 8l4-4 4 4"></path></svg>
+      </button>
+    </div>
+
+    <div style="padding: 14px 16px 16px; border-radius: 22px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6)">You get (estimate)</span>
+        <span style="font-size: 12px; color: rgba(255,255,255,0.6)">Balance {{toBal}}</span>
+      </div>
+      <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px">
+        <div style="min-width: 0">
+          <div style="{{outStyle}}">{{out}}</div>
+          <div style="margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.55)">≈ ${{outUsd}}</div>
+        </div>
+        <a href="SwapTokenPick.dc.html" aria-label="Change token, now {{toSym}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; min-height: 44px; box-sizing: border-box; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 9999px; text-decoration: none; color: #FFFFFF">
+            <div style="{{toIcon}}">{{toMono}}</div>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{toSym}}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </a>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; padding: 0 4px; display: flex; justify-content: space-between; align-items: center; font-size: 12px">
+      <div style="display: flex; align-items: center; gap: 7px; color: rgba(255,255,255,0.72)">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" style="transform: rotate(-90deg)"><circle cx="9" cy="9" r="7" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="2"></circle><circle cx="9" cy="9" r="7" fill="none" stroke="#B87AED" stroke-width="2" stroke-linecap="round" stroke-dasharray="44" stroke-dashoffset="{{ringOff}}"></circle></svg>
+        <span>{{rate}}</span>
+      </div>
+      <span style="color: rgba(255,255,255,0.55)">Updates in {{t}}s</span>
+    </div>
+    <div style="margin-top: 6px; padding: 0 4px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.55)">
+      <span>N.E.D fee 0.25% · ${{fee}}</span>
+      <span style="color: #86EFAC; font-weight: 600">Network fee free</span>
+    </div>
+  </div>
+
+  <div style="flex: 1"></div>
+  <div style="padding: 0 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; position: relative; z-index: 1">
+    <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+      <button onClick="{{k.press}}" aria-label="{{k.aria}}" style="height: 48px; background: transparent; border: none; border-radius: 12px; cursor: pointer; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 500">{{k.label}}</button>
+    </sc-for>
+  </div>
+  <div style="padding: 8px 20px 28px; position: relative; z-index: 1">
+    <sc-if value="{{ready}}" hint-placeholder-val="{{ true }}">
+      <a href="SwapReview.dc.html" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 16px; background: linear-gradient(135deg, #7B2FBE 0%, #9B4FDE 50%, #6366F1 100%); font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: #FFFFFF; text-decoration: none">Review swap</a>
+    </sc-if>
+    <sc-if value="{{notReady}}" hint-placeholder-val="{{ false }}">
+      <div aria-disabled="true" style="height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: rgba(255,255,255,0.08); font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: rgba(255,255,255,0.4)">{{ctaOff}}</div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { amt: '1', flipped: false, slip: 'auto', slipOpen: false, t: 15 }; }
+  componentDidMount() { var self = this; this.timer = setInterval(function () { var t = self.state.t - 1; self.setState({ t: t <= 0 ? 15 : t }); }, 1000); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    var self = this;
+    function icon(color, size) { return 'width: ' + size + 'px; height: ' + size + 'px; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: \'Space Grotesk\', sans-serif; font-size: ' + Math.round(size * 0.42) + 'px; font-weight: 700; color: #FFFFFF; background: ' + color; }
+    var T = {
+      SOL: { sym: 'SOL', mono: 'S', color: '#7B3FE4', price: 148.52, bal: 2.45, dp: 4 },
+      USDC: { sym: 'USDC', mono: 'U', color: '#2775CA', price: 1, bal: 750, dp: 2 }
+    };
+    var from = this.state.flipped ? T.USDC : T.SOL;
+    var to = this.state.flipped ? T.SOL : T.USDC;
+    var amt = this.state.amt, v = parseFloat(amt) || 0;
+    var usd = v * from.price, net = usd * (1 - 0.0025), out = net / to.price;
+    function fmt(n, dp) { return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+    function press(k) {
+      var a = self.state.amt;
+      if (k === 'del') a = a.length > 1 ? a.slice(0, -1) : '0';
+      else if (k === '.') { if (a.indexOf('.') < 0) a = a + '.'; }
+      else {
+        if (a === '0') a = k;
+        else if (a.indexOf('.') >= 0 && a.split('.')[1].length >= from.dp) return;
+        else if (a.replace('.', '').length >= 8) return;
+        else a = a + k;
+      }
+      self.setState({ amt: a });
+    }
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'].map(function (k) {
+      return { label: k === 'del' ? '⌫' : k, aria: k === 'del' ? 'Delete' : (k === '.' ? 'Decimal point' : k), press: function () { press(k); } };
+    });
+    var slip = this.state.slip;
+    var slips = [['auto', 'Auto'], ['0.5', '0.5%'], ['1', '1%'], ['3', '3%']].map(function (o) {
+      var on = slip === o[0];
+      return { label: o[1], on: on, pick: function () { self.setState({ slip: o[0] }); },
+        style: 'height: 40px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 700; ' + (on ? 'background: rgba(155,79,222,0.3); border: 1px solid #B87AED; color: #FFFFFF' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8)') };
+    });
+    var high = slip === '3';
+    var over = v > from.bal, ready = v > 0 && !over;
+    var big = amt.length > 7 ? 30 : 38;
+    var outStr = v > 0 ? fmt(out, to.dp) : '0';
+    return {
+      amount: amt, usd: fmt(usd, 2), out: outStr, outUsd: fmt(net, 2), fee: fmt(usd * 0.0025, 2),
+      amtStyle: "font-family: 'Space Grotesk', sans-serif; font-size: " + big + "px; font-weight: 700; letter-spacing: -1px; line-height: 1.05; color: " + (over ? '#F87171' : '#FFFFFF'),
+      outStyle: "font-family: 'Space Grotesk', sans-serif; font-size: " + (outStr.length > 8 ? 30 : 38) + "px; font-weight: 700; letter-spacing: -1px; line-height: 1.05; color: rgba(255,255,255,0.88)",
+      fromSym: from.sym, fromMono: from.mono, fromIcon: icon(from.color, 30), fromBal: fmt(from.bal, from.sym === 'SOL' ? 2 : 2) + ' ' + from.sym,
+      toSym: to.sym, toMono: to.mono, toIcon: icon(to.color, 30), toBal: fmt(to.bal, 2) + ' ' + to.sym,
+      rate: '1 SOL = 148.52 USDC', t: this.state.t, ringOff: (44 * (1 - this.state.t / 15)).toFixed(1),
+      flip: function () { self.setState({ flipped: !self.state.flipped, amt: self.state.flipped ? '1' : '100' }); },
+      half: function () { self.setState({ amt: String(Math.floor(from.bal / 2 * Math.pow(10, from.dp)) / Math.pow(10, from.dp)) }); },
+      max: function () { self.setState({ amt: String(from.bal) }); },
+      keys: keys,
+      slipOpen: this.state.slipOpen, toggleSlip: function () { self.setState({ slipOpen: !self.state.slipOpen }); },
+      slipLabel: slip === 'auto' ? 'Auto' : slip + '%', slips: slips,
+      slipNote: high ? 'High limit: you may get a noticeably worse price.' : (slip === 'auto' ? 'Auto sets a limit for each trade based on the token.' : 'Lower limits are safer but may fail when prices move fast.'),
+      slipNoteStyle: 'margin-top: 10px; font-size: 11px; line-height: 1.45; color: ' + (high ? '#FCD34D' : 'rgba(255,255,255,0.6)'),
+      ready: ready, notReady: !ready, ctaOff: over ? 'Not enough ' + from.sym : 'Enter an amount'
+    };
+  }
+}
+</script>
+</body>
+</html>
