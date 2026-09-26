@@ -49,7 +49,6 @@ import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
 import { useExternalWallet } from '../src/providers/WalletProvider';
 import { useNotificationStore } from '../stores/useNotificationStore';
-import { broadcastTransferNotification } from '../services/notificationService';
 
 /**
  * 🎨 Component NeoCard: Hỗ trợ tạo Thẻ viền đen đậm với Bóng đổ cứng (Hard Shadow)
@@ -572,20 +571,6 @@ export default function SendScreen() {
         senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
         network: 'Solana Devnet',
         fee: '0.000005 SOL',
-      }).catch(console.error);
-
-      // Bắn Realtime Broadcast thông báo nhận tiền trực tiếp đến ví người nhận
-      broadcastTransferNotification({
-        recipientWallet: finalRecipient,
-        senderWallet: myAddress || '',
-        amount: numAmount,
-        currency: 'USDC',
-        txHash: txSignature,
-        senderName: myUsername,
-        senderPhone: myPhone,
-        recipientName: recipientDisplayName,
-        recipientPhone: resolvedPhone || undefined,
-        senderNote: `${t('send.sendToPrefix', { defaultValue: 'Chuyển đến:' })} ${recipientDisplayName}`,
       }).catch(console.error);
 
       setShowReceiptModal(true);
