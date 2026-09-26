@@ -21,7 +21,7 @@ export default function MiniAppViewerScreen() {
   const params = useLocalSearchParams();
   const rawUrl = (params.url as string) || '';
   const title = (params.title as string) || 'Mini App';
-  const isMockBridge = rawUrl === 'local-bridge' || rawUrl.includes('ned-mock-dapp') || title.includes('Test Bridge');
+  const isMockBridge = rawUrl === 'local-bridge' || title.includes('Test Bridge');
   const url = isMockBridge ? '' : (rawUrl || 'https://jup.ag');
 
   const webviewRef = useRef<WebView>(null);
