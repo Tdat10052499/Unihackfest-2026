@@ -26,6 +26,8 @@ function findAndPatch(dir) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       if (
+        // pnpm: .../node_modules/@privy-io/<package> — đi vào mọi package trong scope @privy-io
+        path.basename(dir) === '@privy-io' ||
         entry.name === '@privy-io' ||
         entry.name.includes('@privy-io') ||
         entry.name === 'dist' ||
