@@ -10,7 +10,7 @@ Tài liệu này hợp nhất: (1) bản tổng hợp hội thoại trước đ�
 
 N.E.D Wallet là ví thông minh Web3 trên Solana, dự thi **UniHackfest 2026**, hướng đến trải nghiệm "Web2.5".
 
-- **Frontend**: React Native / Expo SDK 54, TypeScript, Zustand, Reanimated, i18next (song ngữ Việt–Anh).
+- **Frontend**: React Native / Expo SDK 57, TypeScript, Zustand, Reanimated, i18next (song ngữ Việt–Anh).
 - **Auth & ví (đã chốt 26/09)**: **Dynamic SDK** — đăng nhập **chỉ bằng Google**, ví nhúng **MPC** (không seed phrase), tài trợ phí gas cho người dùng. **Không dùng Privy nữa.**
 - **RPC**: Helius. **Lưu trữ cục bộ**: MMKV. **Tên miền**: SNS (`.sol`).
 - **Hướng kiến trúc**: không backend riêng; ngoại lệ duy nhất là 1 proxy serverless nhỏ giữ khoá LLM và khoá Jupiter (xem `03-ky-thuat/dev-handoff.md` mục 7).
