@@ -23,7 +23,7 @@ Nhánh `chore/t0-5-web3-cleanup` (tạo từ `main` @ `7c7674c`, đã gồm PoC 
 | `docs/`, `.mcp.json`, `assets/` | GIỮ | |
 | `ned_program/` | GIỮ | Không sửa (việc của T1.5) |
 | `ned-mock-dapp/` | **XOÁ** | Bản sao độc lập của dApp test; dApp Browser dùng bản nhúng `constants/mockDAppHtml.ts` |
-| `ned-hub/` | Đã xoá khỏi git từ T0.2 | Trên máy còn thư mục không được git theo dõi — xem mục 6 |
+| `ned-hub/` | Đã xoá khỏi git từ T0.2 | Thư mục rác trên máy đã xoá (mục 7) |
 | `ned-wallet/app`, `components`, `hooks`, `services`, `stores`, `contexts`, `constants`, `locales` | GIỮ (đã lọc) | Chi tiết ở dưới |
 | `ned-wallet/src/*` | **GỘP–DI CHUYỂN** | Xem mục 3 |
 | Privy (`@privy-io/expo`, `PrivyProvider`, `scripts/patch-privy.js`) | TẠM GIỮ | Theo yêu cầu, tới Phase 1 |
@@ -116,10 +116,7 @@ Lỗi lint có sẵn (không sửa): chủ yếu React Compiler — `react-hooks
    2. xem số dư;
    3. gửi USDC tới một **địa chỉ ví**;
    4. mở tab dApps → "DApp Test Bridge".
-2. Trên máy còn `ned-hub/` (không được git theo dõi: `node_modules/` và `.env.local` chứa **Supabase service_role key + secret key ví relayer**). Sau khi đã đổi khoá (T0.2), xoá thư mục này:
-   ```bash
-   rm -rf ned-hub
-   ```
+2. ~~Xoá thư mục rác trên máy~~ — **đã xoá** (26/09): `ned-hub/` (`node_modules`, `.env.local`), `ned-mock-dapp/.vercel`, `.vercel/`, `.venv/` ở thư mục gốc. Vẫn cần: đổi Supabase service_role key và rút SOL khỏi ví relayer `b7TF…Wqz` nếu chưa làm.
 3. `ned-wallet/.env` / `.env.local` còn `EXPO_PUBLIC_SUPABASE_*`, `EXPO_PUBLIC_SIWS_DOMAIN` — không còn dùng, có thể xoá cho gọn.
 4. Nếu dự án Supabase không còn dùng: tắt/xoá project trên Supabase.
 5. Quyết định giữ hay xoá `scripts/deploy-web.js` (Vercel) và `MwaProvider`.
