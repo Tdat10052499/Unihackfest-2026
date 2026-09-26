@@ -19,8 +19,6 @@ export const SOLANA_DEVNET_RPC =
   process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
   'https://api.devnet.solana.com';
 
-// Địa chỉ ví Treasury Escrow trên Solana Devnet
-export const GEO_REDPACKET_TREASURY = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 
 // USDC Mint chuẩn trên Solana Devnet (Decimals = 6)
 export const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');

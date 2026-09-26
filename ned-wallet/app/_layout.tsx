@@ -8,7 +8,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { PrivyProvider } from '@privy-io/expo';
 import { sepolia, mainnet } from 'viem/chains';
-import { GlobalPresenceProvider } from '../contexts/GlobalPresenceContext';
 import { MwaProvider } from '../contexts/MwaProvider';
 import { WalletProvider } from '../src/providers/WalletProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
@@ -113,7 +112,6 @@ export default function RootLayout() {
                     : 'devnet'
                 }
               >
-                <GlobalPresenceProvider>
                   <View style={styles.root}>
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -136,7 +134,6 @@ export default function RootLayout() {
                     </Stack>
                     <GlobalNotificationManager />
                   </View>
-                </GlobalPresenceProvider>
               </WalletProvider>
             </MwaProvider>
           </PrivyProvider>
