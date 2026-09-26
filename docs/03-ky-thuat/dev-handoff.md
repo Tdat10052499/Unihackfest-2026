@@ -9,15 +9,20 @@
 - **Phí N.E.D (đã chốt tạm)**: 0.2–0.3% trên swap/đầu tư; thiết kế dùng **0.25%**.
 - **Không làm**: mini-app platform, Perps, Prediction Market, Gacha, đa chuỗi, VNPAY.
 
-### ⚠️ Khác biệt giữa stack định hướng mới và code hiện tại
+### Stack đã chốt (26/09) và việc chuyển từ code cũ
 
-| Hạng mục | Code hiện tại (commit `7c98c16`) | Định hướng dùng trong thiết kế |
+| Hạng mục | Code trên `main` (cũ) | Đã chốt |
 |---|---|---|
-| Đăng nhập / ví | Privy (`@privy-io/expo`), Email OTP + Google | **Chỉ Google**; ví nhúng MPC (thiết kế ghi "MPC wallet by Dynamic") |
-| Backend | Supabase + `ned-hub` relayer | Ưu tiên không backend; **ngoại lệ**: 1 proxy serverless nhỏ cho LLM + khoá Jupiter (mục 7) |
-| Gas | `ned-hub` relayer (5 giao dịch/ngày) | "Network fee free · paid by N.E.D" (sponsor gas) |
+| Đăng nhập / ví | Privy (`@privy-io/expo`), Email OTP + Google | **Dynamic SDK** — chỉ Google, ví nhúng MPC. **Không dùng Privy** |
+| Gas | Relayer `ned-hub` (5 giao dịch/ngày) | Tài trợ gas qua Dynamic ("Network fee free · paid by N.E.D") |
+| Backend | Supabase (+ Realtime) | Không backend riêng; ngoại lệ: 1 proxy serverless cho LLM + khoá Jupiter (mục 7) |
+| Tra cứu SĐT/username | Supabase | PDA `ned_program` (phone / name / reverse) |
+| Lưu cục bộ | — | MMKV |
 
-→ Cần dev chốt: **giữ Privy/Supabase/ned-hub** hay **chuyển sang Dynamic**. Thiết kế không phụ thuộc nhà cung cấp; chỉ các chữ "Dynamic" trên màn Settings/Onboarding cần đổi nếu giữ Privy.
+**Việc cần làm khi chuyển**: gỡ `@privy-io/expo` và `PhantomAuthButton`, bỏ màn Email OTP; tích hợp Dynamic (Google + ví MPC); nối reverse PDA để phân biệt người mới / quay lại; chuyển các lệnh gửi sang ký bằng ví Dynamic + tài trợ gas.
+
+**Còn phải chốt**: bỏ hẳn Supabase hay không (Shake to Split / Coin Toss / Geo-Red Packet đang dùng Supabase Realtime); bỏ hẳn `ned-hub` hay giữ dự phòng.
+⚠️ Chưa xác minh: tên gói SDK Dynamic cho Expo/React Native, cách tài trợ gas trên Solana, định dạng JWT/JWKS — đọc tài liệu Dynamic trước khi code.
 
 ## 1. Onboarding (Google-only)
 
@@ -61,7 +66,7 @@
 ## 5. Gửi & Nhận (P2P)
 
 - Ô người nhận tự nhận dạng: SĐT (≥9 số) / `@username` / `.sol` (SNS) / địa chỉ Solana.
-- Tra cứu qua PDA `ned_program` (phone/name) hoặc Supabase (code hiện tại).
+- Tra cứu qua PDA `ned_program` (phone/name). (Code cũ dùng Supabase — thay khi chuyển stack.)
 - SĐT chưa xác minh (không OTP) → nhãn **Unverified number** + cảnh báo ở Review. Nói rõ khi pitching.
 - Phí mạng: miễn phí (sponsor).
 
@@ -87,7 +92,7 @@
 
 ```
 App ── POST /chat (Bearer JWT đăng nhập) ──▶ Proxy serverless (Cloudflare Worker / Vercel Edge)
-                                              1. Xác minh JWT (Dynamic JWKS hoặc Privy)
+                                              1. Xác minh JWT đăng nhập Dynamic (JWKS)
                                               2. Rate limit (vd. 20 lượt/người/giờ)
                                               3. System prompt + tool schema cố định ở server
                                               4. Gọi LLM bằng khoá bí mật (secret)
