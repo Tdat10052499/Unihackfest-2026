@@ -4,12 +4,10 @@ import { usePrivy, useEmbeddedSolanaWallet, useEmbeddedWallet } from '@privy-io/
 import {
   Connection,
   PublicKey,
-  Keypair,
   Transaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import bs58 from 'bs58';
 import { Buffer } from 'buffer';
 import { lookupWalletByPhone, resolveIdentityOnchain, resolveActiveSolanaAddress } from '../services/identity';
 import {
@@ -299,28 +297,16 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
         const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
 
-        // 2. Cấu hình Relayer cục bộ (Client-side Relayer): Đọc khóa bí mật từ EXPO_PUBLIC_ADMIN_SECRET_KEY
-        const adminSecretKeyStr = process.env.EXPO_PUBLIC_ADMIN_SECRET_KEY || '';
-        let relayerKeypair: Keypair | null = null;
-        if (adminSecretKeyStr) {
-          try {
-            relayerKeypair = Keypair.fromSecretKey(bs58.decode(adminSecretKeyStr));
-          } catch (keyErr) {
-            console.warn('⚠️ Lỗi decode EXPO_PUBLIC_ADMIN_SECRET_KEY:', keyErr);
-          }
-        }
+        // Tạm thời người gửi tự trả phí mạng + phí mở ATA (Phase 1 bật Dynamic Gas Sponsorship)
+        const feePayerPubkey = fromPubkey;
 
-        const relayerPubkey = relayerKeypair
-          ? relayerKeypair.publicKey
-          : (process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER ? new PublicKey(process.env.EXPO_PUBLIC_RELAYER_FEE_PAYER) : fromPubkey);
-
-        // Chịu phí mở ví (Rent Exemption): Relayer chịu 100% phí tạo ATA người nhận
+        // Phí mở ví (Rent Exemption): người gửi trả phí tạo ATA người nhận
         const toAtaInfo = await solanaConnection.getAccountInfo(toATA, 'confirmed');
         if (!toAtaInfo) {
-          console.log('ℹ️ [ATA] Khởi tạo Associated Token Account cho người nhận (Phí do Relayer chịu):', toATA.toBase58());
+          console.log('ℹ️ [ATA] Khởi tạo Associated Token Account cho người nhận:', toATA.toBase58());
           transaction.add(
             createAssociatedTokenAccountInstruction(
-              relayerPubkey, // payer
+              feePayerPubkey, // payer
               toATA,
               toPubkey,
               mintPubkey,
@@ -340,8 +326,8 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
           )
         );
 
-        // Chịu phí mạng (Base Fee): relayer chịu 100%
-        transaction.feePayer = relayerPubkey;
+        // Phí mạng (Base Fee): người gửi trả
+        transaction.feePayer = feePayerPubkey;
         transaction.recentBlockhash = blockhash;
 
         setStatusMessage('Đang chuẩn bị xác nhận...');
@@ -449,38 +435,15 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
 
         setStatusMessage('Đang phát sóng lên mạng lưới...');
 
-        // Bước 2: transaction.partialSign(relayerKeypair) - Sử dụng ví Relayer ký xác nhận trả mọi chi phí
-        let fullySignedTx = signedTransaction;
-        if (relayerKeypair) {
-          try {
-            // Nếu signedTransaction trả về từ provider là Transaction instance
-            if (typeof (signedTransaction as any).partialSign === 'function') {
-              (signedTransaction as any).partialSign(relayerKeypair);
-              fullySignedTx = signedTransaction;
-            } else {
-              // Hoặc khôi phục lại Transaction từ bytes để partialSign
-              const txBytes = signedTransaction.serialize({ requireAllSignatures: false, verifySignatures: false });
-              const reconstructedTx = Transaction.from(txBytes);
-              reconstructedTx.partialSign(relayerKeypair);
-              fullySignedTx = reconstructedTx;
-            }
-          } catch (relayerSignErr: any) {
-            console.error('⚠️ Lỗi relayer partialSign:', relayerSignErr);
-            throw new Error(`Lỗi ký bảo lãnh Relayer: ${relayerSignErr?.message || relayerSignErr}`);
-          }
-        } else {
-          console.warn('⚠️ Không tìm thấy relayerKeypair để ký bảo trợ gasless');
-        }
-
-        // Bước 3: Gửi giao dịch lên mạng qua connection.sendRawTransaction(transaction.serialize())
-        const rawBroadcastBytes = fullySignedTx.serialize();
+        // Bước 2: Gửi giao dịch lên mạng qua connection.sendRawTransaction(transaction.serialize())
+        const rawBroadcastBytes = signedTransaction.serialize();
         const txSignature = await solanaConnection.sendRawTransaction(rawBroadcastBytes, {
           skipPreflight: false,
           preflightCommitment: 'confirmed',
           maxRetries: 3,
         });
 
-        console.log('⚡ [On-chain Broadcasted Direct via Client Relayer] TxSignature:', txSignature);
+        console.log('⚡ [On-chain Broadcasted] TxSignature:', txSignature);
 
         setStatusMessage('Đang chờ xác nhận giao dịch...');
         await solanaConnection.confirmTransaction(txSignature, 'confirmed');
