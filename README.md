@@ -2,6 +2,8 @@
 
 > A Next-Generation Web3 Smart Wallet on Solana Network
 
+> **Team docs (VN):** định hướng dự án, 40 màn hình thiết kế và bàn giao kỹ thuật nằm ở [`docs/`](docs/README.md). Đọc trước khi code.
+
 [![Solana Network](https://img.shields.io/badge/Solana-14F195?style=flat&logo=solana&logoColor=white)](https://solana.com/)
 [![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

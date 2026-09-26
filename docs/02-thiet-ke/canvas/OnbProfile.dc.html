@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Create profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#080812}
+a{color:#B87AED}a:hover{color:#D4AEF6}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:rgba(255,255,255,0.35)}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #110822 0%, #0D0618 30%, #080812 60%, #06060E 100%); color: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #FFFFFF">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#FFFFFF"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#FFFFFF"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#FFFFFF"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.25)"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="rgba(255,255,255,0.3)"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="rgba(255,255,255,0.3)"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 4px 20px 0; display: flex; align-items: center; gap: 14px; position: relative; z-index: 2">
+    <a href="OnbSetup.dc.html" aria-label="Back" style="width: 44px; height: 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <div role="progressbar" aria-valuemin="1" aria-valuemax="2" aria-valuenow="1" aria-label="Step 1 of 2" style="flex: 1; display: flex; gap: 6px"><div style="flex: 1; height: 4px; border-radius: 9999px; background: #9B4FDE"></div><div style="flex: 1; height: 4px; border-radius: 9999px; background: rgba(255,255,255,0.12)"></div></div>
+  </div>
+  <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 22px 24px 0; position: relative; z-index: 1">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.6px">Create your profile</h1>
+    <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.68)">Friends can send you money with your username or phone number.</p>
+
+    <label for="onb-user" style="display: block; margin-top: 26px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85)">Username</label>
+    <div style="{{userBox}}">
+      <span style="font-family: 'Space Mono', monospace; font-size: 16px; color: rgba(255,255,255,0.5)">@</span>
+      <input id="onb-user" value="{{username}}" onChange="{{onUser}}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="yourname" aria-describedby="onb-user-hint" style="flex: 1; min-width: 0; height: 50px; background: transparent; border: none; outline: none; color: #FFFFFF; font-family: 'Space Mono', monospace; font-size: 16px">
+      <sc-if value="{{userOk}}" hint-placeholder-val="{{ true }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      </sc-if>
+    </div>
+    <div id="onb-user-hint" aria-live="polite" style="{{userHintStyle}}">{{userHint}}</div>
+    <sc-if value="{{showSuggest}}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{suggestions}}" as="sg" hint-placeholder-count="3">
+          <button onClick="{{sg.pick}}" style="height: 34px; padding: 0 12px; border-radius: 9999px; background: rgba(155,79,222,0.14); border: 1px solid rgba(155,79,222,0.4); color: #E4D0FA; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer">@{{sg.name}}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <label for="onb-phone" style="display: block; margin-top: 22px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85)">Phone number</label>
+    <div style="{{phoneBox}}">
+      <span style="display: flex; align-items: center; gap: 6px; padding-right: 10px; margin-right: 2px; border-right: 1px solid rgba(255,255,255,0.12); font-size: 15px; color: rgba(255,255,255,0.8)">VN +84</span>
+      <input id="onb-phone" type="tel" inputmode="numeric" value="{{phone}}" onChange="{{onPhone}}" placeholder="90 123 4567" aria-describedby="onb-phone-hint" style="flex: 1; min-width: 0; height: 50px; background: transparent; border: none; outline: none; color: #FFFFFF; font-family: 'Space Mono', monospace; font-size: 16px">
+      <sc-if value="{{phoneOk}}" hint-placeholder-val="{{ true }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      </sc-if>
+    </div>
+    <div id="onb-phone-hint" aria-live="polite" style="{{phoneHintStyle}}">{{phoneHint}}</div>
+
+    <div style="margin-top: 22px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; background: rgba(99,102,241,0.1); border: 1px solid rgba(129,140,248,0.26); border-radius: 14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A5B4FC" stroke-width="2" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8v.5"></path></svg>
+      <div style="font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.78)">Your username and number are saved on Solana, so anyone who knows them can find your wallet. You can't change your number later.</div>
+    </div>
+  </div>
+  <div style="padding: 12px 24px 28px; position: relative; z-index: 1">
+    <sc-if value="{{canGo}}" hint-placeholder-val="{{ true }}">
+      <a href="OnbMode.dc.html" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 16px; background: linear-gradient(135deg, #7B2FBE 0%, #9B4FDE 50%, #6366F1 100%); font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: #FFFFFF; text-decoration: none">Create profile</a>
+    </sc-if>
+    <sc-if value="{{cantGo}}" hint-placeholder-val="{{ false }}">
+      <div aria-disabled="true" style="height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: rgba(255,255,255,0.08); font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: rgba(255,255,255,0.4)">Create profile</div>
+    </sc-if>
+    <div style="margin-top: 10px; font-size: 11px; text-align: center; color: rgba(255,255,255,0.5)">Free. N.E.D covers the network fee.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"usernameState":{"editor":"enum","options":["available","taken","empty"],"default":"available"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var st = props.usernameState ?? 'available';
+    this.state = { username: st === 'taken' ? 'tdat' : (st === 'empty' ? '' : 'annguyen'), phone: st === 'empty' ? '' : '901234567' };
+  }
+  renderVals() {
+    var self = this;
+    var taken = ['tdat', 'ned', 'teddy', 'admin', 'an'];
+    var takenPhones = ['987654321'];
+    var u = (this.state.username || '').toLowerCase();
+    var validU = /^[a-z0-9_]{3,20}$/.test(u);
+    var isTaken = validU && taken.indexOf(u) >= 0;
+    var userOk = validU && !isTaken;
+    var userHint, userTone;
+    if (!u) { userHint = '3–20 characters: letters, numbers or _'; userTone = 'rgba(255,255,255,0.55)'; }
+    else if (!validU) { userHint = 'Use 3–20 characters: letters, numbers or _'; userTone = '#FBBF24'; }
+    else if (isTaken) { userHint = '@' + u + ' is taken. Try one of these:'; userTone = '#F87171'; }
+    else { userHint = '@' + u + ' is available'; userTone = '#4ADE80'; }
+    var p = (this.state.phone || '').replace(/\D/g, '').replace(/^0/, '');
+    var validP = p.length >= 9 && p.length <= 10;
+    var pTaken = validP && takenPhones.indexOf(p) >= 0;
+    var phoneOk = validP && !pTaken;
+    var phoneHint, phoneTone;
+    if (!p) { phoneHint = 'We never text you. It\'s only used so friends can find you.'; phoneTone = 'rgba(255,255,255,0.55)'; }
+    else if (!validP) { phoneHint = 'Enter a 9–10 digit Vietnamese number'; phoneTone = '#FBBF24'; }
+    else if (pTaken) { phoneHint = 'This number is already linked to another N.E.D account'; phoneTone = '#F87171'; }
+    else { phoneHint = 'Looks good'; phoneTone = '#4ADE80'; }
+    function box(ok, bad) { return 'display: flex; align-items: center; gap: 8px; height: 54px; margin-top: 8px; padding: 0 14px; background: rgba(255,255,255,0.05); border-radius: 14px; border: 1px solid ' + (bad ? 'rgba(248,113,113,0.7)' : (ok ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.14)')); }
+    function hint(c) { return 'margin-top: 6px; font-size: 12px; line-height: 1.4; color: ' + c; }
+    var sugg = [u + '_ned', u + '99', 'the' + u].filter(function (x) { return taken.indexOf(x) < 0 && x.length <= 20; }).map(function (n) {
+      return { name: n, pick: function () { self.setState({ username: n }); } };
+    });
+    var go = userOk && phoneOk;
+    return {
+      username: this.state.username, phone: this.state.phone,
+      onUser: function (e) { self.setState({ username: e.target.value.replace(/\s/g, '') }); },
+      onPhone: function (e) { self.setState({ phone: e.target.value }); },
+      userOk: userOk, phoneOk: phoneOk,
+      userBox: box(userOk, isTaken), phoneBox: box(phoneOk, pTaken),
+      userHint: userHint, userHintStyle: hint(userTone),
+      phoneHint: phoneHint, phoneHintStyle: hint(phoneTone),
+      showSuggest: isTaken, suggestions: sugg,
+      canGo: go, cantGo: !go
+    };
+  }
+}
+</script>
+</body>
+</html>

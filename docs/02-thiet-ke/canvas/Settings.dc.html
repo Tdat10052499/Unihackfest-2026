@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(170deg, #110822 0%, #0D0618 30%, #080812 60%, #06060E 100%); color: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <div style="position: absolute; top: -60px; right: -40px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(123,47,190,0.22) 0%, transparent 65%); pointer-events: none"></div>
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #FFFFFF">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#FFFFFF"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#FFFFFF"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#FFFFFF"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.25)"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="rgba(255,255,255,0.3)"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="rgba(255,255,255,0.3)"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 6px 22px 0; position: relative; z-index: 2">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.6px">Settings</h1>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; top: 96px; left: 16px; right: 16px; z-index: 6; padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-radius: 16px; background: #173A2A; border: 1px solid rgba(74,222,128,0.4); box-shadow: 0 12px 30px rgba(0,0,0,0.45)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      <div style="flex: 1; font-size: 13px; line-height: 1.45"><strong>Switched to {{modeName}} mode.</strong> {{toastText}}</div>
+    </div>
+  </sc-if>
+
+  <div style="flex: 1; overflow-y: auto; scrollbar-width: none; padding: 14px 16px 110px; position: relative; z-index: 1">
+
+    <!-- Profile -->
+    <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">
+      <div style="width: 56px; height: 56px; border-radius: 9999px; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #9B4FDE 0%, #6366F1 100%); display: flex; align-items: flex-end; justify-content: center">
+        <img src="/_blob/3606719d081640f73145640e612b071e" alt="" style="width: 56px; height: 57px; margin-bottom: -5px">
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">tdat</div>
+        <div style="margin-top: 2px; font-size: 13px; color: rgba(255,255,255,0.65)">@tdat · +84 90 •••• 4567</div>
+        <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 9999px; background: rgba(255,255,255,0.08); font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.8)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 5v5h-5"></path></svg>
+          Signed in with Google
+        </div>
+      </div>
+      <a href="Receive.dc.html" aria-label="Show my QR code" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3M21 14v.5M14 21h.5M17 21h4v-4"></path></svg>
+      </a>
+    </div>
+
+    <!-- Wallet mode -->
+    <div style="padding: 20px 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.55)">WALLET MODE</div>
+    <a href="SettingsMode.dc.html" style="display: block; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, rgba(123,47,190,0.32), rgba(99,102,241,0.18)); border: 1px solid rgba(184,122,237,0.4); text-decoration: none; color: #FFFFFF">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"></path><circle cx="18" cy="16" r="3"></circle></svg>
+        </div>
+        <div style="flex: 1; min-width: 0">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">{{modeName}}</span>
+            <span style="padding: 2px 8px; border-radius: 9999px; background: rgba(255,255,255,0.16); font-size: 10px; font-weight: 700; letter-spacing: 0.5px">ON</span>
+          </div>
+          <div style="margin-top: 3px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.78)">{{modeDesc}}</div>
+        </div>
+        <span style="font-size: 13px; font-weight: 600; color: #E9D5FF">Change</span>
+      </div>
+    </a>
+
+    <!-- Preferences -->
+    <div style="padding: 20px 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.55)">PREFERENCES</div>
+    <div style="border-radius: 18px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09); overflow: hidden">
+      <a href="#currency" style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M14.5 9.5c-.6-.9-1.5-1.3-2.5-1.3-1.5 0-2.6.8-2.6 1.9 0 2.6 5.3 1.4 5.3 4 0 1.1-1.2 2-2.7 2-1.1 0-2.1-.5-2.7-1.4M12 6.5v1.7M12 15.8v1.7"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Display currency</div></div><span style="font-size: 13px; color: rgba(255,255,255,0.6)">{{currency}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></div><div style="flex: 1; min-width: 0"><label for="set-hide" style="font-size: 15px; font-weight: 500">Hide balances</label><div style="margin-top: 2px; font-size: 12px; color: rgba(255,255,255,0.58)">Show •••• until you tap</div></div>
+          <button id="set-hide" role="switch" aria-checked="{{hide.on}}" onClick="{{hide.flip}}" style="{{hide.track}}"><div style="{{hide.knob}}"></div></button>
+        </div><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></div><div style="flex: 1; min-width: 0"><label for="set-notif" style="font-size: 15px; font-weight: 500">Notifications</label><div style="margin-top: 2px; font-size: 12px; color: rgba(255,255,255,0.58)">Money in, price alerts</div></div>
+          <button id="set-notif" role="switch" aria-checked="{{notif.on}}" onClick="{{notif.flip}}" style="{{notif.track}}"><div style="{{notif.knob}}"></div></button>
+        </div><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <a href="#language" style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Language</div></div><span style="font-size: 13px; color: rgba(255,255,255,0.6)">English</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+    </div>
+
+    <!-- Security -->
+    <div style="padding: 20px 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.55)">SECURITY</div>
+    <div style="border-radius: 18px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div><div style="flex: 1; min-width: 0"><label for="set-lock" style="font-size: 15px; font-weight: 500">App lock</label><div style="margin-top: 2px; font-size: 12px; color: rgba(255,255,255,0.58)">Face ID or fingerprint to open</div></div>
+          <button id="set-lock" role="switch" aria-checked="{{lock.on}}" onClick="{{lock.flip}}" style="{{lock.track}}"><div style="{{lock.knob}}"></div></button>
+        </div><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86EFAC" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Wallet protection</div><div style="margin-top: 2px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.58)">MPC wallet by Dynamic. No recovery phrase to lose.</div></div></div><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="m11 12 9-9M17 6l3 3M15 8l2 2"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">New phone?</div><div style="margin-top: 2px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.58)">Sign in with the same Google account to get your wallet back.</div></div></div><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <a href="WalletCards.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"></rect><path d="M3 10h18M16 15h2"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Wallet address</div></div><span style="font-size: 13px; color: rgba(255,255,255,0.6)">7xK9…3fQa</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+    </div>
+
+    <!-- About -->
+    <div style="padding: 20px 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.55)">HELP &amp; ABOUT</div>
+    <div style="border-radius: 18px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09); overflow: hidden">
+      <a href="TEDBotV1.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Ask T.E.D for help</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <a href="#terms" style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Terms &amp; Privacy</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a><div style="height: 1px; margin-left: 60px; background: rgba(255,255,255,0.07)"></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #FFFFFF"><div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(155,79,222,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8v.5"></path></svg></div><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 500">Version 1.0.0</div><div style="margin-top: 2px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.58)">Demo build on Solana Devnet</div></div><span style="padding: 3px 8px; border-radius: 9999px; background: rgba(245,158,11,0.14); border: 1px solid rgba(251,191,36,0.35); font-size: 10px; font-weight: 700; color: #FCD34D">DEVNET</span></div>
+    </div>
+
+    <a href="OnbWelcome.dc.html" style="margin-top: 18px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 16px; background: rgba(239,68,68,0.08); border: 1px solid rgba(248,113,113,0.3); color: #FCA5A5; font-size: 15px; font-weight: 600; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FCA5A5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
+      Sign out
+    </a>
+    <div style="margin-top: 8px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.5)">Your wallet stays safe. Sign in again with Google anytime.</div>
+  </div>
+
+  <nav aria-label="Main" style="position: absolute; left: 50%; bottom: 24px; margin-left: -128px; width: 256px; height: 56px; box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 9999px; background: rgba(22,16,31,0.94); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(10,4,24,0.45); z-index: 5">
+    <a href="{{homeHref}}" aria-label="Home" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>
+    </a>
+    <a href="#dapps" aria-label="dApps" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+    </a>
+    <a href="XStocksList.dc.html" aria-label="xStocks" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><path d="M12 20V10M6 20V4M18 20v-4"></path></svg>
+    </a>
+    <div aria-current="page" aria-label="Settings" style="width: 52px; height: 42px; border-radius: 9999px; background: rgba(155,79,222,0.3); display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+    </div>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["crypto","cash"],"default":"crypto"},"toast":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { hide: false, notif: true, lock: true }; }
+  renderVals() {
+    var self = this;
+    var cash = (this.props.mode ?? 'crypto') === 'cash';
+    var toast = this.props.toast === true || this.props.toast === 'true';
+    function sw(key) {
+      var on = self.state[key];
+      return {
+        on: on,
+        flip: function () { var o = {}; o[key] = !self.state[key]; self.setState(o); },
+        track: 'width: 50px; height: 30px; padding: 3px; box-sizing: border-box; border-radius: 9999px; border: none; cursor: pointer; flex-shrink: 0; display: flex; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? '#9B4FDE' : 'rgba(255,255,255,0.18)'),
+        knob: 'width: 24px; height: 24px; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.35)'
+      };
+    }
+    return {
+      modeName: cash ? 'Simple' : 'Crypto',
+      modeDesc: cash ? 'Your money in dollars. Crypto you receive becomes Cash.' : 'See and hold every Solana token you own.',
+      toast: toast,
+      toastText: cash ? 'Home now shows your money in dollars.' : 'Home now shows all your tokens.',
+      currency: 'USD ($)', homeHref: cash ? 'HomeCash.dc.html' : 'HomeV4.dc.html',
+      hide: sw('hide'), notif: sw('notif'), lock: sw('lock')
+    };
+  }
+}
+</script>
+</body>
+</html>

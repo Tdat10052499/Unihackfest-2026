@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Home V4</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; background: #0A0614; color: #FFFFFF; overflow: hidden; position: relative">
+<div style="position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none">
+
+  <!-- HERO -->
+  <div style="{{heroStyle}}">
+    <div style="position: absolute; top: 150px; right: -140px; width: 420px; height: 340px; background: radial-gradient(ellipse, rgba(99,102,241,0.32) 0%, rgba(99,102,241,0.12) 40%, transparent 70%); pointer-events: none"></div>
+    <div style="position: absolute; top: 210px; left: -150px; width: 380px; height: 300px; background: radial-gradient(ellipse, rgba(155,79,222,0.26) 0%, rgba(155,79,222,0.1) 40%, transparent 70%); pointer-events: none"></div>
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #FFFFFF">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#FFFFFF"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#FFFFFF"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#FFFFFF"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.25)"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="rgba(255,255,255,0.3)"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="rgba(255,255,255,0.3)"></rect></svg>
+    </div>
+  </div>
+
+    <!-- Header islands -->
+    <div style="padding: 6px 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; position: relative">
+      <a href="{{settingsHref}}" aria-label="Your profile" style="display: flex; align-items: center; gap: 10px; min-width: 0; height: 52px; padding: 0 16px 0 5px; box-sizing: border-box; border-radius: 9999px; text-decoration: none; color: #FFFFFF; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 8px 24px rgba(8,2,20,0.35), inset 0 1px 0 rgba(255,255,255,0.12)">
+        <div style="width: 42px; height: 42px; border-radius: 9999px; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #9B4FDE 0%, #6366F1 100%); display: flex; align-items: flex-end; justify-content: center">
+          <img src="/_blob/3606719d081640f73145640e612b071e" alt="" style="width: 42px; height: 43px; margin-bottom: -4px">
+        </div>
+        <div style="min-width: 0">
+          <div style="font-size: 11px; line-height: 1.2; color: rgba(255,255,255,0.65)">{{greeting}}</div>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">tdat</div>
+        </div>
+      </a>
+      <div style="display: flex; align-items: center; gap: 2px; height: 52px; padding: 0 4px; box-sizing: border-box; border-radius: 9999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 8px 24px rgba(8,2,20,0.35), inset 0 1px 0 rgba(255,255,255,0.12)">
+        <a href="TEDBotV1.dc.html" aria-label="Ask T.E.D" style="width: 44px; height: 44px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; text-decoration: none; position: relative">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
+          <div style="position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 9999px; background: #FBBF24; border: 1.5px solid #1A0F30"></div>
+        </a>
+        <div aria-hidden="true" style="width: 1px; height: 20px; background: rgba(255,255,255,0.14)"></div>
+        <button aria-label="Notifications" style="width: 44px; height: 44px; border-radius: 9999px; background: transparent; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <div style="position: absolute; top: 10px; right: 11px; width: 7px; height: 7px; border-radius: 9999px; background: #B87AED; border: 1.5px solid #1A0F30"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Balance -->
+    <div style="padding: 30px 20px 0; position: relative">
+      <div style="font-size: 12px; font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,0.6)">Total balance</div>
+      <div style="margin-top: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; letter-spacing: -1.8px; line-height: 1">{{bigWhole}}<span style="color: rgba(255,255,255,0.72)">{{bigCents}}</span></div>
+      <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(34,197,94,0.16); border: 1px solid rgba(74,222,128,0.28)">
+        <span style="font-size: 12px; font-weight: 600; color: #86EFAC">{{chgPct}}</span>
+        <span style="font-size: 11px; color: rgba(255,255,255,0.6)">24h</span>
+      </div>
+      <!-- Mini wallet cards -->
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 10px">
+        <sc-for list="{{cards}}" as="t" hint-placeholder-count="3">
+          <a href="WalletCards.dc.html" aria-label="{{t.cardLabel}}" style="{{t.mini}}">
+            <img src="/_blob/3606719d081640f73145640e612b071e" alt="" style="position: absolute; right: -6px; bottom: -8px; width: 34px; height: 35px; opacity: 0.55">
+            <span style="position: absolute; left: 7px; top: 6px; font-family: 'Space Mono', monospace; font-size: 8px; color: rgba(255,255,255,0.85)">{{t.short}}</span>
+          </a>
+        </sc-for>
+        <a href="Receive.dc.html" aria-label="Add money" style="width: 64px; height: 40px; box-sizing: border-box; border-radius: 8px; border: 1.5px dashed rgba(255,255,255,0.55); background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; text-decoration: none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick action tiles -->
+    <div style="margin-top: 26px; padding: 0 20px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; position: relative">
+      <sc-for list="{{actions}}" as="q" hint-placeholder-count="4">
+        <a href="{{q.href}}" style="height: 104px; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border-radius: 16px; background: rgba(250,248,255,0.94); box-shadow: 0 6px 20px rgba(40,12,90,0.18); text-decoration: none">
+          <div style="width: 30px; height: 30px; border-radius: 8px; background: #16101F; display: flex; align-items: center; justify-content: center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{q.icon}}"></path></svg>
+          </div>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: #16101F">{{q.label}}</div>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ASSETS SHEET -->
+  <div style="{{sheetStyle}}">
+    <!-- Simple Earn -->
+    <a href="EarnHome.dc.html" style="{{earnStyle}}">
+      <div style="{{earnIcon}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{earnInk}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg>
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700">Simple Earn</div>
+        <div style="{{earnSub}}">Earn up to <strong style="{{earnRate}}">4.0% APY</strong> on your Cash</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{chev}}" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+
+    <div style="margin-top: 28px; display: flex; justify-content: space-between; align-items: baseline">
+      <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{assetsTitle}}</h2>
+      <a href="WalletCards.dc.html" style="{{viewAllStyle}}">See all</a>
+    </div>
+    <div style="margin-top: 6px">
+      <sc-for list="{{assets}}" as="r" hint-placeholder-count="3">
+        <a href="{{r.href}}" style="{{r.rowStyle}}">
+          <div style="{{r.iconBox}}">{{r.glyph}}</div>
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 15px; font-weight: 600">{{r.name}}</div>
+            <div style="{{r.subStyle}}">{{r.sub}}</div>
+          </div>
+          <svg width="52" height="26" viewBox="0 0 52 26" fill="none" aria-hidden="true" style="flex-shrink: 0">
+            <path d="{{r.spark}}" stroke="{{r.sparkColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <div style="text-align: right; min-width: 78px">
+            <div style="font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{r.value}}</div>
+            <div style="{{r.chgStyle}}">{{r.chg}}</div>
+          </div>
+        </a>
+      </sc-for>
+      <sc-if value="{{hiddenNote}}" hint-placeholder-val="{{ false }}">
+        <a href="{{settingsHref}}" style="{{noteStyle}}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{noteInk}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3 3.8M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"></path></svg>
+          <span style="flex: 1">2.45 SOL is kept aside. Switch to Crypto mode in Settings to see it.</span>
+        </a>
+      </sc-if>
+    </div>
+  </div>
+</div>
+
+  <!-- Floating nav -->
+  <nav aria-label="Main" style="position: absolute; left: 50%; bottom: 24px; margin-left: -128px; width: 256px; height: 56px; box-sizing: border-box; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 9999px; background: rgba(22,16,31,0.92); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(10,4,24,0.35); z-index: 5">
+    <div aria-current="page" style="width: 52px; height: 42px; border-radius: 9999px; background: rgba(155,79,222,0.3); display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF" stroke="none"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>
+    </div>
+    <a href="#dapps" aria-label="dApps" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+    </a>
+    <a href="XStocksList.dc.html" aria-label="xStocks" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><path d="M12 20V10M6 20V4M18 20v-4"></path></svg>
+    </a>
+    <a href="{{settingsHref}}" aria-label="Settings" style="width: 52px; height: 42px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"></circle><circle cx="12" cy="12" r="1.3"></circle><circle cx="19" cy="12" r="1.3"></circle></svg>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["crypto","cash"],"default":"crypto"},"sheet":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var light = (this.props.sheet ?? 'light') === 'light';
+    var cashMode = (this.props.mode ?? 'crypto') === 'cash';
+    var wallets = [
+      { name: 'Cash', amount: 750.00, glyph: '$', dotBg: '#2775CA', grad: 'linear-gradient(135deg, #9B4FDE 0%, #6366F1 55%, #1A0B33 100%)', caption: '750.00 USDC · ready to spend', short: 'CASH' },
+      { name: 'Crypto', amount: 362.85, glyph: '◎', dotBg: 'linear-gradient(135deg, #14F195, #9945FF)', grad: 'linear-gradient(135deg, #1FB58F 0%, #5B3FD0 55%, #120826 100%)', caption: '2.45 SOL', short: 'CRYPTO' },
+      { name: 'Stocks', amount: 121.71, glyph: 'x', dotBg: '#B7791F', grad: 'linear-gradient(135deg, #E0A33A 0%, #8A3AD0 55%, #1A0B33 100%)', caption: '1 investment · +$2.66 all-time', short: 'STOCKS' }
+    ];
+    function money(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    if (cashMode) wallets = wallets.filter(function (w) { return w.name !== 'Crypto'; });
+    var hr = new Date().getHours();
+    var greeting = hr < 5 ? 'Good evening' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+    var big = money(cashMode ? 871.71 : 1234.56);
+    var cards = wallets.map(function (w) {
+      return {
+        cardLabel: 'Open ' + w.name + ' wallet card', short: w.short,
+        mini: 'position: relative; overflow: hidden; width: 64px; height: 40px; border-radius: 8px; background: ' + w.grad + '; box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25); text-decoration: none'
+      };
+    });
+    var P = { receive: 'M12 5v14M5 12l7 7 7-7', swap: 'M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4', send: 'M12 19V5M5 12l7-7 7 7', add: 'M12 5v14M5 12h14', stocks: 'M3 3v18h18M7 15l4-6 4 3 5-7', earn: 'M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.6 5 3 5 1.3 5 3.3-2.2 3-5 3-5-1.1-5-3' };
+    var actions = [
+      { label: 'RECEIVE', icon: P.receive, href: 'Receive.dc.html' },
+      { label: 'SEND', icon: P.send, href: 'SendRecipient.dc.html' },
+      cashMode ? { label: 'EARN', icon: P.earn, href: 'EarnHome.dc.html' } : { label: 'SWAP', icon: P.swap, href: 'SwapV1.dc.html' },
+      { label: 'XSTOCKS', icon: P.stocks, href: 'XStocksList.dc.html' }
+    ];
+    var ink = light ? '#16101F' : '#FFFFFF';
+    var muted = light ? '#6B6478' : 'rgba(255,255,255,0.55)';
+    var pos = light ? '#15803D' : '#4ADE80';
+    var chip = light ? '#F1EDF8' : 'rgba(255,255,255,0.07)';
+    var neg = light ? '#B91C1C' : '#F87171';
+    var page = light ? '#FFFFFF' : '#120B1F';
+    // Smooth hero ramp: eased colour stops (smoothstep) instead of a few hard stops
+    function hx(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+    function mix(a, b, t) { var A = hx(a), B = hx(b); return 'rgb(' + A.map(function (v, k) { return Math.round(v + (B[k] - v) * t); }).join(',') + ')'; }
+    var keys = light
+      ? [[0, '#0A0614'], [0.22, '#140A2C'], [0.42, '#2A1363'], [0.58, '#4A2BA3'], [0.72, '#8A6AD8'], [0.86, '#D9CDF6'], [1, '#FFFFFF']]
+      : [[0, '#0A0614'], [0.22, '#140A2C'], [0.42, '#2A1363'], [0.6, '#3C2285'], [0.78, '#27155A'], [0.9, '#1A0F36'], [1, '#120B1F']];
+    var stops = [];
+    for (var k = 0; k < keys.length - 1; k++) {
+      for (var j = 0; j < 6; j++) {
+        var t = j / 6, e = t * t * (3 - 2 * t);
+        stops.push(mix(keys[k][1], keys[k + 1][1], e) + ' ' + ((keys[k][0] + (keys[k + 1][0] - keys[k][0]) * t) * 100).toFixed(1) + '%');
+      }
+    }
+    stops.push(keys[keys.length - 1][1] + ' 100%');
+    var heroBg = 'linear-gradient(180deg, ' + stops.join(', ') + ')';
+    var line = light ? '#F0ECF6' : 'rgba(255,255,255,0.06)';
+    function asset(o) {
+      return {
+        name: o.name, sub: o.sub, value: o.value, chg: o.chg, glyph: o.glyph, href: o.href,
+        spark: o.spark, sparkColor: o.flat ? (light ? '#B8B0C8' : 'rgba(255,255,255,0.3)') : (o.up ? pos : neg),
+        rowStyle: 'display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid ' + (light ? '#F0ECF6' : 'rgba(255,255,255,0.06)') + '; text-decoration: none; color: ' + ink,
+        iconBox: 'width: 42px; height: 42px; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: \'Space Grotesk\', sans-serif; font-size: 16px; font-weight: 700; color: #FFFFFF; background: ' + o.bg,
+        subStyle: 'margin-top: 2px; font-size: 13px; color: ' + muted,
+        chgStyle: 'margin-top: 2px; font-size: 12px; font-weight: 600; color: ' + (o.flat ? muted : (o.up ? pos : neg))
+      };
+    }
+    var assets = cashMode ? [
+      asset({ name: 'Cash', sub: 'Ready to spend', value: '$750.00', chg: 'Stable', flat: true, glyph: '$', bg: '#2775CA', href: 'WalletCards.dc.html', spark: 'M2 13 L9 13.5 L16 12.5 L23 13 L30 12.8 L37 13.2 L44 13 L50 12.6' }),
+      asset({ name: 'Apple', sub: 'Investment · 0.5 AAPLx', value: '$121.71', chg: '▲ +1.28%', up: true, glyph: 'A', bg: '#6B6780', href: 'XStockDetail.dc.html', spark: 'M2 18 L9 19 L16 16 L23 17 L30 12 L37 14 L44 9 L50 8' })
+    ] : [
+      asset({ name: 'USDC', sub: '750.00 USDC · Cash', value: '$750.00', chg: 'Stable', flat: true, glyph: '$', bg: '#2775CA', href: 'WalletCards.dc.html', spark: 'M2 13 L9 13.5 L16 12.5 L23 13 L30 12.8 L37 13.2 L44 13 L50 12.6' }),
+      asset({ name: 'Solana', sub: '2.45 SOL · Crypto', value: '$362.85', chg: '▲ +3.42%', up: true, glyph: '◎', bg: 'linear-gradient(135deg, #14F195, #9945FF)', href: 'SwapV1.dc.html', spark: 'M2 20 L9 17 L16 19 L23 13 L30 15 L37 9 L44 11 L50 5' }),
+      asset({ name: 'Apple', sub: '0.5 AAPLx · Stocks', value: '$121.71', chg: '▲ +1.28%', up: true, glyph: 'A', bg: '#6B6780', href: 'XStockDetail.dc.html', spark: 'M2 18 L9 19 L16 16 L23 17 L30 12 L37 14 L44 9 L50 8' })
+    ];
+    return {
+      greeting: greeting + ',',
+      chgPct: cashMode ? '▲ +0.18%' : '▲ +5.23%',
+      assetsTitle: cashMode ? 'Your money' : 'Your Assets',
+      hiddenNote: cashMode,
+      noteStyle: 'margin-top: 14px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; text-decoration: none; font-size: 13px; line-height: 1.45; color: ' + muted + '; background: ' + chip,
+      noteInk: muted,
+      settingsHref: cashMode ? 'SettingsSwitched.dc.html' : 'Settings.dc.html',
+      cards: cards, actions: actions, assets: assets,
+      earnStyle: 'display: flex; align-items: center; gap: 12px; padding: 14px 0; text-decoration: none; color: ' + ink + '; border-top: 1px solid ' + line + '; border-bottom: 1px solid ' + line,
+      earnIcon: 'width: 42px; height: 42px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + (light ? '#D6F5E1' : 'rgba(34,197,94,0.14)'),
+      earnInk: light ? '#15803D' : '#4ADE80', earnRate: 'font-weight: 700; color: ' + (light ? '#15803D' : '#4ADE80'),
+      earnSub: 'margin-top: 2px; font-size: 13px; color: ' + muted, chev: light ? '#9A92A8' : 'rgba(255,255,255,0.3)',
+      bigWhole: big.slice(0, -3), bigCents: big.slice(-3),
+      viewAllStyle: 'font-size: 14px; text-decoration: none; color: ' + muted,
+      sheetStyle: 'position: relative; min-height: 460px; padding: 0 20px 110px; color: ' + ink + '; background: ' + page,
+      heroStyle: 'position: relative; padding-bottom: 64px; background: ' + heroBg
+    };
+  }
+}
+</script>
+</body>
+</html>
