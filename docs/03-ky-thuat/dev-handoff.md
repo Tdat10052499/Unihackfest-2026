@@ -97,6 +97,12 @@ Instruction (signer = ví người dùng = payer):
 
 ## 4. xStocks
 
+### Bổ sung sau khi cấu hình Jupiter key
+
+- Đã gọi API thật bằng key trong `.env`: `/tag?query=stocks` trả **HTTP 200** nhưng body là `{"status":400,"message":"Invalid tag provided."}`. OpenAPI chính thức vẫn liệt kê `stocks`; đây là khác biệt giữa tài liệu và runtime, không phải bằng chứng key sai hay filter sai.
+- Parser chung kiểm tra JSON trước khi dùng mảng. Chỉ khi tag bị từ chối bằng thông điệp trên, app/script dự phòng `/search?query=xStock`, giữ tag `xstocks`, rồi áp dụng x + verified + liquidity ≥$10k. Search là danh sách giới hạn, không cam kết toàn bộ thị trường.
+- Script sửa đã chạy thành công: nhận **20 → hậu tố x: 20 → verified: 20 → liquidity: 20**, có AAPLx. Snapshot metadata công khai dùng cho regression test ở `services/__tests__/fixtures/xstocks-live.json`. Không lưu API key.
+
 ### Chẩn đoán danh sách xStocks (27/09/2026)
 
 - MCP Jupiter xác nhận Tokens API v2 `GET /tag?query=stocks` dùng header `x-api-key`; response token có `symbol`, `isVerified`, `tags`, `liquidity`, `usdPrice` và `stats24h`.

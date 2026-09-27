@@ -118,6 +118,12 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - **Còn cần test tay Safari iPhone sau khi thêm key public vào `.env` và deploy**: chạy `pnpm xstocks:diagnose` (gửi output, tuyệt đối không gửi key), đảm bảo ≥5 mã; mở AAPLx, thử 1D/1W/1M/6M; mua $50, xác nhận Cash giảm và danh mục/allocation tăng; bán 50%, xem P/L; Reset demo data trong Settings (dev). Kiểm tra Network không có `/execute`. Chưa đánh dấu Phase 3 hoàn tất đến khi có dữ liệu API và test tay này.
 
 ## 4. Lệnh hay dùng
+
+### Bổ sung sửa `tokens.filter is not a function` — `fix/p3-xstocks-rework`
+- Sau khi chủ dự án thêm key, đã xác minh nguyên nhân tiếp theo: Jupiter `/tag?query=stocks` trả HTTP 200 nhưng JSON lỗi `{status:400,message:"Invalid tag provided."}`; code cũ ép object thành mảng. Kết luận thiếu key trước đây chỉ áp dụng môi trường lúc chưa cấu hình.
+- Sửa parser chung cho Tokens API và script; dự phòng search xStock có tag `xstocks` khi tag stocks bị từ chối. Không đổi tiêu chí verified/liquidity. Search chưa phải toàn bộ danh sách stocks.
+- Chạy script thật thành công: **20/20/20/20** token qua các bước; snapshot có AAPLx. Thêm test lỗi body HTTP 200, fallback đúng lỗi, không fallback 401 và filter snapshot live. TypeScript/lint code sửa, unit tests và export Web + Android pass. Vẫn cần kiểm thử UI Safari sau build/deploy lại.
+
 ```bash
 # App (ned-wallet)
 pnpm web                                    # chạy web local (cần localhost:8081 trong CORS Dynamic)

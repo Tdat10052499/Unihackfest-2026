@@ -1,5 +1,6 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
+import { loadStockTokens, parseTokenResponse } from '../services/jupiter/tokenResponse';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 
@@ -10,7 +11,7 @@ type Token = {
   isVerified?: boolean | null;
   liquidity?: number | null;
   usdPrice?: number | null;
-  tags?: string[] | null;
+  tags?: string[];
 };
 
 const apiKey = process.env.EXPO_PUBLIC_JUPITER_API_KEY;
@@ -22,30 +23,22 @@ async function main() {
     return;
   }
 
-  let response: Response;
-  try {
-    response = await fetch('https://api.jup.ag/tokens/v2/tag?query=stocks', {
-      headers: { 'x-api-key': apiKey },
+  const tokens = await loadStockTokens<Token>(async (endpoint) => {
+    const response = await fetch(`https://api.jup.ag/tokens/v2${endpoint}`, {
+      headers: { 'x-api-key': apiKey! },
+      signal: AbortSignal.timeout(12_000),
     });
-  } catch (error) {
-    console.error('Network error calling Jupiter Tokens API:', error);
-    process.exitCode = 1;
-    return;
-  }
+    if (!response.ok) throw new Error(`Jupiter Tokens API returned HTTP ${response.status}`);
+    const body: unknown = await response.json();
+    console.log(`Endpoint: ${endpoint} · HTTP ${response.status} · JSON ${Array.isArray(body) ? 'array' : 'object'}`);
+    return parseTokenResponse<Token>(body);
+  }, () => console.log('stocks tag rejected: falling back to search xStock + xstocks tag (not exhaustive).'));
 
-  if (!response.ok) {
-    console.error(`Jupiter Tokens API returned HTTP ${response.status}`);
-    console.error((await response.text()).slice(0, 500));
-    process.exitCode = 1;
-    return;
-  }
-
-  const tokens = (await response.json()) as Token[];
   const endsInX = tokens.filter((token) => token.symbol?.endsWith('x'));
   const verified = endsInX.filter((token) => token.isVerified === true);
   const liquid = verified.filter((token) => (token.liquidity ?? 0) >= 10_000);
 
-  console.log(`Tokens API tag=stocks returned: ${tokens.length}`);
+  console.log(`Tokens received: ${tokens.length}`);
   console.log(`After symbol endsWith "x": ${endsInX.length}`);
   console.log(`After isVerified === true: ${verified.length}`);
   console.log(`After liquidity >= $10,000: ${liquid.length}`);
@@ -63,4 +56,7 @@ async function main() {
   }
 }
 
-void main();
+void main().catch((error) => {
+  console.error(error instanceof Error ? error.message : 'Jupiter diagnosis failed');
+  process.exitCode = 1;
+});
