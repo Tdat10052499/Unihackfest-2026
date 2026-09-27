@@ -7,10 +7,10 @@ import { useAuth } from '../services/auth';
 export default function WelcomeScreen() {
   const { isReady, isAuthenticated } = useAuth();
 
-  // Phiên Dynamic còn hiệu lực → vào thẳng Home
+  // Đã đăng nhập (phiên còn hạn hoặc vừa quay về từ Google) → màn đăng nhập quyết định Home hay onboarding
   useEffect(() => {
     if (isReady && isAuthenticated) {
-      router.replace('/(tabs)');
+      router.replace('/(auth)');
     }
   }, [isReady, isAuthenticated]);
 
