@@ -98,7 +98,7 @@ Mỗi board ở mục 2 là một file `project/<tên>.dc.html`; cộng `project
 - HomeV4 thêm tweak `mode` crypto (mặc định, như cũ) / cash; `HomeCash.dc.html` = vỏ dc-import HomeV4 mode=cash (HomeV4 đã chuyển sang dạng importable: helmet chỉ còn font + body{margin:0}).
 - Ở cash: tổng $871.71 (Cash $750 + Investments $121.71, không tính SOL), ▲ +0.18%; thẻ mini chỉ Cash + Stocks; ô SWAP → **EARN** (→ EarnHome); danh sách "Your money": Cash (Ready to spend) + Apple (Investment); dòng mờ "2.45 SOL is kept aside. Switch to Crypto mode in Settings to see it".
 - Chuỗi prototype: HomeV4 → Settings (crypto) → Change → SettingsMode → Switch → SettingsSwitched → nút Home → HomeCash.
-- **Giả định (chưa được người dùng xác nhận)**: chế độ Simple thay ô SWAP bằng EARN.
+- **Đã chốt bởi chủ dự án (27/09, Gate D0)**: chế độ Simple thay ô SWAP bằng EARN.
 
 ### WalletCards.dc.html (Wallet cards)
 - Thẻ dọc 250×360 trượt ngang (Cash / Crypto / Stocks), bấm thẻ ló hoặc chấm phân trang để chuyển; số dư, "Wallet info" (address + username có copy, Network, Holds) và nút thao tác đổi theo thẻ (Stocks: Buy/Sell/Market). Không hiển thị bí mật; ghi chú "same Solana address, never shows private key". Tweak `start`.
@@ -187,9 +187,16 @@ Mỗi board ở mục 2 là một file `project/<tên>.dc.html`; cộng `project
 11. **Đăng nhập chỉ bằng Google (26/09)**: bỏ Email OTP và bỏ liên kết ví ngoài Phantom/Solflare → **bỏ Kế hoạch Bước 5.5**; chế độ Crypto chỉ là cách hiển thị khác của cùng ví N.E.D.
 12. **Phân biệt người mới / quay lại** bằng reverse PDA `[b"reverse", wallet]` sau khi Dynamic trả ví; thoát giữa chừng → quay lại bước tạo hồ sơ.
 13a. **Công tắc chế độ ví Cash/Crypto đặt trong Settings** (chốt 26/09) — Home V4 không còn tab ví.
-13c. **Trợ lý AI (26/09)**: đặt trong T.E.D (không màn riêng); **không** gợi ý đổi chế độ ví; kiến trúc LLM hiểu + giải thích, bộ quy tắc trong app tính con số; LLM gọi qua **proxy serverless nhỏ** (Cloudflare Worker/Vercel Edge) xác minh JWT Dynamic + rate limit, có thể giữ luôn khoá Jupiter; dự phòng chỉ-quy-tắc khi proxy lỗi. Nhà cung cấp LLM chưa chọn. Mentor chưa thẩm định.
+13c. **Trợ lý AI (26/09, kiến trúc LLM/proxy đã bị thay thế bởi Gate D0 ngày 27/09 bên dưới)**: đặt trong T.E.D (không màn riêng); **không** gợi ý đổi chế độ ví; kiến trúc LLM hiểu + giải thích, bộ quy tắc trong app tính con số; LLM gọi qua **proxy serverless nhỏ** (Cloudflare Worker/Vercel Edge) xác minh JWT Dynamic + rate limit, có thể giữ luôn khoá Jupiter; dự phòng chỉ-quy-tắc khi proxy lỗi. Nhà cung cấp LLM chưa chọn. Mentor chưa thẩm định.
 13b. **Earn: hiển thị công khai phí N.E.D** (0.45% lãi, đã tính trong APY) trong mục Details & risks — tạm theo đề xuất, mentor chưa xác nhận thu phí Earn.
 13. **SĐT chưa xác minh (tạm theo đề xuất)**: chấp nhận cho demo + nói rõ khi pitching + nhãn "Unverified number" khi gửi lần đầu (sẽ làm ở luồng Send). **Lưu ý riêng tư**: SĐT làm seed PDA là dữ liệu công khai, có thể dò; cân nhắc seed = hash(SĐT) — vẫn dò được vì không gian SĐT nhỏ, nhưng không lộ trực tiếp.
+
+### Gate D0 — chủ dự án chốt ngày 27/09/2026
+
+- **Jupiter Tokens API**: nhúng khoá gói Free vào `EXPO_PUBLIC_JUPITER_API_KEY` trong `ned-wallet/.env` (không commit); chấp nhận khoá public và rủi ro bị dùng hết hạn mức. Swap `/order` dùng keyless **0.5 RPS**, có hàng đợi. Đây là quyết định triển khai; xác minh API qua MCP trước khi code.
+- **Trợ lý AI Phase 5 (stretch)**: rule-based, không LLM, không proxy/serverless; giữ kiến trúc không backend. Cắt đầu tiên nếu trễ. Quyết định này thay thế kiến trúc LLM/proxy ở mục 13c.
+- **Simple mode**: ô thao tác thứ ba là **EARN**. Earn vẫn chỉ triển khai nếu dư thời gian.
+- **Phí**: người dùng tự trả phí mạng + rent SOL devnet; khi triển khai phải thay mọi dòng "Network fee free / N.E.D covers the fee" trong canvas bằng phí thật. Phí N.E.D swap/đầu tư **0.25%**, công khai trước xác nhận; Swap/xStocks/Earn có nhãn "Demo mode", không broadcast.
 
 ## 7. Màn hình còn thiếu (cần thiết kế thêm)
 
