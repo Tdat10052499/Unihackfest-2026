@@ -1,15 +1,7 @@
 import { useState, useCallback } from 'react';
 import { InteractionManager } from 'react-native';
-import { usePrivy, useEmbeddedSolanaWallet, useEmbeddedWallet } from '@privy-io/expo';
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-} from '@solana/web3.js';
-import { Buffer } from 'buffer';
-import { lookupWalletByPhone, resolveIdentityOnchain, resolveActiveSolanaAddress } from '../services/identity';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import { resolveIdentityOnchain } from '../services/identity';
 import {
   solanaConnection,
   USDC_DEVNET_MINT,
@@ -20,8 +12,7 @@ import {
   getSolanaBalance,
   TOKEN_PROGRAM_ID,
 } from '../services/solana';
-import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../contexts/WalletProvider';
+import { useAuth } from '../services/auth';
 
 export interface OnchainTransferParams {
   recipientAddressOrPhone: string;
@@ -58,109 +49,35 @@ export interface UseOnchainTransferReturn {
  * - Bọc InteractionManager bảo vệ Main Thread và WebView trên thiết bị
  */
 export function useOnchainTransfer(): UseOnchainTransferReturn {
-  const { isReady, user, getAccessToken, logout } = usePrivy();
-  const externalWallet = useExternalWallet();
-  const solanaWalletState = useEmbeddedSolanaWallet();
-  const embeddedWalletState = useEmbeddedWallet();
+  const { status: authStatus, walletAddress, signTransaction } = useAuth();
 
   const [isTransferring, setIsTransferring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
-  const status = solanaWalletState?.status || 'disconnected';
-  const wallets = solanaWalletState?.wallets || [];
-  const needsRecovery = Boolean(
-    status === 'needs-recovery' ||
-    embeddedWalletState?.status === 'needs-recovery' ||
-    (solanaWalletState as any)?.needsRecovery === true ||
-    (embeddedWalletState as any)?.needsRecovery === true
-  );
-
-  const getSenderAddress = useCallback((): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      useUserStore.getState().walletAddress
-    );
-  }, [user, externalWallet, solanaWalletState]);
-
-  const senderAddr = getSenderAddress();
-
-  const isWalletReady = Boolean(
-    (externalWallet?.connected && Boolean(externalWallet?.publicKey)) ||
-    (isReady &&
-      user &&
-      !needsRecovery &&
-      (status === 'connected' || wallets.length > 0 || Boolean(senderAddr)))
-  );
+  // Ví nhúng Dynamic (MPC) không có trạng thái "needs-recovery"
+  const needsRecovery = false;
+  const isWalletReady = authStatus === 'ready' && Boolean(walletAddress);
 
   const transfer = useCallback(
     async (params: OnchainTransferParams): Promise<OnchainTransferResult> => {
       setError(null);
       setTransactionHash(null);
 
-      const from = params.fromAddress || getSenderAddress();
+      const from = params.fromAddress || walletAddress;
 
-      // 1. Kiểm tra tính sẵn sàng của phiên người dùng
-      const isExternalSender = Boolean(
-        externalWallet?.connected &&
-        externalWallet?.publicKey &&
-        (from === externalWallet.publicKey.toBase58() || !user)
-      );
-
-      if (!isReady && !externalWallet?.connected) {
-        const err = 'Tài khoản chưa sẵn sàng. Vui lòng kết nối ví hoặc đăng nhập.';
+      // 1. Kiểm tra phiên đăng nhập + ví đã sẵn sàng
+      if (authStatus !== 'ready') {
+        const err = 'Tài khoản chưa sẵn sàng. Vui lòng đăng nhập lại.';
         setError(err);
         return { success: false, error: err };
-      }
-
-      // 2. Nếu dùng ví Privy Embedded, kiểm tra Access Token hợp lệ trước khi ký
-      if (!isExternalSender && user) {
-        try {
-          const token =
-            typeof getAccessToken === 'function' ? await getAccessToken() : null;
-          if (!token) {
-            console.warn('⚠️ [useOnchainTransfer] Missing access token, calling logout...');
-            if (typeof logout === 'function') {
-              await logout().catch((e) => console.log('Logout error ignored:', e));
-            }
-            const err = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại';
-            setError(err);
-            return { success: false, error: err };
-          }
-        } catch (tokenErr: any) {
-          console.error('⚠️ [useOnchainTransfer] Token check failed:', tokenErr);
-          if (typeof logout === 'function') {
-            await logout().catch((e) => console.log('Logout error ignored:', e));
-          }
-          const err = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại';
-          setError(err);
-          return { success: false, error: err };
-        }
       }
 
       if (!from) {
         const err = 'Không tìm thấy địa chỉ tài khoản nguồn.';
         setError(err);
         return { success: false, error: err };
-      }
-
-      let createdProvider: any = null;
-      // Nếu wallets rỗng, thử gọi create / connect embedded wallet
-      if (wallets.length === 0) {
-        if (typeof (solanaWalletState as any)?.create === 'function') {
-          try {
-            console.log('🔄 Đang khởi tạo/kết nối embedded solana wallet...');
-            createdProvider = await (solanaWalletState as any).create();
-            if (createdProvider) {
-              console.log('✅ Khởi tạo provider thành công từ create()');
-            }
-          } catch (createErr) {
-            console.log('create wallet fallback warning:', createErr);
-          }
-        }
       }
 
       const inputRecipient = params.recipientAddressOrPhone.trim();
@@ -297,7 +214,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         const sendUnits = Math.round(rawAmount * Math.pow(10, decimals));
         const toATA = getAssociatedTokenAddress(mintPubkey, toPubkey, false, tokenProgramId);
 
-        // Tạm thời người gửi tự trả phí mạng + phí mở ATA (Phase 1 bật Dynamic Gas Sponsorship)
+        // Không có gas sponsorship (gói Dynamic không phải Enterprise): người gửi trả phí mạng + phí mở ATA
         const feePayerPubkey = fromPubkey;
 
         // Phí mở ví (Rent Exemption): người gửi trả phí tạo ATA người nhận
@@ -340,98 +257,8 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         });
 
         setStatusMessage('Đang xác nhận trên thiết bị...');
-        let activeProvider: any = createdProvider || null;
-
-        // Ưu tiên 1: Lấy provider từ ví embedded kết nối hiện tại
-        if (!activeProvider) {
-          const currentWallets = solanaWalletState?.wallets || [];
-          if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
-            try {
-              activeProvider = await currentWallets[0].getProvider();
-            } catch (e) {
-              console.log('currentWallets[0].getProvider error:', e);
-            }
-          }
-        }
-
-        // Ưu tiên 2: Gọi getProvider() trực tiếp từ hook solanaWalletState
-        if (!activeProvider && typeof (solanaWalletState as any)?.getProvider === 'function') {
-          try {
-            activeProvider = await (solanaWalletState as any).getProvider();
-          } catch (e) {
-            console.log('solanaWalletState.getProvider error:', e);
-          }
-        }
-
-        // Ưu tiên 3: Tự động khởi tạo embedded wallet nếu chưa có
-        if (!activeProvider && typeof (solanaWalletState as any)?.create === 'function') {
-          try {
-            console.log('🔄 Đang tạo embedded wallet on-the-fly...');
-            activeProvider = await (solanaWalletState as any).create();
-          } catch (e) {
-            console.log('solanaWalletState.create fallback error:', e);
-          }
-        }
-
-        // Fallback: Nếu không có Privy session và người dùng dùng ví ngoài (Phantom)
-        if (
-          !activeProvider &&
-          externalWallet?.connected &&
-          externalWallet?.publicKey &&
-          from === externalWallet.publicKey.toBase58()
-        ) {
-          activeProvider = externalWallet;
-        }
-
-        if (!activeProvider || (typeof activeProvider.request !== 'function' && typeof activeProvider.signTransaction !== 'function')) {
-          throw new Error('Không thể khởi tạo provider để xác nhận giao dịch.');
-        }
-
-        // 3. Triển khai luồng ký kép (Dual-Signature) trực tiếp:
-        // Bước 1: userWallet.signTransaction(transaction) - Gọi ví người dùng ký xác nhận chuyển tài sản
-        let signResult: any = null;
-        try {
-          if (typeof activeProvider.request === 'function') {
-            signResult = await activeProvider.request({
-              method: 'signTransaction',
-              params: { transaction },
-            });
-          } else if (typeof activeProvider.signTransaction === 'function') {
-            signResult = await activeProvider.signTransaction(transaction);
-          }
-        } catch (signErr: any) {
-          console.warn('⚠️ Lần xác nhận thứ nhất gặp sự cố, thử lại:', signErr?.message);
-          if (
-            signErr?.message?.includes('timeout') ||
-            signErr?.message?.includes('user-signer') ||
-            signErr?.message?.includes('WebView') ||
-            signErr?.message?.includes('ready')
-          ) {
-            await new Promise((r) => setTimeout(r, 1200));
-            if (typeof (solanaWalletState as any)?.getProvider === 'function') {
-              try {
-                activeProvider = await (solanaWalletState as any).getProvider();
-              } catch (_) {}
-            }
-            const freshBlock = await solanaConnection.getLatestBlockhash('confirmed');
-            transaction.recentBlockhash = freshBlock.blockhash;
-            if (typeof activeProvider.request === 'function') {
-              signResult = await activeProvider.request({
-                method: 'signTransaction',
-                params: { transaction },
-              });
-            } else if (typeof activeProvider.signTransaction === 'function') {
-              signResult = await activeProvider.signTransaction(transaction);
-            }
-          } else {
-            throw signErr;
-          }
-        }
-
-        const signedTransaction = signResult?.signedTransaction || signResult;
-        if (!signedTransaction || typeof signedTransaction.serialize !== 'function') {
-          throw new Error('Không nhận được chữ ký xác nhận từ tài khoản.');
-        }
+        // Ký bằng ví nhúng Dynamic (MPC)
+        const signedTransaction = await signTransaction(transaction);
 
         setStatusMessage('Đang phát sóng lên mạng lưới...');
 
@@ -470,7 +297,7 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
         };
       }
     },
-    [isReady, user, wallets, status, getSenderAddress, getAccessToken, logout, externalWallet, solanaWalletState]
+    [authStatus, walletAddress, signTransaction]
   );
 
   return {
@@ -480,8 +307,8 @@ export function useOnchainTransfer(): UseOnchainTransferReturn {
     statusMessage,
     isWalletReady,
     needsRecovery,
-    walletStatus: status,
-    senderAddress: getSenderAddress(),
+    walletStatus: authStatus,
+    senderAddress: walletAddress,
     transfer,
   };
 }

@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface UserProfile {
   id?: string;
-  privy_id?: string;
+  auth_user_id?: string;
   wallet_address: string;
   username: string;
   avatar_url?: string | null;
@@ -25,14 +25,14 @@ export interface UserSearchResult {
   phone_number?: string | null;
   phone_hash?: string | null;
   avatar_url?: string | null;
-  privy_id?: string | null;
+  auth_user_id?: string | null;
 }
 
-const PROFILES_KEY = '@ned_wallet_local_profiles';
+export const LOCAL_PROFILES_KEY = '@ned_wallet_local_profiles';
 
 async function readProfiles(): Promise<UserProfile[]> {
   try {
-    const raw = await AsyncStorage.getItem(PROFILES_KEY);
+    const raw = await AsyncStorage.getItem(LOCAL_PROFILES_KEY);
     return raw ? (JSON.parse(raw) as UserProfile[]) : [];
   } catch {
     return [];
@@ -40,7 +40,7 @@ async function readProfiles(): Promise<UserProfile[]> {
 }
 
 async function writeProfiles(profiles: UserProfile[]): Promise<void> {
-  await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  await AsyncStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
 }
 
 const normalize = (value: string) => value.trim().toLowerCase();
@@ -62,13 +62,13 @@ export async function checkPhoneExists(
  * TODO(T1.5): thay bằng instruction create_profile / link_phone.
  */
 export async function upsertUserProfile(params: {
-  privy_id?: string;
+  auth_user_id?: string;
   wallet_address: string;
   username: string;
   phone_number?: string | null;
   linked_external_wallet?: string | null;
 }): Promise<{ success: boolean; data?: UserProfile; error?: string }> {
-  const { privy_id, wallet_address, username, phone_number, linked_external_wallet } = params;
+  const { auth_user_id, wallet_address, username, phone_number, linked_external_wallet } = params;
   if (!username || !wallet_address) {
     return { success: false, error: 'Thiếu thông tin bắt buộc (wallet_address hoặc username).' };
   }
@@ -78,7 +78,7 @@ export async function upsertUserProfile(params: {
   const existing = profiles.find((p) => p.wallet_address === wallet_address);
   const profile: UserProfile = {
     ...existing,
-    privy_id: privy_id ?? existing?.privy_id,
+    auth_user_id: auth_user_id ?? existing?.auth_user_id,
     wallet_address,
     username: normalize(username),
     phone_number: phone_number ?? existing?.phone_number ?? null,
@@ -90,14 +90,14 @@ export async function upsertUserProfile(params: {
   return { success: true, data: profile };
 }
 
-/** Lấy hồ sơ theo wallet_address / privy_id / username (chỉ trong bộ nhớ cục bộ). */
+/** Lấy hồ sơ theo wallet_address / auth_user_id / username (chỉ trong bộ nhớ cục bộ). */
 export async function getUserProfileFromDB(identifier: string): Promise<UserProfile | null> {
   if (!identifier) return null;
   const id = identifier.trim();
   const profiles = await readProfiles();
   return (
     profiles.find(
-      (p) => p.wallet_address === id || p.privy_id === id || p.username === normalize(id)
+      (p) => p.wallet_address === id || p.auth_user_id === id || p.username === normalize(id)
     ) ?? null
   );
 }

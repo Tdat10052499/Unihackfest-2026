@@ -19,18 +19,17 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../services/auth';
 import {
   getLinkedPhone,
   setLinkedPhone as setLinkedPhoneStorage,
   executeHardReset,
 } from '../services/storage';
-import { getUserPhoneNumberFromDB, getAccountIdentifier, resolveActiveSolanaAddress } from '../services/identity';
+import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
 // TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import { uploadUserAvatarFile } from '../services/profile';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
-import { useExternalWallet } from '../contexts/WalletProvider';
 import { useUserStore } from '../stores/useUserStore';
 
 // ==========================================
@@ -90,12 +89,7 @@ const CardDivider: React.FC = () => <View style={styles.cardDividerLine} />;
 export default function SettingsScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const externalWallet = useExternalWallet();
-
-  const privy = usePrivy();
-  const user = privy?.user || null;
-  const logout = privy?.logout || (async () => {});
-  const solanaWalletState = useEmbeddedSolanaWallet();
+  const { user, logout, walletAddress } = useAuth();
 
   // State định danh người dùng từ Global Store (Zustand)
   const { username, avatarUrl, setAvatarUrl, fetchUserProfile, loadFromStorage } = useUserStore();
@@ -117,17 +111,8 @@ export default function SettingsScreen() {
 
   // State cấu hình mạng lưới (Solana Network - Helius RPC)
 
-  // Lấy địa chỉ ví Solana đã liên kết (Ưu tiên Privy Embedded Solana Wallet)
-  const getSolanaAddress = (): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      useUserStore.getState().walletAddress
-    );
-  };
-
-  const solanaAddress = getSolanaAddress();
+  // Địa chỉ ví Solana nhúng (Dynamic)
+  const solanaAddress = walletAddress;
 
   // Đồng bộ User Profile & Username khi vào màn hình Settings
   useFocusEffect(
@@ -323,19 +308,11 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               console.log('🔄 [handleLogout] Bắt đầu quy trình đăng xuất an toàn...');
-              if (externalWallet?.disconnect) {
-                await externalWallet.disconnect();
-              }
               await executeHardReset(logout);
-              console.log('✅ [handleLogout] Đã hoàn tất đăng xuất khỏi Privy & dọn dẹp bộ nhớ');
+              console.log('✅ [handleLogout] Đã đăng xuất Dynamic & dọn dẹp bộ nhớ');
             } catch (err) {
               console.error('❌ [handleLogout] Lỗi khi đăng xuất:', err);
             } finally {
-              try {
-                if (externalWallet?.disconnect) {
-                  await externalWallet.disconnect();
-                }
-              } catch {}
               router.replace('/login');
             }
           },
@@ -426,7 +403,7 @@ export default function SettingsScreen() {
               onPress={() =>
                 Alert.alert(
                   t('settings.googleBackupTitle', { defaultValue: 'Bảo Mật Tài Khoản Google' }),
-                  t('settings.googleBackupDesc', { defaultValue: 'Tài khoản của bạn đã được sao lưu và bảo mật an toàn thông qua Google OAuth & Privy Embedded Wallet.' })
+                  t('settings.googleBackupDesc', { defaultValue: 'Tài khoản của bạn đã được sao lưu và bảo mật an toàn thông qua Google & ví nhúng Dynamic (MPC).' })
                 )
               }
             >

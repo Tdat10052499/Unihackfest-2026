@@ -38,7 +38,7 @@ N.E.D Wallet is a decentralized wallet (web first, Android via EAS) where users 
 
 The application integrates:
 - **Solana** (devnet for P2P transfers) and the **`ned_program`** Anchor program for on-chain identity.
-- **Dynamic** for Google login and embedded MPC wallets *(Phase 1 — currently still Privy)*.
+- **Dynamic** for Google login and embedded MPC wallets.
 - **Helius** RPC for balances, history and incoming-transfer notifications.
 - **Jupiter** (mainnet) for swap quotes and xStocks prices; **SNS** for `.sol` names.
 
@@ -62,7 +62,7 @@ The application integrates:
 - **Multi-language Support (i18n)**: Vietnamese and English.
 
 ### User Security
-- **Embedded wallet, no seed phrase**: Google login + MPC wallet via Dynamic *(migrating from Privy in Phase 1)*.
+- **Embedded wallet, no seed phrase**: Google login + MPC wallet via Dynamic.
 - **No secrets in the app**: every `EXPO_PUBLIC_*` value is public by design; there is no server holding user data.
 - **Phone numbers never go on-chain in clear**: only a scrypt hash is used as the PDA key (Phase 1).
 
@@ -83,8 +83,7 @@ The application integrates:
 - **SNS (Bonfida)** — `.sol` name resolution
 
 ### Auth
-- **Dynamic JS SDK** (`@dynamic-labs-sdk/*`) — Google login + embedded Solana MPC wallet *(Phase 1)*
-- **Privy** — current login, removed once Dynamic lands (T1.4)
+- **Dynamic JS SDK** (`@dynamic-labs-sdk/*`) — Google login + embedded Solana MPC wallet, wrapped by `useAuth()`
 
 ---
 
@@ -144,7 +143,7 @@ Unihackfest-2026/
 ├── ned-wallet/           # Expo app — see ned-wallet/ARCHITECTURE.md
 │   ├── app/              # Expo Router routes: (auth), (onboarding), (tabs), send, mini-app (dApp Browser)…
 │   ├── components/       # Shared UI (neo/*, modals, notifications)
-│   ├── contexts/         # MwaProvider, WalletProvider (temporary)
+│   ├── contexts/         # MwaProvider
 │   ├── hooks/            # Balance, transfer, notification sync, dApp bridge
 │   ├── services/         # auth/, identity/, jupiter/, solana.ts, anchorClient.ts, profile.ts…
 │   ├── stores/           # Zustand stores
@@ -161,7 +160,7 @@ Unihackfest-2026/
 ### Prerequisites
 
 - **Node.js** 20+ and **pnpm**
-- A **Dynamic** environment ID (and, until Phase 1 lands, a **Privy** app ID)
+- A **Dynamic** environment ID (Google sign-in, Solana + Solana Devnet and embedded wallets enabled; add your web origin to CORS Origins)
 - For Android: an **EAS** account (development builds run in the cloud; Expo Go is not supported)
 
 ### Installation Steps
@@ -171,7 +170,7 @@ Unihackfest-2026/
 ```bash
 git clone https://github.com/Tdat10052499/Unihackfest-2026.git
 cd Unihackfest-2026/ned-wallet
-pnpm install   # postinstall applies scripts/patch-privy.js (removed with Privy in T1.4)
+pnpm install
 ```
 
 #### 2. Configure environment variables

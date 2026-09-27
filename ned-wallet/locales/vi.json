@@ -217,7 +217,7 @@
     "cancel": "Hủy",
     "confirmReset": "Xác nhận Reset",
     "resetTitle": "Khôi Phục & Dọn Dẹp Phiên ⚠️",
-    "resetMsg": "Thao tác này sẽ dọn dẹp sạch sẽ toàn bộ phiên làm việc của ví, giải phóng tiến trình WebView bị treo và ép Privy cấp lại phiên kết nối mới.",
+    "resetMsg": "Thao tác này sẽ dọn dẹp sạch sẽ toàn bộ phiên làm việc của ví, và yêu cầu đăng nhập lại.",
     "resetSuccess": "Đã Dọn Dẹp 🎉",
     "resetSuccessMsg": "Dữ liệu phiên đã được làm mới. Vui lòng đăng nhập lại.",
     "currencyInfo": "N.E.D hiện hỗ trợ Việt Nam Đồng (VND) và Đô la Mỹ (USD).",

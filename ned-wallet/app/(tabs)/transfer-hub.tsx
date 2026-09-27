@@ -12,13 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../../services/auth';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { ActivityItem } from '@/services/solana';
 import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { useTranslation } from '@/services/i18n';
 import { SendModal } from '@/components/SendModal';
-import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
 import { TransactionReceiptModal } from '@/components/TransactionReceiptModal';
 import { NeoCard } from '@/components/neo/NeoCard';
 import { NEO_COLORS } from '@/components/neo/tokens';
@@ -87,8 +86,7 @@ export default function TransferHubScreen() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const { isReady, user } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
+  const { isReady, user } = useAuth();
   const {
     transfer: executeTokenTransfer,
     isTransferring: isSending,
@@ -99,7 +97,6 @@ export default function TransferHubScreen() {
   } = useOnchainTransfer();
 
   const [showSendModal, setShowSendModal] = useState(false);
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState<{
     amount: number | string;
@@ -228,17 +225,7 @@ export default function TransferHubScreen() {
         onConfirmSend={handleConfirmSend}
         isSending={isSending}
         needsRecovery={needsRecovery}
-        onTriggerRecovery={() => {
-          setShowSendModal(false);
-          setShowRecoveryModal(true);
-        }}
-      />
-
-      {/* Modal Khôi phục Ví Bảo Mật */}
-      <WalletRecoveryModal
-        visible={showRecoveryModal || needsRecovery}
-        onClose={() => setShowRecoveryModal(false)}
-        onSuccess={() => setShowRecoveryModal(false)}
+        onTriggerRecovery={() => setShowSendModal(false)}
       />
 
       {/* Modal Hóa Đơn Giao Dịch Chuẩn Neo-brutalism */}

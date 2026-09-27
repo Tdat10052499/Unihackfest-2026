@@ -19,7 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { usePrivy, useLinkSMS } from '@privy-io/expo';
+import { useAuth } from '../../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '../../stores/useUserStore';
 // TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
@@ -34,8 +34,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function OnboardingPhoneScreen() {
   const router = useRouter();
-  const privy = usePrivy();
-  const user = privy?.user || null;
+  const { user } = useAuth();
 
   // Quản lý trạng thái tiến trình (1: Nhập Số điện thoại, 2: Nhập OTP)
   const [step, setStep] = useState<1 | 2>(1);
@@ -53,27 +52,9 @@ export default function OnboardingPhoneScreen() {
   const otpInputRef = useRef<TextInput>(null);
   const [isOtpFocused, setIsOtpFocused] = useState<boolean>(false);
 
-  // Tích hợp hook useLinkSMS từ @privy-io/expo
-  const linkSmsHook = useLinkSMS({
-    onError: (err) => {
-      console.warn('⚠️ [useLinkSMS Error]:', err);
-      const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      setErrorMessage(msg || 'Có lỗi xảy ra trong quá trình xác thực SMS.');
-    },
-    onSendCodeSuccess: (args) => {
-      console.log('✅ [useLinkSMS] Gửi mã xác nhận thành công tới:', args?.phone);
-    },
-    onLinkSuccess: (updatedUser) => {
-      console.log('🎉 [useLinkSMS] Liên kết số điện thoại thành công! User ID:', updatedUser?.id);
-    },
-  });
-
-  const sendCode = linkSmsHook?.sendCode;
-  const linkWithCode = linkSmsHook?.linkWithCode;
-  const smsState = linkSmsHook?.state;
-
-  const isSendingCode = smsState?.status === 'sending-code';
-  const isSubmittingCode = smsState?.status === 'submitting-code';
+  // Không còn OTP SMS: SĐT là tuỳ chọn, hiển thị "Unverified number" (TODO(T1.3/T1.5): onboarding mới + Phone PDA)
+  const isSendingCode = false;
+  const isSubmittingCode = false;
 
   // Quản lý Countdown cho màn hình OTP
   useEffect(() => {
@@ -188,174 +169,25 @@ export default function OnboardingPhoneScreen() {
 
     await savePhoneState(formatted);
 
-    // Kích hoạt Countdown 59s cho bước 2
-    setCountdown(59);
-    setCanResend(false);
-
-    if (!sendCode) {
-      // Fallback dev mode
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setStep(2);
-      setOtpCode('');
-      return;
-    }
-
-    try {
-      console.log('📱 [Onboarding Step 1] Đang gửi mã OTP tới số:', formatted, 'User ID:', user?.id);
-
-      // Nếu là số test Dev, hỗ trợ đi tiếp ngay cả khi chưa cấu hình SMS gateway trên Privy
-      if (formatted === '+15555555555') {
-        try {
-          await sendCode({ phone: formatted });
-        } catch (devErr) {
-          console.log('ℹ️ [Dev Mode] Privy SMS chưa bật trên Dashboard, kích hoạt chế độ test mô phỏng.');
-        }
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setStep(2);
-        setOtpCode('');
-        return;
-      }
-
-      await sendCode({ phone: formatted });
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setStep(2);
-      setOtpCode('');
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
-      console.warn('❌ [Onboarding Step 1 Error]:', errorMsg);
-
-      if (errorMsg.includes('Login with SMS not allowed') || errorMsg.includes('SMS not allowed')) {
-        Alert.alert(
-          'SMS chưa được kích hoạt trên Privy',
-          'Phương thức xác thực SMS hiện chưa được bật trong Privy Dashboard. Bạn có thể sử dụng số test (+15555555555) hoặc bấm "Tiếp tục chế độ Dev" để trải nghiệm luồng Onboarding.',
-          [
-            {
-              text: 'Dùng số Test (+15555555555)',
-              onPress: async () => {
-                setPhone('+15555555555');
-                setCountryCode('+1');
-                await savePhoneState('+15555555555');
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setStep(2);
-              },
-            },
-            {
-              text: 'Tiếp tục chế độ Dev',
-              onPress: async () => {
-                await savePhoneState(phone || '+15555555555');
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setStep(2);
-              },
-            },
-            { text: 'Đóng', style: 'cancel' },
-          ]
-        );
-        return;
-      }
-
-      setErrorMessage(errorMsg || 'Không thể gửi mã xác thực. Vui lòng kiểm tra lại số điện thoại.');
-      Alert.alert(
-        'Gửi mã thất bại',
-        errorMsg || 'Không thể gửi mã xác nhận SMS tới số điện thoại này. Vui lòng thử lại.'
-      );
-    }
+    router.replace({
+      pathname: '/(onboarding)/username',
+      params: { phone: formatted },
+    });
   };
 
-  // Xử lý gửi lại mã OTP (Bước 2)
+  // Bước OTP không còn được dùng (không có nhà cung cấp SMS) — giữ UI tới khi T1.3 dựng lại onboarding
   const handleResendOtp = async () => {
-    if (!canResend) return;
-    const formatted = formatPhoneNumber(phone);
-    setErrorMessage('');
     setCountdown(59);
     setCanResend(false);
-
-    if (formatted === '+15555555555' || !sendCode) {
-      Alert.alert('Đã gửi lại mã', 'Mã xác nhận 123456 đã được gửi lại.');
-      return;
-    }
-
-    try {
-      await sendCode({ phone: formatted });
-      Alert.alert('Đã gửi lại mã', `Mã xác nhận mới đã được gửi tới số ${formatted}.`);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
-      setErrorMessage(errorMsg || 'Không thể gửi lại mã xác nhận.');
-    }
   };
 
-  // Xử lý xác nhận mã OTP (Bước 2)
   const handleVerifyOtp = async () => {
-    const trimmedOtp = otpCode.trim();
     const formatted = formatPhoneNumber(phone);
-
-    if (!trimmedOtp || trimmedOtp.length < 6) {
-      setErrorMessage('Vui lòng nhập đủ 6 chữ số mã OTP.');
-      Alert.alert('Thông báo', 'Mã OTP bao gồm 6 chữ số. Vui lòng nhập đầy đủ.');
-      return;
-    }
-
-    setErrorMessage('');
-
-    // Pre-check trùng lặp số điện thoại trước khi xác nhận
-    try {
-      const isDuplicate = await checkPhoneExists(formatted, user?.id);
-      if (isDuplicate) {
-        setErrorMessage('Số điện thoại này đã được liên kết với một ví N.E.D khác.');
-        Alert.alert(
-          'Số điện thoại đã tồn tại',
-          'Số điện thoại này đã được liên kết với một ví N.E.D khác. Vui lòng sử dụng số khác hoặc đăng nhập.'
-        );
-        return;
-      }
-    } catch (checkErr) {
-      console.warn('⚠️ [Onboarding Phone] Lỗi pre-check số điện thoại:', checkErr);
-    }
-
     await savePhoneState(formatted);
-
-    // Nếu là mã test Dev 123456
-    if (trimmedOtp === '123456' && (formatted === '+15555555555' || !linkWithCode)) {
-      console.log('🎉 [Dev Mode] Xác thực mã test 123456 thành công! Chuyển tiếp sang Username...');
-      router.replace({
-        pathname: '/(onboarding)/username',
-        params: { phone: formatted },
-      });
-      return;
-    }
-
-    if (!linkWithCode) {
-      setErrorMessage('Hệ thống xác thực SMS chưa sẵn sàng.');
-      return;
-    }
-
-    try {
-      console.log('🔐 [Onboarding Step 2] Đang xác thực OTP:', trimmedOtp, 'cho số:', formatted);
-      await linkWithCode({
-        code: trimmedOtp,
-        phone: formatted,
-      });
-
-      console.log('🎉 [Onboarding] Liên kết số điện thoại thành công! Chuyển tiếp sang Username...');
-      router.replace({
-        pathname: '/(onboarding)/username',
-        params: { phone: formatted },
-      });
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
-      console.warn('❌ [Onboarding Step 2 Error]:', errorMsg);
-
-      if (trimmedOtp === '123456' || errorMsg.includes('SMS not allowed')) {
-        console.log('🎉 [Dev Fallback] Bỏ qua lỗi SMS Privy trên Dashboard, chuyển sang Username...');
-        router.replace({
-          pathname: '/(onboarding)/username',
-          params: { phone: formatted },
-        });
-        return;
-      }
-
-      setErrorMessage('Mã OTP không hợp lệ hoặc đã hết hạn.');
-      Alert.alert('Xác thực thất bại', 'Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại.');
-    }
+    router.replace({
+      pathname: '/(onboarding)/username',
+      params: { phone: formatted },
+    });
   };
 
   // Bỏ qua onboarding bước SĐT

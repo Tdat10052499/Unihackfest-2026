@@ -1,84 +1,41 @@
 import '../polyfill';
 import '../services/i18n';
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, AppState, AppStateStatus, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import '../services/webAlert';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack } from 'expo-router';
-import { PrivyProvider } from '@privy-io/expo';
-import { sepolia, mainnet } from 'viem/chains';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { AuthProvider, useAuth } from '../services/auth';
 import { MwaProvider } from '../contexts/MwaProvider';
-import { WalletProvider } from '../contexts/WalletProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
-import * as WebBrowser from 'expo-web-browser';
 import { useFonts } from 'expo-font';
 import { Ionicons, Feather } from '@expo/vector-icons';
 
-// Completes the OAuth flow if the app was opened from an auth redirect on the Web
-if (Platform.OS === 'web') {
-  WebBrowser.maybeCompleteAuthSession();
+// Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(auth)', 'login', 'poc-dynamic', '+not-found']);
+
+/** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
+function AuthGate() {
+  const { isReady, isAuthenticated } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const first = segments[0] ?? '';
+
+  useEffect(() => {
+    if (isReady && !isAuthenticated && !PUBLIC_SEGMENTS.has(first)) {
+      router.replace('/(auth)');
+    }
+  }, [isReady, isAuthenticated, first, router]);
+
+  return null;
 }
 
-const solanaDevnet = {
-  id: 103,
-  name: 'Solana Devnet',
-  nativeCurrency: { name: 'SOL', symbol: 'SOL', decimals: 9 },
-  rpcUrls: {
-    default: { http: ['https://api.devnet.solana.com'] },
-  },
-} as const;
-
-// Hằng số toàn cục cố định reference chống re-render của PrivyProvider
-const PRIVY_APP_ID = process.env.EXPO_PUBLIC_PRIVY_APP_ID || 'cmtd0fy9n00x20bjsrwz1bxh9';
-const PRIVY_CLIENT_ID = process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || 'client-WY6d4xXJ5k11vtbhmk6hTvrToEBHd8ogAfzBa8x6siAUR';
-const PRIVY_SUPPORTED_CHAINS = [sepolia, mainnet, solanaDevnet as any] as const;
-
-const PRIVY_CONFIG = {
-  embedded: {
-    solana: {
-      createOnLogin: 'users-without-wallets' as const,
-    },
-    ethereum: {
-      createOnLogin: 'off' as const,
-    },
-  },
-};
-
 export default function RootLayout() {
-  const appState = useRef(AppState.currentState);
-
   const [loaded] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
   });
-
-  useEffect(() => {
-    console.log("🚀 [Phase 1] Privy App ID:", process.env.EXPO_PUBLIC_PRIVY_APP_ID);
-    console.log("🚀 [Phase 1] Privy Client ID:", process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID);
-  }, []);
-
-  // Update lastActiveTime when app goes to background
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        // App has come to the foreground
-      } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
-        // App has gone to the background
-        try {
-          await AsyncStorage.setItem('ned_last_active_time', Date.now().toString());
-          console.log("🕒 [Session] Saved lastActiveTime:", Date.now());
-        } catch (e) {
-          console.error("Failed to save lastActiveTime", e);
-        }
-      }
-      appState.current = nextAppState;
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   const initialMetrics = Platform.OS === 'web' 
     ? {
@@ -87,32 +44,14 @@ export default function RootLayout() {
       }
     : undefined;
 
-  const activeClientId = Platform.OS === 'web' 
-    ? process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID_WEB 
-    : process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID;
-
-  const fallbackClientId = PRIVY_CLIENT_ID;
-
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider style={styles.root} initialMetrics={initialMetrics}>
         <View style={styles.root}>
-          <PrivyProvider
-            appId={process.env.EXPO_PUBLIC_PRIVY_APP_ID || PRIVY_APP_ID}
-            clientId={activeClientId || fallbackClientId}
-            supportedChains={PRIVY_SUPPORTED_CHAINS as any}
-            config={PRIVY_CONFIG}
-          >
+          <AuthProvider>
             <MwaProvider>
-              <WalletProvider
-                defaultCluster={
-                  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet-beta' ||
-                  process.env.EXPO_PUBLIC_SOLANA_CLUSTER === 'mainnet'
-                    ? 'mainnet-beta'
-                    : 'devnet'
-                }
-              >
                   <View style={styles.root}>
+                    <AuthGate />
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -128,9 +67,8 @@ export default function RootLayout() {
                     </Stack>
                     <GlobalNotificationManager />
                   </View>
-              </WalletProvider>
             </MwaProvider>
-          </PrivyProvider>
+          </AuthProvider>
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>

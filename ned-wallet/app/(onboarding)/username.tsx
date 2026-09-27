@@ -17,10 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../../services/auth';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import * as crypto from 'crypto';
-import { useExternalWallet } from '../../contexts/WalletProvider';
 import {
   getProgram,
   deriveIdentityPda,
@@ -39,10 +38,7 @@ const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
 export default function OnboardingUsernameScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string }>();
-  const privy = usePrivy();
-  const user = privy?.user || null;
-  const solanaWalletState = useEmbeddedSolanaWallet();
-  const externalWallet = useExternalWallet();
+  const { user, walletAddress, signTransaction } = useAuth();
 
   const [username, setUsername] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -56,73 +52,9 @@ export default function OnboardingUsernameScreen() {
   // Debounce ref cho việc kiểm tra trùng lặp
   const checkDebounceRef = useRef<any>(null);
 
-  /**
-   * Lấy địa chỉ ví Solana người dùng hiện tại (Ưu tiên Privy Embedded Solana Wallet)
-   */
-  const getUserWalletPubkey = async (): Promise<PublicKey | null> => {
-    // 1. Kiểm tra ví ngầm Embedded Solana Wallet
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const addr = solanaWalletState.wallets[0]?.address;
-      if (addr) return new PublicKey(addr);
-    }
-
-    // Tự động khởi tạo Embedded Wallet nếu chưa tồn tại
-    if (typeof (solanaWalletState as any)?.create === 'function') {
-      try {
-        const created = await (solanaWalletState as any).create();
-        if (created?.address) return new PublicKey(created.address);
-      } catch (createErr) {
-        console.log('solanaWalletState.create in username.tsx warning:', createErr);
-      }
-    }
-
-    // 2. Kiểm tra linked accounts của Privy
-    const linkedAccounts =
-      (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const privySolAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.wallet_client_type === 'privy' || acc.walletClientType === 'privy') &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana' || !acc.address?.startsWith('0x'))
-    );
-    if (privySolAccount?.address) {
-      return new PublicKey(privySolAccount.address);
-    }
-
-    const solAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' ||
-          acc.chainType === 'solana' ||
-          (!acc.chain_type && !acc.address?.startsWith('0x')))
-    );
-    if (solAccount?.address) {
-      return new PublicKey(solAccount.address);
-    }
-
-    // 3. Kiểm tra stored wallet address trong Global Store
-    const storedWallet = useUserStore.getState().walletAddress;
-    if (storedWallet && !storedWallet.startsWith('0x')) {
-      try {
-        return new PublicKey(storedWallet);
-      } catch (_) {}
-    }
-
-    // 4. Fallback user.wallet
-    if ((user as any)?.wallet?.address) {
-      const addr = (user as any).wallet.address;
-      if (!addr.startsWith('0x')) {
-        return new PublicKey(addr);
-      }
-    }
-
-    // 5. Fallback ví ngoài
-    if (externalWallet?.publicKey) {
-      return externalWallet.publicKey;
-    }
-
-    return null;
-  };
+  /** Địa chỉ ví Solana nhúng (Dynamic) */
+  const getUserWalletPubkey = async (): Promise<PublicKey | null> =>
+    walletAddress ? new PublicKey(walletAddress) : null;
 
   /**
    * Kiểm tra trùng lặp username (hồ sơ cục bộ — TODO(T1.5): Name PDA)
@@ -142,8 +74,8 @@ export default function OnboardingUsernameScreen() {
 
       if (existingUser) {
         // Kiểm tra xem có phải chính tài khoản hiện tại không
-        const currentPrivyId = user?.id;
-        if (currentPrivyId && existingUser.privy_id === currentPrivyId) {
+        const currentAuthUserId = user?.id;
+        if (currentAuthUserId && existingUser.auth_user_id === currentAuthUserId) {
           setIsAvailable(true);
           setErrorMessage('');
           setSuccessMessage(`Tên @${name}.sol đang thuộc về bạn!`);
@@ -268,11 +200,11 @@ export default function OnboardingUsernameScreen() {
       const connection = getConnection();
       try {
         const existingDbUser = await getUserProfileByUsername(trimmed);
-        const myPrivyId = user?.id;
+        const myAuthUserId = user?.id;
         const myWallet = userWallet.toBase58();
         if (
           existingDbUser &&
-          ((myPrivyId && existingDbUser.privy_id && existingDbUser.privy_id !== myPrivyId) ||
+          ((myAuthUserId && existingDbUser.auth_user_id && existingDbUser.auth_user_id !== myAuthUserId) ||
             (existingDbUser.wallet_address && existingDbUser.wallet_address !== myWallet))
         ) {
           setIsSubmitting(false);
@@ -327,44 +259,22 @@ export default function OnboardingUsernameScreen() {
 
         setStatusMessage('Đang ký xác nhận giao dịch...');
 
-        let signedTx: Transaction | null = null;
-        let activeProvider: any = null;
-        const currentWallets = solanaWalletState?.wallets || [];
-        if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
-          try {
-            activeProvider = await currentWallets[0].getProvider();
-          } catch (e) {
-            console.log('getProvider fallback:', e);
-          }
-        }
-
-        if (activeProvider && typeof activeProvider.request === 'function') {
-          const signResult = await activeProvider.request({
-            method: 'signTransaction',
-            params: { transaction },
-          });
-          signedTx = signResult?.signedTransaction || signResult;
-        } else if (typeof externalWallet?.signTransaction === 'function') {
-          signedTx = await externalWallet.signTransaction(transaction);
-        }
-
-        if (signedTx) {
-          // Tạm thời người dùng tự trả phí (Phase 1 bật Dynamic Gas Sponsorship)
-          setStatusMessage('Đang gửi giao dịch lên mạng lưới...');
-          txSignature = await connection.sendRawTransaction(signedTx.serialize(), {
-            preflightCommitment: 'confirmed',
-            maxRetries: 3,
-          });
-          await connection.confirmTransaction(txSignature, 'confirmed');
-          console.log('✅ [registerIdentity] TxSignature:', txSignature);
-        }
+        // Ký bằng ví nhúng Dynamic; người dùng tự trả phí (không có gas sponsorship)
+        const signedTx = await signTransaction(transaction);
+        setStatusMessage('Đang gửi giao dịch lên mạng lưới...');
+        txSignature = await connection.sendRawTransaction(signedTx.serialize(), {
+          preflightCommitment: 'confirmed',
+          maxRetries: 3,
+        });
+        await connection.confirmTransaction(txSignature, 'confirmed');
+        console.log('✅ [registerIdentity] TxSignature:', txSignature);
       } catch (txErr) {
         console.warn('⚠️ Giao dịch on-chain fallback cho môi trường Dev:', txErr);
       }
 
       // 4. Lưu hồ sơ (cục bộ — TODO(T1.5): create_profile)
       setStatusMessage('Đang kích hoạt tài khoản ví...');
-      const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
+      const authUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
       const externalWalletAddr = useUserStore.getState().linkedExternalWallet;
 
@@ -381,7 +291,7 @@ export default function OnboardingUsernameScreen() {
 
       try {
         await upsertUserProfile({
-          privy_id: privyUserId,
+          auth_user_id: authUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
           phone_number: phoneNumber,
@@ -393,7 +303,7 @@ export default function OnboardingUsernameScreen() {
 
       // 5. Cập nhật Global State Zustand và AsyncStorage
       useUserStore.getState().setUserProfile({
-        privy_id: privyUserId,
+        auth_user_id: authUserId,
         wallet_address: walletAddrStr,
         username: trimmed,
         phone_number: phoneNumber,
@@ -401,7 +311,7 @@ export default function OnboardingUsernameScreen() {
       });
       useUserStore.getState().setUsername(trimmed);
       useUserStore.getState().setWalletAddress(walletAddrStr);
-      useUserStore.getState().setPrivyId(privyUserId);
+      useUserStore.getState().setAuthUserId(authUserId);
       if (phoneNumber) {
         useUserStore.getState().setLinkedPhone(phoneNumber);
       }

@@ -38,6 +38,26 @@
 
 - **Lưu trữ cục bộ**: dùng **AsyncStorage/SecureStore sẵn có** thay vì thêm MMKV.
 
+### Cập nhật sau Phase 0 (27/09)
+
+Chi tiết: [`poc-dynamic.md`](poc-dynamic.md), [`cleanup-report-t0-5.md`](cleanup-report-t0-5.md).
+
+- **Gate PoC Dynamic: GO**. Kết quả trên Safari iPhone:
+  - đăng nhập Google;
+  - tạo ví Solana nhúng (MPC V3);
+  - ký và gửi giao dịch devnet.
+- **Không có gas sponsorship**: SVM Gas Sponsorship của Dynamic chỉ có ở gói Enterprise, công tắc bị khoá. Hệ quả:
+  - Mọi giao dịch dùng `sponsorshipMode: 'off'`, ví người dùng tự trả phí (5 000 lamports/tx) và rent.
+  - **T1.6 dùng phương án nạp sẵn SOL**: mỗi tài khoản demo **≥ 0,05 SOL**, nạp qua **faucet.solana.com** (đăng nhập GitHub).
+  - Airdrop trong app (`requestAirdrop`) thường bị lỗi 429, chỉ để dự phòng.
+  - Onboarding tốn khoảng 0,0043 SOL rent (Name + Reverse + Phone PDA + ATA USDC).
+- **Ưu tiên web**: bản demo chính chạy trên GitHub Pages (chủ dự án chỉ có iPhone, không có tài khoản Apple Developer trả phí). Bản native (Android APK qua EAS) vẫn phải build được.
+- **scrypt cho Phone PDA (T1.5)**: dùng **N = 2^15** (r=8, p=1, dkLen=32), khoảng 0,19 giây trên iPhone Safari. Kết quả băm giống nhau trên mọi nền tảng.
+- **Thiết kế cần đổi**: dòng **"Network fee free"** / "paid by N.E.D" (SwapV1, SwapReview, SendReview trong `02-thiet-ke/`, và `03-ky-thuat/dev-handoff.md`) phải hiển thị **phí mạng thật** (~0,000005 SOL).
+- **T1.2 + T1.4 đã xong** (nhánh `feat/t1-dynamic-auth`):
+  - `services/auth` với `useAuth()` là lớp duy nhất gọi SDK Dynamic;
+  - Privy, `WalletProvider`, `patch-privy.js` đã được gỡ.
+
 ---
 
 ## 1. Cách làm việc với Claude Code

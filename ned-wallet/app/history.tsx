@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../services/auth';
 import { Mascot } from '@/components/Mascot';
 import {
   fetchOnChainHistory,
@@ -30,31 +30,13 @@ import {
   cacheActivities,
 } from '../services/storage';
 import { useTranslation } from '../services/i18n';
-import { resolveActiveSolanaAddress } from '../services/identity';
-import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../contexts/WalletProvider';
 
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const externalWallet = useExternalWallet();
-
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch (e) {
-    // safely ignore
-  }
-  const user = privy?.user || null;
-
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch (e) {
-    // safely ignore
-  }
+  const { walletAddress } = useAuth();
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -62,17 +44,8 @@ export default function HistoryScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Trích xuất địa chỉ ví Solana theo chuẩn ưu tiên đồng nhất
-  const getSolanaAddress = (): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      useUserStore.getState().walletAddress
-    );
-  };
-
-  const solanaAddress = getSolanaAddress();
+  // Địa chỉ ví Solana nhúng (Dynamic)
+  const solanaAddress = walletAddress;
 
   // Nạp Cache khởi tạo
   useEffect(() => {

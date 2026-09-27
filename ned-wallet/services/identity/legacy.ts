@@ -256,7 +256,7 @@ export async function lookupWalletByPhone(phoneOrUsername: string): Promise<stri
 }
 
 /**
- * Lấy số điện thoại đã lưu theo Privy userId (fallback helper)
+ * Lấy số điện thoại đã lưu theo userId (fallback helper)
  */
 export async function getUserPhoneNumberFromDB(_userId: string): Promise<string | null> {
   return null;
@@ -292,79 +292,4 @@ export async function unlinkPhoneNumber(
   _phoneNumber?: string
 ): Promise<{ success: boolean; error?: string }> {
   return { success: true };
-}
-
-/**
- * Trích xuất địa chỉ ví Solana hoạt động chính xác từ tất cả các nguồn theo độ ưu tiên:
- * 1. Ví ngầm Embedded Solana Wallet của Privy (solanaWalletState.wallets[0])
- * 2. Ví Solana nhúng trong Privy Session (linked_accounts có chain_type === 'solana')
- * 3. Địa chỉ ví đã lưu trong User Profile / Global State (useUserStore / AsyncStorage)
- * 4. user.wallet
- * 5. Ví ngoài Phantom (Chỉ làm fallback cuối cùng khi không có ví Privy)
- */
-export function resolveActiveSolanaAddress(
-  user?: any,
-  externalWallet?: { publicKey?: { toBase58: () => string } | string | null; connected?: boolean } | null,
-  solanaWalletState?: { wallets?: Array<{ address?: string; publicKey?: string }> } | null,
-  storeAddressOverride?: string | null
-): string | null {
-  // 1. Ưu tiên 1: Ví ngầm Embedded Solana Wallet của Privy
-  if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-    const solWallet = solanaWalletState.wallets[0];
-    if (solWallet?.address) return solWallet.address;
-    if (solWallet?.publicKey) return solWallet.publicKey;
-  }
-
-  // 2. Ưu tiên 2: Ví Solana nhúng trong Privy Session (linked_accounts)
-  if (user) {
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-
-    // 2a. Ưu tiên ví nhúng Privy
-    const privyEmbedded = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x'))) &&
-        acc.wallet_client_type === 'privy'
-    );
-    if (privyEmbedded?.address) {
-      return privyEmbedded.address;
-    }
-
-    // 2b. Mọi ví Solana trong linked_accounts
-    const solanaAccount = linkedAccounts.find(
-      (acc: any) =>
-        acc.type === 'wallet' &&
-        (acc.chain_type === 'solana' || acc.chainType === 'solana' || (!acc.chain_type && !acc.address?.startsWith('0x')))
-    );
-    if (solanaAccount?.address) {
-      return solanaAccount.address;
-    }
-
-    // 2c. user.wallet
-    if ((user as any)?.wallet?.address) {
-      const addr = (user as any).wallet.address;
-      if (!addr.startsWith('0x') || (user as any).wallet.chainType === 'solana') {
-        return addr;
-      }
-    }
-  }
-
-  // 3. Ưu tiên 3: Địa chỉ ví đã lưu trong User Store (hồ sơ cục bộ / AsyncStorage)
-  if (storeAddressOverride && typeof storeAddressOverride === 'string' && storeAddressOverride.length >= 32) {
-    return storeAddressOverride;
-  }
-
-  // 4. Ưu tiên 4 (Fallback): Ví ngoài (Phantom / Solflare)
-  if (externalWallet?.publicKey) {
-    try {
-      const extAddr = typeof (externalWallet.publicKey as any)?.toBase58 === 'function'
-        ? (externalWallet.publicKey as any).toBase58()
-        : String(externalWallet.publicKey);
-      if (extAddr && extAddr !== '11111111111111111111111111111111' && extAddr.length >= 32) {
-        return extAddr;
-      }
-    } catch {}
-  }
-
-  return null;
 }

@@ -217,7 +217,7 @@
     "cancel": "Cancel",
     "confirmReset": "Confirm Reset",
     "resetTitle": "Restore & Clean Session ⚠️",
-    "resetMsg": "This action will clean up the entire wallet session, free frozen WebViews and force Privy to issue a new connection session.",
+    "resetMsg": "This action will clean up the entire wallet session, and sign you in again.",
     "resetSuccess": "Cleaned Up 🎉",
     "resetSuccessMsg": "Session data has been refreshed. Please log in again.",
     "currencyInfo": "N.E.D currently supports Vietnamese Dong (VND) and US Dollar (USD).",

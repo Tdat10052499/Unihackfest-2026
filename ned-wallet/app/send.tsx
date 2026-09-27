@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../services/auth';
 import {
   lookupWalletByPhone,
   resolveIdentityOnchain,
@@ -27,7 +27,6 @@ import {
   isSamePhoneNumber,
   getAccountIdentifier,
   getMaskedPhone,
-  resolveActiveSolanaAddress,
 } from '../services/identity';
 // TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import {
@@ -44,11 +43,9 @@ import {
 } from '../services/solana';
 import { cacheActivities, getCachedActivities, getLinkedPhone } from '../services/storage';
 import { useOnchainTransfer } from '../hooks/useOnchainTransfer';
-import { WalletRecoveryModal } from '../components/WalletRecoveryModal';
 import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
 import { useTranslation } from '../services/i18n';
 import { useUserStore } from '../stores/useUserStore';
-import { useExternalWallet } from '../contexts/WalletProvider';
 import { useNotificationStore } from '../stores/useNotificationStore';
 
 /**
@@ -116,18 +113,14 @@ export default function SendScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
-  const { user, isReady, logout } = usePrivy();
-  const externalWallet = useExternalWallet();
-  const solanaWalletState = useEmbeddedSolanaWallet();
+  const { user, isReady, logout, walletAddress } = useAuth();
   const {
     transfer,
     isTransferring,
     isWalletReady,
-    needsRecovery,
     walletStatus,
   } = useOnchainTransfer();
 
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [searchInput, setSearchInput] = useState((params.recipient as string) || '');
@@ -158,17 +151,8 @@ export default function SendScreen() {
     txHash?: string;
   }>({ amount: 0, currency: 'USD', note: '' });
 
-  // Lấy địa chỉ ví người dùng hiện tại theo độ ưu tiên: Embedded Wallet -> Store -> Linked Accounts
-  const getMySolanaAddress = (): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      useUserStore.getState().walletAddress
-    );
-  };
-
-  const myAddress = getMySolanaAddress();
+  // Địa chỉ ví Solana nhúng (Dynamic)
+  const myAddress = walletAddress;
 
   // Nạp SĐT và số dư on-chain (USDT/USDC/SOL) của chính người dùng
   const refreshUserData = async () => {
@@ -423,13 +407,8 @@ export default function SendScreen() {
     }
   };
 
-  // THỰC THI GIAO DỊCH 100% ON-CHAIN GASLESS
+  // THỰC THI GIAO DỊCH 100% ON-CHAIN (người gửi tự trả phí)
   const handleSendTransaction = async () => {
-    if (needsRecovery) {
-      setShowRecoveryModal(true);
-      return;
-    }
-
     if (!myAddress) {
       Alert.alert(
         t('settings.title', { defaultValue: 'Thông báo' }),
@@ -585,12 +564,7 @@ export default function SendScreen() {
   const vndEquivalent = Math.round(parsedAmount * USD_TO_VND_RATE);
 
   // Bảo vệ giao diện: Chỉ render khi ví hoặc tài khoản đã sẵn sàng
-  const isAuthenticated = Boolean(
-    user ||
-      externalWallet?.connected ||
-      externalWallet?.publicKey ||
-      useUserStore.getState().walletAddress
-  );
+  const isAuthenticated = Boolean(user);
 
   if (!isAuthenticated && !isReady) {
     return (
@@ -926,12 +900,6 @@ export default function SendScreen() {
           </NeoCard>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <WalletRecoveryModal
-        visible={showRecoveryModal || needsRecovery}
-        onClose={() => setShowRecoveryModal(false)}
-        onSuccess={() => setShowRecoveryModal(false)}
-      />
 
       <TransactionReceiptModal
         visible={showReceiptModal}
