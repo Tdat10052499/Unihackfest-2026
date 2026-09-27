@@ -7,7 +7,6 @@ import {
   ConfirmOptions,
 } from '@solana/web3.js';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import { Buffer } from 'buffer';
 import { IDL, type NedProgram } from '../idl/ned_program';
 
 /**

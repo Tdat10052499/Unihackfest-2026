@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { onbBackground, onbColors, onbFonts, onbPrimaryGradient } from './theme';
 
 /** Nền gradient tối + quầng sáng tím phía trên, nội dung giới hạn 480px để web desktop không bị kéo giãn */
@@ -24,11 +25,29 @@ export function OnbScreen({ children, glow = true }: { children: ReactNode; glow
       end={{ x: 0.7, y: 1 }}
       style={styles.fill}
     >
-      {glow ? <View pointerEvents="none" style={styles.glow} /> : null}
+      {glow ? <Glow /> : null}
       <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.column}>{children}</View>
       </SafeAreaView>
     </LinearGradient>
+  );
+}
+
+/** Quầng sáng tím: radial-gradient(circle, rgba(123,47,190,0.36) 0%, rgba(99,102,241,0.1) 45%, transparent 68%) */
+function Glow() {
+  return (
+    <View pointerEvents="none" style={styles.glow}>
+      <Svg width="100%" height="100%" viewBox="0 0 400 380">
+        <Defs>
+          <RadialGradient id="onbGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#7B2FBE" stopOpacity={0.36} />
+            <Stop offset="0.45" stopColor="#6366F1" stopOpacity={0.1} />
+            <Stop offset="0.68" stopColor="#6366F1" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="400" height="380" fill="url(#onbGlow)" />
+      </Svg>
+    </View>
   );
 }
 
@@ -151,17 +170,7 @@ export const onbText = StyleSheet.create({
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   flex: { flex: 1 },
-  glow: {
-    position: 'absolute',
-    top: 40,
-    alignSelf: 'center',
-    width: 400,
-    height: 380,
-    borderRadius: 200,
-    backgroundColor: 'rgba(123,47,190,0.22)',
-    opacity: 0.9,
-    transform: [{ scaleX: 1.1 }],
-  },
+  glow: { position: 'absolute', top: 40, alignSelf: 'center', width: 400, height: 380 },
   safe: { flex: 1 },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' },
   buttonShell: { borderRadius: 16, overflow: 'hidden' },

@@ -13,12 +13,13 @@ const SPLASH_MS = 900;
 export default function SplashScreen() {
   const { isAuthenticated } = useAuth();
   const [reduceMotion, setReduceMotion] = useState(false);
-  const icon = useRef(new Animated.Value(0)).current;
-  const word = useRef(new Animated.Value(0)).current;
+  const [icon] = useState(() => new Animated.Value(0));
+  const [word] = useState(() => new Animated.Value(0));
+  // Đọc trạng thái đăng nhập mới nhất khi hết thời gian splash (không đọc ref trong lúc render)
   const authRef = useRef(isAuthenticated);
-  authRef.current = isAuthenticated;
-
-  const go = () => router.replace(authRef.current ? '/setup' : '/welcome');
+  useEffect(() => {
+    authRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +41,7 @@ export default function SplashScreen() {
         icon.setValue(1);
         word.setValue(1);
       });
-    const timer = setTimeout(go, SPLASH_MS);
+    const timer = setTimeout(() => router.replace(authRef.current ? '/setup' : '/welcome'), SPLASH_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -60,7 +61,12 @@ export default function SplashScreen() {
     : { opacity: word, transform: [{ translateY: word.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] };
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="N.E.D. Tap to continue" onPress={go} style={styles.fill}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="N.E.D. Tap to continue"
+      onPress={() => router.replace(isAuthenticated ? '/setup' : '/welcome')}
+      style={styles.fill}
+    >
       <LinearGradient
         colors={['#8A3AD0', '#7B2FBE', '#5A1D9E', '#3A1170']}
         locations={[0, 0.38, 0.72, 1]}
