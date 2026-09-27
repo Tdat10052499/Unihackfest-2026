@@ -19,7 +19,7 @@ const STORAGE_KEYS = {
 export interface UserState {
   username: string | null;
   walletAddress: string | null;
-  privyId: string | null;
+  authUserId: string | null;
   linkedPhone: string | null;
   linkedExternalWallet: string | null;
   avatarUrl: string | null;
@@ -29,15 +29,15 @@ export interface UserState {
   // Actions
   setUsername: (username: string | null) => void;
   setWalletAddress: (address: string | null) => void;
-  setPrivyId: (privyId: string | null) => void;
+  setAuthUserId: (authUserId: string | null) => void;
   setLinkedPhone: (phone: string | null) => void;
   setLinkedExternalWallet: (address: string | null) => void;
   setAvatarUrl: (url: string | null) => void;
   setUserProfile: (profile: Partial<UserProfile>) => void;
   loadFromStorage: () => Promise<string | null>;
-  fetchUserProfile: (privyId: string) => Promise<UserProfile | null>;
+  fetchUserProfile: (authUserId: string) => Promise<UserProfile | null>;
   saveUserProfile: (params: {
-    privy_id: string;
+    auth_user_id: string;
     wallet_address: string;
     username: string;
     avatar_url?: string | null;
@@ -50,7 +50,7 @@ export interface UserState {
 export const useUserStore = create<UserState>((set, get) => ({
   username: null,
   walletAddress: null,
-  privyId: null,
+  authUserId: null,
   linkedPhone: null,
   linkedExternalWallet: null,
   avatarUrl: null,
@@ -72,8 +72,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  setPrivyId: (privyId: string | null) => {
-    set({ privyId });
+  setAuthUserId: (authUserId: string | null) => {
+    set({ authUserId });
   },
 
   setLinkedPhone: (linkedPhone: string | null) => {
@@ -109,7 +109,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         profile.wallet_address !== undefined
           ? profile.wallet_address
           : state.walletAddress,
-      privyId: profile.privy_id !== undefined ? profile.privy_id : state.privyId,
+      authUserId: profile.auth_user_id !== undefined ? profile.auth_user_id : state.authUserId,
       linkedPhone:
         profile.phone_number !== undefined
           ? profile.phone_number
@@ -158,10 +158,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  fetchUserProfile: async (privyId: string): Promise<UserProfile | null> => {
-    if (!privyId) return null;
+  fetchUserProfile: async (authUserId: string): Promise<UserProfile | null> => {
+    if (!authUserId) return null;
     try {
-      set({ isLoading: true, error: null, privyId });
+      set({ isLoading: true, error: null, authUserId });
       // 1. Kiểm tra cache AsyncStorage trước để render tức thì
       const cachedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
       const cachedAvatar = await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
@@ -177,12 +177,12 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       // 2. Đọc hồ sơ (cục bộ — TODO(T1.5): Reverse PDA)
-      const dbProfile = await getUserProfileFromDB(privyId);
+      const dbProfile = await getUserProfileFromDB(authUserId);
       if (dbProfile) {
         set({
           username: dbProfile.username,
           walletAddress: dbProfile.wallet_address,
-          privyId: dbProfile.privy_id,
+          authUserId: dbProfile.auth_user_id,
           linkedPhone: dbProfile.phone_number || get().linkedPhone,
           linkedExternalWallet: dbProfile.linked_external_wallet || get().linkedExternalWallet,
           avatarUrl: dbProfile.avatar_url || get().avatarUrl,
@@ -215,7 +215,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   saveUserProfile: async (params: {
-    privy_id: string;
+    auth_user_id: string;
     wallet_address: string;
     username: string;
     avatar_url?: string | null;
@@ -230,7 +230,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({
         username: params.username,
         walletAddress: params.wallet_address,
-        privyId: params.privy_id,
+        authUserId: params.auth_user_id,
         linkedPhone: params.phone_number !== undefined ? params.phone_number : get().linkedPhone,
         linkedExternalWallet: externalWalletToSave,
         avatarUrl: params.avatar_url !== undefined ? params.avatar_url : get().avatarUrl,
@@ -274,7 +274,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({
       username: null,
       walletAddress: null,
-      privyId: null,
+      authUserId: null,
       linkedPhone: null,
       linkedExternalWallet: null,
       avatarUrl: null,

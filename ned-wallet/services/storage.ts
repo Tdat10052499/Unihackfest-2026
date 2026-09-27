@@ -249,7 +249,7 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
         logoutFn(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 2500)),
       ]);
-      console.log('✅ [Hard Reset] Đã logout Privy thành công');
+      console.log('✅ [Hard Reset] Đã đăng xuất thành công');
     } catch (logoutErr) {
       console.warn('⚠️ [Hard Reset] Bỏ qua lỗi timeout logout (mfa:clear / user-signer):', logoutErr);
     }

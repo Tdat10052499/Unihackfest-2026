@@ -74,8 +74,8 @@ export default function OnboardingUsernameScreen() {
 
       if (existingUser) {
         // Kiểm tra xem có phải chính tài khoản hiện tại không
-        const currentPrivyId = user?.id;
-        if (currentPrivyId && existingUser.privy_id === currentPrivyId) {
+        const currentAuthUserId = user?.id;
+        if (currentAuthUserId && existingUser.auth_user_id === currentAuthUserId) {
           setIsAvailable(true);
           setErrorMessage('');
           setSuccessMessage(`Tên @${name}.sol đang thuộc về bạn!`);
@@ -200,11 +200,11 @@ export default function OnboardingUsernameScreen() {
       const connection = getConnection();
       try {
         const existingDbUser = await getUserProfileByUsername(trimmed);
-        const myPrivyId = user?.id;
+        const myAuthUserId = user?.id;
         const myWallet = userWallet.toBase58();
         if (
           existingDbUser &&
-          ((myPrivyId && existingDbUser.privy_id && existingDbUser.privy_id !== myPrivyId) ||
+          ((myAuthUserId && existingDbUser.auth_user_id && existingDbUser.auth_user_id !== myAuthUserId) ||
             (existingDbUser.wallet_address && existingDbUser.wallet_address !== myWallet))
         ) {
           setIsSubmitting(false);
@@ -274,7 +274,7 @@ export default function OnboardingUsernameScreen() {
 
       // 4. Lưu hồ sơ (cục bộ — TODO(T1.5): create_profile)
       setStatusMessage('Đang kích hoạt tài khoản ví...');
-      const privyUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
+      const authUserId = user?.id || `usr_${userWallet.toBase58().slice(0, 10)}`;
       const walletAddrStr = userWallet.toBase58();
       const externalWalletAddr = useUserStore.getState().linkedExternalWallet;
 
@@ -291,7 +291,7 @@ export default function OnboardingUsernameScreen() {
 
       try {
         await upsertUserProfile({
-          privy_id: privyUserId,
+          auth_user_id: authUserId,
           wallet_address: walletAddrStr,
           username: trimmed,
           phone_number: phoneNumber,
@@ -303,7 +303,7 @@ export default function OnboardingUsernameScreen() {
 
       // 5. Cập nhật Global State Zustand và AsyncStorage
       useUserStore.getState().setUserProfile({
-        privy_id: privyUserId,
+        auth_user_id: authUserId,
         wallet_address: walletAddrStr,
         username: trimmed,
         phone_number: phoneNumber,
@@ -311,7 +311,7 @@ export default function OnboardingUsernameScreen() {
       });
       useUserStore.getState().setUsername(trimmed);
       useUserStore.getState().setWalletAddress(walletAddrStr);
-      useUserStore.getState().setPrivyId(privyUserId);
+      useUserStore.getState().setAuthUserId(authUserId);
       if (phoneNumber) {
         useUserStore.getState().setLinkedPhone(phoneNumber);
       }

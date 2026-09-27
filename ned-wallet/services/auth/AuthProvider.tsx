@@ -36,7 +36,7 @@ export interface AuthUser {
 
 export interface AuthContextValue {
   status: AuthStatus;
-  /** SDK đã khởi tạo xong (tương đương isReady của Privy trước đây) */
+  /** SDK đã khởi tạo xong */
   isReady: boolean;
   isAuthenticated: boolean;
   user: AuthUser | null;
