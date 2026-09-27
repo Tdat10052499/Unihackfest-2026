@@ -81,15 +81,19 @@ Instruction (signer = ví người dùng = payer):
 
 ## 3. Swap (P0)
 
-- **Jupiter Swap API v2**: base `https://api.jup.ag/swap/v2`, luồng `/order` → (ký) → `/execute`; bắt buộc header `x-api-key`.
-- Demo: gọi `/order` để lấy quote thật, **không** gọi `/execute`.
-- Màn hình cần từ quote: số nhận ước tính, số tối thiểu (theo slippage), price impact, route, phí.
-- Quote tự làm mới mỗi ~15 giây (app tự gọi lại; vòng đếm trên UI).
-- Slippage: Auto / 0.5% / 1% / 3%. ⚠️ Chưa xác minh v2 có slippage tự động hay không; nếu không, app đặt mặc định (vd. 0.5%).
-- Trạng thái lỗi đã thiết kế: giá đổi trước khi xác nhận (phải bấm Accept), giá vượt giới hạn → Swap Failed ("nothing was swapped").
-- Danh sách token: token của người dùng + Popular; dán địa chỉ token lạ → cảnh báo **UNVERIFIED** (dùng cờ verified của Tokens API).
-- **Phí**: ⚠️ referral fee của Jupiter có dải 50–255 bps và Jupiter giữ 20% — **không khớp** mức 0.2–0.3%. Tham số `platformFeeBps` trên `/build` chưa xác minh. Cần kiểm tra trước khi hứa con số phí trong pitch.
-- ⚠️ Khoá `x-api-key` không được nhúng vào app (bundle Expo lộ được) → đi qua proxy ở mục 7.
+### Xác minh Jupiter MCP (28/09/2026)
+
+- **Swap API v2**: base `https://api.jup.ag/swap/v2`, `GET /order` nhận `inputMint`, `outputMint`, `amount` (đơn vị nhỏ nhất), tuỳ chọn `taker`, `swapMode=ExactIn`, `slippageBps`, `referralAccount`, `referralFee`. Response có `outAmount`, `otherAmountThreshold` (minimum output sau slippage), `priceImpact` (điểm phần trăm), `routePlan`, `feeBps`, `platformFee`, `router`, `transaction` và `requestId`. `/execute` là bước broadcast nhưng **N.E.D không gọi**.
+- API reference hiện tại khai báo header `x-api-key` cho `/order`; điều này mâu thuẫn với Gate D0 đã chốt keyless 0.5 RPS. Phase 2 giữ đúng quyết định Gate D0: client gọi `/order` không key, có hàng đợi tối đa 0.5 request/giây; nếu endpoint trả 401 thì phải ghi nhận trong pitch và không đưa khoá vào bundle để vượt quyết định hiện tại.
+- `slippageBps` không truyền → Jupiter tự ước lượng; truyền số nguyên 0–10000 để chọn 0.5/1/3% (50/100/300 bps). UI Auto để trống tham số và hiển thị giá trị Jupiter trả về.
+- **Referral fee `/order`**: bắt buộc có cả `referralAccount` và `referralFee`; `referralFee` chỉ nhận 50–255 bps. Không thể đặt 25 bps. `platformFeeBps` 0–10000 chỉ có ở `/build` và bắt buộc `feeAccount`; không áp dụng cho luồng `/order` Demo.
+- **Kết luận phí N.E.D**: không chuyển phí thật trên devnet. Client tính 25 bps trên số nhận ước tính và luôn hiển thị `N.E.D fee 0.25% · $x`; review ghi rõ đây là phí mô phỏng của Demo mode, không phải referral/platform fee Jupiter.
+
+### Tokens API v2
+
+- Base `https://api.jup.ag/tokens/v2`, luôn cần `x-api-key` từ `EXPO_PUBLIC_JUPITER_API_KEY` (khoá public, chỉ mất hạn mức). Tìm kiếm: `GET /search?query=`; danh sách theo tag: `GET /tag?query=verified|stocks|lst`; kết quả có `id`, `symbol`, `decimals`, `isVerified`, `tags`, `usdPrice`, `liquidity` và `stats24h`.
+- Demo gọi `/order` để lấy quote Mainnet thật, **không** gọi `/execute`, không ký và không broadcast.
+- Quote tự làm mới mỗi ~15 giây; UI hiển thị số nhận, minimum output, price impact, route và trạng thái stale/error. Trạng thái giá đổi trước xác nhận yêu cầu Accept; vượt slippage mô phỏng Swap Failed.
 
 ## 4. xStocks
 
