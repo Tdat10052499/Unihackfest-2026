@@ -46,18 +46,6 @@ async function writeProfiles(profiles: UserProfile[]): Promise<void> {
 const normalize = (value: string) => value.trim().toLowerCase();
 
 /**
- * Kiểm tra SĐT đã được người khác liên kết chưa.
- * TODO(T1.5): tra Phone PDA [b"phone_v1", scrypt(SĐT_E164, APP_SALT)] — hiện luôn trả false (không có dữ liệu dùng chung).
- */
-export async function checkPhoneExists(
-  _phone: string,
-  _currentUserId?: string,
-  _currentWalletAddress?: string
-): Promise<boolean> {
-  return false;
-}
-
-/**
  * Lưu hồ sơ (upsert theo wallet_address) vào bộ nhớ cục bộ.
  * TODO(T1.5): thay bằng instruction create_profile / link_phone.
  */
@@ -100,13 +88,6 @@ export async function getUserProfileFromDB(identifier: string): Promise<UserProf
       (p) => p.wallet_address === id || p.auth_user_id === id || p.username === normalize(id)
     ) ?? null
   );
-}
-
-/** TODO(T1.5): tra Name PDA [b"name", username]. */
-export async function getUserProfileByUsername(username: string): Promise<UserProfile | null> {
-  if (!username) return null;
-  const profiles = await readProfiles();
-  return profiles.find((p) => p.username === normalize(username)) ?? null;
 }
 
 /** TODO(T1.5): tra Reverse PDA [b"reverse", wallet] + reverse SNS. */

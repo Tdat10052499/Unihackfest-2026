@@ -7,7 +7,6 @@ import {
   ConfirmOptions,
 } from '@solana/web3.js';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import { Buffer } from 'buffer';
 import { IDL, type NedProgram } from '../idl/ned_program';
 
 /**
@@ -139,26 +138,6 @@ export function getProgram(
   } as unknown as NedProgram;
 
   return new Program<NedProgram>(idlWithAddress, provider);
-}
-
-/**
- * @deprecated Seed của IdentityAccount cũ (program trước T1.5) — màn onboarding còn dùng tới T1.3.
- * Dùng services/identity/dualPda.ts cho schema mới.
- */
-export const IDENTITY_SEED = Buffer.from('identity');
-
-/**
- * Helper: Tính toán địa chỉ PDA cho `IdentityAccount`
- * Seeds: [b"identity", hashedIdentifier]
- */
-export function deriveIdentityPda(
-  hashedIdentifier: Buffer,
-  programId: PublicKey = PROGRAM_ID
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [IDENTITY_SEED, hashedIdentifier],
-    programId
-  );
 }
 
 // Re-export types

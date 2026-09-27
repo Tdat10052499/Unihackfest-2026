@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { LOCAL_PROFILES_KEY } from './profile';
+import { getOwnPhone, removeOwnPhone, saveOwnPhone } from './identity/ownPhone';
 
 const isAvailable = Platform.OS !== 'web' || typeof window !== 'undefined';
 
@@ -135,8 +136,9 @@ export const setHasSkippedPhoneLink = async (): Promise<void> => {
  * Lấy số điện thoại đã liên kết
  */
 export const getLinkedPhone = async (): Promise<string | null> => {
+  // SĐT dạng rõ của chính người dùng: SecureStore (native) / localStorage (web) — không dùng AsyncStorage
   try {
-    return await AsyncStorage.getItem(STORAGE_KEYS.LINKED_PHONE);
+    return await getOwnPhone();
   } catch (error) {
     console.error('Error reading linkedPhone:', error);
     return null;
@@ -148,7 +150,7 @@ export const getLinkedPhone = async (): Promise<string | null> => {
  */
 export const setLinkedPhone = async (phone: string): Promise<void> => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.LINKED_PHONE, phone);
+    await saveOwnPhone(phone);
   } catch (error) {
     console.error('Error setting linkedPhone:', error);
   }
@@ -159,9 +161,9 @@ export const setLinkedPhone = async (phone: string): Promise<void> => {
  */
 export const removeLinkedPhone = async (): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEYS.LINKED_PHONE);
+    await removeOwnPhone();
   } catch (error) {
-    console.error('Error removing linkedPhone from AsyncStorage:', error);
+    console.error('Error removing linkedPhone:', error);
   }
 };
 
@@ -260,6 +262,8 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
     // Giữ hồ sơ cục bộ để lần đăng nhập sau vẫn nhận ra người quay lại (TODO(T1.5): Reverse PDA thay thế)
     const keys = await AsyncStorage.getAllKeys();
     await AsyncStorage.multiRemove(keys.filter((k) => k !== LOCAL_PROFILES_KEY));
+    // SĐT của chính người dùng nằm ngoài AsyncStorage → xoá riêng khi đăng xuất
+    await removeOwnPhone().catch(() => {});
     console.log('✅ [Hard Reset] Đã dọn dẹp AsyncStorage (giữ hồ sơ cục bộ)');
   } catch (storageErr) {
     console.error('Lỗi khi xóa AsyncStorage:', storageErr);

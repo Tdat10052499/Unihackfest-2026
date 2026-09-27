@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOwnPhone, saveOwnPhone } from '../services/identity/ownPhone';
 // TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
 import {
   getUserProfileFromDB,
@@ -79,8 +80,8 @@ export const useUserStore = create<UserState>((set, get) => ({
   setLinkedPhone: (linkedPhone: string | null) => {
     set({ linkedPhone });
     if (linkedPhone) {
-      AsyncStorage.setItem('temp_phone', linkedPhone).catch(() => {});
-      AsyncStorage.setItem('@ned_wallet_linked_phone', linkedPhone).catch(() => {});
+      // SĐT dạng rõ chỉ lưu an toàn trên máy (SecureStore / localStorage)
+      saveOwnPhone(linkedPhone).catch(() => {});
     }
   },
 
@@ -134,7 +135,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   loadFromStorage: async (): Promise<string | null> => {
     try {
       const storedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
-      const storedPhone = (await AsyncStorage.getItem('@ned_wallet_linked_phone')) || (await AsyncStorage.getItem('temp_phone'));
+      const storedPhone = (await getOwnPhone());
       const storedAvatar = await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
       const storedExternal = await AsyncStorage.getItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET);
 
@@ -193,8 +194,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${dbProfile.username}.sol`);
         }
         if (dbProfile.phone_number) {
-          await AsyncStorage.setItem('@ned_wallet_linked_phone', dbProfile.phone_number);
-          await AsyncStorage.setItem('temp_phone', dbProfile.phone_number);
+          await saveOwnPhone(dbProfile.phone_number);
         }
         if (dbProfile.linked_external_wallet) {
           await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, dbProfile.linked_external_wallet);
@@ -241,8 +241,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${params.username}.sol`);
       await AsyncStorage.setItem(STORAGE_KEYS.WALLET_ADDRESS, params.wallet_address);
       if (params.phone_number) {
-        await AsyncStorage.setItem('temp_phone', params.phone_number);
-        await AsyncStorage.setItem('@ned_wallet_linked_phone', params.phone_number);
+        await saveOwnPhone(params.phone_number);
       }
       if (externalWalletToSave) {
         await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, externalWalletToSave);

@@ -11,9 +11,13 @@ import { MwaProvider } from '../contexts/MwaProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import { useFonts } from 'expo-font';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(auth)', 'login', 'poc-dynamic', '+not-found']);
+// (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', 'login', 'poc-dynamic', '+not-found']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -24,7 +28,7 @@ function AuthGate() {
 
   useEffect(() => {
     if (isReady && !isAuthenticated && !PUBLIC_SEGMENTS.has(first)) {
-      router.replace('/(auth)');
+      router.replace('/welcome');
     }
   }, [isReady, isAuthenticated, first, router]);
 
@@ -35,6 +39,14 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
   });
 
   const initialMetrics = Platform.OS === 'web' 
@@ -54,7 +66,6 @@ export default function RootLayout() {
                     <AuthGate />
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
                       <Stack.Screen name="home" options={{ headerShown: false }} />
                       <Stack.Screen name="history" options={{ headerShown: false }} />

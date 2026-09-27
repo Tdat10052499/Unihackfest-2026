@@ -21,6 +21,8 @@ export const MASCOT_IMAGES = {
   surprised: require('@/assets/images/mascot teddy - surprised.png'),
   thinking: require('@/assets/images/mascot teddy - thinking.png'),
   waving: require('@/assets/images/mascot teddy - waving.png'),
+  // Line-art (icon Splash) — docs/02-thiet-ke/assets/mascot/teddy-line-art.png
+  lineArt: require('@/assets/images/mascot teddy - line-art.png'),
 
   // Các bí danh (Aliases) để tương thích và thuận tiện sử dụng
   welcome: require('@/assets/images/mascot teddy - waving.png'),
@@ -48,6 +50,7 @@ export const MASCOT_LABELS: Record<MascotMood, string> = {
   surprised: 'Ngạc nhiên / Bất ngờ',
   thinking: 'Đang suy nghĩ',
   waving: 'Vẫy tay chào / Welcome',
+  lineArt: 'Nét vẽ (icon Splash)',
 
   // Aliases
   welcome: 'Chào mừng (Vẫy tay)',

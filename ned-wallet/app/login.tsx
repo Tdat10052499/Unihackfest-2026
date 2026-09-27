@@ -1,3 +1,6 @@
-import AuthGatewayScreen from './(auth)/index';
+import { Redirect } from 'expo-router';
 
-export default AuthGatewayScreen;
+// Route cũ /login (đăng xuất, phiên hết hạn…) → màn Welcome của onboarding mới
+export default function LoginRedirect() {
+  return <Redirect href="/welcome" />;
+}
