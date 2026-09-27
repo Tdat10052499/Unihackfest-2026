@@ -20,13 +20,10 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, G, Text as SvgText } from 'react-native-svg';
 import { Ionicons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { useUserStore } from '../../stores/useUserStore';
-import { resolveActiveSolanaAddress } from '../../services/identity';
+import { useAuth } from '../../services/auth';
 import { useTranslation } from '../../services/i18n';
 import { fetchOnChainHistory, ActivityItem, getSolanaBalance } from '../../services/solana';
 import { getCachedActivities } from '../../services/storage';
-import { useExternalWallet } from '../../contexts/WalletProvider';
 import { useWalletCardsStore, DEFAULT_USDC_CARD } from '../../stores/useWalletCardsStore';
 import { useOnchainBalance } from '../../hooks/useOnchainBalance';
 
@@ -73,25 +70,7 @@ export default function AnalyticsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   
-  let privy: any = null;
-  try { privy = usePrivy(); } catch (e) {}
-  const user = privy?.user || null;
-
-  let solanaWalletState: any = null;
-  try { solanaWalletState = useEmbeddedSolanaWallet(); } catch (e) {}
-  const externalWallet = useExternalWallet();
-
-  const walletAddress = useUserStore((s) => s.walletAddress);
-
-  const getSolanaAddress = (): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      walletAddress
-    );
-  };
-  const solanaAddress = getSolanaAddress();
+  const { walletAddress: solanaAddress } = useAuth();
 
   const [transactions, setTransactions] = useState<ActivityItem[]>([]);
   const [solBalance, setSolBalance] = useState<number>(0);

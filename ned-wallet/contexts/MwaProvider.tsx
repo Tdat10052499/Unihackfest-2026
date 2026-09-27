@@ -10,7 +10,7 @@ import {
 } from '../services/mwa/mwaProtocol';
 import { validateClusterGuard } from '../services/mwa/clusterGuard';
 import { MwaRequestModal } from '../components/mwa/MwaRequestModal';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../services/auth';
 
 interface MwaContextValue {
   pendingRequest: MwaRequest | null;
@@ -41,28 +41,9 @@ export const MwaProvider: React.FC<MwaProviderProps> = ({ children }) => {
     Map<string, { resolve: (res: MwaResponse) => void; reject: (err: any) => void }>
   >(new Map());
 
-  let privy: any = null;
-  try {
-    privy = usePrivy();
-  } catch {}
-  const user = privy?.user || null;
+  const { walletAddress } = useAuth();
 
-  let solanaWalletState: any = null;
-  try {
-    solanaWalletState = useEmbeddedSolanaWallet();
-  } catch {}
-
-  const getSolanaAddress = (): string => {
-    if (solanaWalletState?.wallets && solanaWalletState.wallets.length > 0) {
-      const solWallet = solanaWalletState.wallets[0];
-      if (solWallet?.address) return solWallet.address;
-    }
-    const linkedAccounts = (user as any)?.linked_accounts || (user as any)?.linkedAccounts || [];
-    const solAccount = linkedAccounts.find(
-      (acc: any) => acc.type === 'wallet' && (acc.chain_type === 'solana' || acc.chainType === 'solana')
-    );
-    return solAccount?.address || '11111111111111111111111111111111';
-  };
+  const getSolanaAddress = (): string => walletAddress || '11111111111111111111111111111111';
 
   /**
    * simulateIncomingMwaRequest: Cho phép các MiniApp bên trong gọi MWA bridge
@@ -155,7 +136,7 @@ export const MwaProvider: React.FC<MwaProviderProps> = ({ children }) => {
       });
       setPendingRequest(null);
     },
-    [resolverMap, user, solanaWalletState]
+    [resolverMap, walletAddress]
   );
 
   /**

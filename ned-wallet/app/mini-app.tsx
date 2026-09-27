@@ -4,15 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuth } from '../services/auth';
 import { VersionedTransaction, Transaction, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 
 import { useWeb3Bridge, Web3BridgeMessage } from '../hooks/useWeb3Bridge';
 import { MiniAppSignatureModal } from '../components/MiniAppSignatureModal';
-import { resolveActiveSolanaAddress } from '../services/identity';
-import { useExternalWallet } from '../contexts/WalletProvider';
-import { useUserStore } from '../stores/useUserStore';
 
 import { MOCK_DAPP_HTML } from '../constants/mockDAppHtml';
 
@@ -34,16 +31,7 @@ export default function MiniAppViewerScreen() {
   const [signatureRequest, setSignatureRequest] = useState<{ id: number; transaction?: any; transactionBase64?: string } | null>(null);
 
   // Wallets
-  const { user } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
-  const externalWallet = useExternalWallet();
-  
-  const myAddress = resolveActiveSolanaAddress(
-    user,
-    externalWallet,
-    solanaWalletState,
-    useUserStore.getState().walletAddress
-  );
+  const { walletAddress: myAddress, signTransaction } = useAuth();
 
   const { injectedJavaScript, generateResolveScript, generateRejectScript } = useWeb3Bridge(myAddress);
 
@@ -131,43 +119,16 @@ export default function MiniAppViewerScreen() {
       } else {
         txBuffer = Buffer.from(txData);
       }
-      let tx: any;
+      let tx: Transaction | VersionedTransaction;
       try {
         tx = VersionedTransaction.deserialize(txBuffer);
       } catch {
         tx = Transaction.from(txBuffer);
       }
 
-      // Khởi tạo provider
-      let activeProvider: any = null;
-      const currentWallets = solanaWalletState?.wallets || [];
-      if (currentWallets.length > 0 && typeof currentWallets[0]?.getProvider === 'function') {
-        activeProvider = await currentWallets[0].getProvider();
-      } else if (typeof (solanaWalletState as any)?.getProvider === 'function') {
-        activeProvider = await (solanaWalletState as any).getProvider();
-      }
+      // Ký bằng ví nhúng Dynamic
+      const signedTx = await signTransaction(tx);
 
-      if (!activeProvider && externalWallet?.connected) {
-        activeProvider = externalWallet;
-      }
-
-      if (!activeProvider) {
-        throw new Error('Không tìm thấy Provider để ký giao dịch.');
-      }
-
-      // Gọi hàm ký
-      let signResult: any = null;
-      if (typeof activeProvider.request === 'function') {
-        signResult = await activeProvider.request({
-          method: 'signTransaction',
-          params: { transaction: tx },
-        });
-      } else if (typeof activeProvider.signTransaction === 'function') {
-        signResult = await activeProvider.signTransaction(tx);
-      }
-
-      const signedTx = signResult?.signedTransaction || signResult;
-      
       // Serialize signedTx to Array
       const signedBytes = Array.from(signedTx.serialize({ requireAllSignatures: false }));
 

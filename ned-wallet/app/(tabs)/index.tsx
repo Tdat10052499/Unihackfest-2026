@@ -18,11 +18,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
-  usePrivy,
-  useEmbeddedSolanaWallet,
-  useEmbeddedWallet,
-} from '@privy-io/expo';
-import {
   PublicKey,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
@@ -44,10 +39,8 @@ import {
   getLinkedPhone,
   setLinkedPhone,
 } from '@/services/storage';
-import {
-  getUserPhoneNumberFromDB,
-  resolveActiveSolanaAddress,
-} from '@/services/identity';
+import { getUserPhoneNumberFromDB } from '@/services/identity';
+import { useAuth } from '@/services/auth';
 import { useUserStore } from '@/stores/useUserStore';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { useTranslation } from '@/services/i18n';
@@ -55,13 +48,11 @@ import { DepositModal } from '@/components/DepositModal';
 import { SendModal } from '@/components/SendModal';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
-import { WalletRecoveryModal } from '@/components/WalletRecoveryModal';
 import { NeoPhysicalWalletCard, StablecoinCardData } from '@/components/neo/NeoPhysicalWalletCard';
 import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
 import { NeoSwapModal, StablecoinBalances } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import { useOnchainBalance } from '@/hooks/useOnchainBalance';
-import { useExternalWallet } from '@/contexts/WalletProvider';
 import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
 import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
@@ -75,10 +66,7 @@ export default function HomeScreen() {
   const { greeting } = useTimeOfDay();
   const { t } = useTranslation();
   
-  const { isReady, user, logout } = usePrivy();
-  const externalWallet = useExternalWallet();
-  const solanaWalletState = useEmbeddedSolanaWallet();
-  const embeddedWalletState = useEmbeddedWallet();
+  const { isReady, user, logout, walletAddress } = useAuth();
   
   const { username, avatarUrl, loadFromStorage, fetchUserProfile } = useUserStore();
 
@@ -89,8 +77,6 @@ export default function HomeScreen() {
     needsRecovery: isNeedsRecovery,
     walletStatus,
   } = useOnchainTransfer();
-
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   // State số dư & tiền tệ (USD / VND)
   const [solBalance, setSolBalance] = useState<number | null>(null);
@@ -112,17 +98,8 @@ export default function HomeScreen() {
   // State danh sách lịch sử giao dịch (dùng cho tính toán số liệu)
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
-  // Trích xuất địa chỉ ví Solana dạng Base58
-  const getSolanaWalletAddress = (): string | null => {
-    return resolveActiveSolanaAddress(
-      user,
-      externalWallet,
-      solanaWalletState,
-      useUserStore.getState().walletAddress
-    );
-  };
-
-  const solanaAddress = getSolanaWalletAddress();
+  // Địa chỉ ví Solana nhúng (Dynamic)
+  const solanaAddress = walletAddress;
 
   // Hook truy xuất số dư On-chain thực tế
   const {
@@ -134,7 +111,7 @@ export default function HomeScreen() {
 
   // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) & Swap
   const { subWallets, addSubWallet, executeSwap } = useSubWallets(
-    user?.id || externalWallet?.publicKey?.toBase58(),
+    user?.id,
     onchainUsdcBalance
   );
   const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
@@ -538,18 +515,6 @@ export default function HomeScreen() {
     return '$4,309,573.02';
   };
 
-  // Trích xuất username hiển thị
-  const getUserEmailPrefix = (): string | null => {
-    if (!user) return null;
-    const emailAccount = (user.linked_accounts || (user as any).linkedAccounts || [])?.find(
-      (acc: any) => acc.type === 'email'
-    );
-    if (emailAccount && (emailAccount as any).address) {
-      return (emailAccount as any).address.split('@')[0];
-    }
-    return null;
-  };
-
   const displayGreetingName = username ? username.split('.')[0] : 'N.E.D User';
   const displayAccountName = username || 'N.E.D User';
   const displayMaskedWallet = solanaAddress
@@ -567,9 +532,9 @@ export default function HomeScreen() {
     return sentTotal > 0 ? `$ ${sentTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '$ 4,750';
   };
 
-  const isAuthenticated = !!user || !!externalWallet?.publicKey;
+  const isAuthenticated = !!user;
 
-  if (!isReady && !externalWallet?.connected) {
+  if (!isReady) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000000" />
@@ -812,31 +777,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Banner Khôi phục ví khi thiết bị mới phát hiện (nếu có) */}
-        {isNeedsRecovery && (
-          <TouchableOpacity
-            style={styles.recoveryCard}
-            onPress={() => setShowRecoveryModal(true)}
-            activeOpacity={0.88}
-          >
-            <View style={styles.recoveryIconCircle}>
-              <MaterialCommunityIcons name="shield-key" size={24} color="#D97706" />
-            </View>
-            <View style={styles.recoveryTextCol}>
-              <Text style={styles.recoveryTitle}>
-                {t('home.newDeviceTitle', { defaultValue: 'Thiết bị mới phát hiện ⚠️' })}
-              </Text>
-              <Text style={styles.recoveryDesc}>
-                {t('home.newDeviceDesc', { defaultValue: 'Cần khôi phục ví bảo mật để tiếp tục giao dịch.' })}
-              </Text>
-            </View>
-            <View style={styles.recoveryBtn}>
-              <Text style={styles.recoveryBtnText}>
-                {t('home.recover', { defaultValue: 'Khôi phục' })}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
       </ScrollView>
 
       {/* ========================================================================= */}
@@ -858,10 +798,7 @@ export default function HomeScreen() {
         onConfirmSend={async (target, amt) => handleSendTransaction(target, amt)}
         isSending={isSendingTx}
         needsRecovery={isNeedsRecovery}
-        onTriggerRecovery={() => {
-          setShowWithdrawModal(false);
-          setShowRecoveryModal(true);
-        }}
+        onTriggerRecovery={() => setShowWithdrawModal(false)}
       />
 
       <PhoneLinkingModal
@@ -882,11 +819,6 @@ export default function HomeScreen() {
       />
 
 
-      <WalletRecoveryModal
-        visible={showRecoveryModal || isNeedsRecovery}
-        onClose={() => setShowRecoveryModal(false)}
-        onSuccess={() => setShowRecoveryModal(false)}
-      />
 
       {/* Modals cho Ví Stablecoin */}
       <AddStablecoinModal

@@ -27,10 +27,8 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { usePrivy, useEmbeddedSolanaWallet } from '@privy-io/expo';
-import { useExternalWallet } from '../contexts/WalletProvider';
-import { useUserStore } from '../stores/useUserStore';
-import { resolveActiveSolanaAddress, getMaskedPhone, getAccountIdentifier } from '../services/identity';
+import { useAuth } from '../services/auth';
+import { getMaskedPhone, getAccountIdentifier } from '../services/identity';
 import { getLinkedPhone } from '../services/storage';
 import { useTranslation } from '@/services/i18n';
 
@@ -53,16 +51,7 @@ export default function ScanQrScreen() {
   const isScanningLocked = useRef(false);
 
   // Lấy thông tin ví Solana hiện tại của người dùng
-  const { user } = usePrivy();
-  const solanaWalletState = useEmbeddedSolanaWallet();
-  const externalWallet = useExternalWallet();
-
-  const solanaAddress = resolveActiveSolanaAddress(
-    user,
-    externalWallet,
-    solanaWalletState,
-    useUserStore.getState().walletAddress
-  );
+  const { user, walletAddress: solanaAddress } = useAuth();
 
   useEffect(() => {
     getLinkedPhone().then((p) => {
