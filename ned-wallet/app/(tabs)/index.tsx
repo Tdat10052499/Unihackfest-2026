@@ -50,7 +50,7 @@ import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
 import { NeoPhysicalWalletCard, StablecoinCardData } from '@/components/neo/NeoPhysicalWalletCard';
 import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
-import { NeoSwapModal, StablecoinBalances } from '@/components/neo/NeoSwapModal';
+import { StablecoinBalances } from '@/components/neo/NeoSwapModal';
 import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
 import { useOnchainBalance } from '@/hooks/useOnchainBalance';
 import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
@@ -591,7 +591,7 @@ export default function HomeScreen() {
           })}
           onDepositPress={() => setShowDepositModal(true)}
           onSendPress={() => router.push('/send')}
-          onSwapActionPress={() => setShowSwapModal(true)}
+          onSwapActionPress={() => router.push('/swap')}
           onCardChange={(card) => setActiveCardCurrency(card.currency)}
           onAddCardPress={() => setShowAddStablecoinModal(true)}
           onDeleteCardPress={(card) => {
@@ -728,17 +728,6 @@ export default function HomeScreen() {
         onSelectCurrency={(cur) => {
           addSubWallet(cur);
         }}
-      />
-
-      <NeoSwapModal
-        visible={showSwapModal}
-        onClose={() => {
-          setShowSwapModal(false);
-          setSelectedSubWalletForSwap(null);
-        }}
-        initialFromCurrency={activeCardCurrency}
-        balances={stablecoinBalances}
-        onConfirmSwap={handleConfirmSwap}
       />
 
       {/* Hệ thống Thông báo In-app Modal */}

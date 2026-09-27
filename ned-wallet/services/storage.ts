@@ -83,6 +83,20 @@ export const getCachedActivities = async (): Promise<any[] | null> => {
   }
 };
 
+export const saveDemoSwap = async (swap: Record<string, unknown>, wallet?: string | null): Promise<void> => {
+  const key = `${STORAGE_KEYS.ACTIVITIES}:${wallet || 'anonymous'}`;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    const list = raw ? JSON.parse(raw) : [];
+    const item = { id: `demo-swap-${Date.now()}`, iconBg: '#7B2FBE', isPositive: false, amount: String(swap.amount || ''), time: new Date().toISOString(), ...swap, type: 'sent', demoSwap: true };
+    const next = [item, ...(Array.isArray(list) ? list : [])].slice(0, 50);
+    await AsyncStorage.setItem(key, JSON.stringify(next));
+    const sharedRaw = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVITIES);
+    const shared = sharedRaw ? JSON.parse(sharedRaw) : [];
+    await AsyncStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify([item, ...(Array.isArray(shared) ? shared : [])].slice(0, 100)));
+  } catch (error) { console.error('Error caching demo swap:', error); }
+};
+
 /**
  * Lưu địa chỉ ví Solana vào local cache
  */
