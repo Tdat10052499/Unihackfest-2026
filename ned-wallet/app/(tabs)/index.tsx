@@ -58,6 +58,7 @@ import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { NotificationModal } from '@/components/NotificationModal';
+import { DevTestPanel } from '@/components/DevTestPanel';
 import LoginScreen from '../login';
 
 export default function HomeScreen() {
@@ -670,6 +671,8 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* Panel test tạm (Phase 1): số dư USDC + ký thử + chuyển 1 USDC qua useAuth() */}
+        <DevTestPanel />
 
         {/* ========================================================================= */}
         {/* 3. VÍ VẬT LÝ CHỨA THẺ STABLECOIN (Physical Wallet Card - Swap Button) */}
