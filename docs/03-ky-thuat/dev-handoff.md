@@ -14,23 +14,58 @@
 | Hạng mục | Code trên `main` (cũ) | Đã chốt |
 |---|---|---|
 | Đăng nhập / ví | Privy (`@privy-io/expo`), Email OTP + Google | **Dynamic SDK** — chỉ Google, ví nhúng MPC. **Không dùng Privy** |
-| Gas | Relayer `ned-hub` (5 giao dịch/ngày) | Tài trợ gas qua Dynamic ("Network fee free · paid by N.E.D") |
+| Gas | Relayer `ned-hub` (5 giao dịch/ngày) | ⚠️ **Người dùng tự trả phí** — SVM Gas Sponsorship của Dynamic cần gói Enterprise (xem `docs/poc-dynamic.md`). Tài khoản demo nạp sẵn SOL devnet |
 | Backend | Supabase (+ Realtime) | Không backend riêng; ngoại lệ: 1 proxy serverless cho LLM + khoá Jupiter (mục 7) |
-| Tra cứu SĐT/username | Supabase | PDA `ned_program` (phone / name / reverse) |
-| Lưu cục bộ | — | MMKV |
+| Tra cứu SĐT/username | Supabase | PDA `ned_program` (phone / name / reverse) — **đã deploy devnet (T1.5)**, xem mục 1a |
+| Lưu cục bộ | — | AsyncStorage / SecureStore sẵn có (không thêm MMKV) |
 
-**Việc cần làm khi chuyển**: gỡ `@privy-io/expo` và `PhantomAuthButton`, bỏ màn Email OTP; tích hợp Dynamic (Google + ví MPC); nối reverse PDA để phân biệt người mới / quay lại; chuyển các lệnh gửi sang ký bằng ví Dynamic + tài trợ gas.
+**Trạng thái (27/09)**:
+- Đã gỡ Privy, Supabase và `ned-hub`.
+- Auth chạy trên Dynamic qua `useAuth()` (T1.2/T1.4).
+- Identity PDA đã deploy devnet (T1.5).
 
-**Còn phải chốt**: bỏ hẳn Supabase hay không (Shake to Split / Coin Toss / Geo-Red Packet đang dùng Supabase Realtime); bỏ hẳn `ned-hub` hay giữ dự phòng.
-⚠️ Chưa xác minh: tên gói SDK Dynamic cho Expo/React Native, cách tài trợ gas trên Solana, định dạng JWT/JWKS — đọc tài liệu Dynamic trước khi code.
+**Còn lại**: nối màn onboarding / gửi tiền vào identity mới (T1.3); làm màn nạp SOL (T1.6).
 
 ## 1. Onboarding (Google-only)
 
 - Bỏ Email OTP và liên kết ví ngoài (Phantom/Solflare). Chế độ Crypto chỉ là cách hiển thị khác của **cùng một ví N.E.D**.
 - **Phân biệt người mới / quay lại**: sau khi có ví, tra reverse PDA `[b"reverse", wallet]` của `ned_program`. Có → "Welcome back" → Home. Không → Profile. Thoát giữa chừng → lần sau quay lại bước Profile.
 - **Profile**: username (kiểm tra trùng khi gõ) + SĐT (+84). Hiển thị công bố: dữ liệu lưu on-chain, ai biết SĐT/username có thể tìm ra ví, không đổi SĐT được.
-- ⚠️ **Riêng tư**: SĐT làm seed PDA là công khai và dò được. Cân nhắc seed = hash(SĐT) (vẫn dò được do không gian SĐT nhỏ, nhưng không lộ trực tiếp).
+- **Riêng tư**: seed của PhoneRecord là `phone_key = scrypt(SĐT)`, không phải SĐT dạng rõ. Vẫn dò được bằng cách thử cả không gian số VN, nhưng scrypt làm việc đó tốn kém. Nói rõ khi pitching.
 - Splash: nền đặc + icon, ≤1000 ms, không spinner (theo hướng dẫn splash Android 12).
+
+### 1a. Identity on-chain — `ned_program` (Phương án C, deploy devnet 27/09)
+
+**Program ID**: `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh` (Anchor 1.1.2). IDL: `ned-wallet/idl/`. Thư viện app: `ned-wallet/services/identity/{dualPda,phoneKey}.ts`.
+
+| Account | Seeds | Dữ liệu | Kích thước | Rent devnet |
+|---|---|---|---|---|
+| `NameRecord` | `[b"name", username]` | `wallet`, `created_at`, `bump` | 49 B | 899 160 lamports |
+| `ReverseRecord` | `[b"reverse", wallet]` | `username` (≤20), `has_phone`, `created_at`, `bump` | 42 B | 863 600 lamports |
+| `PhoneRecord` | `[b"phone_v1", phone_key]` | `wallet`, `created_at`, `bump` | 49 B | 899 160 lamports |
+
+Instruction (signer = ví người dùng = payer):
+
+| Instruction | Việc làm | Lỗi chính |
+|---|---|---|
+| `create_profile(username)` | Tạo Name + Reverse | `InvalidUsername`, `UsernameTaken`, `ProfileAlreadyExists` |
+| `link_phone(phone_key: [u8;32])` | Tạo Phone, `has_phone = true` | `PhoneAlreadyLinked`, `PhoneTaken` |
+| `unlink_phone()` | Đóng Phone của chính mình (hoàn rent), `has_phone = false` | `NotPhoneOwner` |
+| `update_username(new)` | Đóng Name cũ (hoàn rent), tạo Name mới, sửa Reverse | `SameUsername`, `UsernameTaken`, `InvalidUsername` |
+| `transfer_stablecoin(amount)` | Giữ nguyên | `InvalidAmount` |
+
+- **Username**: 3–20 ký tự `[a-z0-9_]`, kiểm tra cả on-chain lẫn trong app (`isValidUsername`).
+- **phone_key**:
+  - chuẩn hoá SĐT di động VN về E.164 (`+84` + 9 số, đầu số 3/5/7/8/9);
+  - `phone_key = scrypt(e164, salt "ned-wallet/phone/v1", N=2^15, r=8, p=1, dkLen=32)`, khoảng 0,19 giây trên iPhone Safari, có cache trong bộ nhớ;
+  - đổi salt hoặc tham số là đổi toàn bộ khoá, khi đó phải chuyển sang seed mới (`phone_v2`).
+- **Chi phí onboarding cho người dùng**: Name + Reverse ≈ **0,00176 SOL**, thêm Phone ≈ 0,0009 SOL, thêm ATA USDC ≈ 0,0015 SOL, cộng phí 5 000 lamports/tx. Tổng dưới 0,005 SOL (xem T1.6).
+- **Người quay lại** = đọc được `ReverseRecord` của ví (`fetchReverseRecord`).
+- **Tra nhiều mục một lượt** (lịch sử, danh bạ): `fetchReverseRecords`, `fetchPhoneRecords` (`getMultipleAccountsInfo`, 100 mục/RPC).
+- **Kiểm chứng**:
+  - `cd ned_program && anchor build && cargo test` (10 test LiteSVM);
+  - `cd ned-wallet && pnpm test:identity` (unit test SĐT/phone_key);
+  - `pnpm identity:devnet -- --fresh` (chạy thật trên devnet).
 
 ## 2. Home & hai chế độ ví
 
@@ -66,9 +101,9 @@
 ## 5. Gửi & Nhận (P2P)
 
 - Ô người nhận tự nhận dạng: SĐT (≥9 số) / `@username` / `.sol` (SNS) / địa chỉ Solana.
-- Tra cứu qua PDA `ned_program` (phone/name). (Code cũ dùng Supabase — thay khi chuyển stack.)
+- Tra cứu qua PDA `ned_program`: `@username` → `fetchNameRecord`, SĐT → `getPhoneKey` + `fetchPhoneRecord` (mục 1a). Màn gửi tiền nối vào ở T1.3.
 - SĐT chưa xác minh (không OTP) → nhãn **Unverified number** + cảnh báo ở Review. Nói rõ khi pitching.
-- Phí mạng: miễn phí (sponsor).
+- Phí mạng: người gửi tự trả (~0,000005 SOL). Nếu người nhận chưa có tài khoản USDC, người gửi trả thêm rent tạo ATA (~0,0015 SOL).
 
 ## 6. Simple Earn (Jupiter Lend)
 

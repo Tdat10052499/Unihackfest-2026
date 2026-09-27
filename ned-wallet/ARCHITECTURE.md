@@ -28,17 +28,17 @@ ned-wallet/
 ├── hooks/                Hook dữ liệu: số dư on-chain, chuyển USDC, đồng bộ thông báo, cầu nối dApp
 ├── services/             Logic không phụ thuộc UI
 │   ├── auth/             Dynamic: client.ts, AuthProvider + useAuth() — lớp DUY NHẤT import @dynamic-labs-sdk
-│   ├── identity/         Tra cứu danh tính: legacy.ts (PDA cũ) → Dual PDA + SNS ở T1.5
+│   ├── identity/         dualPda.ts (Name/Reverse/Phone PDA: đọc + builder tx), phoneKey.ts (E.164 + scrypt), legacy.ts (PDA cũ, tới T1.3)
 │   ├── jupiter/          (khung) Swap + xStocks — Phase 2–3
 │   ├── mwa/              Giao thức Mobile Wallet Adapter
 │   ├── anchorClient.ts   Kết nối Anchor tới ned_program (IDL trong idl/)
 │   ├── solana.ts         Helius RPC: số dư, lịch sử, ATA, lệnh chuyển SPL
 │   ├── solanaConnection.ts, storage.ts, i18n.ts
-│   └── profile.ts        Hồ sơ người dùng lưu cục bộ (AsyncStorage) — thay bằng Dual PDA ở T1.5/T1.7
+│   └── profile.ts        Hồ sơ người dùng lưu cục bộ (AsyncStorage) — màn hình chuyển sang dualPda ở T1.3
 ├── stores/               Zustand: user, network, notification, walletCards (ví con), walletMode (khung)
-├── idl/                  IDL ned_program (cập nhật sau khi deploy T1.5)
+├── idl/                  IDL ned_program 8azx4Hdo…X5Wh (sinh từ anchor build, không sửa tay)
 ├── constants/, locales/  Theme, mascot, dApp test HTML; bản dịch en/vi
-├── scripts/              deploy-web.js, test-*.ts (script Anchor chạy local)
+├── scripts/              deploy-web.js, identity-devnet.ts (pnpm identity:devnet — kiểm chứng identity trên devnet)
 └── polyfill.js, index.js Polyfill (Buffer, crypto, location cho Dynamic) nạp trước expo-router
 ```
 
@@ -60,9 +60,10 @@ ned-wallet/
   AsyncStorage / SecureStore: cache hồ sơ, ví con, SĐT của chính mình, cài đặt
 ```
 
-- **Đăng nhập** (`useAuth().login()`): web = redirect Google, native = popup (expo-web-browser) → SDK tạo ví Solana nếu chưa có → chuyển ví sang devnet. Màn `(auth)` quyết định người mới (onboarding) hay quay lại (Home) — hiện theo hồ sơ cục bộ, T1.3 đổi sang Reverse PDA.
+- **Đăng nhập** (`useAuth().login()`): web = redirect Google, native = popup (expo-web-browser) → SDK tạo ví Solana nếu chưa có → chuyển ví sang devnet. Màn `(auth)` quyết định người mới (onboarding) hay quay lại (Home) — hiện theo hồ sơ cục bộ, T1.3 đổi sang `fetchReverseRecord` (ReverseRecord [b"reverse", wallet]).
 - **Ký giao dịch**: màn hình chỉ gọi `useAuth().signTransaction / signAndSendTransaction` (sponsorshipMode `'off'`, người dùng trả phí).
-- **Gửi USDC**: người nhận là địa chỉ ví (chạy ngay), @username / SĐT (qua Dual PDA — T1.5). Ký bằng ví nhúng, người dùng trả phí.
+- **Gửi USDC**: người nhận là địa chỉ ví (chạy ngay); @username → `fetchNameRecord`, SĐT → `getPhoneKey` + `fetchPhoneRecord` (thư viện xong ở T1.5, màn hình nối ở T1.3). Ký bằng ví nhúng, người dùng trả phí.
+- **Identity on-chain** (schema chi tiết: `docs/03-ky-thuat/dev-handoff.md` mục 1a): `NameRecord [b"name", username] → wallet`, `ReverseRecord [b"reverse", wallet] → username, has_phone`, `PhoneRecord [b"phone_v1", scrypt(SĐT)] → wallet`. Ghi qua builder `build*Tx` + `useAuth().signAndSendTransaction`.
 - **Thông báo**: `useNotificationSync` polling lịch sử on-chain 8s → banner + danh sách. TODO: Helius WebSocket.
 - **dApp Browser**: `mini-app.tsx` nạp dApp trong WebView, `useWeb3Bridge` tiêm `window.solana`, yêu cầu ký hiện qua `MiniAppSignatureModal`.
 
@@ -70,5 +71,5 @@ ned-wallet/
 
 | Phần | Trạng thái | Thay bằng |
 |---|---|---|
-| `services/profile.ts` | Lưu cục bộ, tìm kiếm trả rỗng | Dual PDA — T1.5 / T1.7 |
-| `services/identity/legacy.ts` | PDA identity cũ | dualPda.ts + sns.ts — T1.5 |
+| `services/profile.ts` | Lưu cục bộ, tìm kiếm trả rỗng | `services/identity/dualPda.ts` (đã có) — nối ở T1.3 |
+| `services/identity/legacy.ts` | PDA identity cũ (program cũ) | dualPda.ts (xong) + sns.ts — gỡ ở T1.3 |
