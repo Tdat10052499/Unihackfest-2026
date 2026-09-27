@@ -1,14 +1,11 @@
-import { InteractionManager } from 'react-native';
 import {
   Connection,
   PublicKey,
-  Transaction,
   TransactionInstruction,
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { lookupWalletByPhone } from './identity';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import i18n from '../services/i18n';

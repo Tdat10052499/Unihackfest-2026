@@ -51,7 +51,7 @@ export default function ScanQrScreen() {
   const isScanningLocked = useRef(false);
 
   // Lấy thông tin ví Solana hiện tại của người dùng
-  const { user, walletAddress: solanaAddress } = useAuth();
+  const { walletAddress: solanaAddress } = useAuth();
 
   useEffect(() => {
     getLinkedPhone().then((p) => {
