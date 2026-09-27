@@ -1,5 +1,5 @@
-// Auth — đăng nhập Google + ví nhúng Solana (MPC V3) qua Dynamic JS SDK (Phase 1, T1.2).
-// Sẽ gồm: dynamicClient (createDynamicClient + addWaasSolanaExtension), useAuth() (user, ví, login/logout,
-// ký & gửi giao dịch), tách luồng web (signInWithSocialRedirect) và native (signInWithSocialPopUp).
-// Tham khảo code đã chạy trong poc/ và docs/poc-dynamic.md. Privy vẫn dùng tới khi T1.4 gỡ hẳn.
-export {};
+// Auth — đăng nhập Google + ví nhúng Solana (MPC V3) qua Dynamic JS SDK.
+// Web: signInWithSocialRedirect (+ detect/complete khi quay lại). Native: signInWithSocialPopUp + expo-web-browser.
+// Toàn app chỉ dùng AuthProvider và useAuth() từ đây — không import @dynamic-labs-sdk/* ở màn hình.
+export { AuthProvider, useAuth } from './AuthProvider';
+export type { AuthContextValue, AuthStatus, AuthUser } from './AuthProvider';
