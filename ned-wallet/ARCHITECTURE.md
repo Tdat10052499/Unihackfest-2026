@@ -28,14 +28,14 @@ ned-wallet/
 ├── hooks/                Hook dữ liệu: số dư on-chain, chuyển USDC, đồng bộ thông báo, cầu nối dApp
 ├── services/             Logic không phụ thuộc UI
 │   ├── auth/             Dynamic: client.ts, AuthProvider + useAuth() — lớp DUY NHẤT import @dynamic-labs-sdk
-│   ├── identity/         dualPda.ts (Name/Reverse/Phone PDA: đọc + builder tx), phoneKey.ts (E.164 + scrypt), legacy.ts (PDA cũ, tới T1.3)
+│   ├── identity/         dualPda.ts (Name/Reverse/Phone PDA + builders), phoneKey.ts (E.164 + scrypt), resolve.ts (recipient/display resolver), sns.ts (Mainnet read-only SNS)
 │   ├── jupiter/          (khung) Swap + xStocks — Phase 2–3
 │   ├── mwa/              Giao thức Mobile Wallet Adapter
 │   ├── anchorClient.ts   Kết nối Anchor tới ned_program (IDL trong idl/)
 │   ├── solana.ts         Helius RPC: số dư, lịch sử, ATA, lệnh chuyển SPL
 │   ├── solanaConnection.ts, storage.ts, i18n.ts
 │   ├── onboarding.ts     Chi phí thật (rent + phí), bước tiếp theo (fund/profile/mode/home), giao dịch tạo hồ sơ, dịch lỗi
-│   └── profile.ts        (tạm) hồ sơ cục bộ cho các màn chưa chuyển — tra cứu người nhận chuyển sang dualPda ở T1.7
+│   └── p2pTransfer.ts    USDC Devnet transfer preparation with current fee/rent
 ├── stores/               Zustand: user, network, notification, walletCards (ví con), walletMode (Simple/Crypto theo ví)
 ├── idl/                  IDL ned_program 8azx4Hdo…X5Wh (sinh từ anchor build, không sửa tay)
 ├── constants/, locales/  Theme, mascot, dApp test HTML; bản dịch en/vi
@@ -73,5 +73,5 @@ ned-wallet/
 
 | Phần | Trạng thái | Thay bằng |
 |---|---|---|
-| `services/profile.ts` | Onboarding đã chuyển sang on-chain; còn send/settings/notification dùng | Tra cứu người nhận qua dualPda — T1.7 |
-| `services/identity/legacy.ts` | PDA identity cũ (program cũ) | dualPda.ts (xong) + sns.ts — gỡ ở T1.3 |
+| Recipient lookup | Đã chuyển ở T1.7 | `services/identity/resolve.ts` — local cache → SNS Mainnet → Name/Phone PDA → address |
+| Phone management | Đã chuyển ở T1.7 | `PhoneManagementModal` builds `link_phone`/`unlink_phone` and displays live SOL cost |

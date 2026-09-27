@@ -31,6 +31,8 @@ import {
 } from '../services/storage';
 import { useTranslation } from '../services/i18n';
 
+import { displayNamesFor } from '../services/identity/resolve';
+
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
@@ -39,6 +41,12 @@ export default function HistoryScreen() {
   const { walletAddress } = useAuth();
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let active = true;
+    void displayNamesFor(activities.flatMap(item => item.counterpartyWallet ? [item.counterpartyWallet] : [])).then(value => { if (active) setNames(value); });
+    return () => { active = false; };
+  }, [activities]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -128,7 +136,7 @@ export default function HistoryScreen() {
       const matchTitle = (getActivityTitle(item, t) || item.title).toLowerCase().includes(q);
       const matchAmount = item.amount.toLowerCase().includes(q);
       const matchSig = item.signature ? item.signature.toLowerCase().includes(q) : false;
-      return matchTitle || matchAmount || matchSig;
+      return matchTitle || matchAmount || matchSig || !!(item.counterpartyWallet && names[item.counterpartyWallet]?.toLowerCase().includes(q));
     }
     return true;
   });
@@ -289,7 +297,7 @@ export default function HistoryScreen() {
                     {/* Chi Tiết Giao Dịch */}
                     <View style={styles.activityContentCol}>
                       <View style={styles.titleAndAmountRow}>
-                        <Text style={styles.activityItemTitle}>{getActivityTitle(item, t)}</Text>
+                        <Text style={styles.activityItemTitle}>{item.counterpartyWallet && names[item.counterpartyWallet] ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}` : getActivityTitle(item, t)}</Text>
                         <Text
                           style={[
                             styles.activityItemAmount,

@@ -7,7 +7,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Alert,
   InteractionManager,
   AppState,
   Image,
@@ -39,7 +38,7 @@ import {
   getLinkedPhone,
   setLinkedPhone,
 } from '@/services/storage';
-import { getUserPhoneNumberFromDB } from '@/services/identity';
+import { getOwnPhone } from '@/services/identity/ownPhone';
 import { useAuth } from '@/services/auth';
 import { useUserStore } from '@/stores/useUserStore';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
@@ -66,7 +65,7 @@ export default function HomeScreen() {
   const { greeting } = useTimeOfDay();
   const { t } = useTranslation();
   
-  const { isReady, user, logout, walletAddress } = useAuth();
+  const { isReady, user, walletAddress } = useAuth();
   
   const { username, avatarUrl, loadFromStorage, fetchUserProfile } = useUserStore();
 
@@ -75,7 +74,6 @@ export default function HomeScreen() {
     isTransferring: isExecutingTransfer,
     isWalletReady,
     needsRecovery: isNeedsRecovery,
-    walletStatus,
   } = useOnchainTransfer();
 
   // State số dư & tiền tệ (USD / VND)
@@ -93,7 +91,7 @@ export default function HomeScreen() {
 
   // State Withdraw / Send Recipient & Broadcast Loading
   const [withdrawAddress, setWithdrawAddress] = useState('');
-  const [isSendingTx, setIsSendingTx] = useState(false);
+  const isSendingTx = isExecutingTransfer;
 
   // State danh sách lịch sử giao dịch (dùng cho tính toán số liệu)
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -145,6 +143,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (onchainUsdcBalance !== undefined && onchainUsdcBalance !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror the RPC balance into the view model.
       setStablecoinBalances((prev) => ({
         ...prev,
         USDC: onchainUsdcBalance,
@@ -179,9 +178,9 @@ export default function HomeScreen() {
   useEffect(() => {
     loadFromStorage();
     if (user?.id) {
-      fetchUserProfile(user.id);
+      fetchUserProfile(solanaAddress || '');
     }
-  }, [user?.id]);
+  }, [user?.id, solanaAddress, loadFromStorage, fetchUserProfile]);
 
   useEffect(() => {
     const loadCachedData = async () => {
@@ -213,7 +212,7 @@ export default function HomeScreen() {
     const checkPhoneLinkingPrompt = async () => {
       if (!user) return;
       try {
-        const dbPhone = await getUserPhoneNumberFromDB(user.id);
+        const dbPhone = await getOwnPhone();
         if (dbPhone) {
           setLinkedPhoneState(dbPhone);
           await setLinkedPhone(dbPhone);
@@ -285,6 +284,7 @@ export default function HomeScreen() {
     let subscriptionId: number | null = null;
     let debounceTimer: any = null;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh on wallet focus.
     fetchBalance(solanaAddress);
     fetchActivities(solanaAddress, true);
 
@@ -382,125 +382,12 @@ export default function HomeScreen() {
     router.push('/scan-qr');
   };
 
-  // Gửi giao dịch chuyển tiền
-  const handleSendTransaction = async (
-    targetAddress?: string,
-    amountSol?: number
-  ) => {
-    if (!solanaAddress) {
-      Alert.alert(t('send.failedTitle', { defaultValue: 'Thông báo' }), t('send.lookupError', { defaultValue: 'Không tìm thấy địa chỉ ví nguồn.' }));
-      return;
-    }
-
-    const recipientInput = (targetAddress || withdrawAddress).trim();
-    if (!recipientInput) {
-      Alert.alert(t('send.failedTitle', { defaultValue: 'Thông báo' }), t('send.invalidRecipient', { defaultValue: 'Vui lòng nhập địa chỉ ví hoặc số điện thoại người nhận.' }));
-      return;
-    }
-
-    if (!isWalletReady) {
-      Alert.alert(
-        t('wallet.connectingTitle', { defaultValue: 'Ví đang kết nối' }),
-        t('wallet.connectingDesc', { defaultValue: `Ví nhúng đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!` })
-      );
-      return;
-    }
-
-    const numAmount = amountSol || 0.001;
-    setIsSendingTx(true);
-
-    try {
-      const result = await executeTokenTransfer({
-        fromAddress: solanaAddress,
-        recipientAddressOrPhone: recipientInput,
-        amountSol: numAmount,
-      });
-
-      if (!result.success || !result.transactionHash) {
-        setIsSendingTx(false);
-        const errorMsg = result.error || t('send.failedMsg', { defaultValue: 'Không thể thực hiện giao dịch.' });
-        if (
-          errorMsg.includes('timeout') ||
-          errorMsg.includes('user-signer') ||
-          errorMsg.includes('WebView')
-        ) {
-          Alert.alert(
-            'Phiên làm việc bị gián đoạn ⚠️',
-            'Phiên kết nối ví ngầm trên thiết bị Android đang bị treo bởi hệ thống. Bạn có muốn dọn dẹp và làm mới phiên đăng nhập ngay?',
-            [
-              { text: 'Đóng', style: 'cancel' },
-              {
-                text: 'Làm mới ngay',
-                style: 'destructive',
-                onPress: async () => {
-                  const { executeHardReset } = await import('@/services/storage');
-                  await executeHardReset(logout);
-                  router.replace('/login');
-                },
-              },
-            ]
-          );
-          return;
-        }
-
-        if (errorMsg.includes('hết hạn') || errorMsg.includes('đăng nhập lại') || errorMsg.includes('access token')) {
-          Alert.alert(
-            t('session.expiredTitle', { defaultValue: 'Phiên hết hạn ⚠️' }),
-            t('session.expiredMsg', { defaultValue: 'Phiên đăng nhập đã hết hạn hoặc được làm mới. Vui lòng đăng nhập lại để tiếp tục.' }),
-            [
-              {
-                text: t('session.relogin', { defaultValue: 'Đăng nhập lại' }),
-                onPress: () => router.replace('/login'),
-              },
-            ]
-          );
-          return;
-        }
-
-        Alert.alert(t('send.failedTitle', { defaultValue: 'Giao dịch chưa hoàn tất ❌' }), errorMsg);
-        return;
-      }
-
-      const txSignature = result.transactionHash;
-      const finalRecipient = result.recipientAddress || recipientInput;
-
-      setShowWithdrawModal(false);
-
-      const newAct: ActivityItem = {
-        id: txSignature,
-        type: 'sent',
-        title: t('activities.sent', { defaultValue: 'Chuyển tiền' }),
-        time: t('activities.justNow', { defaultValue: 'Vừa xong' }),
-        amount: `-$${(numAmount * 150).toFixed(2)}`,
-        isPositive: false,
-        iconBg: '#374151',
-        signature: txSignature,
-      };
-
-      setActivities((prev) => {
-        const updated = [newAct, ...prev.filter((a) => a.id !== txSignature)];
-        cacheActivities(updated);
-        return updated;
-      });
-
-      setSolBalance((prev) =>
-        prev !== null ? Math.max(0, prev - numAmount - 0.000005) : prev
-      );
-
-      setIsSendingTx(false);
-
-      Alert.alert(
-        t('send.successTitle', { defaultValue: 'Chuyển Tiền Thành Công! ⚡' }),
-        `${t('send.successMsgPrefix', { defaultValue: 'Đã chuyển' })} $${numAmount.toFixed(2)} ${t('send.successMsgTo', { defaultValue: 'đến:' })}\n${finalRecipient.length > 12 ? `${finalRecipient.slice(0, 6)}...${finalRecipient.slice(-6)}` : finalRecipient}\n\n${t('send.txCode', { defaultValue: 'Mã giao dịch:' })} ${txSignature.slice(0, 16)}...`
-      );
-    } catch (err: any) {
-      setIsSendingTx(false);
-      console.error('Send Transaction Error:', err);
-      Alert.alert(
-        t('send.errorTitle', { defaultValue: 'Lỗi Giao Dịch' }),
-        err?.message || t('send.errorMsg', { defaultValue: 'Không thể thực hiện chuyển tiền lúc này.' })
-      );
-    }
+  // The shared SendFlow owns review, phone confirmation and the receipt.
+  const handleSendTransaction = async (recipient: string, amount: number) => {
+    if (!solanaAddress || !isWalletReady) throw new Error('Your wallet is not ready. Please retry.');
+    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsd: amount });
+    if (!result.success || !result.transactionHash) throw new Error(result.error || 'Transfer failed.');
+    return result.transactionHash;
   };
 
   // Format số dư hiển thị

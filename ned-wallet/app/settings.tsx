@@ -21,13 +21,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../services/auth';
 import {
-  getLinkedPhone,
-  setLinkedPhone as setLinkedPhoneStorage,
   executeHardReset,
 } from '../services/storage';
-import { getUserPhoneNumberFromDB, getAccountIdentifier } from '../services/identity';
-// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
-import { uploadUserAvatarFile } from '../services/profile';
+import { getAccountIdentifier } from '../services/identity';
+import { getOwnPhone } from '../services/identity/ownPhone';
+import { fetchReverseRecord } from '../services/identity/dualPda';
+import { identityConnection, shortAddress } from '../services/identity/resolve';
+import { PublicKey } from '@solana/web3.js';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useUserStore } from '../stores/useUserStore';
@@ -118,28 +118,20 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadFromStorage();
-      if (user?.id) {
-        fetchUserProfile(user.id);
+      if (walletAddress) {
+        fetchUserProfile(walletAddress);
       }
-    }, [user?.id, loadFromStorage, fetchUserProfile])
+    }, [walletAddress, loadFromStorage, fetchUserProfile])
   );
 
-  // Nạp SĐT đã liên kết (hồ sơ cục bộ — TODO(T1.5): Phone PDA)
+  const [phoneLinked, setPhoneLinked] = useState<boolean | null>(null);
   useEffect(() => {
-    const loadPhone = async () => {
-      if (user?.id) {
-        const dbPhone = await getUserPhoneNumberFromDB(user.id);
-        if (dbPhone) {
-          setLinkedPhone(dbPhone);
-          await setLinkedPhoneStorage(dbPhone);
-          return;
-        }
-      }
-      const cached = await getLinkedPhone();
-      setLinkedPhone(cached);
-    };
-    loadPhone();
-  }, [user]);
+    let active = true;
+    if (walletAddress) Promise.all([fetchReverseRecord(identityConnection, new PublicKey(walletAddress)), getOwnPhone()]).then(([record, phone]) => {
+      if (active) { setPhoneLinked(record?.hasPhone ?? false); setLinkedPhone(record?.hasPhone ? phone : null); }
+    }).catch(() => { if (active) { setPhoneLinked(null); setLinkedPhone(null); } });
+    return () => { active = false; };
+  }, [walletAddress, showPhoneModal]);
 
   // Trích xuất tên hiển thị từ Google hoặc Email
   const getUserDisplayName = (): string => {
@@ -158,16 +150,7 @@ export default function SettingsScreen() {
     return 'Dat Ho Du Tuan';
   };
 
-  // Trích xuất username động định dạng @username.sol
-  const getDisplayHandle = (): string => {
-    if (username) {
-      const clean = username.startsWith('@') ? username.slice(1) : username;
-      const withoutSuffix = clean.endsWith('.sol') ? clean.slice(0, -4) : clean;
-      return `@${withoutSuffix}.sol`;
-    }
-    const fallback = getUserDisplayName().toLowerCase().replace(/\s+/g, '');
-    return `@${fallback || 'ned'}.sol`;
-  };
+  const getDisplayHandle = (): string => username ? `@${username}` : walletAddress ? shortAddress(walletAddress) : 'No profile';
 
   // Trích xuất chữ cái đầu tiên cho Default Avatar
   const getUserInitial = (): string => {
@@ -216,24 +199,8 @@ export default function SettingsScreen() {
 
       setIsUploadingAvatar(true);
 
-      const targetUserId = user?.id || solanaAddress || username || 'ned_user';
-      console.log('📸 [Settings] Bắt đầu upload avatar cho user:', targetUserId);
-
-      const uploadRes = await uploadUserAvatarFile({
-        userId: targetUserId,
-        base64: asset.base64,
-        mimeType: asset.mimeType || 'image/jpeg',
-      });
-
-      if (uploadRes.success && uploadRes.avatarUrl) {
-        setAvatarUrl(uploadRes.avatarUrl);
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-        Alert.alert('Thành công 🎉', 'Đã cập nhật ảnh đại diện mới thành công!');
-      } else {
-        Alert.alert(t('settings.imageErrorTitle', { defaultValue: 'Lỗi tải ảnh' }), uploadRes.error || t('settings.imageUploadFailed', { defaultValue: 'Không thể lưu ảnh đại diện.' }));
-      }
+      setAvatarUrl(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
+      Alert.alert('Avatar updated', 'Your avatar is saved on this device.');
     } catch (err: any) {
       console.error('❌ [handlePickAvatar] Lỗi chọn/upload avatar:', err);
       Alert.alert(t('settings.errorTitle', { defaultValue: 'Lỗi' }), err?.message || t('settings.avatarUpdateFailed', { defaultValue: 'Có lỗi xảy ra khi cập nhật ảnh đại diện.' }));
@@ -393,7 +360,7 @@ export default function SettingsScreen() {
               backgroundColor="#FEF08A"
               onPress={() => setShowPhoneModal(true)}
             >
-              <Text style={styles.badgeTextDark}>{formatPhoneDisplay(linkedPhone)}</Text>
+              <Text style={styles.badgeTextDark}>{phoneLinked === null ? 'Manage phone' : phoneLinked ? `Unlink phone · ${linkedPhone ? formatPhoneDisplay(linkedPhone) : 'Linked on-chain'}` : 'Link phone'}</Text>
               <Feather name="edit-2" size={13} color="#000000" style={{ marginLeft: 8 }} />
             </ProfileBadge>
 

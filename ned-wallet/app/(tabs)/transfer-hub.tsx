@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,8 +13,6 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../services/auth';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
-import { ActivityItem } from '@/services/solana';
-import { cacheActivities, getCachedActivities } from '@/services/storage';
 import { useTranslation } from '@/services/i18n';
 import { SendModal } from '@/components/SendModal';
 import { TransactionReceiptModal } from '@/components/TransactionReceiptModal';
@@ -92,13 +89,12 @@ export default function TransferHubScreen() {
     isTransferring: isSending,
     isWalletReady,
     needsRecovery,
-    walletStatus,
     senderAddress: solanaAddress,
   } = useOnchainTransfer();
 
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptData, setReceiptData] = useState<{
+  const [receiptData] = useState<{
     amount: number | string;
     currency?: string;
     note?: string;
@@ -107,62 +103,10 @@ export default function TransferHubScreen() {
 
   // THỰC THI CHUYỂN TIỀN 100% ON-CHAIN TỪ TRANSFER HUB
   const handleConfirmSend = async (recipient: string, amount: number) => {
-    if (!solanaAddress) {
-      Alert.alert('Thông báo', 'Không tìm thấy địa chỉ tài khoản nguồn.');
-      return;
-    }
-    if (!isWalletReady) {
-      Alert.alert(
-        'Tài khoản đang kết nối',
-        `Tài khoản đang ở trạng thái (${walletStatus}). Vui lòng chờ vài giây để kết nối hoàn tất!`
-      );
-      return;
-    }
-
-    try {
-      const result = await executeTokenTransfer({
-        fromAddress: solanaAddress,
-        recipientAddressOrPhone: recipient,
-        amountUsd: amount,
-      });
-
-      if (!result.success || !result.transactionHash) {
-        Alert.alert('Chuyển tiền chưa hoàn tất ❌', result.error || 'Không thể thực hiện chuyển tiền.');
-        return;
-      }
-
-      const txSignature = result.transactionHash;
-      const finalRecipient = result.recipientAddress || recipient;
-
-      setShowSendModal(false);
-
-      // Lưu log lịch sử giao dịch vào cache
-      const currentActs = (await getCachedActivities()) || [];
-      const newAct: ActivityItem = {
-        id: txSignature,
-        type: 'sent',
-        title: t('activities.sent', { defaultValue: 'Chuyển tiền' }),
-        time: t('activities.justNow', { defaultValue: 'Vừa xong' }),
-        amount: `-$${amount.toFixed(2)}`,
-        isPositive: false,
-        iconBg: '#374151',
-        signature: txSignature,
-        currency: 'USDC',
-      };
-      await cacheActivities([newAct, ...currentActs]);
-
-      setShowSendModal(false);
-      setReceiptData({
-        amount: amount,
-        currency: 'USD',
-        note: `Chuyển đến: ${finalRecipient.slice(0, 8)}...${finalRecipient.slice(-6)}`,
-        txHash: txSignature,
-      });
-      setShowReceiptModal(true);
-    } catch (err: any) {
-      console.error('Transfer Hub Send Error:', err);
-      Alert.alert('Lỗi Giao Dịch', err?.message || 'Không thể chuyển tiền lúc này.');
-    }
+    if (!solanaAddress || !isWalletReady) throw new Error('Your wallet is not ready. Please retry.');
+    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsd: amount });
+    if (!result.success || !result.transactionHash) throw new Error(result.error || 'Transfer failed.');
+    return result.transactionHash;
   };
 
   // Bảo vệ State Giao diện: Chỉ hiển thị khi ví và tài khoản đã sẵn sàng

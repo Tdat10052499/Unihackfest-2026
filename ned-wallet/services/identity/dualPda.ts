@@ -68,7 +68,7 @@ function hasDiscriminator(data: Buffer, name: AccountName): boolean {
 }
 
 function decodeWalletRecord(address: PublicKey, data: Buffer, name: 'NameRecord' | 'PhoneRecord') {
-  if (!hasDiscriminator(data, name)) return null;
+  if (data.length < 49 || !hasDiscriminator(data, name)) return null;
   return {
     address,
     wallet: new PublicKey(data.subarray(8, 40)),
@@ -77,9 +77,11 @@ function decodeWalletRecord(address: PublicKey, data: Buffer, name: 'NameRecord'
 }
 
 function decodeReverseRecord(address: PublicKey, data: Buffer): ReverseRecord | null {
-  if (!hasDiscriminator(data, 'ReverseRecord')) return null;
+  if (data.length < 22 || !hasDiscriminator(data, 'ReverseRecord')) return null;
   const len = data.readUInt32LE(8);
+  if (len < 3 || len > 20 || data.length < 22 + len) return null;
   const username = data.subarray(12, 12 + len).toString('utf8');
+  if (!isValidUsername(username)) return null;
   let offset = 12 + len;
   const hasPhone = data[offset] === 1;
   offset += 1;
@@ -94,21 +96,21 @@ function decodeReverseRecord(address: PublicKey, data: Buffer): ReverseRecord | 
 export async function fetchNameRecord(connection: Connection, username: string): Promise<NameRecord | null> {
   const address = deriveNamePda(username);
   const info = await connection.getAccountInfo(address, 'confirmed');
-  return info ? decodeWalletRecord(address, Buffer.from(info.data), 'NameRecord') : null;
+  return info?.owner.equals(IDENTITY_PROGRAM_ID) ? decodeWalletRecord(address, Buffer.from(info.data), 'NameRecord') : null;
 }
 
 /** Hồ sơ của ví (người quay lại = có ReverseRecord) */
 export async function fetchReverseRecord(connection: Connection, wallet: PublicKey): Promise<ReverseRecord | null> {
   const address = deriveReversePda(wallet);
   const info = await connection.getAccountInfo(address, 'confirmed');
-  return info ? decodeReverseRecord(address, Buffer.from(info.data)) : null;
+  return info?.owner.equals(IDENTITY_PROGRAM_ID) ? decodeReverseRecord(address, Buffer.from(info.data)) : null;
 }
 
 /** Ví đã liên kết SĐT này (chưa xác minh OTP) */
 export async function fetchPhoneRecord(connection: Connection, phoneKey: Uint8Array): Promise<PhoneRecord | null> {
   const address = derivePhonePda(phoneKey);
   const info = await connection.getAccountInfo(address, 'confirmed');
-  return info ? decodeWalletRecord(address, Buffer.from(info.data), 'PhoneRecord') : null;
+  return info?.owner.equals(IDENTITY_PROGRAM_ID) ? decodeWalletRecord(address, Buffer.from(info.data), 'PhoneRecord') : null;
 }
 
 /** Tra nhiều username một lượt (1 RPC / 100 tên) — kết quả theo đúng thứ tự đầu vào */
@@ -136,7 +138,7 @@ async function getMultiple(connection: Connection, addresses: PublicKey[]): Prom
   const out: (Buffer | null)[] = [];
   for (let i = 0; i < addresses.length; i += 100) {
     const infos = await connection.getMultipleAccountsInfo(addresses.slice(i, i + 100), 'confirmed');
-    out.push(...infos.map((info) => (info ? Buffer.from(info.data) : null)));
+    out.push(...infos.map((info) => (info?.owner.equals(IDENTITY_PROGRAM_ID) ? Buffer.from(info.data) : null)));
   }
   return out;
 }

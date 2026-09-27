@@ -11,4 +11,4 @@ Before building any feature, read `../docs/README.md` (product direction, the 40
 - No backend: no Supabase, no `ned-hub`, no relayer. Shared data lives on-chain (`ned_program` Dual PDA, SNS) or comes from public APIs (Helius, Jupiter).
 - Auth is Dynamic (Google + embedded Solana MPC wallet). Screens use `useAuth()` from `services/auth` only — never import `@dynamic-labs-sdk/*` elsewhere. No gas sponsorship: users pay devnet fees.
 - Web first (GitHub Pages); Android APK via EAS is secondary. Never put secrets in `EXPO_PUBLIC_*`.
-- Placeholders with `TODO(T1.x)` (services/profile.ts, services/identity/legacy.ts) are temporary — see `ARCHITECTURE.md` for the folder map and data flow.
+- Identity lookup is on-chain through `services/identity/resolve.ts`; do not reintroduce local profile lookup or legacy PDA helpers.

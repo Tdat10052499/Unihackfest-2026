@@ -139,6 +139,7 @@ export interface ActivityItem {
   blockTime?: number;
   isNetworkFee?: boolean;
   currency?: string;
+  counterpartyWallet?: string;
 }
 
 export interface TransferResult {
@@ -486,6 +487,17 @@ export function parseTransactionForAddress(
       currencySymbol = '$';
     }
 
+    const others = new Set<string>();
+    const indexes = new Set([...preTokens, ...postTokens].filter(t => t.mint === rawMint && t.owner !== address).map(t => t.accountIndex));
+    for (const index of indexes) {
+      const pre = preTokens.find(t => t.accountIndex === index);
+      const post = postTokens.find(t => t.accountIndex === index);
+      const diff = Number(post?.uiTokenAmount?.uiAmountString ?? 0) - Number(pre?.uiTokenAmount?.uiAmountString ?? 0);
+      const owner = post?.owner ?? pre?.owner;
+      if (owner && diff * tokenDiff < 0) others.add(owner);
+    }
+    const counterpartyWallet = others.size === 1 ? [...others][0] : undefined;
+
     if (Math.abs(tokenDiff) > 0.000001) {
       if (tokenDiff > 0) {
         // Kiểm tra xem có tài khoản khác bị trừ token trong transaction không (để phân biệt P2P vs Faucet mint)
@@ -514,6 +526,7 @@ export function parseTransactionForAddress(
           signature,
           blockTime: blockTime ?? undefined,
           currency: detectedCurrency,
+          counterpartyWallet,
         };
       } else {
         return {
@@ -527,6 +540,7 @@ export function parseTransactionForAddress(
           signature,
           blockTime: blockTime ?? undefined,
           currency: detectedCurrency,
+          counterpartyWallet,
         };
       }
     }

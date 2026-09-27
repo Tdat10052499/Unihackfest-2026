@@ -101,7 +101,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       try {
         const { useUserStore } = await import('./useUserStore');
         const userState = useUserStore.getState();
-        const myUsername = userState.username ? `@${userState.username}.sol` : 'Ví của bạn';
+        const myUsername = userState.username ? `@${userState.username}` : 'Ví của bạn';
         const myPhone = userState.linkedPhone || undefined;
 
         const onChainHistory: ActivityItem[] = await fetchOnChainHistory(walletAddress, force);
@@ -133,10 +133,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 sender: isReceive ? 'Ví người gửi trên Solana' : myUsername,
                 senderName: isReceive ? 'Ví đối tác trên Solana' : myUsername,
                 senderPhone: isReceive ? undefined : myPhone,
-                senderWallet: isReceive ? 'Ví đối tác trên Solana' : walletAddress,
+                senderWallet: isReceive ? tx.counterpartyWallet : walletAddress,
                 recipientName: isReceive ? myUsername : 'Ví người nhận trên Solana',
                 recipientPhone: isReceive ? myPhone : undefined,
-                recipientWallet: isReceive ? walletAddress : 'Ví người nhận trên Solana',
+                recipientWallet: isReceive ? walletAddress : tx.counterpartyWallet,
                 network: 'Solana Devnet',
                 fee: '0.000005 SOL (~$0.0007)',
               };
