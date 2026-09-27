@@ -97,6 +97,13 @@ Instruction (signer = ví người dùng = payer):
 
 ## 4. xStocks
 
+### Chẩn đoán danh sách xStocks (27/09/2026)
+
+- MCP Jupiter xác nhận Tokens API v2 `GET /tag?query=stocks` dùng header `x-api-key`; response token có `symbol`, `isVerified`, `tags`, `liquidity`, `usdPrice` và `stats24h`.
+- Script `ned-wallet/scripts/xstocks-diagnose.ts` đọc `ned-wallet/.env`, in số lượng token sau từng điều kiện (`symbol` hậu tố `x`, `isVerified === true`, `liquidity >= $10,000`) và ba mẫu dữ liệu; chạy bằng `cd ned-wallet && pnpm xstocks:diagnose`.
+- Chạy trên checkout hiện tại báo thiếu `EXPO_PUBLIC_JUPITER_API_KEY` trong `.env`, nên request chưa được gửi và không có số liệu thật để kết luận bộ lọc loại token. `.env.example` đã ghi biến này là public Free-tier key; không dùng khoá bí mật. Cần chạy lại script sau khi cấu hình key để xác nhận số đếm/mẫu trước khi thay đổi tiêu chí lọc.
+- Nguyên nhân trực tiếp có thể xác nhận cho môi trường này: Tokens API không được gọi do thiếu key. Trước đó UI chỉ giữ lỗi trong state mà không render, nên danh sách xuất hiện trống im lặng. Không suy diễn đây là lỗi filter hoặc deploy; log kết quả deploy chưa được cung cấp trong báo cáo kiểm thử.
+
 - **Danh sách mã**: lấy toàn bộ từ **Jupiter Tokens API v2**, tag `stocks`; lọc xStock + verified + ngưỡng liquidity. Trường dùng: `usdPrice`, `stats24h`, `mcap`, `liquidity`, `holderCount`. Ticker đúng chuẩn hậu tố **x** (AAPLx, TSLAx…).
 - Không có chip ngành (API không có); sắp xếp Top movers / Most traded / A–Z + tìm kiếm.
 - **Biểu đồ**: GeckoTerminal OHLCV theo pool (miễn phí, không key, ~30 lượt/phút, lịch sử ~6 tháng) + `react-native-wagmi-charts`; khung 1D/1W/1M/6M; ghi "Chart by GeckoTerminal".
