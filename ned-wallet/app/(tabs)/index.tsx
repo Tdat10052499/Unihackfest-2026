@@ -229,10 +229,10 @@ export default function HomeScreen() {
   }, [user]);
 
   // Lấy số dư On-chain
-  const fetchBalance = useCallback(async (address: string) => {
+  const fetchBalance = useCallback(async (address: string, force: boolean = false) => {
     if (!address) return;
     try {
-      const displayData = await getAccountDisplayBalance(address);
+      const displayData = await getAccountDisplayBalance(address, force);
       setSolBalance(displayData.solBalance);
       setAccountBalanceState(displayData);
       cacheBalance(displayData.solBalance);
@@ -260,9 +260,10 @@ export default function HomeScreen() {
     useCallback(() => {
       if (solanaAddress) {
         refreshOnchainBalance(true);
+        fetchBalance(solanaAddress, true);
         fetchActivities(solanaAddress, true);
       }
-    }, [solanaAddress, refreshOnchainBalance, fetchActivities])
+    }, [solanaAddress, refreshOnchainBalance, fetchBalance, fetchActivities])
   );
 
   // 4. Lắng nghe khi App mở lại từ Background
@@ -320,6 +321,9 @@ export default function HomeScreen() {
 
     const pollInterval = setInterval(async () => {
       if (!isMounted) return;
+      // USDC nằm ở ATA riêng: nhận USDC không đổi số dư SOL của ví → luôn tải lại số dư USDC
+      fetchBalance(solanaAddress, true);
+      refreshOnchainBalance(true);
       try {
         const latestBal = await getSolanaBalance(solanaAddress);
         setSolBalance((prev) => {
@@ -352,7 +356,7 @@ export default function HomeScreen() {
         });
       }
     };
-  }, [solanaAddress, fetchBalance, fetchActivities]);
+  }, [solanaAddress, fetchBalance, refreshOnchainBalance, fetchActivities]);
 
   // Vuốt để làm mới (Pull-to-Refresh)
   const handlePullToRefresh = useCallback(async () => {
@@ -360,7 +364,7 @@ export default function HomeScreen() {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        fetchBalance(solanaAddress),
+        fetchBalance(solanaAddress, true),
         refreshOnchainBalance(true),
         fetchActivities(solanaAddress, true),
       ]);

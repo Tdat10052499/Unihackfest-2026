@@ -1,5 +1,6 @@
 import '../polyfill';
 import '../services/i18n';
+import '../services/webAlert';
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

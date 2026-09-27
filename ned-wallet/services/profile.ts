@@ -28,11 +28,11 @@ export interface UserSearchResult {
   auth_user_id?: string | null;
 }
 
-const PROFILES_KEY = '@ned_wallet_local_profiles';
+export const LOCAL_PROFILES_KEY = '@ned_wallet_local_profiles';
 
 async function readProfiles(): Promise<UserProfile[]> {
   try {
-    const raw = await AsyncStorage.getItem(PROFILES_KEY);
+    const raw = await AsyncStorage.getItem(LOCAL_PROFILES_KEY);
     return raw ? (JSON.parse(raw) as UserProfile[]) : [];
   } catch {
     return [];
@@ -40,7 +40,7 @@ async function readProfiles(): Promise<UserProfile[]> {
 }
 
 async function writeProfiles(profiles: UserProfile[]): Promise<void> {
-  await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  await AsyncStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
 }
 
 const normalize = (value: string) => value.trim().toLowerCase();

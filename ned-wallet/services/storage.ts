@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { LOCAL_PROFILES_KEY } from './profile';
 
 const isAvailable = Platform.OS !== 'web' || typeof window !== 'undefined';
 
@@ -256,8 +257,10 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
   }
 
   try {
-    await AsyncStorage.clear();
-    console.log('✅ [Hard Reset] Đã dọn dẹp sạch sẽ 100% AsyncStorage');
+    // Giữ hồ sơ cục bộ để lần đăng nhập sau vẫn nhận ra người quay lại (TODO(T1.5): Reverse PDA thay thế)
+    const keys = await AsyncStorage.getAllKeys();
+    await AsyncStorage.multiRemove(keys.filter((k) => k !== LOCAL_PROFILES_KEY));
+    console.log('✅ [Hard Reset] Đã dọn dẹp AsyncStorage (giữ hồ sơ cục bộ)');
   } catch (storageErr) {
     console.error('Lỗi khi xóa AsyncStorage:', storageErr);
   }
