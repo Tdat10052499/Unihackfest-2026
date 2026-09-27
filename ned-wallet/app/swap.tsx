@@ -9,6 +9,7 @@ import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
 import { calculateFee, calculateMinimumReceived, getTokens, quoteMintForAsset, searchTokens, Slippage, useSwapQuote, JupiterToken } from '@/services/jupiter';
 import { saveDemoSwap } from '@/services/storage';
 import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { amountNumber, sanitizeAmountInput } from '@/utils/amountInput';
 
 type Stage = 'amount' | 'tokens' | 'review' | 'result';
 const decimals = (asset: 'SOL' | 'USDC') => asset === 'SOL' ? 9 : 6;
@@ -21,13 +22,14 @@ export default function SwapScreen() {
   const [balance, setBalance] = useState(0); const [search, setSearch] = useState(''); const [tokens, setTokens] = useState<JupiterToken[]>([]); const [result, setResult] = useState<'success' | 'failed'>('success');
   const [selectedToken, setSelectedToken] = useState<JupiterToken | null>(null);
   const inputMint = quoteMintForAsset(from); const outputMint = quoteMintForAsset(to);
-  const rawAmount = amount ? String(Math.floor(Number(amount) * 10 ** decimals(from))) : '';
+  const normalizedAmount = sanitizeAmountInput(amount, decimals(from)).normalized;
+  const rawAmount = normalizedAmount ? String(Math.floor(amountNumber(normalizedAmount) * 10 ** decimals(from))) : '';
   const quoteState = useSwapQuote(inputMint, outputMint, rawAmount, slippage);
   useEffect(() => { if (!walletAddress) return; void Promise.all([getSolanaBalance(walletAddress), getUsdcTokenBalance(walletAddress)]).then(([sol, usdc]) => setBalance(from === 'SOL' ? sol : usdc)); }, [walletAddress, from]);
   useEffect(() => { if (stage !== 'tokens') return; void (search ? searchTokens(search) : getTokens('verified')).then(setTokens).catch(() => setTokens([])); }, [stage, search]);
   const fee = quoteState.quote ? calculateFee(BigInt(quoteState.quote.outAmount)) : 0n;
   const minimum = quoteState.quote ? calculateMinimumReceived(quoteState.quote) : 0n;
-  const notEnough = Number(amount || 0) > balance;
+  const notEnough = amountNumber(normalizedAmount) > balance;
   const route = quoteState.quote?.routePlan?.map((r) => r.swapInfo?.label).filter(Boolean).join(' → ') || quoteState.quote?.router || 'Jupiter';
   const flip = () => { setFrom(to); setAmount(''); setStage('amount'); };
   const confirm = async () => { if (!quoteState.quote || quoteState.isStale) { setResult('failed'); setStage('result'); return; } await saveDemoSwap({ type: 'swap', title: `Demo swap ${from} → ${to}`, amount: pretty(rawAmount, from), received: pretty(quoteState.quote.outAmount, to), time: new Date().toISOString() }, walletAddress); setResult('success'); setStage('result'); };

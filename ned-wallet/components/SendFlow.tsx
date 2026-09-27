@@ -5,6 +5,7 @@ import { resolveRecipient, recipientLabel, type Recipient } from '../services/id
 import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { solAmount } from '../services/identity/transactionCost';
 import { onbBackground, onbFonts, onbPrimaryGradient } from './onboarding/theme';
+import { amountNumber, sanitizeAmountInput } from '../utils/amountInput';
 
 interface Props {
   wallet: string | null;
@@ -51,7 +52,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
     try {
       const fresh = await resolveRecipient(input, { fresh: true });
       setRecipient(fresh); setConfirmedPhone(false);
-      const nextPrepared = await prepareUsdcTransfer(wallet, fresh.wallet, Number(amount));
+      const nextPrepared = await prepareUsdcTransfer(wallet, fresh.wallet, amountNumber(amount));
       setPrepared(nextPrepared);
       setCost(nextPrepared);
       setStage('review');
@@ -68,7 +69,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
         throw new Error('Recipient changed. Review and confirm the new recipient.');
       }
       // The reviewed transaction is passed through to signing; do not rebuild it here.
-      const sig = await onSend(fresh.wallet, Number(amount), prepared);
+      const sig = await onSend(fresh.wallet, amountNumber(amount), prepared);
       setSignature(sig || null); setStage('success');
     } catch (err) { setError(err instanceof Error ? err.message : 'Transfer failed.'); }
     finally { lock.current = false; setBusy(false); }
@@ -100,11 +101,11 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
       {stage === 'recipient' && <SendButton busy={busy} label="Continue" onPress={() => { setError(''); setStage('amount'); }} disabled={!recipient || looking || recipient.source === 'sns' || recipient.wallet === wallet || !wallet} />}
       {stage === 'amount' && <>
         <Text style={styles.title}>Amount in USDC</Text>
-        <TextInput accessibilityLabel="Amount in USDC" style={[styles.input, styles.amount]} value={amount} onChangeText={value => { if (/^\d{0,9}(\.\d{0,6})?$/.test(value)) setAmount(value); }} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#999" />
+        <TextInput accessibilityLabel="Amount in USDC" style={[styles.input, styles.amount]} value={amount} onChangeText={value => setAmount(sanitizeAmountInput(value, 6).display)} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#999" />
         <View style={styles.header}>{[5, 10, 20, 50].map(n => <TouchableOpacity key={n} onPress={() => setAmount(String(n))}><Text style={styles.link}>${n}</Text></TouchableOpacity>)}</View>
         {balance != null && <Text style={styles.muted}>Cash available: {balance.toFixed(2)} USDC</Text>}
         <Text style={styles.muted}>You pay the SOL network fee and any recipient account rent. Exact cost is shown at review.</Text>
-        <SendButton busy={busy} label="Review" onPress={review} disabled={!Number.isFinite(Number(amount)) || Number(amount) <= 0 || (balance != null && Number(amount) > balance)} />
+        <SendButton busy={busy} label="Review" onPress={review} disabled={amountNumber(amount) <= 0 || (balance != null && amountNumber(amount) > balance)} />
       </>}
       {(stage === 'review' || stage === 'success') && <>
         <Text style={styles.amount}>{stage === 'success' ? 'Sent ' : ''}${Number(amount).toFixed(2)}</Text>

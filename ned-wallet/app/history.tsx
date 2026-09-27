@@ -28,7 +28,9 @@ import {
 import {
   getCachedActivities,
   cacheActivities,
+  getDemoSwaps,
 } from '../services/storage';
+import { mergeActivityHistory, type HistoryEntry } from '../services/history';
 import { useTranslation } from '../services/i18n';
 
 import { displayNamesFor } from '../services/identity/resolve';
@@ -76,11 +78,9 @@ export default function HistoryScreen() {
   const loadOnChainHistory = useCallback(async (force: boolean = false) => {
     if (!solanaAddress) return;
     try {
-      const data = await fetchOnChainHistory(solanaAddress, force);
-      if (data && data.length > 0) {
-        setActivities(data);
-        cacheActivities(data);
-      }
+      const [data, demos] = await Promise.all([fetchOnChainHistory(solanaAddress, force), getDemoSwaps(solanaAddress)]);
+      const merged = mergeActivityHistory(data as HistoryEntry[], demos as HistoryEntry[]) as unknown as ActivityItem[];
+      if (merged.length > 0) { setActivities(merged); await cacheActivities(merged); }
     } catch (err) {
       console.log('Error fetching history:', err);
     }
@@ -311,7 +311,7 @@ export default function HistoryScreen() {
                       </View>
 
                       <View style={styles.timeAndMetaRow}>
-                        <Text style={styles.activityItemTime}>{formatLocalizedRelativeTime(item.blockTime, t)}</Text>
+                        <Text style={styles.activityItemTime}>{item.demoSwap ? `${item.amount} → ${item.received || '—'} · N.E.D fee ${item.nedFee || '0.25%'}` : formatLocalizedRelativeTime(item.blockTime, t)}</Text>
 
                         {/* Signature Pill & Hành động */}
                         {item.signature ? (

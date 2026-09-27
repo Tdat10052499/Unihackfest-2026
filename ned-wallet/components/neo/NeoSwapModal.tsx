@@ -22,6 +22,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { amountNumber, sanitizeAmountInput } from '@/utils/amountInput';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -101,7 +102,7 @@ export const NeoSwapModal: React.FC<NeoSwapModalProps> = ({
   const serviceFeeRate = 0.01; // 1% N.E.D fee
 
   // Tính số tiền nhận được
-  const numInput = parseFloat(fromAmountInput.replace(/,/g, '')) || 0;
+  const numInput = amountNumber(fromAmountInput);
   const estimatedReceive = numInput > 0 ? numInput * exchangeRate * (1 - serviceFeeRate) : 0;
 
   const finishClose = useCallback(() => {
@@ -279,7 +280,7 @@ export const NeoSwapModal: React.FC<NeoSwapModalProps> = ({
                 <TextInput
                   style={styles.largeAmountInput}
                   value={fromAmountInput}
-                  onChangeText={setFromAmountInput}
+                  onChangeText={(value) => setFromAmountInput(sanitizeAmountInput(value, 6).display)}
                   keyboardType="decimal-pad"
                   placeholder="0"
                   placeholderTextColor="#9CA3AF"

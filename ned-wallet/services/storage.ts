@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getOwnPhone, removeOwnPhone, saveOwnPhone } from './identity/ownPhone';
+import { parseDemoSwaps, serializeDemoSwaps } from './history';
 const isAvailable = Platform.OS !== 'web' || typeof window !== 'undefined';
 
 const STORAGE_KEYS = {
@@ -68,11 +69,13 @@ export const getCachedActivities = async (): Promise<any[] | null> => {
         return parsed.filter(
           (a) =>
             a &&
+            a.demoSwap === true ||
+            (a &&
             a.amount !== '$0.00' &&
             a.amount !== '-$0.00' &&
             a.amount !== '+$0.00' &&
             !a.amount?.includes?.('SOL') &&
-            !a.title?.includes?.('Web3')
+            !a.title?.includes?.('Web3'))
         );
       }
     }
@@ -88,13 +91,20 @@ export const saveDemoSwap = async (swap: Record<string, unknown>, wallet?: strin
   try {
     const raw = await AsyncStorage.getItem(key);
     const list = raw ? JSON.parse(raw) : [];
-    const item = { id: `demo-swap-${Date.now()}`, iconBg: '#7B2FBE', isPositive: false, amount: String(swap.amount || ''), time: new Date().toISOString(), ...swap, type: 'sent', demoSwap: true };
+    const item = { id: `demo-swap-${Date.now()}`, iconBg: '#7B2FBE', isPositive: false, amount: String(swap.amount || ''), time: new Date().toISOString(), ...swap, nedFee: '0.25%', type: 'sent', demoSwap: true };
     const next = [item, ...(Array.isArray(list) ? list : [])].slice(0, 50);
-    await AsyncStorage.setItem(key, JSON.stringify(next));
+    await AsyncStorage.setItem(key, serializeDemoSwaps(next));
     const sharedRaw = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVITIES);
     const shared = sharedRaw ? JSON.parse(sharedRaw) : [];
     await AsyncStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify([item, ...(Array.isArray(shared) ? shared : [])].slice(0, 100)));
   } catch (error) { console.error('Error caching demo swap:', error); }
+};
+
+export const getDemoSwaps = async (wallet?: string | null): Promise<any[]> => {
+  try {
+    const raw = await AsyncStorage.getItem(`${STORAGE_KEYS.ACTIVITIES}:${wallet || 'anonymous'}`);
+    return parseDemoSwaps(raw);
+  } catch (error) { console.error('Error reading demo swaps:', error); return []; }
 };
 
 /**
