@@ -140,6 +140,7 @@ export interface ActivityItem {
   isNetworkFee?: boolean;
   currency?: string;
   counterpartyWallet?: string;
+  demoSwap?: boolean;
 }
 
 export interface TransferResult {

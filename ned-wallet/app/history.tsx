@@ -297,7 +297,7 @@ export default function HistoryScreen() {
                     {/* Chi Tiết Giao Dịch */}
                     <View style={styles.activityContentCol}>
                       <View style={styles.titleAndAmountRow}>
-                        <Text style={styles.activityItemTitle}>{item.counterpartyWallet && names[item.counterpartyWallet] ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}` : getActivityTitle(item, t)}</Text>
+                        <Text style={styles.activityItemTitle}>{item.demoSwap ? 'Demo swap' : item.counterpartyWallet && names[item.counterpartyWallet] ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}` : getActivityTitle(item, t)}</Text>
                         <Text
                           style={[
                             styles.activityItemAmount,
