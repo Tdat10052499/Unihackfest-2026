@@ -97,7 +97,7 @@ const IDENTITY_DEVNET_RPC =
 export const identitySolanaConnection = new Connection(IDENTITY_DEVNET_RPC, 'confirmed');
 
 export const NED_IDENTITY_PROGRAM_ID = new PublicKey(
-  process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID || '8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi'
+  process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID || '8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh'
 );
 
 export interface NormalizedIdentity {

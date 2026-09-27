@@ -8,7 +8,7 @@ import {
 } from '@solana/web3.js';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
-import nedProgramIdl, { IDL, NedProgram, UserProfileData } from '../idl/ned_program';
+import { IDL, type NedProgram } from '../idl/ned_program';
 
 /**
  * Endpoint mặc định kết nối Solana Devnet
@@ -23,7 +23,7 @@ export const DEVNET_RPC_URL: string =
  * Program ID của Smart Contract `ned_program`
  * Đọc linh hoạt từ EXPO_PUBLIC_ANCHOR_PROGRAM_ID với fallback là địa chỉ đã deploy
  */
-export const DEFAULT_PROGRAM_ID_STR = '8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi';
+export const DEFAULT_PROGRAM_ID_STR = '8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh';
 
 function resolveProgramId(): PublicKey {
   const envProgramId = process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID;
@@ -131,7 +131,7 @@ export function getProgram(
     provider = getAnchorProvider(providerOrWallet);
   }
 
-  const baseIdl = IDL || nedProgramIdl;
+  const baseIdl = IDL;
   // Khởi tạo Program với IDL đã đồng bộ và target Program ID
   const idlWithAddress = {
     ...baseIdl,
@@ -142,21 +142,8 @@ export function getProgram(
 }
 
 /**
- * Helper: Tính toán địa chỉ PDA cho `UserProfile`
- * Seeds: [b"profile", owner.key()]
- */
-export function deriveUserProfilePda(
-  owner: PublicKey,
-  programId: PublicKey = PROGRAM_ID
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('profile'), owner.toBuffer()],
-    programId
-  );
-}
-
-/**
- * Hạt giống PDA Identity
+ * @deprecated Seed của IdentityAccount cũ (program trước T1.5) — màn onboarding còn dùng tới T1.3.
+ * Dùng services/identity/dualPda.ts cho schema mới.
  */
 export const IDENTITY_SEED = Buffer.from('identity');
 
@@ -175,5 +162,5 @@ export function deriveIdentityPda(
 }
 
 // Re-export types
-export { nedProgramIdl as IDL };
-export type { NedProgram, UserProfileData };
+export { IDL };
+export type { NedProgram };
