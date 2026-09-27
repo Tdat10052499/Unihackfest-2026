@@ -16,6 +16,7 @@
     "test:identity": "node --test services/identity/__tests__/*.test.ts",
     "identity:check": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/identity-readonly.ts",
     "test:jupiter": "node --test services/jupiter/__tests__/*.test.ts",
+    "test:xstocks": "node --test services/__tests__/demoLedger.test.ts services/__tests__/xstocks.test.ts",
     "xstocks:diagnose": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/xstocks-diagnose.ts"
   },
   "dependencies": {

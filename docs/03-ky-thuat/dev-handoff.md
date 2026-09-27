@@ -106,9 +106,12 @@ Instruction (signer = ví người dùng = payer):
 
 - **Danh sách mã**: lấy toàn bộ từ **Jupiter Tokens API v2**, tag `stocks`; lọc xStock + verified + ngưỡng liquidity. Trường dùng: `usdPrice`, `stats24h`, `mcap`, `liquidity`, `holderCount`. Ticker đúng chuẩn hậu tố **x** (AAPLx, TSLAx…).
 - Không có chip ngành (API không có); sắp xếp Top movers / Most traded / A–Z + tìm kiếm.
-- **Biểu đồ**: GeckoTerminal OHLCV theo pool (miễn phí, không key, ~30 lượt/phút, lịch sử ~6 tháng) + `react-native-wagmi-charts`; khung 1D/1W/1M/6M; ghi "Chart by GeckoTerminal".
+- **Biểu đồ**: GeckoTerminal OHLCV theo pool (miễn phí, không key, ~30 lượt/phút, lịch sử ~6 tháng), vẽ line/area bằng `react-native-svg`; khung 1D/1W/1M/6M; ghi "Chart by GeckoTerminal".
+- **Tái kiểm chứng 27/09/2026**: hai GET thật (token pools Solana và `/pools/{pool}/ohlcv/day?aggregate=1`) trả HTTP 200 và `access-control-allow-origin: *`, xác nhận CORS dùng được từ web. Các khoảng 1D/1W dùng nến giờ; 1M dùng nến ngày (30); 6M dùng endpoint `/ohlcv/day` (180). Client cache 60 giây và tuần tự hoá request cách nhau ≥2,1 giây để giữ dưới ~30 lượt/phút.
+- **Danh sách trống**: chẩn đoán MCP thấy schema có `symbol`, `isVerified`, `tags`, `liquidity`, `usdPrice`, `stats24h`. Checkout ngày 27/09 thiếu `EXPO_PUBLIC_JUPITER_API_KEY`, nên API không được gọi; số đếm filter và mẫu token chưa thể xác nhận. Giữ filter x + verified + liquidity ≥$10k cho tới khi `pnpm xstocks:diagnose` chạy với key public cho số liệu thật. UI hiện lỗi key/mạng/HTTP/0 kết quả và Retry.
 - **Thanh toán**: mặc định USDC. Chế độ Cash chỉ USDC ("Cash balance"); thiếu USDC → Quick-Convert SOL→USDC một bước. Chế độ Crypto có "Pay with". Bán luôn nhận USDC.
 - Thị trường Mỹ đóng cửa (cuối tuần): hiện banner, giá lấy từ giao dịch on-chain có thể lệch giá đóng cửa thứ Sáu.
+- Giờ thị trường dùng múi giờ `America/New_York`, lịch thứ Hai–thứ Sáu 09:30–16:00; TODO tra lịch nghỉ lễ NYSE để hiện chính xác ngày lễ.
 - Lần mua đầu: checkbox công bố rủi ro ("tracks Apple's share price but is not an Apple share…").
 - Mua/bán dùng lại hạ tầng Swap (mục 3).
 
