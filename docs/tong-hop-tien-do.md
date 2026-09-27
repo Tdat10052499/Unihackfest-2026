@@ -7,7 +7,7 @@
 | Hạng mục | Trạng thái |
 |---|---|
 | Nhánh `main` | Đã có T0.1–T0.5, T1.2/T1.4, T1.5 và T1.3/T1.6 (PR #1–#9); xác minh `origin/main` tại `6c5f4e9` |
-| Onboarding T1.3 + T1.6 | **Đã merge PR #9**; kết quả test tay web **chờ chủ dự án xác nhận**, không suy ra từ trạng thái merge |
+| Onboarding T1.3 + T1.6 | **Đã merge PR #9**; chủ dự án xác nhận đã test onboarding web và hệ thống hoạt động ổn (27/09/2026) |
 | Nền tảng demo | **Web trước** (GitHub Pages `https://tdat10052499.github.io/Unihackfest-2026/`); Android APK qua EAS là phụ |
 | Auth | **Dynamic** (Google + ví nhúng Solana MPC V3) qua `useAuth()` — Privy đã gỡ hẳn |
 | Backend | **Không có** (đã bỏ Supabase, `ned-hub`, relayer) |
@@ -68,12 +68,12 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Đã xoá `app/(auth)/`, onboarding cũ (phone/username/welcome cũ), stub profile cũ; `/login` → `/welcome`.
 - Đổi so với thiết kế: bỏ "No network fees, ever" và "Free. N.E.D covers the network fee" (không có sponsorship).
 - Kiểm tra: tsc 0 lỗi; lint không lỗi mới (58 lỗi có sẵn, main 77); web + android export OK; expo-doctor 21/21; headless: redirect đúng, không lỗi JS; **giao dịch gộp create_profile + link_phone trên devnet OK** (`3XLtR1d5VRoEkfGFA93QC1RFeoncap84Qn3av4aTtKdMk3QYMFMXTd36Kp8PdMLdQLuaidbFSrBAFYMDHcjockMP`).
-- **Test tay: chờ chủ dự án xác nhận đã test hay chưa và kết quả**, đã hỏi trong phiên 27/09. Checklist với Google (đăng nhập → profile → mode → Home; đăng xuất → "Welcome back"). Với 1 tài khoản Google: nên tạo hồ sơ **có bật SĐT** (ví đã có SOL nên màn Fund sẽ được bỏ qua).
+- **Test tay (27/09/2026): chủ dự án xác nhận “Tôi đã test và đã hệ thống hoạt động ổn”** khi được hỏi về onboarding web. Chưa cung cấp thiết bị/trình duyệt hoặc kết quả riêng từng nhánh (Fund, SĐT tuỳ chọn, đăng nhập lại); không suy ra các nhánh này đều đã được test.
 
 ### Đồng bộ trạng thái onboarding + Gate D0 (27/09/2026)
 - Nhánh: `chore/onboarding-status-d0`, từ `origin/main` (`6c5f4e9`, merge PR #9).
 - Sửa trạng thái merge T1.3/T1.6; ghi quyết định D0 của chủ dự án và thứ tự việc tiếp theo.
-- Đã hỏi kết quả test onboarding trên web; **chưa nhận câu trả lời**, chưa kết luận pass/fail hay tạo hồ sơ thành công.
+- Đã nhận xác nhận của chủ dự án: onboarding web đã test, hệ thống hoạt động ổn. Hoàn tất việc 1; phạm vi chi tiết từng nhánh test chưa được cung cấp.
 - Chỉ sửa tài liệu; không thay đổi app/program, không gửi giao dịch hoặc dùng khoá.
 - Kiểm tra phiên này: `npx tsc --noEmit` pass; lint 53 lỗi / 81 cảnh báo có sẵn (app/config không đổi so với `origin/main`); `git diff --check` pass; `npx expo export --platform web --platform android` pass (có cảnh báo package exports). Chưa chạy build APK native trong task tài liệu này.
 - Test tay Safari iPhone: mở bản web đã deploy → Continue with Google → Setup → Profile (Fund chỉ khi thiếu SOL) → Mode → Home; đăng xuất/đăng nhập lại kiểm tra "Welcome back". Ghi rõ bước bị bỏ qua; nếu đã có hồ sơ thì luồng người mới chưa được kiểm chứng lại.
@@ -86,7 +86,7 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Identity Phương án C: username công khai; SĐT tuỳ chọn, chỉ lưu `scrypt(SĐT)` on-chain, chưa xác minh OTP (hiện "Unverified number"); 1 SĐT ↔ 1 tài khoản.
 
 ## 3. Việc còn lại (đề xuất thứ tự)
-1. **Xác nhận kết quả test tay T1.3/T1.6 trên web** (PR #9 đã merge); ghi trình duyệt/thiết bị, bước pass/fail, lỗi nếu có.
+1. **Đã hoàn tất xác nhận test tay T1.3/T1.6**: chủ dự án báo hệ thống hoạt động ổn (27/09); PR #9 đã merge.
 2. **T1.8 (tuỳ chọn)**: trình kế hoạch `close_profile` đóng Name + Reverse (+ Phone nếu có), hoàn rent về chủ và nút "Delete profile" trong Settings chỉ ở chế độ dev; chờ chủ dự án duyệt trước khi sửa program.
 3. **T1.7 → Checkpoint 2**: send, SendModal, notification-detail, settings, history chuyển từ `services/profile.ts` sang `services/identity/dualPda.ts`: cache cục bộ → SNS `.sol` (Mainnet, `@bonfida/spl-name-service`, chỉ đọc) → NameRecord (@username) → PhoneRecord (SĐT → phone_key) → địa chỉ ví. Lịch sử: ví → ReverseRecord → reverse SNS → địa chỉ rút gọn (batch getMultipleAccounts + cache). Gửi theo SĐT luôn hiện "Unverified number" + @username; gỡ `services/profile.ts` + `services/identity/legacy.ts`. Test gửi USDC devnet theo @username, SĐT, địa chỉ ví.
 4. **Gate D0 đã chốt (chủ dự án, 27/09)**: Tokens API dùng khoá Free public `EXPO_PUBLIC_JUPITER_API_KEY` (chấp nhận lộ/hết hạn mức); Swap `/order` keyless 0.5 RPS có hàng đợi; AI rule-based, không LLM/backend, Phase 5 stretch cắt đầu tiên; ô thứ 3 Simple = **EARN**. Xem [quyết định thiết kế](02-thiet-ke/trang-thai-thiet-ke.md#6-quyết-định-thiết-kế-đã-chốt); xác minh API qua MCP trước khi code.
