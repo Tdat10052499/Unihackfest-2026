@@ -59,6 +59,7 @@ import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { NotificationModal } from '@/components/NotificationModal';
 import LoginScreen from '../login';
+import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -132,6 +133,13 @@ export default function HomeScreen() {
     PYUSD: 0.0,
   });
   const [activeCardCurrency, setActiveCardCurrency] = useState<string>('USDC');
+  const [demoLedger, setDemoLedger] = useState<DemoLedger>({ cashUsdc: 0, holdings: [], trades: [] });
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (walletAddress) void getDemoLedger(walletAddress).then((ledger) => { if (active) setDemoLedger(ledger); });
+    return () => { active = false; };
+  }, [walletAddress]));
 
   // Đồng bộ thẻ theo từng ví (walletAddress), cô lập dữ liệu (lưu cục bộ AsyncStorage)
   useEffect(() => {
@@ -601,6 +609,17 @@ export default function HomeScreen() {
         <TouchableOpacity style={{ backgroundColor: '#7B2FBE', borderRadius: 16, padding: 16, marginTop: 4 }} onPress={() => router.push('/xstocks')}>
           <Text style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}>XSTOCKS</Text>
         </TouchableOpacity>
+        {demoLedger.holdings.length > 0 ? (
+          <TouchableOpacity onPress={() => router.push('/xstocks')} style={{ marginTop: 12, borderRadius: 16, padding: 16, backgroundColor: '#F8F5FC', borderWidth: 1, borderColor: '#E9DDF4' }}>
+            <Text style={{ color: '#6B4A86', fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>YOUR ASSETS · DEMO BALANCE</Text>
+            {demoLedger.holdings.slice(0, 3).map((holding) => (
+              <View key={holding.mint} style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                <Text style={{ color: '#24192E', fontWeight: '700' }}>{holding.symbol}</Text>
+                <Text style={{ color: '#6B4A86', fontVariant: ['tabular-nums'] }}>{holding.quantity.toFixed(5)}</Text>
+              </View>
+            ))}
+          </TouchableOpacity>
+        ) : null}
 
         {/* ========================================================================= */}
         {/* 4. KHỐI THỐNG KÊ (Secondary Cards - 2 Cột Đầy Đặn, Padding 20, MinHeight 130) */}

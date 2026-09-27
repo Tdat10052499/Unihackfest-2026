@@ -1,3 +1,4 @@
+import { loadStockTokens, parseTokenResponse } from './tokenResponse.ts';
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'expo-router';
 
@@ -27,9 +28,11 @@ class RequestQueue { private jobs: QueueJob<unknown>[] = []; private running = f
 const orderQueue = new RequestQueue(); let previousOrderController: AbortController | null = null; const tokenCache = new Map<string, { expires: number; value: JupiterToken[] }>();
 async function fetchJson<T>(url: string, init?: RequestInit, timeout = 12_000, externalSignal?: AbortSignal): Promise<T> { const controller = new AbortController(); const abort = () => controller.abort(); externalSignal?.addEventListener('abort', abort, { once: true }); const timer = setTimeout(() => controller.abort(), timeout); try { const response = await fetch(url, { ...init, signal: controller.signal }); if (!response.ok) throw new Error(`Jupiter request failed (${response.status})`); return await response.json() as T; } finally { clearTimeout(timer); externalSignal?.removeEventListener('abort', abort); } }
 export async function getOrder(inputMint: string, outputMint: string, amount: string | number | bigint, slippage: Slippage = 'auto'): Promise<JupiterOrder> { previousOrderController?.abort(); const controller = new AbortController(); previousOrderController = controller; const params = new URLSearchParams({ inputMint, outputMint, amount: String(amount) }); if (slippage !== 'auto') params.set('slippageBps', String(Math.round(slippage * 100))); const key = process.env.EXPO_PUBLIC_JUPITER_API_KEY; const init: RequestInit | undefined = key ? { headers: { 'x-api-key': key } } : undefined; return orderQueue.enqueue(() => fetchJson<JupiterOrder>(`${JUPITER_ORDER_URL}?${params.toString()}`, init, 12_000, controller.signal), controller.signal); }
-async function getTokenEndpoint(path: string, cacheKey: string): Promise<JupiterToken[]> { const cached = tokenCache.get(cacheKey); if (cached && cached.expires > Date.now()) return cached.value; const key = process.env.EXPO_PUBLIC_JUPITER_API_KEY; if (!key) throw new Error('EXPO_PUBLIC_JUPITER_API_KEY is not configured'); const value = await fetchJson<JupiterToken[]>(`${JUPITER_TOKENS_URL}${path}`, { headers: { 'x-api-key': key } }); tokenCache.set(cacheKey, { expires: Date.now() + 300_000, value }); return value; }
+async function getTokenEndpoint(path: string, cacheKey: string): Promise<JupiterToken[]> { const cached = tokenCache.get(cacheKey); if (cached && cached.expires > Date.now()) return cached.value; const key = process.env.EXPO_PUBLIC_JUPITER_API_KEY; if (!key) throw new Error('EXPO_PUBLIC_JUPITER_API_KEY is not configured'); const value = parseTokenResponse<JupiterToken>(await fetchJson<unknown>(`${JUPITER_TOKENS_URL}${path}`, { headers: { 'x-api-key': key } })); tokenCache.set(cacheKey, { expires: Date.now() + 300_000, value }); return value; }
 export const searchTokens = (query: string) => getTokenEndpoint(`/search?query=${encodeURIComponent(query)}`, `search:${query}`);
-export const getTokens = (tag: 'verified' | 'stocks' | 'lst') => getTokenEndpoint(`/tag?query=${tag}`, `tag:${tag}`);
+export const getTokens = (tag: 'verified' | 'stocks' | 'lst') => tag === 'stocks'
+  ? loadStockTokens<JupiterToken>((path) => getTokenEndpoint(path, path))
+  : getTokenEndpoint(`/tag?query=${tag}`, `tag:${tag}`);
 export function useSwapQuote(inputMint: string | null, outputMint: string | null, amount: string, slippage: Slippage = 'auto') {
   const focused = usePathname() === '/swap';
   const [quote, setQuote] = useState<JupiterOrder | null>(null);

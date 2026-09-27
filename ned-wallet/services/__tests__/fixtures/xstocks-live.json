@@ -1,0 +1,329 @@
+[
+  {
+    "id": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+    "symbol": "SPYx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 5141841.307739852,
+    "usdPrice": 769.2138575625621,
+    "tags": [
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+    "symbol": "NVDAx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 3017019.1739654182,
+    "usdPrice": 225.37949689127683,
+    "tags": [
+      "rwa",
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks"
+    ]
+  },
+  {
+    "id": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+    "symbol": "SPCXx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 2183291.7559182486,
+    "usdPrice": 148.93004488087217,
+    "tags": [
+      "xstocks",
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+    "symbol": "METAx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 804941.4928448099,
+    "usdPrice": 749.3204012048988,
+    "tags": [
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified"
+    ]
+  },
+  {
+    "id": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+    "symbol": "GLDx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1009684.3030322824,
+    "usdPrice": 391.98359362491806,
+    "tags": [
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+    "symbol": "QQQx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 2158600.5139931133,
+    "usdPrice": 745.6378535812081,
+    "tags": [
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+    "symbol": "MSFTx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 801440.6860465279,
+    "usdPrice": 516.8537405617546,
+    "tags": [
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "token-2022"
+    ]
+  },
+  {
+    "id": "XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1",
+    "symbol": "CRCLx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1878299.5033452075,
+    "usdPrice": 89.49297205228241,
+    "tags": [
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "moonshot-verified",
+      "token-2022"
+    ]
+  },
+  {
+    "id": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+    "symbol": "MSTRx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1067780.0549806699,
+    "usdPrice": 161.88218788869273,
+    "tags": [
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "moonshot-verified",
+      "token-2022"
+    ]
+  },
+  {
+    "id": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+    "symbol": "TSLAx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1449288.5397509905,
+    "usdPrice": 373.39088255801437,
+    "tags": [
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu",
+    "symbol": "COINx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1156028.159207357,
+    "usdPrice": 196.92398462374788,
+    "tags": [
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities"
+    ]
+  },
+  {
+    "id": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+    "symbol": "GOOGLx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 538148.3636739796,
+    "usdPrice": 343.3024160225342,
+    "tags": [
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa"
+    ]
+  },
+  {
+    "id": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+    "symbol": "AAPLx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 642480.0429233883,
+    "usdPrice": 339.8532579422705,
+    "tags": [
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified"
+    ]
+  },
+  {
+    "id": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+    "symbol": "HOODx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 1064371.366765152,
+    "usdPrice": 119.18615228508686,
+    "tags": [
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "moonshot-verified"
+    ]
+  },
+  {
+    "id": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+    "symbol": "GMEx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 465840.3865325688,
+    "usdPrice": 23.56331066845072,
+    "tags": [
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities",
+      "token-2022"
+    ]
+  },
+  {
+    "id": "XsoBhf2ufR8fTyNSjqfU71DYGaE6Z3SUGAidpzriAA4",
+    "symbol": "PLTRx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 284429.0129680231,
+    "usdPrice": 190.35243208245635,
+    "tags": [
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities"
+    ]
+  },
+  {
+    "id": "XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2",
+    "symbol": "MCDx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 350999.78020893945,
+    "usdPrice": 234.95689471002936,
+    "tags": [
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks",
+      "rwa",
+      "equities"
+    ]
+  },
+  {
+    "id": "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
+    "symbol": "AMZNx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 231818.2878817818,
+    "usdPrice": 249.388735621023,
+    "tags": [
+      "rwa",
+      "equities",
+      "moonshot-verified",
+      "token-2022",
+      "verified",
+      "xstocks",
+      "stocks"
+    ]
+  },
+  {
+    "id": "Xs78JED6PFZxWc2wCEPspZW9kL3Se5J7L5TChKgsidH",
+    "symbol": "STRCx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 265242.5484543366,
+    "usdPrice": 98.67093054678143,
+    "tags": [
+      "rwa",
+      "xstocks",
+      "token-2022",
+      "verified",
+      "stocks"
+    ]
+  },
+  {
+    "id": "XsfCC9VL4DamVGNgdJpfLXB3sBVa158Gbx8sh7NzmTk",
+    "symbol": "VIDAx",
+    "decimals": 8,
+    "isVerified": true,
+    "liquidity": 29197.643560678513,
+    "usdPrice": 1.7408379670343723,
+    "tags": [
+      "token-2022",
+      "stocks",
+      "xstocks",
+      "rwa",
+      "verified"
+    ]
+  }
+]

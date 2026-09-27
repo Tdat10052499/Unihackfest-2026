@@ -97,11 +97,27 @@ Instruction (signer = ví người dùng = payer):
 
 ## 4. xStocks
 
+### Bổ sung sau khi cấu hình Jupiter key
+
+- Đã gọi API thật bằng key trong `.env`: `/tag?query=stocks` trả **HTTP 200** nhưng body là `{"status":400,"message":"Invalid tag provided."}`. OpenAPI chính thức vẫn liệt kê `stocks`; đây là khác biệt giữa tài liệu và runtime, không phải bằng chứng key sai hay filter sai.
+- Parser chung kiểm tra JSON trước khi dùng mảng. Chỉ khi tag bị từ chối bằng thông điệp trên, app/script dự phòng `/search?query=xStock`, giữ tag `xstocks`, rồi áp dụng x + verified + liquidity ≥$10k. Search là danh sách giới hạn, không cam kết toàn bộ thị trường.
+- Script sửa đã chạy thành công: nhận **20 → hậu tố x: 20 → verified: 20 → liquidity: 20**, có AAPLx. Snapshot metadata công khai dùng cho regression test ở `services/__tests__/fixtures/xstocks-live.json`. Không lưu API key.
+
+### Chẩn đoán danh sách xStocks (27/09/2026)
+
+- MCP Jupiter xác nhận Tokens API v2 `GET /tag?query=stocks` dùng header `x-api-key`; response token có `symbol`, `isVerified`, `tags`, `liquidity`, `usdPrice` và `stats24h`.
+- Script `ned-wallet/scripts/xstocks-diagnose.ts` đọc `ned-wallet/.env`, in số lượng token sau từng điều kiện (`symbol` hậu tố `x`, `isVerified === true`, `liquidity >= $10,000`) và ba mẫu dữ liệu; chạy bằng `cd ned-wallet && pnpm xstocks:diagnose`.
+- Chạy trên checkout hiện tại báo thiếu `EXPO_PUBLIC_JUPITER_API_KEY` trong `.env`, nên request chưa được gửi và không có số liệu thật để kết luận bộ lọc loại token. `.env.example` đã ghi biến này là public Free-tier key; không dùng khoá bí mật. Cần chạy lại script sau khi cấu hình key để xác nhận số đếm/mẫu trước khi thay đổi tiêu chí lọc.
+- Nguyên nhân trực tiếp có thể xác nhận cho môi trường này: Tokens API không được gọi do thiếu key. Trước đó UI chỉ giữ lỗi trong state mà không render, nên danh sách xuất hiện trống im lặng. Không suy diễn đây là lỗi filter hoặc deploy; log kết quả deploy chưa được cung cấp trong báo cáo kiểm thử.
+
 - **Danh sách mã**: lấy toàn bộ từ **Jupiter Tokens API v2**, tag `stocks`; lọc xStock + verified + ngưỡng liquidity. Trường dùng: `usdPrice`, `stats24h`, `mcap`, `liquidity`, `holderCount`. Ticker đúng chuẩn hậu tố **x** (AAPLx, TSLAx…).
 - Không có chip ngành (API không có); sắp xếp Top movers / Most traded / A–Z + tìm kiếm.
-- **Biểu đồ**: GeckoTerminal OHLCV theo pool (miễn phí, không key, ~30 lượt/phút, lịch sử ~6 tháng) + `react-native-wagmi-charts`; khung 1D/1W/1M/6M; ghi "Chart by GeckoTerminal".
+- **Biểu đồ**: GeckoTerminal OHLCV theo pool (miễn phí, không key, ~30 lượt/phút, lịch sử ~6 tháng), vẽ line/area bằng `react-native-svg`; khung 1D/1W/1M/6M; ghi "Chart by GeckoTerminal".
+- **Tái kiểm chứng 27/09/2026**: hai GET thật (token pools Solana và `/pools/{pool}/ohlcv/day?aggregate=1`) trả HTTP 200 và `access-control-allow-origin: *`, xác nhận CORS dùng được từ web. Các khoảng 1D/1W dùng nến giờ; 1M dùng nến ngày (30); 6M dùng endpoint `/ohlcv/day` (180). Client cache 60 giây và tuần tự hoá request cách nhau ≥2,1 giây để giữ dưới ~30 lượt/phút.
+- **Danh sách trống**: chẩn đoán MCP thấy schema có `symbol`, `isVerified`, `tags`, `liquidity`, `usdPrice`, `stats24h`. Checkout ngày 27/09 thiếu `EXPO_PUBLIC_JUPITER_API_KEY`, nên API không được gọi; số đếm filter và mẫu token chưa thể xác nhận. Giữ filter x + verified + liquidity ≥$10k cho tới khi `pnpm xstocks:diagnose` chạy với key public cho số liệu thật. UI hiện lỗi key/mạng/HTTP/0 kết quả và Retry.
 - **Thanh toán**: mặc định USDC. Chế độ Cash chỉ USDC ("Cash balance"); thiếu USDC → Quick-Convert SOL→USDC một bước. Chế độ Crypto có "Pay with". Bán luôn nhận USDC.
 - Thị trường Mỹ đóng cửa (cuối tuần): hiện banner, giá lấy từ giao dịch on-chain có thể lệch giá đóng cửa thứ Sáu.
+- Giờ thị trường dùng múi giờ `America/New_York`, lịch thứ Hai–thứ Sáu 09:30–16:00; TODO tra lịch nghỉ lễ NYSE để hiện chính xác ngày lễ.
 - Lần mua đầu: checkbox công bố rủi ro ("tracks Apple's share price but is not an Apple share…").
 - Mua/bán dùng lại hạ tầng Swap (mục 3).
 
