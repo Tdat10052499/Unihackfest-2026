@@ -38,6 +38,9 @@
 
 **Program ID**: `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh` (Anchor 1.1.2). IDL: `ned-wallet/idl/`. Thư viện app: `ned-wallet/services/identity/{dualPda,phoneKey}.ts`.
 
+- **IDL on-chain**: đã upload qua Program Metadata Program (metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`), nên Explorer/Solscan giải mã được giao dịch. Khi đổi program: `anchor build` rồi `anchor idl upgrade -f target/idl/ned_program.json`.
+- **Program cũ** `8tTSP75q…aEi` (IdentityAccount / UserProfile) **đã đóng** ngày 27/09. Mọi lời gọi tới nó, như `legacy.ts` và màn onboarding username hiện tại, đều không còn chạy; T1.3 sẽ thay bằng `dualPda.ts`.
+
 | Account | Seeds | Dữ liệu | Kích thước | Rent devnet |
 |---|---|---|---|---|
 | `NameRecord` | `[b"name", username]` | `wallet`, `created_at`, `bump` | 49 B | 899 160 lamports |
