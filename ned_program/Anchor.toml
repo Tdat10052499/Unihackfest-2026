@@ -7,16 +7,16 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-ned_program = "8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi"
+ned_program = "8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh"
 
 [programs.localnet]
-ned_program = "8tTSP75q3ggaxQiZdeC4LShcyjHN5yWJY4NnZeE3JaEi"
+ned_program = "8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "cargo test --manifest-path programs/ned-program/Cargo.toml -- --nocapture"
 
 [hooks]

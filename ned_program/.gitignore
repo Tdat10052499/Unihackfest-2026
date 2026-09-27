@@ -6,3 +6,7 @@ node_modules
 test-ledger
 .yarn
 .surfpool
+
+# Keypair (program / ví) — không bao giờ commit
+*-keypair.json
+id.json
