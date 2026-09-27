@@ -598,6 +598,9 @@ export default function HomeScreen() {
             if (solanaAddress) removeCard(card.id, solanaAddress);
           }}
         />
+        <TouchableOpacity style={{ backgroundColor: '#7B2FBE', borderRadius: 16, padding: 16, marginTop: 4 }} onPress={() => router.push('/xstocks')}>
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}>XSTOCKS</Text>
+        </TouchableOpacity>
 
         {/* ========================================================================= */}
         {/* 4. KHỐI THỐNG KÊ (Secondary Cards - 2 Cột Đầy Đặn, Padding 20, MinHeight 130) */}

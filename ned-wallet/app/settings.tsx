@@ -31,6 +31,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useTranslation, changeAppLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../services/i18n';
 import { PhoneManagementModal } from '../components/PhoneManagementModal';
 import { useUserStore } from '../stores/useUserStore';
+import { resetDemoLedger } from '../services/demoLedger';
 
 // ==========================================
 // 🎨 REUSABLE NEO-BRUTALISM SUB-COMPONENTS
@@ -581,6 +582,9 @@ export default function SettingsScreen() {
           <Feather name="log-out" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
           <Text style={styles.dangerLogoutBtnText}>{t('settings.dangerLogoutBtnText', { defaultValue: 'ĐĂNG XUẤT' })}</Text>
         </TouchableOpacity>
+        {__DEV__ && walletAddress ? <TouchableOpacity style={{ marginTop: 14, padding: 14, borderWidth: 1, borderColor: '#7B2FBE', borderRadius: 12 }} onPress={() => Alert.alert('Reset demo data?', 'This clears demo swaps and xStock positions.', [{ text: 'Cancel' }, { text: 'Reset', style: 'destructive', onPress: () => void resetDemoLedger(walletAddress) }])}>
+          <Text style={{ color: '#7B2FBE', fontWeight: '700', textAlign: 'center' }}>Reset demo data</Text>
+        </TouchableOpacity> : null}
 
         <View style={{ height: 40 }} />
       </ScrollView>
