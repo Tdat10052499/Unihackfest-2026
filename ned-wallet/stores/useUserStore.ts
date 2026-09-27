@@ -1,13 +1,11 @@
+import { clearSolanaCache } from '../services/solana';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOwnPhone, saveOwnPhone } from '../services/identity/ownPhone';
-// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
-import {
-  getUserProfileFromDB,
-  upsertUserProfile,
-  UserProfile,
-} from '../services/profile';
-import { clearSolanaCache } from '../services/solana';
+import { PublicKey } from '@solana/web3.js';
+import { fetchReverseRecord } from '../services/identity/dualPda';
+import { identityConnection } from '../services/identity/resolve';
+interface UserProfile { wallet_address: string; username: string; auth_user_id?: string; phone_number?: string | null; avatar_url?: string | null; linked_external_wallet?: string | null }
 
 const STORAGE_KEYS = {
   USER_HANDLE: '@ned_wallet_user_handle',
@@ -37,14 +35,6 @@ export interface UserState {
   setUserProfile: (profile: Partial<UserProfile>) => void;
   loadFromStorage: () => Promise<string | null>;
   fetchUserProfile: (authUserId: string) => Promise<UserProfile | null>;
-  saveUserProfile: (params: {
-    auth_user_id: string;
-    wallet_address: string;
-    username: string;
-    avatar_url?: string | null;
-    phone_number?: string | null;
-    linked_external_wallet?: string | null;
-  }) => Promise<boolean>;
   resetUser: () => void;
 }
 
@@ -62,7 +52,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ username });
     if (username) {
       AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, username).catch(() => {});
-      AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${username}.sol`).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${username}`).catch(() => {});
     }
   },
 
@@ -159,108 +149,20 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  fetchUserProfile: async (authUserId: string): Promise<UserProfile | null> => {
-    if (!authUserId) return null;
+  fetchUserProfile: async (walletAddress: string): Promise<UserProfile | null> => {
+    if (!walletAddress) return null;
+    set({ isLoading: true, error: null, walletAddress });
     try {
-      set({ isLoading: true, error: null, authUserId });
-      // 1. Kiểm tra cache AsyncStorage trước để render tức thì
-      const cachedHandle = await AsyncStorage.getItem(STORAGE_KEYS.USER_HANDLE);
-      const cachedAvatar = await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
-      const cachedExternal = await AsyncStorage.getItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET);
-      if (cachedHandle && !get().username) {
-        set({ username: cachedHandle });
-      }
-      if (cachedAvatar && !get().avatarUrl) {
-        set({ avatarUrl: cachedAvatar });
-      }
-      if (cachedExternal && !get().linkedExternalWallet) {
-        set({ linkedExternalWallet: cachedExternal });
-      }
-
-      // 2. Đọc hồ sơ (cục bộ — TODO(T1.5): Reverse PDA)
-      const dbProfile = await getUserProfileFromDB(authUserId);
-      if (dbProfile) {
-        set({
-          username: dbProfile.username,
-          walletAddress: dbProfile.wallet_address,
-          authUserId: dbProfile.auth_user_id,
-          linkedPhone: dbProfile.phone_number || get().linkedPhone,
-          linkedExternalWallet: dbProfile.linked_external_wallet || get().linkedExternalWallet,
-          avatarUrl: dbProfile.avatar_url || get().avatarUrl,
-          isLoading: false,
-        });
-        if (dbProfile.username) {
-          await AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, dbProfile.username);
-          await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${dbProfile.username}.sol`);
-        }
-        if (dbProfile.phone_number) {
-          await saveOwnPhone(dbProfile.phone_number);
-        }
-        if (dbProfile.linked_external_wallet) {
-          await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, dbProfile.linked_external_wallet);
-        }
-        if (dbProfile.avatar_url) {
-          await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, dbProfile.avatar_url);
-        }
-        return dbProfile;
-      }
-
-      set({ isLoading: false });
+      const record = await fetchReverseRecord(identityConnection, new PublicKey(walletAddress));
+      const phone = record?.hasPhone ? await getOwnPhone() : null;
+      if (get().walletAddress !== walletAddress) return null;
+      set({ username: record?.username ?? null, linkedPhone: phone, isLoading: false });
+      if (!record) return null;
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, record.username);
+      return { wallet_address: walletAddress, username: record.username, phone_number: phone };
+    } catch {
+      if (get().walletAddress === walletAddress) set({ isLoading: false, error: 'Unable to load on-chain profile.' });
       return null;
-    } catch (err: any) {
-      console.error('❌ [useUserStore] Lỗi fetchUserProfile:', err);
-      set({ isLoading: false, error: err?.message || 'Lỗi tải thông tin user' });
-      return null;
-    }
-  },
-
-  saveUserProfile: async (params: {
-    auth_user_id: string;
-    wallet_address: string;
-    username: string;
-    avatar_url?: string | null;
-    phone_number?: string | null;
-    linked_external_wallet?: string | null;
-  }): Promise<boolean> => {
-    try {
-      set({ isLoading: true, error: null });
-      const externalWalletToSave = params.linked_external_wallet !== undefined ? params.linked_external_wallet : get().linkedExternalWallet;
-
-      // 1. Cập nhật state nội bộ ngay lập tức (Zero-latency UI)
-      set({
-        username: params.username,
-        walletAddress: params.wallet_address,
-        authUserId: params.auth_user_id,
-        linkedPhone: params.phone_number !== undefined ? params.phone_number : get().linkedPhone,
-        linkedExternalWallet: externalWalletToSave,
-        avatarUrl: params.avatar_url !== undefined ? params.avatar_url : get().avatarUrl,
-      });
-
-      // 2. Lưu vào AsyncStorage
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_HANDLE, params.username);
-      await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, `@${params.username}.sol`);
-      await AsyncStorage.setItem(STORAGE_KEYS.WALLET_ADDRESS, params.wallet_address);
-      if (params.phone_number) {
-        await saveOwnPhone(params.phone_number);
-      }
-      if (externalWalletToSave) {
-        await AsyncStorage.setItem(STORAGE_KEYS.LINKED_EXTERNAL_WALLET, externalWalletToSave);
-      }
-      if (params.avatar_url) {
-        await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, params.avatar_url);
-      }
-
-      // 3. Lưu hồ sơ (cục bộ — TODO(T1.5): create_profile)
-      const res = await upsertUserProfile({
-        ...params,
-        linked_external_wallet: externalWalletToSave,
-      });
-      set({ isLoading: false });
-      return res.success;
-    } catch (err: any) {
-      console.error('❌ [useUserStore] Lỗi saveUserProfile:', err);
-      set({ isLoading: false, error: err?.message || 'Lỗi lưu thông tin user' });
-      return false;
     }
   },
 

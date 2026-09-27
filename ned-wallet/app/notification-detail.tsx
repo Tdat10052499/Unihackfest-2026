@@ -17,8 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
 import { useUserStore } from '../stores/useUserStore';
-// TODO(T1.5/T1.7): thay bằng Dual PDA — services/profile hiện lưu hồ sơ cục bộ
-import { getUserProfileByWallet } from '../services/profile';
+import { displayNamesFor } from '../services/identity/resolve';
 
 /**
  * Định dạng số điện thoại hiển thị rõ ràng, chuyên nghiệp
@@ -68,7 +67,7 @@ export default function NotificationDetailScreen() {
       setIsResolving(true);
       const currentUser = useUserStore.getState();
       const myWallet = currentUser.walletAddress || useNotificationStore.getState().activeWalletAddress || '';
-      const myUsername = currentUser.username ? `@${currentUser.username}.sol` : 'Ví của bạn';
+      const myUsername = currentUser.username ? `@${currentUser.username}` : 'Ví của bạn';
       const myPhone = currentUser.linkedPhone || null;
 
       const isReceive = notification!.type === 'RECEIVE_MONEY';
@@ -89,7 +88,7 @@ export default function NotificationDetailScreen() {
       let rPhone = notification!.recipientPhone || null;
 
       // Nhận diện nếu ví người chuyển là ví của người dùng hiện tại
-      if (myWallet && sWallet.toLowerCase() === myWallet.toLowerCase()) {
+      if (myWallet && sWallet === myWallet) {
         sName = sName || myUsername;
         sPhone = sPhone || myPhone;
       } else if (!isReceive && !sName) {
@@ -98,7 +97,7 @@ export default function NotificationDetailScreen() {
       }
 
       // Nhận diện nếu ví người nhận là ví của người dùng hiện tại
-      if (myWallet && rWallet.toLowerCase() === myWallet.toLowerCase()) {
+      if (myWallet && rWallet === myWallet) {
         rName = rName || myUsername;
         rPhone = rPhone || myPhone;
       } else if (isReceive && !rName) {
@@ -125,36 +124,12 @@ export default function NotificationDetailScreen() {
         }
       }
 
-      // 3. Tra cứu hồ sơ (TODO(T1.5): Reverse PDA + SNS) nếu là địa chỉ Base58 hợp lệ
-      const isSolanaBase58 = (addr: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
-
-      try {
-        if (
-          isSolanaBase58(sWallet) &&
-          sWallet.toLowerCase() !== myWallet.toLowerCase() &&
-          (!sName || !sPhone || sName.includes('Solana'))
-        ) {
-          const profile = await getUserProfileByWallet(sWallet);
-          if (profile) {
-            if (profile.username) sName = `@${profile.username}.sol`;
-            if (profile.phone_number) sPhone = profile.phone_number;
-          }
-        }
-
-        if (
-          isSolanaBase58(rWallet) &&
-          rWallet.toLowerCase() !== myWallet.toLowerCase() &&
-          (!rName || !rPhone || rName.includes('Solana'))
-        ) {
-          const profile = await getUserProfileByWallet(rWallet);
-          if (profile) {
-            if (profile.username) rName = `@${profile.username}.sol`;
-            if (profile.phone_number) rPhone = profile.phone_number;
-          }
-        }
-      } catch (err) {
-        console.warn('⚠️ [NotificationDetail] Lỗi tra cứu profile:', err);
-      }
+      // Batch ReverseRecord → SNS; never infer another person's clear phone number.
+      const names = await displayNamesFor([sWallet, rWallet]);
+      sName = names[sWallet] || sName;
+      rName = names[rWallet] || rName;
+      if (sWallet !== myWallet) sPhone = null;
+      if (rWallet !== myWallet) rPhone = null;
 
       // Fallbacks hiển thị rõ ràng
       if (!sName) {

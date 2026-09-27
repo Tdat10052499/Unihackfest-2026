@@ -74,10 +74,47 @@ async function describe(connection: Connection, label: string, address: PublicKe
   console.log(`   ${label}: ${address.toBase58()} — ${info.data.length} bytes, ${info.lamports} lamports (${info.lamports / LAMPORTS_PER_SOL} SOL)`);
 }
 
+/** T1.7 fixtures: two fresh profiles, only the first links a phone. Keys remain in memory.
+ * Fund 0.004 SOL each; return leftover SOL after profile creation. No mainnet writes. */
+async function createRecipients(connection: Connection, funder: Keypair) {
+  const report: { username: string; wallet: string; phone: string | null }[] = [];
+  for (let i = 0; i < 2; i++) {
+    const recipient = Keypair.generate();
+    const wallet = recipient.publicKey;
+    const username = `t17_${i}_${wallet.toBase58().slice(0, 8).toLowerCase()}`;
+    await send(connection, new Transaction().add(SystemProgram.transfer({ fromPubkey: funder.publicKey, toPubkey: wallet, lamports: 4_000_000 })), funder, 'fund test recipient');
+    const tx = buildCreateProfileTx(wallet, username);
+    let phone: string | null = null;
+    if (i === 0) {
+      // Synthetic VN-format test number: no OTP, never contact this number.
+      phone = arg('phone') ?? `09${Math.floor(10000000 + Math.random() * 89999999)}`;
+      const derived = await getPhoneKey(phone);
+      if (await fetchPhoneRecord(connection, derived.phoneKey)) throw new Error('Test phone is already linked. Supply another synthetic --phone.');
+      phone = derived.e164;
+      tx.add(...buildLinkPhoneTx(wallet, derived.phoneKey).instructions);
+    }
+    await send(connection, tx, recipient, `create recipient @${username}`);
+    const reverse = await fetchReverseRecord(connection, wallet);
+    const name = await fetchNameRecord(connection, username);
+    if (reverse?.username !== username || !name?.wallet.equals(wallet) || reverse.hasPhone !== (phone !== null)) throw new Error('Recipient record verification failed');
+    if (phone && !(await fetchPhoneRecord(connection, (await getPhoneKey(phone)).phoneKey))?.wallet.equals(wallet)) throw new Error('Phone record verification failed');
+    report.push({ username, wallet: wallet.toBase58(), phone });
+    const remaining = await connection.getBalance(wallet, 'confirmed');
+    if (remaining > 5_000) await send(connection, new Transaction().add(SystemProgram.transfer({ fromPubkey: wallet, toPubkey: funder.publicKey, lamports: remaining - 5_000 })), recipient, 'return leftover devnet SOL');
+  }
+  console.log('T1.7 recipient fixtures (public only):', JSON.stringify(report, null, 2));
+  console.log('These are receive-only test wallets; ephemeral private keys are not retained.');
+}
+
 async function main() {
   const connection = new Connection(loadEnvRpc(), 'confirmed');
   const defaultKeypair = path.join(os.homedir(), '.config', 'solana', 'id.json');
   const funder = loadKeypair(arg('keypair') ?? defaultKeypair);
+  if (process.argv.includes('--recipients')) {
+    if (await connection.getGenesisHash() !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG') throw new Error('Recipient fixtures must run on devnet');
+    await createRecipients(connection, funder);
+    return;
+  }
   let user = funder;
 
   if (process.argv.includes('--fresh')) {
