@@ -15,6 +15,7 @@ import { useAuth } from '../../services/auth';
 import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { useTranslation } from '@/services/i18n';
 import { SendModal } from '@/components/SendModal';
+import type { PreparedUsdcTransfer } from '@/services/p2pTransfer';
 import { TransactionReceiptModal } from '@/components/TransactionReceiptModal';
 import { NeoCard } from '@/components/neo/NeoCard';
 import { NEO_COLORS } from '@/components/neo/tokens';
@@ -102,9 +103,9 @@ export default function TransferHubScreen() {
   }>({ amount: 0, currency: 'USD', note: '' });
 
   // THỰC THI CHUYỂN TIỀN 100% ON-CHAIN TỪ TRANSFER HUB
-  const handleConfirmSend = async (recipient: string, amount: number) => {
+  const handleConfirmSend = async (recipient: string, amount: number, prepared: PreparedUsdcTransfer) => {
     if (!solanaAddress || !isWalletReady) throw new Error('Your wallet is not ready. Please retry.');
-    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsd: amount });
+    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsdc: amount, prepared });
     if (!result.success || !result.transactionHash) throw new Error(result.error || 'Transfer failed.');
     return result.transactionHash;
   };

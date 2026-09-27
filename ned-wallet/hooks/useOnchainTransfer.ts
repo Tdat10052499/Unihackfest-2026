@@ -1,13 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { solanaConnection } from '../services/solana';
-import { prepareUsdcTransfer } from '../services/p2pTransfer';
+import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { useAuth } from '../services/auth';
 
 export interface OnchainTransferParams {
   recipientAddressOrPhone: string;
-  amountUsd?: number;
-  amountSol?: number;
+  amountUsdc?: number;
+  prepared?: PreparedUsdcTransfer;
   fromAddress?: string;
 }
 export interface OnchainTransferResult { success: boolean; transactionHash?: string; recipientAddress?: string; error?: string }
@@ -28,7 +28,8 @@ export function useOnchainTransfer() {
       // UI resolves and explicitly confirms phone recipients before this signing boundary.
       const recipient = new PublicKey(params.recipientAddressOrPhone).toBase58();
       setStatusMessage('Preparing USDC transfer…');
-      const prepared = await prepareUsdcTransfer(walletAddress, recipient, params.amountUsd ?? params.amountSol ?? 0);
+      const prepared = params.prepared ?? await prepareUsdcTransfer(walletAddress, recipient, params.amountUsdc ?? 0);
+      if (!prepared.tx.feePayer?.equals(new PublicKey(walletAddress))) throw new Error('Prepared transfer wallet mismatch. Review the recipient again.');
       const sol = await solanaConnection.getBalance(new PublicKey(walletAddress), 'confirmed');
       if (sol < prepared.total) throw new Error('Not enough devnet SOL for network fee and account rent.');
       setStatusMessage('Confirm in your wallet…');

@@ -45,6 +45,7 @@ import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
 import { useTranslation } from '@/services/i18n';
 import { DepositModal } from '@/components/DepositModal';
 import { SendModal } from '@/components/SendModal';
+import type { PreparedUsdcTransfer } from '@/services/p2pTransfer';
 import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
 import { PhoneManagementModal } from '@/components/PhoneManagementModal';
 import { NeoPhysicalWalletCard, StablecoinCardData } from '@/components/neo/NeoPhysicalWalletCard';
@@ -383,9 +384,9 @@ export default function HomeScreen() {
   };
 
   // The shared SendFlow owns review, phone confirmation and the receipt.
-  const handleSendTransaction = async (recipient: string, amount: number) => {
+  const handleSendTransaction = async (recipient: string, amount: number, prepared: PreparedUsdcTransfer) => {
     if (!solanaAddress || !isWalletReady) throw new Error('Your wallet is not ready. Please retry.');
-    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsd: amount });
+    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsdc: amount, prepared });
     if (!result.success || !result.transactionHash) throw new Error(result.error || 'Transfer failed.');
     return result.transactionHash;
   };
@@ -686,7 +687,7 @@ export default function HomeScreen() {
         solBalance={solBalance}
         initialRecipient={withdrawAddress}
         onOpenScanner={handleOpenScanner}
-        onConfirmSend={async (target, amt) => handleSendTransaction(target, amt)}
+        onConfirmSend={async (target, amt, prepared) => handleSendTransaction(target, amt, prepared)}
         isSending={isSendingTx}
         needsRecovery={isNeedsRecovery}
         onTriggerRecovery={() => setShowWithdrawModal(false)}

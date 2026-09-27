@@ -2,6 +2,8 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 import { solanaConnection, USDC_DEVNET_MINT, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createSplTokenTransferInstruction } from './solana';
 import { prepareTransactionCost } from './identity/transactionCost';
 
+export type PreparedUsdcTransfer = Awaited<ReturnType<typeof prepareUsdcTransfer>>;
+
 /** P2P is strictly USDC devnet. Never substitute an unrelated token account. */
 export async function prepareUsdcTransfer(from: string, to: string, amount: number) {
   if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(Math.round(amount * 1e6))) throw new Error('Enter a valid USDC amount.');

@@ -2,11 +2,12 @@ import React from 'react';
 import { Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SendFlow } from './SendFlow';
+import type { PreparedUsdcTransfer } from '../services/p2pTransfer';
 interface SendModalProps {
   visible: boolean; onClose(): void; solanaAddress: string | null;
   solBalance?: number | null; availableBalanceUsd?: number | null;
   initialRecipient?: string; onOpenScanner?: () => void;
-  onConfirmSend(recipientAddress: string, amountUsd: number): Promise<void | string>;
+  onConfirmSend(recipientAddress: string, amountUsdc: number, prepared: PreparedUsdcTransfer): Promise<void | string>;
   isSending?: boolean; needsRecovery?: boolean; onTriggerRecovery?: () => void;
 }
 export function SendModal(props: SendModalProps) {
