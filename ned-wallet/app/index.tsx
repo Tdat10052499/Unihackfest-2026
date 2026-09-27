@@ -1,175 +1,111 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+// Onboarding — Splash (OnbSplash, variant "mark"): nền tím, icon Teddy nảy vào, ≤1s, không spinner.
+// Đã đăng nhập → Setting up (quyết định Home / tạo hồ sơ); chưa → Welcome.
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useAuth } from '../services/auth';
+import { MASCOT_IMAGES } from '../constants/mascot';
+import { onbFonts } from '../components/onboarding/theme';
 
-export default function WelcomeScreen() {
-  const { isReady, isAuthenticated } = useAuth();
+const SPLASH_MS = 900;
 
-  // Đã đăng nhập (phiên còn hạn hoặc vừa quay về từ Google) → màn đăng nhập quyết định Home hay onboarding
+export default function SplashScreen() {
+  const { isAuthenticated } = useAuth();
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const icon = useRef(new Animated.Value(0)).current;
+  const word = useRef(new Animated.Value(0)).current;
+  const authRef = useRef(isAuthenticated);
+  authRef.current = isAuthenticated;
+
+  const go = () => router.replace(authRef.current ? '/setup' : '/welcome');
+
   useEffect(() => {
-    if (isReady && isAuthenticated) {
-      router.replace('/(auth)');
-    }
-  }, [isReady, isAuthenticated]);
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => {
+        if (cancelled) return;
+        setReduceMotion(reduced);
+        if (reduced) {
+          icon.setValue(1);
+          word.setValue(1);
+          return;
+        }
+        Animated.parallel([
+          Animated.timing(icon, { toValue: 1, duration: 600, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }),
+          Animated.timing(word, { toValue: 1, duration: 400, delay: 350, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        ]).start();
+      })
+      .catch(() => {
+        icon.setValue(1);
+        word.setValue(1);
+      });
+    const timer = setTimeout(go, SPLASH_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // Chạy một lần khi mở app
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleStart = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    router.replace('/(auth)');
-  };
-
-  if (!isReady || isAuthenticated) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D32F2F" />
-      </View>
-    );
-  }
+  const iconStyle = reduceMotion
+    ? undefined
+    : {
+        opacity: icon,
+        transform: [{ scale: icon.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }],
+      };
+  const wordStyle = reduceMotion
+    ? undefined
+    : { opacity: word, transform: [{ translateY: word.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleText}>Welcome to</Text>
-          <Text style={styles.titleText}>NorthAxis E-Wallet</Text>
-          
-          <View style={styles.logoRow}>
-            <Text style={[styles.logoLetter, { color: '#8B5CF6' }]}>N</Text>
-            <Text style={styles.logoDot}>.</Text>
-            <Text style={[styles.logoLetter, { color: '#D32F2F', marginTop: 16 }]}>E</Text>
-            <Text style={[styles.logoDot, { marginTop: 16 }]}>.</Text>
-            <Text style={[styles.logoLetter, { color: '#06B6D4' }]}>D</Text>
-            <Text style={styles.logoDot}>.</Text>
-          </View>
-        </View>
-
-        <Image 
-          source={require('../assets/images/mascot teddy - waving.png')} 
-          style={styles.mascotImage}
-          resizeMode="contain"
-        />
-
-        <View style={styles.pagination}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
-      </View>
-
-      <TouchableOpacity 
-        style={styles.startBtnWrapper} 
-        activeOpacity={0.85}
-        onPress={handleStart}
+    <Pressable accessibilityRole="button" accessibilityLabel="N.E.D. Tap to continue" onPress={go} style={styles.fill}>
+      <LinearGradient
+        colors={['#8A3AD0', '#7B2FBE', '#5A1D9E', '#3A1170']}
+        locations={[0, 0.38, 0.72, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.fill}
       >
-        <View style={styles.startBtnShadow} />
-        <View style={styles.startBtnBody}>
-          <Text style={styles.startBtnText}>BẮT ĐẦU</Text>
+        <View style={styles.center}>
+          <Animated.View style={[styles.iconBox, iconStyle]}>
+            <Image source={MASCOT_IMAGES.lineArt} style={styles.icon} resizeMode="contain" accessibilityIgnoresInvertColors />
+          </Animated.View>
+          <Animated.View style={wordStyle}>
+            <Text style={styles.word}>N.E.D</Text>
+          </Animated.View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </LinearGradient>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#FDF8F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#FDF8F5',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 80,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
-  content: {
-    flex: 1,
+  fill: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: -40 },
+  iconBox: {
+    width: 128,
+    height: 128,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
+    shadowColor: '#1E0646',
+    shadowOpacity: 0.45,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 10,
   },
-  titleContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  titleText: {
-    fontSize: 20,
-    fontFamily: 'Inter-Black',
-    color: '#000',
-    textAlign: 'center',
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  logoLetter: {
-    fontSize: 48,
-    fontFamily: 'Outfit-Bold',
-    fontWeight: '900',
-  },
-  logoDot: {
-    fontSize: 48,
-    fontFamily: 'Outfit-Bold',
-    fontWeight: '900',
-    color: '#000',
-    marginHorizontal: 8,
-  },
-  mascotImage: {
-    width: 320,
-    height: 300,
-    marginBottom: 40,
-  },
-  pagination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: '#000',
-    backgroundColor: 'transparent',
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: '#000',
-  },
-  startBtnWrapper: {
-    position: 'relative',
-    width: '100%',
-    height: 60,
-  },
-  startBtnShadow: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: -4,
-    bottom: -4,
-    backgroundColor: '#000',
-    borderRadius: 12,
-  },
-  startBtnBody: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#D32F2F',
-    borderWidth: 3,
-    borderColor: '#000',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  startBtnText: {
-    fontSize: 18,
-    fontFamily: 'Inter-Black',
-    color: '#FFF',
-    letterSpacing: 1,
+  icon: { width: 98, height: 100 },
+  word: {
+    marginTop: 28,
+    fontFamily: onbFonts.heading,
+    fontSize: 34,
+    letterSpacing: 8,
+    paddingLeft: 8,
+    color: '#FFFFFF',
   },
 });

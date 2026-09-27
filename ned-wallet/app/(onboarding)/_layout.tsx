@@ -1,11 +1,6 @@
 import { Stack } from 'expo-router';
 
+// Onboarding: welcome → setup → (fund) → profile → mode → Home
 export default function OnboardingLayout() {
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="phone" options={{ headerShown: false }} />
-      <Stack.Screen name="username" options={{ headerShown: false }} />
-      <Stack.Screen name="welcome" options={{ headerShown: false }} />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#080812' } }} />;
 }

@@ -141,26 +141,6 @@ export function getProgram(
   return new Program<NedProgram>(idlWithAddress, provider);
 }
 
-/**
- * @deprecated Seed của IdentityAccount cũ (program trước T1.5) — màn onboarding còn dùng tới T1.3.
- * Dùng services/identity/dualPda.ts cho schema mới.
- */
-export const IDENTITY_SEED = Buffer.from('identity');
-
-/**
- * Helper: Tính toán địa chỉ PDA cho `IdentityAccount`
- * Seeds: [b"identity", hashedIdentifier]
- */
-export function deriveIdentityPda(
-  hashedIdentifier: Buffer,
-  programId: PublicKey = PROGRAM_ID
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [IDENTITY_SEED, hashedIdentifier],
-    programId
-  );
-}
-
 // Re-export types
 export { IDL };
 export type { NedProgram };

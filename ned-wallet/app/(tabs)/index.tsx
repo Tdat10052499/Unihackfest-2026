@@ -548,7 +548,7 @@ export default function HomeScreen() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)" />;
+    return <Redirect href="/welcome" />;
   }
 
   return (
