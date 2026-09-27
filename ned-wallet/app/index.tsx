@@ -1,49 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-
-const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
+import { useAuth } from '../services/auth';
 
 export default function WelcomeScreen() {
-  const [isChecking, setIsChecking] = useState(true);
+  const { isReady, isAuthenticated } = useAuth();
 
+  // Phiên Dynamic còn hiệu lực → vào thẳng Home
   useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      const lastActiveStr = await AsyncStorage.getItem('ned_last_active_time');
-      if (lastActiveStr) {
-        const lastActiveTime = parseInt(lastActiveStr, 10);
-        if (Date.now() - lastActiveTime < SESSION_TIMEOUT_MS) {
-          // Session valid, auto login
-          console.log("🕒 [Session] Valid session found, auto navigating to home");
-          router.replace('/(tabs)');
-          return;
-        }
-      }
-      // If we reach here, session is expired or doesn't exist
-      setIsChecking(false);
-    } catch (e) {
-      console.error("Failed to check session", e);
-      setIsChecking(false);
+    if (isReady && isAuthenticated) {
+      router.replace('/(tabs)');
     }
-  };
+  }, [isReady, isAuthenticated]);
 
-  const handleStart = async () => {
+  const handleStart = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    try {
-      await AsyncStorage.setItem('ned_last_active_time', Date.now().toString());
-    } catch (e) {
-      // ignore
-    }
     router.replace('/(auth)');
   };
 
-  if (isChecking) {
+  if (!isReady || isAuthenticated) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#D32F2F" />
