@@ -36,8 +36,9 @@ export const resources = {
 i18n.init({
   compatibilityJSON: 'v3',
   resources,
-  lng: 'vi',
-  fallbackLng: 'vi',
+  // Thiết kế chốt toàn bộ UI tiếng Anh (trang-thai-thiet-ke.md, quyết định 3); Settings không còn chọn ngôn ngữ
+  lng: 'en',
+  fallbackLng: 'en',
   interpolation: {
     escapeValue: false,
   },
@@ -59,10 +60,7 @@ export const initLanguageFromStorage = async () => {
   }
 };
 
-// Tự động nạp khi module khởi động (trên client / native)
-if (Platform.OS !== 'web' || typeof window !== 'undefined') {
-  initLanguageFromStorage();
-}
+// Không tự nạp ngôn ngữ đã lưu: UI chỉ có tiếng Anh, giá trị 'vi' cũ trong bộ nhớ sẽ bị bỏ qua
 
 /**
  * Hàm thay đổi ngôn ngữ đồng thời lưu vào AsyncStorage

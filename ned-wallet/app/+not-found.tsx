@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Button, DText, Screen } from '@/components/design';
+import { colors, glass, radius, space } from '@/constants/design';
 
 /**
  * Catch-all route cho Expo Router: Tự động hấp thụ mọi URL không khớp (bao gồm các callback deep link)
@@ -21,68 +22,36 @@ export default function NotFoundScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false, title: 'Đang chuyển hướng' }} />
-      <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false, title: 'Redirecting' }} />
+      <Screen scroll={false} contentStyle={styles.container}>
         <View style={styles.iconBox}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={colors.purple[300]} />
         </View>
-        <Text style={styles.title}>Đang Điều Hướng...</Text>
-        <Text style={styles.subtitle}>Đang xử lý phản hồi và đưa bạn về màn hình chính.</Text>
-
-        <TouchableOpacity
-          style={styles.homeBtn}
-          onPress={() => router.replace('/(tabs)')}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="home-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.homeBtnText}>Về Trang Chủ</Text>
-        </TouchableOpacity>
-      </View>
+        <DText variant="h3" align="center">
+          Taking you home…
+        </DText>
+        <DText variant="body" align="center" style={styles.subtitle}>
+          We&apos;re finishing up and sending you back to Home.
+        </DText>
+        <Button title="Go to Home" icon="home" compact onPress={() => router.replace('/(tabs)')} style={styles.button} />
+      </Screen>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
+  container: { alignItems: 'center', justifyContent: 'center', padding: space[6] },
   iconBox: {
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: '#1E293B',
+    borderRadius: radius.pill,
+    backgroundColor: glass.fill,
+    borderWidth: 1,
+    borderColor: glass.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: space[5],
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F8FAFC',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  homeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  homeBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  subtitle: { marginTop: space[2], marginBottom: space[6] },
+  button: { alignSelf: 'center' },
 });

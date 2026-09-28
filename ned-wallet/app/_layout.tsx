@@ -11,7 +11,7 @@ import { MwaProvider } from '../contexts/MwaProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import { useFonts } from 'expo-font';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 
@@ -39,6 +39,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
+    SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
     Inter_400Regular,
@@ -72,6 +73,7 @@ export default function RootLayout() {
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
                       <Stack.Screen name="login" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
+                      <Stack.Screen name="receive" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
                       <Stack.Screen name="scan-qr" options={{ headerShown: false, animation: 'fade' }} />
                       <Stack.Screen name="+not-found" options={{ headerShown: false }} />

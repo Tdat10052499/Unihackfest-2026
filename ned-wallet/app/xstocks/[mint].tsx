@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/services/auth';
 import { getDemoLedger } from '@/services/demoLedger';
@@ -20,13 +14,13 @@ import {
 import { useXStocksStore } from '@/stores/useXStocksStore';
 import {
   ActionButton,
-  Card,
   Header,
   Muted,
   Screen,
 } from '@/components/xstocks/Screen';
+import { Badge, Button, Card, DText, Notice } from '@/components/design';
+import { colors, fonts, glass, radius, space } from '@/constants/design';
 import { PriceChart } from '@/components/xstocks/PriceChart';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
 
 const RANGES: XStockRange[] = ['1D', '1W', '1M', '6M'];
 
@@ -128,7 +122,7 @@ export default function XStockDetailScreen() {
     return (
       <Screen>
         <Header title="xStocks" onBack={() => router.back()} />
-        <ActivityIndicator color="#B87AED" />
+        <ActivityIndicator color={colors.purple[300]} />
       </Screen>
     );
   if (!stock)
@@ -156,15 +150,17 @@ export default function XStockDetailScreen() {
     <Screen
       footer={
         <View style={styles.actions}>
-          <ActionButton
+          <Button
             title="Sell"
-            secondary
+            variant="secondary"
             onPress={() => chooseSide('sell')}
+            style={styles.flex}
           />
-          <View style={styles.gap} />
-          <View style={styles.flex}>
-            <ActionButton title="Buy" onPress={() => chooseSide('buy')} />
-          </View>
+          <Button
+            title="Buy"
+            onPress={() => chooseSide('buy')}
+            style={styles.flex}
+          />
         </View>
       }
     >
@@ -172,32 +168,31 @@ export default function XStockDetailScreen() {
         title={stock.symbol}
         onBack={() => router.back()}
         right={
-          <Text style={styles.market}>
-            {isUsMarketOpen() ? 'MARKET OPEN' : 'MARKET CLOSED'}
-          </Text>
+          <Badge
+            tone={isUsMarketOpen() ? 'success' : 'warning'}
+            label={isUsMarketOpen() ? 'MARKET OPEN' : 'MARKET CLOSED'}
+          />
         }
       />
-      <Text style={styles.name}>{stock.name || stock.symbol}</Text>
-      <Text style={styles.price}>
+      <DText variant="body">{stock.name || stock.symbol}</DText>
+      <DText variant="hero" adjustsFontSizeToFit numberOfLines={1} style={styles.price}>
         $
         {(stock.usdPrice ?? 0).toLocaleString('en-US', {
           maximumFractionDigits: 6,
         })}
-      </Text>
-      <Text style={[styles.change, chartChange >= 0 ? styles.up : styles.down]}>
+      </DText>
+      <DText variant="mono" tone={chartChange >= 0 ? 'success' : 'error'}>
         {chartChange >= 0 ? '+' : ''}
         {chartChange.toFixed(2)}% {range} change
-      </Text>
+      </DText>
       {!isUsMarketOpen() ? (
-        <View style={styles.closed}>
-          <Text style={styles.closedText}>
-            US market closed · prices may differ from Friday’s close.
-          </Text>
-        </View>
+        <Notice tone="warning" style={styles.closed}>
+          US market closed · prices may differ from Friday’s close.
+        </Notice>
       ) : null}
       <View style={styles.chart}>
         {loadingChart ? (
-          <ActivityIndicator color="#B87AED" />
+          <ActivityIndicator color={colors.purple[300]} />
         ) : (
           <PriceChart values={rows.map((row) => row[4])} />
         )}
@@ -211,24 +206,27 @@ export default function XStockDetailScreen() {
             onPress={() => setRange(value)}
             style={[styles.range, range === value && styles.rangeSelected]}
           >
-            <Text
-              style={[
-                styles.rangeText,
-                range === value && styles.rangeTextSelected,
-              ]}
+            <DText
+              variant="caption"
+              tone={range === value ? 'primary' : 'secondary'}
+              style={range === value ? styles.rangeTextSelected : undefined}
             >
               {value}
-            </Text>
+            </DText>
           </Pressable>
         ))}
       </View>
       {chartError ? (
-        <Text style={styles.chartError}>{chartError}</Text>
+        <DText variant="caption" tone="warning">
+          {chartError}
+        </DText>
       ) : (
-        <Text style={styles.attribution}>Chart by GeckoTerminal</Text>
+        <DText variant="caption" align="right">
+          Chart by GeckoTerminal
+        </DText>
       )}
-      <View style={styles.position}>
-        <Text style={styles.cardTitle}>Your position · Demo balance</Text>
+      <Card variant="accent" padding={space[4]} style={styles.position}>
+        <DText variant="h3">Your position · Demo balance</DText>
         <View style={styles.metrics}>
           <Metric label="Value" value={`$${positionValue.toFixed(2)}`} />
           <Metric label="Shares" value={(holding?.quantity ?? 0).toFixed(5)} />
@@ -246,8 +244,8 @@ export default function XStockDetailScreen() {
             positive={pnl >= 0}
           />
         </View>
-      </View>
-      <Text style={styles.cardTitle}>Market stats</Text>
+      </Card>
+      <DText variant="h3">Market stats</DText>
       <View style={styles.metrics}>
         <Metric
           label="24h volume"
@@ -271,7 +269,7 @@ export default function XStockDetailScreen() {
         />
       </View>
       <Card>
-        <Text style={styles.cardTitle}>What is an xStock?</Text>
+        <DText variant="h3">What is an xStock?</DText>
         <Muted>
           An xStock is a token designed to track a public share price. It is not
           the underlying security and does not provide shareholder rights.
@@ -292,87 +290,57 @@ function Metric({
 }) {
   return (
     <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.metricValue,
-          positive !== undefined && (positive ? styles.up : styles.down),
-        ]}
+      <DText variant="caption">{label}</DText>
+      <DText
+        variant="mono"
+        tone={positive === undefined ? 'primary' : positive ? 'success' : 'error'}
+        style={styles.metricValue}
       >
         {value}
-      </Text>
+      </DText>
     </View>
   );
 }
 const styles = StyleSheet.create({
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  metric: { width: '48%', padding: 8 },
-  metricLabel: { color: '#FFFFFF80', fontFamily: onbFonts.body, fontSize: 11 },
-  metricValue: {
-    color: 'white',
-    fontFamily: onbFonts.monoBold,
-    fontSize: 13,
-    marginTop: 5,
+  metrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space[2],
+    marginTop: space[3],
+    marginBottom: space[4],
   },
-  position: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#9B4FDE12',
+  metric: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    padding: space[3],
+    borderRadius: radius.md,
+    backgroundColor: glass.fill,
     borderWidth: 1,
-    borderColor: '#9B4FDE45',
-    marginVertical: 16,
+    borderColor: glass.border,
   },
-  market: { color: '#FBBF24', fontFamily: onbFonts.bodyMedium, fontSize: 9 },
-  name: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
-  price: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 40,
-    marginTop: 5,
-  },
-  change: { fontFamily: onbFonts.mono, fontSize: 12, marginTop: 3 },
-  up: { color: '#4ADE80' },
-  down: { color: '#FB7185' },
-  closed: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    marginTop: 14,
-  },
-  closedText: { color: '#FBBF24', fontSize: 11 },
+  metricValue: { fontFamily: fonts.monoBold, marginTop: space[1] },
+  price: { marginTop: space[1] },
+  closed: { marginTop: space[4] },
   rangeBar: {
     flexDirection: 'row',
-    padding: 4,
-    borderRadius: 12,
+    padding: space[1],
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#FFFFFF12',
-    backgroundColor: '#FFFFFF08',
-    marginBottom: 8,
+    borderColor: glass.border,
+    backgroundColor: glass.fill,
+    marginBottom: space[2],
   },
   range: {
     flex: 1,
     minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
-  rangeSelected: { backgroundColor: 'rgba(155,79,222,0.2)' },
-  rangeText: { color: 'rgba(255,255,255,0.55)', fontSize: 11 },
-  rangeTextSelected: { color: '#D5A7F4', fontFamily: onbFonts.bodyBold },
+  rangeSelected: { backgroundColor: glass.iconTint },
+  rangeTextSelected: { fontFamily: fonts.bodySemi },
   chart: { height: 242, justifyContent: 'center' },
-  chartError: { color: '#FBBF24', fontSize: 10 },
-  attribution: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-    textAlign: 'right',
-  },
-  cardTitle: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  actions: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  gap: { width: 10 },
+  position: { marginVertical: space[4] },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   flex: { flex: 1 },
 });

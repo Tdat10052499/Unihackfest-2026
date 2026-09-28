@@ -17,7 +17,8 @@ import {
 } from '@/services/jupiter';
 import { saveDemoSwap } from '@/services/storage';
 import { getDemoLedger, recordDemoSwap } from '@/services/demoLedger';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { Badge } from '@/components/design';
+import { colors, dataColors, fonts, glass, gradients, radius, space, type } from '@/constants/design';
 import { amountNumber, sanitizeAmountInput } from '@/utils/amountInput';
 import {
   ActionButton,
@@ -216,9 +217,12 @@ export default function SwapScreen() {
           <Text style={styles.resultTitle}>
             {result === 'success' ? 'Swap complete' : 'Swap didn’t go through'}
           </Text>
-          <Text style={styles.demo}>
-            Demo mode · real price, no real funds moved
-          </Text>
+          <Badge
+            tone="warning"
+            icon="alert-circle"
+            label="Demo mode · real price, no real funds moved"
+            style={styles.demo}
+          />
         </View>
         {result === 'success' ? (
           <Card>
@@ -261,7 +265,7 @@ export default function SwapScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Search symbol, name or mint"
-          placeholderTextColor={onbColors.textSubtle}
+          placeholderTextColor={colors.textTertiary}
           style={styles.search}
         />
         <Text style={styles.sectionTitle}>Your tokens</Text>
@@ -332,7 +336,7 @@ export default function SwapScreen() {
           <Text style={styles.reviewAmount}>
             {amount} {from}
           </Text>
-          <Feather name="arrow-down" color="#B87AED" size={20} />
+          <Feather name="arrow-down" color={colors.purple[300]} size={20} />
           <Text style={styles.muted}>You get (estimate)</Text>
           <Text style={styles.reviewReceive}>{pretty(netOut, to)}</Text>
         </View>
@@ -394,9 +398,12 @@ export default function SwapScreen() {
             }
             onConfirm={() => void confirm()}
           />
-          <Text style={styles.demo}>
-            Demo mode · real price, no real funds moved
-          </Text>
+          <Badge
+            tone="warning"
+            icon="alert-circle"
+            label="Demo mode · real price, no real funds moved"
+            style={styles.demo}
+          />
         </View>
       </Screen>
     );
@@ -412,7 +419,7 @@ export default function SwapScreen() {
             style={styles.slipButton}
             onPress={() => setShowSlippage(!showSlippage)}
           >
-            <Feather name="sliders" size={14} color="white" />
+            <Feather name="sliders" size={14} color={colors.text} />
             <Text style={styles.smallWhite}>
               {slippage === 'auto' ? 'Auto' : `${slippage}%`}
             </Text>
@@ -469,7 +476,7 @@ export default function SwapScreen() {
             value={amount}
             onChangeText={changeAmount}
             placeholder="0"
-            placeholderTextColor={onbColors.textSubtle}
+            placeholderTextColor={colors.textTertiary}
             style={styles.amount}
           />
           <TokenPill asset={from} onPress={() => setStage('tokens')} />
@@ -480,7 +487,7 @@ export default function SwapScreen() {
         style={styles.flip}
         onPress={flip}
       >
-        <Feather name="repeat" size={20} color="#C9A2F2" />
+        <Feather name="repeat" size={20} color={colors.purple[200]} />
       </Pressable>
       <View style={styles.payCard}>
         <View style={styles.cardTop}>
@@ -550,14 +557,14 @@ function TokenPill({ asset, onPress }: { asset: Asset; onPress?: () => void }) {
       <View
         style={[
           styles.coin,
-          { backgroundColor: asset === 'SOL' ? '#7B3FD4' : '#2779CB' },
+          { backgroundColor: asset === 'SOL' ? dataColors.sol : dataColors.usdc },
         ]}
       >
         <Text style={styles.coinText}>{asset === 'SOL' ? 'S' : 'U'}</Text>
       </View>
       <Text style={styles.tokenValue}>{asset}</Text>
       {onPress ? (
-        <Feather name="chevron-down" size={13} color="#BEB8CB" />
+        <Feather name="chevron-down" size={14} color={colors.textSecondary} />
       ) : null}
     </>
   );
@@ -571,11 +578,11 @@ function TokenPill({ asset, onPress }: { asset: Asset; onPress?: () => void }) {
 }
 const styles = StyleSheet.create({
   payCard: {
-    backgroundColor: '#FFFFFF0A',
-    borderColor: '#FFFFFF1A',
+    backgroundColor: glass.fill,
+    borderColor: glass.border,
     borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: radius.xl,
+    padding: space[4],
     minHeight: 126,
   },
   cardTop: {
@@ -585,66 +592,59 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 10,
   },
-  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   amount: {
+    ...type.h1,
     flex: 1,
     minWidth: 0,
-    color: 'white',
-    fontFamily: onbFonts.heading,
-    fontSize: 36,
-    paddingVertical: 8,
+    fontFamily: fonts.display,
+    fontSize: 40,
+    lineHeight: 48,
+    paddingVertical: space[1],
   },
   tokenPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF0D',
+    gap: space[2],
+    borderRadius: radius.pill,
+    backgroundColor: glass.fill,
     borderWidth: 1,
-    borderColor: '#FFFFFF1A',
+    borderColor: glass.border,
     padding: 6,
-    paddingRight: 12,
+    paddingRight: space[3],
     minHeight: 44,
   },
   coin: {
     width: 28,
     height: 28,
-    borderRadius: 16,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coinText: { color: 'white', fontFamily: onbFonts.heading },
-  muted: {
-    color: onbColors.textMuted,
-    fontFamily: onbFonts.body,
-    fontSize: 12,
-  },
-  small: {
-    color: onbColors.textSubtle,
-    fontFamily: onbFonts.body,
-    fontSize: 10,
-  },
-  smallWhite: { color: 'white', fontFamily: onbFonts.bodyMedium, fontSize: 11 },
+  coinText: { ...type.button, fontFamily: fonts.display, fontSize: 14 },
+  muted: { ...type.caption, color: colors.textSecondary },
+  small: { ...type.caption },
+  smallWhite: { ...type.caption, fontFamily: fonts.bodyMedium, color: colors.text },
   quick: {
     minHeight: 32,
-    paddingHorizontal: 8,
-    borderRadius: 7,
-    backgroundColor: '#9B4FDE25',
+    paddingHorizontal: space[2],
+    borderRadius: radius.sm,
+    backgroundColor: glass.accentFill,
     borderWidth: 1,
-    borderColor: '#9B4FDE40',
+    borderColor: glass.accentBorder,
     justifyContent: 'center',
   },
-  quickText: { fontSize: 10, color: '#D5A7F4', fontFamily: onbFonts.bodySemi },
+  quickText: { ...type.caption, fontFamily: fonts.bodySemi, color: colors.purple[200] },
   flip: {
     alignSelf: 'center',
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A102A',
-    borderRadius: 13,
+    backgroundColor: colors.surface2,
+    borderRadius: radius.md,
     borderWidth: 3,
-    borderColor: '#0D0618',
+    borderColor: gradients.screen[1],
     marginVertical: -10,
     zIndex: 2,
   },
@@ -654,81 +654,56 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#FFFFFF1A',
-    backgroundColor: '#FFFFFF0A',
+    borderColor: glass.border,
+    backgroundColor: glass.fill,
   },
-  slippage: { flexDirection: 'row', gap: 8 },
+  slippage: { flexDirection: 'row', gap: space[2] },
   chip: {
     flex: 1,
     padding: 10,
     alignItems: 'center',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF0A',
+    borderRadius: radius.md,
+    backgroundColor: glass.fill,
   },
-  selected: { backgroundColor: '#7B2FBE' },
-  fee: {
-    color: onbColors.textMuted,
-    fontFamily: onbFonts.body,
-    fontSize: 11,
-    marginVertical: 8,
-  },
-  bottom: { marginTop: 'auto', paddingTop: 12 },
-  warning: {
-    color: onbColors.warning,
-    fontFamily: onbFonts.body,
-    fontSize: 12,
-    lineHeight: 18,
-    marginVertical: 8,
-  },
+  selected: { backgroundColor: colors.brand },
+  fee: { ...type.caption, color: colors.textSecondary, marginVertical: space[2] },
+  bottom: { marginTop: 'auto', paddingTop: space[3] },
+  warning: { ...type.caption, color: colors.warningText, marginVertical: space[2] },
   search: {
-    color: 'white',
-    fontFamily: onbFonts.body,
+    ...type.body,
+    color: colors.text,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#FFFFFF1A',
-    backgroundColor: '#FFFFFF0A',
+    borderColor: glass.border,
+    backgroundColor: glass.fill,
   },
-  sectionTitle: {
-    fontFamily: onbFonts.heading,
-    color: 'white',
-    fontSize: 16,
-    marginVertical: 14,
-  },
+  sectionTitle: { ...type.h3, fontSize: 16, lineHeight: 21, fontFamily: fonts.displaySemi, marginVertical: 14 },
   token: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: space[3],
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderColor: '#FFFFFF12',
+    borderColor: glass.divider,
   },
-  tokenValue: { color: 'white', fontFamily: onbFonts.bodySemi, fontSize: 14 },
+  tokenValue: { ...type.body, fontFamily: fonts.bodySemi, color: colors.text },
   tokenName: { flex: 1 },
-  verified: { color: '#4ADE80', fontSize: 10 },
+  verified: { ...type.caption, fontSize: 11, fontFamily: fonts.bodySemi, color: colors.successText },
   reviewHero: { alignItems: 'center', gap: 10, paddingVertical: 18 },
-  reviewAmount: { fontFamily: onbFonts.heading, color: 'white', fontSize: 36 },
-  reviewReceive: {
-    fontFamily: onbFonts.heading,
-    color: '#D5A7F4',
-    fontSize: 28,
+  reviewAmount: { ...type.h1, fontFamily: fonts.display, fontSize: 36, lineHeight: 43 },
+  reviewReceive: { ...type.h1, fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.successText },
+  resultHero: { alignItems: 'center', paddingTop: space[8], gap: 18 },
+  resultTitle: { ...type.h2, fontFamily: fonts.display, fontSize: 28, lineHeight: 34, textAlign: 'center' },
+  demo: { alignSelf: 'center', marginVertical: space[3] },
+  banner: {
+    padding: space[3],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    backgroundColor: glass.warningFill,
+    borderColor: glass.warningBorder,
   },
-  resultHero: { alignItems: 'center', paddingTop: 32, gap: 18 },
-  resultTitle: {
-    color: 'white',
-    fontFamily: onbFonts.heading,
-    fontSize: 27,
-    textAlign: 'center',
-  },
-  demo: {
-    color: '#FBBF24',
-    fontFamily: onbFonts.bodyMedium,
-    fontSize: 10,
-    textAlign: 'center',
-    marginVertical: 12,
-  },
-  banner: { padding: 12, borderRadius: 14, backgroundColor: '#FBBF2410' },
 });

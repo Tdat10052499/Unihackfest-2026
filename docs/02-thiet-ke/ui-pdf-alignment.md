@@ -35,3 +35,46 @@ Phạm vi theo yêu cầu mới nhất: Home, Swap, xStocks. Nguồn: `ned-walle
 2. Swap: nhập `0,1` bằng iOS và keypad; thử xoá, 50%/Max, đảo SOL/USDC, slippage Auto/0.5/1/3%; thiếu số dư phải khoá Review. Review kiểm tra phí, min received, route; chờ quote thay đổi, Accept rồi kéo xác nhận hoặc dùng nút thay thế. Result có nhãn Demo, History có giao dịch Demo.
 3. xStocks: list có loading/error/retry/empty; search và sort. Mở AAPLx, đổi 1D/1W/1M/6M, kiểm tra nút Buy/Sell luôn ở đáy. Mua $50, tick disclosure, kéo xác nhận; kiểm tra receipt và View position. Bán 50%, kiểm tra P/L và Cash.
 4. Cuộn các màn review/result ở chiều rộng hẹp; kiểm tra CTA và nội dung không bị che khi bàn phím iOS mở. Kiểm tra Network không có `/execute`.
+
+# DesignKit trong code (28/09/2026, đợt 2)
+
+Nguồn: `ned-wallet-ui.pdf` trang 6 (Design Token System) và trang 7 (Typography System), giá trị gốc ở `canvas/Main.dc.html`, `Typography.dc.html`.
+
+## Cấu trúc
+
+- `ned-wallet/constants/design.ts`: toàn bộ token, gồm:
+  - `purple` 100–900; `colors` (surfaces #0A0A0A/#141418/#1C1C24/#252530, border #353540, semantic, text hierarchy #FFF/#9CA3AF/#6B7280/#9B4FDE);
+  - `glass` (lớp kính trên nền gradient), `light` (nửa dưới sáng của Home), `home`;
+  - `gradients` (Primary, Purple→Indigo, Purple→Pink, Deep, nền màn), `dataColors`;
+  - `space` (bước 4px), `radius` (8/12/16/20/pill), `fonts`, `sizes` (nút 52, vùng chạm 44), `type` (Display 56 … Label 12, Button 16/600).
+- `ned-wallet/components/design/`: `DText`, `Button` (primary/secondary/outline/ghost/destructive), `Card` (default/bordered/accent/filled/glass), `Screen`, `Header`, `IconButton`, `SectionLabel`, `ListGroup`/`ListRow`/`InfoRow`, `Badge`, `Notice`, `Toggle`.
+- `components/onboarding/theme.ts` và `components/xstocks/Screen.tsx` giữ API cũ nhưng trỏ vào DesignKit.
+- Nạp thêm font `SpaceGrotesk_500Medium` (dùng cho H3). Inter chỉ dùng 400/500/600.
+
+## Màn đã chuyển
+
+Onboarding, Splash, Home, thanh điều hướng, Swap, xStocks (list/detail/trade/review/result), Send, Receive (màn mới `/receive`, thay `DepositModal`), Settings, History, Scan QR, Notifications, 404, modal SĐT. Các file này không còn mã màu viết trực tiếp.
+
+## Khác biệt có chủ ý
+
+- Nút chính theo DesignKit: gradient 2 màu #7B2FBE→#9B4FDE, cao 52 (trước là 3 màu, cao 56).
+- Home giữ nửa dưới nền trắng như PDF trang 8.
+- Thanh điều hướng chỉ có icon, rộng 256, theo canvas.
+- Settings chỉ hiện mục đã có tính năng thật: hồ sơ, QR, chế độ ví (chỉ xem), SĐT, địa chỉ ví, tiền tệ, bảo mật, phiên bản/DEVNET, Sign out. Chưa có App lock, Notifications, Language và nút đổi chế độ ví (việc T4.3).
+- Receive bỏ tuỳ chọn VNPAY "Coming soon" của modal cũ.
+- i18n mặc định chuyển sang `en` và bỏ qua ngôn ngữ `vi` đã lưu, vì toàn bộ UI là tiếng Anh (quyết định thiết kế số 3).
+
+## Kiểm tra
+
+- `npx tsc --noEmit`: pass.
+- Lint toàn repo: trước 48 errors / 71 warnings, sau 48 errors / 64 warnings. Các file đã đổi: 0 errors.
+- Test Node: identity 12/12, jupiter 6/6, xstocks 4/4, amountInput 1/1.
+- `expo export --platform web --platform android`: exit 0.
+- Đã render bằng Chromium ở 390×844 với phiên đăng nhập giả tạm thời (đã gỡ, không commit): Home, Receive, Settings, History, Swap, xStocks, Send, Scan QR, Setup, 404. Không tràn ngang sau khi sửa quầng sáng. Đây không phải kiểm thử ví thật hay Safari.
+
+## Test tay Safari iPhone (bổ sung)
+
+1. Home → Receive: QR, copy username/SĐT/địa chỉ, Share (Safari có share sheet; nếu không có thì chép vào clipboard).
+2. Settings: đổi ảnh đại diện, liên kết/huỷ SĐT (xem phí SOL), copy địa chỉ, Sign out → Welcome.
+3. History: lọc All/Received/Sent/Rewards, tìm kiếm, copy chữ ký, mở Explorer; chữ hiển thị tiếng Anh.
+4. Onboarding và Send: nút chính cao 52, màu gradient mới; luồng Send vẫn hiện phí mạng thật.

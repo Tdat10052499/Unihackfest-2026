@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/services/auth';
 import { getDemoLedger } from '@/services/demoLedger';
@@ -12,7 +12,8 @@ import {
   Muted,
   Screen,
 } from '@/components/xstocks/Screen';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { Badge, DText } from '@/components/design';
+import { space } from '@/constants/design';
 
 export default function XStockResultScreen() {
   const router = useRouter();
@@ -43,19 +44,23 @@ export default function XStockResultScreen() {
           size={156}
           floatAnimation
         />
-        <Text style={styles.title}>
+        <DText variant="h2" align="center" style={styles.title}>
           {success
             ? side === 'buy'
               ? 'Investment added'
               : 'Sale complete'
             : 'Trade failed'}
-        </Text>
-        <Text style={styles.demo}>
-          Demo mode · real price, no real funds moved
-        </Text>
+        </DText>
+        <Badge
+          tone="warning"
+          label="Demo mode · real price, no real funds moved"
+          style={styles.demo}
+        />
         {success && trade ? (
           <Card>
-            <Text style={styles.receipt}>DEMO RECEIPT</Text>
+            <DText variant="label" style={styles.receipt}>
+              DEMO RECEIPT
+            </DText>
             <InfoRow
               label="Asset"
               value={String(trade.symbol ?? stock?.symbol ?? 'xStock')}
@@ -110,9 +115,9 @@ export default function XStockResultScreen() {
           title="Done"
           onPress={() => router.replace('/xstocks')}
         />
-        <Text style={styles.notice}>
+        <DText variant="caption" align="center" style={styles.notice}>
           This demo does not move funds or create on-chain transactions.
-        </Text>
+        </DText>
       </View>
     </Screen>
   );
@@ -120,31 +125,8 @@ export default function XStockResultScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 23,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  demo: {
-    color: '#FBBF24',
-    fontFamily: onbFonts.bodyMedium,
-    fontSize: 11,
-    marginTop: 7,
-    textAlign: 'center',
-  },
-  receipt: {
-    color: 'rgba(255,255,255,0.48)',
-    fontFamily: onbFonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    marginBottom: 4,
-  },
-  notice: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
-    marginTop: 14,
-    textAlign: 'center',
-  },
+  title: { marginTop: space[2] },
+  demo: { alignSelf: 'center', marginTop: space[2] },
+  receipt: { marginBottom: space[1] },
+  notice: { marginTop: space[4] },
 });

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Dimensions,
   Platform,
   Alert,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,16 +27,16 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useAuth } from '../services/auth';
-import { getMaskedPhone, getAccountIdentifier } from '../services/identity';
 import { getLinkedPhone } from '../services/storage';
-import { useTranslation } from '@/services/i18n';
+import { Button, DText, Header, IconButton, Notice, Screen } from '@/components/design';
+import { colors, glass, light, radius, sizes, space } from '@/constants/design';
+import { shortAddress } from '../services/identity/resolve';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCAN_SIZE = Math.min(Math.round(SCREEN_WIDTH * 0.74), 280);
 
 export default function ScanQrScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -150,30 +149,24 @@ export default function ScanQrScreen() {
         if (scanResults && scanResults.length > 0 && scanResults[0].data) {
           handleSuccessScan(scanResults[0].data);
         } else {
-          Alert.alert(
-            t('scanQr.noQrFoundTitle', { defaultValue: 'Không tìm thấy mã QR' }),
-            t('scanQr.noQrFoundDesc', { defaultValue: 'Không thể nhận diện mã QR trong hình ảnh đã chọn. Vui lòng chọn ảnh chụp rõ nét hơn hoặc thử lại.' })
-          );
+          Alert.alert('No QR code found', "We couldn't read a QR code in this picture. Try a sharper photo.");
         }
       } catch (scanErr) {
         setIsScanningImage(false);
         console.warn('scanFromURLAsync error:', scanErr);
-        Alert.alert(
-          t('scanQr.cannotRecognizeTitle', { defaultValue: 'Không thể nhận diện' }),
-          t('scanQr.cannotRecognizeDesc', { defaultValue: 'Không tìm thấy mã QR hợp lệ trong ảnh này.' })
-        );
+        Alert.alert("Couldn't read code", 'No valid QR code in this picture.');
       }
     } catch (err) {
       setIsScanningImage(false);
       console.error('Image picker error:', err);
-      Alert.alert(t('scanQr.imageErrorTitle', { defaultValue: 'Lỗi chọn ảnh' }), t('scanQr.imageErrorDesc', { defaultValue: 'Không thể mở thư viện ảnh trên thiết bị.' }));
+      Alert.alert("Couldn't open photos", 'Unable to open your photo library.');
     }
   };
 
   // Sao chép địa chỉ ví vào bộ nhớ tạm
   const handleCopyWalletAddress = async () => {
     if (!solanaAddress) {
-      Alert.alert(t('scanQr.noticeTitle', { defaultValue: 'Thông báo' }), t('scanQr.noAddressTitle', { defaultValue: 'Không tìm thấy địa chỉ ví.' }));
+      Alert.alert('Wallet not ready', 'No wallet address found yet.');
       return;
     }
     try {
@@ -196,111 +189,66 @@ export default function ScanQrScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
       await Clipboard.setStringAsync(phoneState);
-      Alert.alert(t('scanQr.copiedTitle', { defaultValue: 'Đã sao chép' }), `${t('scanQr.copiedPhonePrefix', { defaultValue: 'Đã sao chép số điện thoại ví:' })} ${phoneState}`);
+      Alert.alert('Copied', `Phone number copied: ${phoneState}`);
     } catch (e) {
       console.warn('Clipboard copy error:', e);
     }
   };
 
-  // Render Modal QR Của Tôi (My QR)
+  const tap = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+  const openMyQr = () => {
+    tap();
+    setShowMyQrModal(true);
+  };
+
+  // Modal QR của tôi
   function renderMyQrModal() {
     return (
-      <Modal
-        visible={showMyQrModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowMyQrModal(false)}
-      >
+      <Modal visible={showMyQrModal} transparent animationType="fade" onRequestClose={() => setShowMyQrModal(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.myQrModalCard}>
-            {/* Header Modal */}
-            <View style={styles.myQrModalHeader}>
-              <View style={styles.myQrModalIconWrap}>
-                <Ionicons name="qr-code" size={20} color="#000000" />
-              </View>
-              <Text style={styles.myQrModalTitle}>{t('scanQr.myQrTitle', { defaultValue: 'Mã QR Của Tôi' })}</Text>
-              <TouchableOpacity
-                onPress={() => setShowMyQrModal(false)}
-                style={styles.myQrModalCloseBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel={t('scanQr.close', { defaultValue: 'Đóng' })}
-              >
-                <Ionicons name="close" size={20} color="#000000" />
-              </TouchableOpacity>
+          <View style={styles.myQrCard}>
+            <View style={styles.myQrHeader}>
+              <DText variant="h3" accessibilityRole="header" style={styles.flex}>
+                My QR code
+              </DText>
+              <IconButton icon="x" accessibilityLabel="Close" color={colors.text} onPress={() => setShowMyQrModal(false)} />
             </View>
 
-            {/* QR Code Container */}
-            <View style={styles.qrCardContainer}>
+            <View style={styles.qrCard}>
               {solanaAddress ? (
-                <QRCode
-                  value={solanaAddress}
-                  size={190}
-                  color="#000000"
-                  backgroundColor="#FFFFFF"
-                />
+                <QRCode value={solanaAddress} size={190} color={light.text} backgroundColor={colors.white} />
               ) : (
                 <View style={styles.qrLoadingBox}>
-                  <ActivityIndicator size="large" color="#000000" />
-                  <Text style={styles.qrLoadingText}>{t('scanQr.loadingAddress', { defaultValue: 'Đang nạp địa chỉ ví...' })}</Text>
+                  <ActivityIndicator size="large" color={colors.brand} />
+                  <DText variant="caption" tone="onLightSecondary">
+                    Loading wallet address…
+                  </DText>
                 </View>
               )}
             </View>
 
-            {/* Thông tin định danh tài khoản */}
-            <View style={styles.accountInfoWrap}>
-              {phoneState && (
-                <TouchableOpacity
-                  style={styles.phoneBadgeRow}
-                  onPress={handleCopyPhone}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="call" size={14} color="#00A859" />
-                  <Text style={styles.phoneBadgeText}>
-                    {t('scanQr.phoneLabel', { defaultValue: 'SĐT ví:' })} <Text style={{ fontWeight: '900' }}>{phoneState}</Text>
-                  </Text>
-                  <Ionicons name="copy-outline" size={13} color="#64748B" />
-                </TouchableOpacity>
-              )}
+            {phoneState && (
+              <Pressable accessibilityRole="button" accessibilityLabel="Copy phone number" onPress={handleCopyPhone} style={styles.phoneRow}>
+                <Feather name="phone" size={14} color={colors.successText} />
+                <DText variant="mono">{phoneState}</DText>
+                <Feather name="copy" size={14} color={colors.textSecondary} />
+              </Pressable>
+            )}
+            <DText variant="mono" tone="secondary" align="center">
+              {solanaAddress ? shortAddress(solanaAddress) : 'No wallet address yet'}
+            </DText>
 
-              <Text style={styles.addressShortText}>
-                {solanaAddress
-                  ? `${solanaAddress.slice(0, 10)}...${solanaAddress.slice(-10)}`
-                  : t('scanQr.noAddressDetected', { defaultValue: 'Chưa phát hiện địa chỉ ví' })}
-              </Text>
-            </View>
-
-            {/* Action Buttons */}
             <View style={styles.myQrActions}>
-              <TouchableOpacity
-                style={[
-                  styles.copyAddressMainBtn,
-                  copiedAddress && styles.copyAddressMainBtnSuccess,
-                ]}
+              <Button
+                title={copiedAddress ? 'Address copied' : 'Copy wallet address'}
+                icon={copiedAddress ? 'check' : 'copy'}
                 onPress={handleCopyWalletAddress}
-                activeOpacity={0.88}
-              >
-                <Ionicons
-                  name={copiedAddress ? 'checkmark-circle' : 'copy-outline'}
-                  size={18}
-                  color={copiedAddress ? '#FFFFFF' : '#000000'}
-                />
-                <Text
-                  style={[
-                    styles.copyAddressMainBtnText,
-                    copiedAddress && styles.copyAddressMainBtnTextSuccess,
-                  ]}
-                >
-                  {copiedAddress ? t('scanQr.addressCopied', { defaultValue: 'Đã sao chép địa chỉ ví!' }) : t('scanQr.copyAddress', { defaultValue: 'Sao chép địa chỉ ví' })}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.closeMyQrBtn}
-                onPress={() => setShowMyQrModal(false)}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.closeMyQrBtnText}>{t('scanQr.backToScan', { defaultValue: 'Quay lại quét QR' })}</Text>
-              </TouchableOpacity>
+              />
+              <Button title="Back to scanning" variant="ghost" onPress={() => setShowMyQrModal(false)} />
             </View>
           </View>
         </View>
@@ -308,87 +256,44 @@ export default function ScanQrScreen() {
     );
   }
 
-  // Màn hình khi chưa có quyền Camera
+  // Chưa có quyền Camera
   if (!permission?.granted) {
     return (
-      <View style={styles.permissionContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
-        <SafeAreaView style={styles.permissionSafeArea}>
-          {/* Header Back */}
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={() => router.back()}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="arrow-back" size={22} color="#000000" />
-            </TouchableOpacity>
-            <Text style={styles.permissionHeaderTitle}>{t('scanQr.title', { defaultValue: 'Quét Mã QR' })}</Text>
-            <View style={{ width: 44 }} />
+      <Screen>
+        <StatusBar barStyle="light-content" />
+        <Header title="Scan QR code" onBack={() => router.back()} />
+        <View style={styles.permissionCenter}>
+          <View style={styles.permissionIcon}>
+            <Feather name="camera" size={32} color={colors.purple[300]} />
           </View>
-
-          {/* Neo-brutalist Permission Card */}
-          <View style={styles.permissionCenterWrap}>
-            <View style={styles.permissionCard}>
-              <View style={styles.permissionIconBadge}>
-                <Ionicons name="camera" size={36} color="#000000" />
-              </View>
-
-              <Text style={styles.permissionCardTitle}>{t('scanQr.cameraPermTitle', { defaultValue: 'Cần Cấp Quyền Camera' })}</Text>
-              <Text style={styles.permissionCardDesc}>
-                {t('scanQr.cameraPermDesc', { defaultValue: 'Để quét mã QR nhận hoặc chuyển tiền Solana Pay tức thì, N.E.D Wallet cần bạn cấp quyền truy cập máy ảnh.' })}
-              </Text>
-              
-              {Platform.OS === 'web' && (
-                <Text style={[styles.permissionCardDesc, { color: '#FF4C4C', fontWeight: 'bold', marginTop: 4 }]}>
-                  {t('scanQr.webCameraNotice', { defaultValue: 'Lưu ý: Tính năng Quét QR cần được cấp quyền sử dụng Webcam trên trình duyệt. Nếu không khả dụng, vui lòng tải ảnh QR từ máy.' })}
-                </Text>
-              )}
-
-              <TouchableOpacity
-                style={styles.permissionPrimaryBtn}
-                onPress={async () => {
-                  if (Platform.OS !== 'web') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  }
-                  await requestPermission();
-                }}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.permissionPrimaryBtnText}>{t('scanQr.grantCameraPerm', { defaultValue: 'Cấp Quyền Camera' })}</Text>
-              </TouchableOpacity>
-
-              <View style={styles.permissionDivider} />
-
-              <TouchableOpacity
-                style={styles.permissionSecondaryBtn}
-                onPress={handlePickImage}
-                activeOpacity={0.88}
-              >
-                <Ionicons name="images-outline" size={18} color="#000000" />
-                <Text style={styles.permissionSecondaryBtnText}>{t('scanQr.loadFromGallery', { defaultValue: 'Tải ảnh từ thư viện' })}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.permissionSecondaryBtn, { marginTop: 10 }]}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setShowMyQrModal(true);
-                }}
-                activeOpacity={0.88}
-              >
-                <Ionicons name="qr-code-outline" size={18} color="#000000" />
-                <Text style={styles.permissionSecondaryBtnText}>{t('scanQr.viewMyQr', { defaultValue: 'Xem QR của tôi' })}</Text>
-              </TouchableOpacity>
-            </View>
+          <DText variant="h2" align="center">
+            Allow camera access
+          </DText>
+          <DText variant="body" align="center">
+            N.E.D needs your camera to scan QR codes for sending money.
+          </DText>
+          {Platform.OS === 'web' && (
+            <Notice tone="warning" style={styles.permissionNotice}>
+              Your browser must allow the camera. If it can&apos;t, upload a picture of the QR code instead.
+            </Notice>
+          )}
+          <View style={styles.permissionActions}>
+            <Button
+              title="Allow camera"
+              icon="camera"
+              onPress={async () => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
+                await requestPermission();
+              }}
+            />
+            <Button title="Upload from photos" icon="image" variant="secondary" onPress={handlePickImage} />
+            <Button title="Show my QR code" icon="grid" variant="ghost" onPress={openMyQr} />
           </View>
-        </SafeAreaView>
-
-        {/* Modal QR Của Tôi */}
+        </View>
         {renderMyQrModal()}
-      </View>
+      </Screen>
     );
   }
 
@@ -396,695 +301,191 @@ export default function ScanQrScreen() {
     <View style={styles.fullContainer}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* 1. Camera View chiếm trọn 100% màn hình */}
       <CameraView
         style={StyleSheet.absoluteFill}
         facing="back"
         enableTorch={isTorchOn}
-        barcodeScannerSettings={{
-          barcodeTypes: ['qr'],
-        }}
+        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={isScanned ? undefined : handleBarcodeScanned}
       />
 
-      {/* 2. Lớp Overlay tối đục lỗ vùng quét chính giữa */}
+      {/* Lớp tối đục lỗ vùng quét */}
       <View style={styles.overlayContainer} pointerEvents="box-none">
-        {/* Top Overlay */}
         <View style={styles.overlayTop} />
-
-        {/* Middle Row: Left Overlay + Focus Area (Trong suốt) + Right Overlay */}
         <View style={styles.overlayMiddleRow}>
           <View style={styles.overlaySide} />
-
-          {/* Vùng Lấy Nét Trong Suốt (Focus Area) */}
           <View style={styles.focusCutout}>
-            {/* 4 Góc Khung Viền Cyan (#00E5FF) bo góc 16px */}
             <View style={[styles.corner, styles.cornerTL]} />
             <View style={[styles.corner, styles.cornerTR]} />
             <View style={[styles.corner, styles.cornerBL]} />
             <View style={[styles.corner, styles.cornerBR]} />
-
-            {/* Hiệu ứng quét: Vạch Laser ngang Cyan chạy dọc lên xuống */}
-            <Animated.View style={[styles.scanLaserLine, animatedLineStyle]}>
-              <View style={styles.scanLaserCore} />
-              <View style={styles.scanLaserGlow} />
-            </Animated.View>
+            <Animated.View style={[styles.scanLine, animatedLineStyle]} />
           </View>
-
           <View style={styles.overlaySide} />
         </View>
-
-        {/* Bottom Overlay chứa Hướng dẫn & Card Công cụ */}
         <View style={styles.overlayBottom}>
-          {/* Dòng chữ hướng dẫn ngay bên dưới khung quét */}
-          <Text style={styles.guidanceText}>
-            {t('scanQr.guidance', { defaultValue: 'Di chuyển mã QR vào trung tâm khung hình' })}
-          </Text>
-
-          {/* 4. Bottom Actions: Thẻ nổi Floating Card Neo-brutalism */}
-          <View
-            style={[
-              styles.floatingBottomCard,
-              { marginBottom: Math.max(insets.bottom, 16) },
-            ]}
-          >
-            <View style={styles.bottomActionsRow}>
-              {/* Nút 1: Tải ảnh từ Thư viện */}
-              <TouchableOpacity
-                style={styles.actionPillBtn}
-                onPress={handlePickImage}
-                activeOpacity={0.85}
-              >
-                <View style={styles.actionIconBadge}>
-                  <Ionicons name="images" size={18} color="#000000" />
-                </View>
-                <Text style={styles.actionBtnText}>{t('scanQr.uploadImage', { defaultValue: 'Tải ảnh' })}</Text>
-              </TouchableOpacity>
-
-              {/* Nút 2: QR Của Tôi */}
-              <TouchableOpacity
-                style={styles.actionPillBtn}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  setShowMyQrModal(true);
-                }}
-                activeOpacity={0.85}
-              >
-                <View style={[styles.actionIconBadge, { backgroundColor: '#FFE600' }]}>
-                  <Ionicons name="qr-code" size={18} color="#000000" />
-                </View>
-                <Text style={styles.actionBtnText}>{t('scanQr.myQr', { defaultValue: 'QR của tôi' })}</Text>
-              </TouchableOpacity>
-            </View>
+          <DText variant="body" tone="primary" align="center" style={styles.guidance}>
+            Center the QR code in the frame
+          </DText>
+          <View style={[styles.bottomCard, { marginBottom: Math.max(insets.bottom, space[4]) }]}>
+            <Button title="Upload" icon="image" variant="secondary" onPress={handlePickImage} style={styles.flex} />
+            <Button title="My QR" icon="grid" variant="secondary" onPress={openMyQr} style={styles.flex} />
           </View>
         </View>
       </View>
 
-      {/* 3. Header Controls (Trên cùng, trong SafeAreaView) */}
       <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="box-none">
         <View style={styles.headerRow}>
-          {/* Nút Back / Đóng (Góc trái) */}
-          <TouchableOpacity
+          <IconButton
+            icon="chevron-left"
+            accessibilityLabel="Close scanner"
+            color={colors.text}
             style={styles.headerBtn}
             onPress={() => {
-              if (Platform.OS !== 'web') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
+              tap();
               router.back();
             }}
-            activeOpacity={0.85}
-            accessibilityLabel={t('scanQr.closeScanner', { defaultValue: 'Đóng máy quét' })}
-          >
-            <Ionicons name="arrow-back" size={22} color="#000000" />
-          </TouchableOpacity>
-
-          {/* Tiêu đề ở giữa: Chữ trắng, font Heavy, viền shadow đen */}
-          <Text style={styles.headerTitle}>{t('scanQr.title', { defaultValue: 'Quét Mã QR' })}</Text>
-
-          {/* Nút Đèn Pin Flashlight (Góc phải) */}
-          <TouchableOpacity
-            style={[
-              styles.headerBtn,
-              isTorchOn && styles.headerBtnActive,
-            ]}
+          />
+          <DText variant="h3" align="center" style={styles.flex}>
+            Scan QR code
+          </DText>
+          <IconButton
+            icon={isTorchOn ? 'zap' : 'zap-off'}
+            accessibilityLabel={isTorchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+            color={isTorchOn ? colors.warningText : colors.text}
+            style={[styles.headerBtn, isTorchOn && styles.headerBtnActive]}
             onPress={() => {
-              if (Platform.OS !== 'web') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
+              tap();
               setIsTorchOn(!isTorchOn);
             }}
-            activeOpacity={0.85}
-            accessibilityLabel={t('scanQr.toggleFlash', { defaultValue: 'Bật tắt đèn flash' })}
-          >
-            <Ionicons
-              name={isTorchOn ? 'flash' : 'flash-outline'}
-              size={21}
-              color="#000000"
-            />
-          </TouchableOpacity>
+          />
         </View>
       </SafeAreaView>
 
-      {/* Loading Overlay khi đang xử lý ảnh từ thư viện */}
       {isScanningImage && (
         <View style={styles.loadingBackdrop}>
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#000000" />
-            <Text style={styles.loadingText}>{t('scanQr.recognizing', { defaultValue: 'Đang nhận diện mã QR...' })}</Text>
+            <ActivityIndicator size="large" color={colors.purple[300]} />
+            <DText variant="body" tone="primary">
+              Reading QR code…
+            </DText>
           </View>
         </View>
       )}
 
-      {/* Modal QR Của Tôi */}
       {renderMyQrModal()}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  fullContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
+const CORNER = 32;
+const CORNER_W = 4;
 
-  // Header Controls
-  headerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 50,
-  },
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  fullContainer: { flex: 1, backgroundColor: colors.black },
+  headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    gap: space[3],
+    paddingHorizontal: space[5],
+    paddingTop: space[2],
+    width: '100%',
+    maxWidth: sizes.maxContent,
+    alignSelf: 'center',
   },
-  headerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Solid hard shadow
-    shadowColor: '#000000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  headerBtnActive: {
-    backgroundColor: '#FFD700',
-  },
-  headerTitle: {
-    fontSize: 19,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-    // Viền text đen (Text shadow) nổi bật trên camera
-    textShadowColor: '#000000',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
-  },
-
-  // 3-Row Overlay (Phủ đen mờ rgba(0,0,0,0.7) & Đục lỗ trong suốt)
-  overlayContainer: {
+  headerBtn: { backgroundColor: glass.scrim, borderColor: glass.borderStrong },
+  headerBtnActive: { borderColor: glass.warningBorder },
+  overlayContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  overlayTop: { flex: 1, backgroundColor: glass.scrim },
+  overlayMiddleRow: { height: SCAN_SIZE, flexDirection: 'row' },
+  overlaySide: { flex: 1, backgroundColor: glass.scrim },
+  overlayBottom: { flex: 1.35, backgroundColor: glass.scrim, alignItems: 'center', justifyContent: 'space-between', paddingTop: space[6] },
+  focusCutout: { width: SCAN_SIZE, height: SCAN_SIZE, position: 'relative' },
+  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: colors.purple[300] },
+  cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_W, borderLeftWidth: CORNER_W, borderTopLeftRadius: radius.lg },
+  cornerTR: { top: 0, right: 0, borderTopWidth: CORNER_W, borderRightWidth: CORNER_W, borderTopRightRadius: radius.lg },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: CORNER_W, borderLeftWidth: CORNER_W, borderBottomLeftRadius: radius.lg },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: CORNER_W, borderRightWidth: CORNER_W, borderBottomRightRadius: radius.lg },
+  scanLine: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
-  },
-  overlayTop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  overlayMiddleRow: {
-    height: SCAN_SIZE,
-    flexDirection: 'row',
-  },
-  overlaySide: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  overlayBottom: {
-    flex: 1.35,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  // Vùng Lấy Nét Trong Suốt (Focus Cutout)
-  focusCutout: {
-    width: SCAN_SIZE,
-    height: SCAN_SIZE,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-
-  // 4 Góc Viền Cyan (#00E5FF), dày 4px, dài 32px, bo góc 16px
-  corner: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderColor: '#00E5FF',
-  },
-  cornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    borderTopLeftRadius: 16,
-  },
-  cornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 4,
-    borderRightWidth: 4,
-    borderTopRightRadius: 16,
-  },
-  cornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderBottomLeftRadius: 16,
-  },
-  cornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-    borderBottomRightRadius: 16,
-  },
-
-  // Hiệu ứng Laser quét ngang
-  scanLaserLine: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
+    left: space[3],
+    right: space[3],
     height: 3,
-    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.purple[300],
+    boxShadow: `0 0 12px ${colors.purple[400]}`,
   },
-  scanLaserCore: {
-    height: 3,
-    backgroundColor: '#00E5FF',
-    borderRadius: 2,
-    shadowColor: '#00E5FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  scanLaserGlow: {
-    position: 'absolute',
-    top: -4,
-    bottom: -4,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 229, 255, 0.25)',
-    borderRadius: 6,
-  },
-
-  // Hướng dẫn
-  guidanceText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginTop: 18,
-    paddingHorizontal: 24,
-    letterSpacing: 0.2,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 1.5, height: 1.5 },
-    textShadowRadius: 2,
-  },
-
-  // 4. Bottom Actions: Thẻ nổi Floating Card Neo-brutalism
-  floatingBottomCard: {
-    width: SCREEN_WIDTH - 40,
-    backgroundColor: '#FDF8F5',
-    borderWidth: 3,
-    borderColor: '#000000',
-    borderRadius: 18,
-    padding: 14,
-    // Solid hard shadow 4px 4px 0px #000
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-  },
-  bottomActionsRow: {
+  guidance: { paddingHorizontal: space[6] },
+  bottomCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    gap: space[3],
+    width: SCREEN_WIDTH - space[10],
+    maxWidth: sizes.maxContent - space[10],
+    padding: space[3],
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  actionPillBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    gap: 8,
-    // Mini hard shadow 2px 2px 0px #000
-    shadowColor: '#000000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-  },
-  actionIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#E0FFFF', // Cyan nhạt
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#000000',
-    letterSpacing: 0.1,
-  },
-
-  // Loading Overlay
   loadingBackdrop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: glass.scrim,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 99,
+    zIndex: 100,
   },
   loadingBox: {
-    backgroundColor: '#FDF8F5',
-    borderWidth: 3,
-    borderColor: '#000000',
-    borderRadius: 18,
-    paddingVertical: 24,
-    paddingHorizontal: 28,
     alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
+    gap: space[3],
+    padding: space[6],
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  loadingText: {
-    marginTop: 14,
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#000000',
-  },
-
-  // Permission State Styles
-  permissionContainer: {
-    flex: 1,
-    backgroundColor: '#FDF8F5',
-  },
-  permissionSafeArea: {
-    flex: 1,
-  },
-  permissionHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#000000',
-  },
-  permissionCenterWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  permissionCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 3,
-    borderColor: '#000000',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-  },
-  permissionIconBadge: {
+  permissionCenter: { flex: 1, justifyContent: 'center', alignItems: 'stretch', gap: space[3] },
+  permissionIcon: {
     width: 72,
     height: 72,
-    borderRadius: 20,
-    backgroundColor: '#FFE600',
-    borderWidth: 2.5,
-    borderColor: '#000000',
+    borderRadius: radius.pill,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
+    backgroundColor: glass.iconTint,
+    borderWidth: 1,
+    borderColor: glass.accentBorder,
+    marginBottom: space[2],
   },
-  permissionCardTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#000000',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  permissionCardDesc: {
-    fontSize: 13.5,
-    color: '#475569',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  permissionPrimaryBtn: {
-    width: '100%',
-    backgroundColor: '#00E5FF',
-    borderWidth: 2.5,
-    borderColor: '#000000',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  permissionPrimaryBtnText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#000000',
-  },
-  permissionDivider: {
-    width: '100%',
-    height: 1.5,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 16,
-  },
-  permissionSecondaryBtn: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 12,
-    gap: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  permissionSecondaryBtnText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#000000',
-  },
-
-  // Modal QR Của Tôi (My QR Modal)
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  myQrModalCard: {
+  permissionNotice: { marginTop: space[1] },
+  permissionActions: { gap: space[3], marginTop: space[4] },
+  modalBackdrop: { flex: 1, backgroundColor: glass.scrim, alignItems: 'center', justifyContent: 'center', padding: space[5] },
+  myQrCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#FDF8F5',
-    borderWidth: 3,
-    borderColor: '#000000',
-    borderRadius: 22,
-    padding: 22,
-    alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 9,
+    gap: space[3],
+    padding: space[6],
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  myQrModalHeader: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  myQrModalIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFE600',
-    borderWidth: 2,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 1.5, height: 1.5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  myQrModalTitle: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 0.2,
-  },
-  myQrModalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 1.5, height: 1.5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-
-  qrCardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
-    borderColor: '#000000',
-    borderRadius: 18,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-    marginBottom: 16,
-  },
-  qrLoadingBox: {
-    width: 190,
-    height: 190,
+  myQrHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  qrCard: {
+    alignSelf: 'center',
+    width: 222,
+    height: 222,
+    borderRadius: radius.xl,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qrLoadingText: {
-    marginTop: 12,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-
-  accountInfoWrap: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  phoneBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    gap: 6,
-    marginBottom: 8,
-  },
-  phoneBadgeText: {
-    fontSize: 12.5,
-    color: '#065F46',
-  },
-  addressShortText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569',
-    letterSpacing: 0.5,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-
-  myQrActions: {
-    width: '100%',
-    gap: 10,
-  },
-  copyAddressMainBtn: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#00E5FF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 13,
-    gap: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 2.5, height: 2.5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-  },
-  copyAddressMainBtnSuccess: {
-    backgroundColor: '#10B981',
-  },
-  copyAddressMainBtnText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 0.2,
-  },
-  copyAddressMainBtnTextSuccess: {
-    color: '#FFFFFF',
-  },
-
-  closeMyQrBtn: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 11,
-    shadowColor: '#000000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  closeMyQrBtnText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#000000',
-  },
+  qrLoadingBox: { alignItems: 'center', gap: space[2] },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2], minHeight: sizes.touch },
+  myQrActions: { gap: space[2], marginTop: space[2] },
 });

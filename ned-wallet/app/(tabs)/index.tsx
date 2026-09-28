@@ -11,17 +11,22 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/services/auth';
 import { useUserStore } from '@/stores/useUserStore';
 import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
 import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
 import { getXStocks, type XStock } from '@/services/xstocks';
-import { DepositModal } from '@/components/DepositModal';
 import { NotificationModal } from '@/components/NotificationModal';
 import { Mascot } from '@/components/Mascot';
-import { onbFonts } from '@/components/onboarding/theme';
+import { colors, dataColors, diagonal, fonts, glass, gradients, home, light, radius, sizes, space, type } from '@/constants/design';
+
+const walletCards = {
+  cash: gradients.purpleIndigo,
+  crypto: home.cryptoCard,
+  stocks: [dataColors.series[1], colors.purple[400]] as const,
+};
 
 const money = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -44,7 +49,6 @@ export default function HomeScreen() {
   const [stocks, setStocks] = useState<XStock[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [showReceive, setShowReceive] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [hideBalance, setHideBalance] = useState(false);
 
@@ -85,7 +89,7 @@ export default function HomeScreen() {
   if (!isReady)
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#B87AED" />
+        <ActivityIndicator color={colors.purple[300]} />
       </View>
     );
   if (!user) return <Redirect href="/welcome" />;
@@ -112,7 +116,7 @@ export default function HomeScreen() {
     {
       title: 'RECEIVE',
       icon: 'arrow-down',
-      onPress: () => setShowReceive(true),
+      onPress: () => router.push('/receive' as Href),
     },
     { title: 'SEND', icon: 'arrow-up', onPress: () => router.push('/send') },
     { title: 'SWAP', icon: 'repeat', onPress: () => router.push('/swap') },
@@ -132,14 +136,14 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => void refresh()}
-            tintColor="#B87AED"
+            tintColor={colors.purple[300]}
           />
         }
       >
         <LinearGradient
-          colors={['#0A0614', '#251052', '#7550C9', '#FFFFFF']}
-          locations={[0, 0.42, 0.72, 1]}
-          style={[styles.hero, { paddingTop: Math.max(insets.top, 16) }]}
+          colors={home.heroColors}
+          locations={home.heroLocations}
+          style={[styles.hero, { paddingTop: Math.max(insets.top, space[4]) }]}
         >
           <View style={styles.topRow}>
             <Pressable
@@ -147,13 +151,13 @@ export default function HomeScreen() {
               style={styles.profile}
               accessibilityLabel="Your profile"
             >
-              <View style={styles.avatar}>
+              <LinearGradient colors={gradients.purpleIndigo} {...diagonal} style={styles.avatar}>
                 {avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} style={styles.avatar} />
                 ) : (
                   <Mascot mood="welcome" size={42} />
                 )}
-              </View>
+              </LinearGradient>
               <View style={styles.nameWrap}>
                 <Text style={styles.greeting}>{greeting}</Text>
                 <Text numberOfLines={1} style={styles.name}>
@@ -167,7 +171,7 @@ export default function HomeScreen() {
                 style={styles.iconButton}
                 onPress={() => router.push('/scan-qr')}
               >
-                <Feather name="maximize" size={21} color="white" />
+                <Feather name="maximize" size={20} color={colors.text} />
               </Pressable>
               <View style={styles.separator} />
               <Pressable
@@ -175,7 +179,7 @@ export default function HomeScreen() {
                 style={styles.iconButton}
                 onPress={() => setShowNotifications(true)}
               >
-                <Feather name="bell" size={21} color="white" />
+                <Feather name="bell" size={20} color={colors.text} />
               </Pressable>
             </View>
           </View>
@@ -191,7 +195,7 @@ export default function HomeScreen() {
               >
                 <Feather
                   name={hideBalance ? 'eye-off' : 'eye'}
-                  color="#C1B3D7"
+                  color={colors.textSecondary}
                   size={17}
                 />
               </Pressable>
@@ -209,19 +213,19 @@ export default function HomeScreen() {
                 [
                   {
                     label: 'CASH',
-                    colors: ['#9B4FDE', '#6366F1'],
+                    colors: walletCards.cash,
                     text: hideBalance ? '••••' : money(cash),
                   },
                   {
                     label: 'CRYPTO',
-                    colors: ['#238D9E', '#6341BB'],
+                    colors: walletCards.crypto,
                     text: hideBalance
                       ? '••••'
                       : `${balance.sol.toFixed(3)} SOL`,
                   },
                   {
                     label: 'STOCKS',
-                    colors: ['#C98500', '#9B4FDE'],
+                    colors: walletCards.stocks,
                     text: hideBalance
                       ? '••••'
                       : pricesReady
@@ -233,6 +237,7 @@ export default function HomeScreen() {
                 <View key={card.label} style={styles.wallet}>
                   <LinearGradient
                     colors={card.colors}
+                    {...diagonal}
                     style={styles.walletGradient}
                   >
                     <Text style={styles.walletLabel}>{card.label}</Text>
@@ -252,7 +257,7 @@ export default function HomeScreen() {
                 onPress={action.onPress}
               >
                 <View style={styles.actionIcon}>
-                  <Feather name={action.icon} size={20} color="white" />
+                  <Feather name={action.icon} size={18} color={colors.text} />
                 </View>
                 <Text style={styles.actionText}>{action.title}</Text>
               </Pressable>
@@ -267,8 +272,8 @@ export default function HomeScreen() {
               style={styles.historyLink}
               onPress={() => router.push('/history')}
             >
-              <Text style={styles.subtle}>History</Text>
-              <Feather name="arrow-up-right" size={14} color="#6B6780" />
+              <Text style={styles.historyText}>History</Text>
+              <Feather name="arrow-up-right" size={14} color={light.textSecondary} />
             </Pressable>
           </View>
           <AssetRow
@@ -277,7 +282,7 @@ export default function HomeScreen() {
             detail={`${balance.usdc.toFixed(2)} USDC on Devnet`}
             value={hideBalance ? '••••' : money(cash)}
             caption="Demo balance"
-            color="#2779CB"
+            color={dataColors.usdc}
           />
           <AssetRow
             symbol="◎"
@@ -285,7 +290,7 @@ export default function HomeScreen() {
             detail="Devnet · network fees"
             value={hideBalance ? '••••' : `${balance.sol.toFixed(4)} SOL`}
             caption="On-chain balance"
-            color="#7662CE"
+            color={dataColors.sol}
           />
           {ledger.holdings.map((holding) => (
             <Pressable
@@ -308,7 +313,7 @@ export default function HomeScreen() {
                       : '—'
                 }
                 caption="Demo balance"
-                color="#6B6780"
+                color={dataColors.other}
               />
             </Pressable>
           ))}
@@ -317,23 +322,18 @@ export default function HomeScreen() {
               onPress={() => router.push('/xstocks')}
               style={styles.investPrompt}
             >
-              <Feather name="trending-up" color="#7B2FBE" size={23} />
+              <Feather name="trending-up" color={light.accent} size={22} />
               <View style={styles.nameWrap}>
                 <Text style={styles.promptTitle}>Discover xStocks</Text>
                 <Text style={styles.subtle}>
                   Explore companies with live market prices.
                 </Text>
               </View>
-              <Feather name="chevron-right" color="#7B2FBE" size={18} />
+              <Feather name="chevron-right" color={light.accent} size={18} />
             </Pressable>
           ) : null}
         </View>
       </ScrollView>
-      <DepositModal
-        visible={showReceive}
-        onClose={() => setShowReceive(false)}
-        solanaAddress={walletAddress}
-      />
       <NotificationModal
         visible={showNotifications}
         onClose={() => setShowNotifications(false)}
@@ -375,158 +375,130 @@ function AssetRow({
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#0A0614' },
+  page: { flex: 1, backgroundColor: home.heroTop },
   content: {
     flexGrow: 1,
-    backgroundColor: 'white',
+    backgroundColor: light.background,
     paddingBottom: 104,
-    maxWidth: 480,
+    maxWidth: sizes.maxContent,
     width: '100%',
     alignSelf: 'center',
   },
-  loading: { flex: 1, justifyContent: 'center', backgroundColor: '#0A0614' },
-  hero: { paddingHorizontal: 20, paddingBottom: 44 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  loading: { flex: 1, justifyContent: 'center', backgroundColor: home.heroTop },
+  hero: { paddingHorizontal: space[5], paddingBottom: space[10] },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space[3] },
   profile: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    padding: 5,
-    paddingRight: 16,
-    borderRadius: 28,
+    gap: space[3],
+    height: 52,
+    paddingLeft: 5,
+    paddingRight: space[4],
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: '#FFFFFF24',
-    backgroundColor: '#FFFFFF12',
+    borderColor: glass.borderStrong,
+    backgroundColor: glass.fillStrong,
     maxWidth: '65%',
   },
   avatar: {
     width: 42,
     height: 42,
-    borderRadius: 24,
-    backgroundColor: '#8455CF',
+    borderRadius: radius.pill,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
-  nameWrap: { flex: 1 },
-  greeting: { color: '#FFFFFFAA', fontFamily: onbFonts.body, fontSize: 10 },
-  name: { color: 'white', fontFamily: onbFonts.heading, fontSize: 16 },
+  nameWrap: { flex: 1, minWidth: 0 },
+  greeting: { ...type.caption, color: colors.textSecondary },
+  name: { ...type.bodyLarge, fontFamily: fonts.display, lineHeight: 20 },
   topActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 28,
+    height: 52,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: '#FFFFFF24',
-    backgroundColor: '#FFFFFF12',
-    paddingHorizontal: 3,
+    borderColor: glass.borderStrong,
+    backgroundColor: glass.fillStrong,
+    paddingHorizontal: space[1],
   },
   iconButton: {
-    width: 40,
-    height: 48,
+    width: sizes.touch,
+    height: sizes.touch,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  separator: { height: 20, width: 1, backgroundColor: '#FFFFFF24' },
-  balanceBlock: { marginTop: 26 },
-  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  kicker: {
-    color: '#FFFFFF99',
-    fontFamily: onbFonts.bodyMedium,
-    fontSize: 11,
-    letterSpacing: 1.4,
-  },
-  eye: { minWidth: 44, minHeight: 32, justifyContent: 'center' },
-  balance: {
-    color: 'white',
-    fontFamily: onbFonts.heading,
-    fontSize: 46,
-    letterSpacing: -1.8,
-  },
-  demo: {
-    color: '#D4C9EA',
-    fontFamily: onbFonts.body,
-    fontSize: 10,
-    marginTop: 8,
-  },
-  wallets: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  wallet: { width: 85, borderRadius: 8, overflow: 'hidden' },
-  walletGradient: { padding: 8, height: 48, justifyContent: 'space-between' },
-  walletLabel: {
-    fontFamily: onbFonts.bodyBold,
-    fontSize: 8,
-    color: '#FFFFFFBB',
-  },
-  walletValue: { fontFamily: onbFonts.monoBold, fontSize: 9, color: 'white' },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 26 },
+  separator: { height: 20, width: 1, backgroundColor: glass.borderStrong },
+  balanceBlock: { marginTop: space[8] },
+  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  kicker: { ...type.label, letterSpacing: 1.4 },
+  eye: { minWidth: sizes.touch, minHeight: 32, justifyContent: 'center' },
+  balance: { ...type.hero, marginTop: space[2] },
+  demo: { ...type.caption, color: colors.textSecondary, marginTop: space[2] },
+  wallets: { flexDirection: 'row', gap: space[3], marginTop: space[5] },
+  wallet: { width: 96, borderRadius: radius.sm, overflow: 'hidden' },
+  walletGradient: { paddingHorizontal: space[2], paddingVertical: 6, height: 52, justifyContent: 'space-between' },
+  walletLabel: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 14, color: colors.text },
+  walletValue: { fontFamily: fonts.monoBold, fontSize: 11, lineHeight: 14, color: colors.text },
+  actions: { flexDirection: 'row', gap: space[2], marginTop: space[6] },
   action: {
     flex: 1,
-    backgroundColor: '#FFFFFFEB',
-    borderRadius: 16,
-    padding: 12,
-    height: 100,
+    backgroundColor: home.tile,
+    borderRadius: radius.lg,
+    padding: space[3],
+    height: 104,
     justifyContent: 'space-between',
-    boxShadow: '0 4px 14px rgba(32,12,60,0.08)',
+    boxShadow: home.tileShadow,
   },
   actionIcon: {
     width: 30,
     height: 30,
-    backgroundColor: '#1B1428',
-    borderRadius: 8,
+    backgroundColor: light.text,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionText: { color: '#24192E', fontFamily: onbFonts.bodyBold, fontSize: 9 },
-  assets: { paddingHorizontal: 20 },
+  actionText: { fontFamily: fonts.displaySemi, fontSize: 12, letterSpacing: 0.8, color: light.text },
+  assets: { paddingHorizontal: space[5] },
   section: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: space[2],
   },
-  sectionTitle: {
-    fontFamily: onbFonts.heading,
-    fontSize: 20,
-    color: '#221A2E',
-  },
-  historyLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    minHeight: 44,
-  },
-  subtle: {
-    color: '#6B6780',
-    fontFamily: onbFonts.body,
-    fontSize: 11,
-    marginTop: 4,
-  },
+  sectionTitle: { ...type.h3, fontFamily: fonts.display, color: light.text },
+  historyLink: { flexDirection: 'row', alignItems: 'center', gap: space[1], minHeight: sizes.touch },
+  historyText: { ...type.body, fontFamily: fonts.bodyMedium, color: light.textSecondary },
+  subtle: { ...type.caption, color: light.textSecondary, marginTop: 2 },
   assetRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space[3],
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: space[4],
     borderBottomWidth: 1,
-    borderColor: '#F0ECF5',
+    borderColor: light.divider,
   },
   assetIcon: {
     width: 42,
     height: 42,
-    borderRadius: 24,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  assetSymbol: { color: 'white', fontFamily: onbFonts.heading, fontSize: 20 },
-  assetName: { color: '#24192E', fontFamily: onbFonts.bodySemi, fontSize: 14 },
+  assetSymbol: { ...type.h3, fontFamily: fonts.display, color: colors.text },
+  assetName: { ...type.bodyLarge, fontFamily: fonts.bodySemi, fontSize: 15, color: light.text },
   assetRight: { alignItems: 'flex-end' },
-  assetValue: { color: '#24192E', fontFamily: onbFonts.monoBold, fontSize: 12 },
-  assetCaption: { color: '#6B6780', fontSize: 10, marginTop: 5 },
+  assetValue: { ...type.mono, fontFamily: fonts.monoBold, color: light.text },
+  assetCaption: { ...type.caption, color: light.textSecondary, marginTop: 2 },
   investPrompt: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space[3],
     alignItems: 'center',
-    backgroundColor: '#F6F0FB',
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 20,
+    backgroundColor: light.surface,
+    padding: space[4],
+    borderRadius: radius.lg,
+    marginTop: space[5],
   },
-  promptTitle: { fontFamily: onbFonts.heading, color: '#492369', fontSize: 14 },
-  error: { color: '#A54C16', fontSize: 12, marginBottom: 12 },
+  promptTitle: { ...type.bodyLarge, fontFamily: fonts.display, fontSize: 15, color: light.text },
+  error: { ...type.caption, color: light.errorText, marginBottom: space[3] },
 });

@@ -7,7 +7,8 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { useWalletModeStore, type WalletMode } from '../../stores/useWalletModeStore';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
-import { onbColors, onbFonts } from '../../components/onboarding/theme';
+import { Badge } from '../../components/design';
+import { colors, diagonal, fonts, glass, gradients, radius, space, type } from '../../constants/design';
 
 const MODES: {
   id: WalletMode;
@@ -71,21 +72,19 @@ export default function ModeScreen() {
               >
                 <View style={styles.optionRow}>
                   {on ? (
-                    <LinearGradient colors={[onbColors.purple, onbColors.indigo]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconBox}>
-                      <Feather name={m.icon} size={22} color="#FFFFFF" />
+                    <LinearGradient colors={gradients.purpleIndigo} {...diagonal} style={styles.iconBox}>
+                      <Feather name={m.icon} size={22} color={colors.text} />
                     </LinearGradient>
                   ) : (
                     <View style={[styles.iconBox, styles.iconBoxOff]}>
-                      <Feather name={m.icon} size={22} color="#FFFFFF" />
+                      <Feather name={m.icon} size={22} color={colors.text} />
                     </View>
                   )}
                   <View style={styles.flex}>
                     <View style={styles.titleRow}>
                       <Text style={styles.title}>{m.title}</Text>
                       {m.recommended ? (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>RECOMMENDED</Text>
-                        </View>
+                        <Badge label="RECOMMENDED" tone="success" />
                       ) : null}
                     </View>
                     <Text style={styles.desc}>{m.desc}</Text>
@@ -114,49 +113,40 @@ export default function ModeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 22 },
-  lead: { marginTop: 8 },
-  options: { marginTop: 24, gap: 12 },
-  option: { padding: 16, borderRadius: 18, borderWidth: 1.5 },
-  optionOn: { backgroundColor: 'rgba(123,47,190,0.2)', borderColor: onbColors.purple400 },
-  optionOff: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' },
-  optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconBox: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  iconBoxOff: { backgroundColor: 'rgba(255,255,255,0.08)' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontFamily: onbFonts.heading, fontSize: 17, color: onbColors.text },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(74,222,128,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(74,222,128,0.35)',
-  },
-  badgeText: { fontFamily: onbFonts.bodyBold, fontSize: 10, letterSpacing: 0.4, color: '#86EFAC' },
-  desc: { marginTop: 4, fontFamily: onbFonts.body, fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.7)' },
+  body: { flex: 1, paddingHorizontal: space[6], paddingTop: space[6] },
+  lead: { marginTop: space[2] },
+  options: { marginTop: space[6], gap: space[3] },
+  option: { padding: space[4], borderRadius: radius.xl, borderWidth: 1.5 },
+  optionOn: { backgroundColor: glass.accentFill, borderColor: colors.purple[400] },
+  optionOff: { backgroundColor: glass.fill, borderColor: glass.border },
+  optionRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  iconBox: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  iconBoxOff: { backgroundColor: glass.fillStrong },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  title: { ...type.h3, fontFamily: fonts.display },
+  desc: { ...type.body, marginTop: space[1] },
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.pill,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: colors.textTertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOn: { borderColor: onbColors.purple300 },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
-  radioDotOn: { backgroundColor: onbColors.purple300 },
+  radioOn: { borderColor: colors.purple[300] },
+  radioDot: { width: 10, height: 10, borderRadius: radius.pill },
+  radioDotOn: { backgroundColor: colors.purple[300] },
   previewRow: {
-    marginTop: 14,
-    paddingTop: 12,
+    marginTop: space[4],
+    paddingTop: space[3],
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: glass.divider,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  previewLabel: { fontFamily: onbFonts.body, fontSize: 11, color: 'rgba(255,255,255,0.55)' },
-  preview: { fontFamily: onbFonts.monoBold, fontSize: 13, color: onbColors.text },
-  footer: { paddingBottom: 28 },
+  previewLabel: type.caption,
+  preview: { ...type.mono, fontFamily: fonts.monoBold },
+  footer: { paddingBottom: space[8] },
 });

@@ -1,5 +1,7 @@
 import React, { useId } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { DText } from '@/components/design';
+import { colors, glass } from '@/constants/design';
 import Svg, {
   Circle,
   Defs,
@@ -15,7 +17,7 @@ export function PriceChart({ values }: { values: number[] }) {
   if (values.length < 2)
     return (
       <View style={styles.empty}>
-        <Text style={styles.label}>Chart data unavailable</Text>
+        <DText variant="caption">Chart data unavailable</DText>
       </View>
     );
   const min = Math.min(...values);
@@ -26,7 +28,7 @@ export function PriceChart({ values }: { values: number[] }) {
   ]);
   const points = coords.map((point) => point.join(',')).join(' ');
   const end = coords[coords.length - 1];
-  const color = values.at(-1)! >= values[0] ? '#22C55E' : '#F87171';
+  const color = values.at(-1)! >= values[0] ? colors.success : colors.errorText;
   return (
     <Svg
       accessibilityLabel="Price history chart"
@@ -45,7 +47,7 @@ export function PriceChart({ values }: { values: number[] }) {
         y1="205"
         x2="340"
         y2="205"
-        stroke="#FFFFFF15"
+        stroke={glass.border}
         strokeDasharray="3 4"
       />
       <Polygon
@@ -66,5 +68,4 @@ export function PriceChart({ values }: { values: number[] }) {
 }
 const styles = StyleSheet.create({
   empty: { height: 232, alignItems: 'center', justifyContent: 'center' },
-  label: { color: '#FFFFFF80', fontSize: 12 },
 });

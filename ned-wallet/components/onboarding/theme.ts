@@ -1,41 +1,40 @@
-// Design tokens của onboarding — lấy từ docs/02-thiet-ke/README.md và các file canvas Onb*.dc.html (khung 390×844).
-// Tên font khớp với key nạp bằng useFonts trong app/_layout.tsx (@expo-google-fonts).
+// Tên cũ của onboarding, nay trỏ vào DesignKit (constants/design.ts) để mọi màn dùng chung một bộ token.
+import { colors, fonts, glass, gradients } from '@/constants/design';
 
 export const onbColors = {
-  purple: '#7B2FBE',
-  purple400: '#9B4FDE',
-  purple300: '#B87AED',
-  purple600: '#5A1D9E',
-  indigo: '#6366F1',
-  lavender: '#C9A2F2',
-  success: '#22C55E',
-  successText: '#4ADE80',
-  warning: '#FBBF24',
-  danger: '#F87171',
-  text: '#FFFFFF',
-  textMuted: 'rgba(255,255,255,0.68)',
-  textSubtle: 'rgba(255,255,255,0.5)',
-  border: 'rgba(255,255,255,0.14)',
-  surface: 'rgba(255,255,255,0.05)',
+  purple: colors.purple[500],
+  purple400: colors.purple[400],
+  purple300: colors.purple[300],
+  purple600: colors.purple[600],
+  indigo: colors.info,
+  lavender: colors.purple[200],
+  success: colors.success,
+  successText: colors.successText,
+  warning: colors.warningText,
+  danger: colors.errorText,
+  text: colors.text,
+  textMuted: colors.textSecondary,
+  textSubtle: colors.textTertiary,
+  border: glass.borderStrong,
+  surface: glass.fill,
   dark: '#16101F',
 } as const;
 
-/** Nền tối onboarding: linear-gradient(170deg, #110822 → #0D0618 → #080812 → #06060E) */
 export const onbBackground = {
-  colors: ['#110822', '#0D0618', '#080812', '#06060E'] as const,
-  locations: [0, 0.3, 0.6, 1] as const,
+  colors: gradients.screen,
+  locations: gradients.screenLocations,
 };
 
-/** Nút chính: linear-gradient(135deg, #7B2FBE, #9B4FDE, #6366F1), cao 56, bo 16 */
-export const onbPrimaryGradient = ['#7B2FBE', '#9B4FDE', '#6366F1'] as const;
+/** Nút chính: gradient NED Primary #7B2FBE → #9B4FDE */
+export const onbPrimaryGradient = gradients.primary;
 
 export const onbFonts = {
-  heading: 'SpaceGrotesk_700Bold',
-  headingMedium: 'SpaceGrotesk_600SemiBold',
-  body: 'Inter_400Regular',
-  bodyMedium: 'Inter_500Medium',
-  bodySemi: 'Inter_600SemiBold',
-  bodyBold: 'Inter_700Bold',
-  mono: 'SpaceMono_400Regular',
-  monoBold: 'SpaceMono_700Bold',
+  heading: fonts.display,
+  headingMedium: fonts.displaySemi,
+  body: fonts.body,
+  bodyMedium: fonts.bodyMedium,
+  bodySemi: fonts.bodySemi,
+  bodyBold: fonts.bodySemi, // DesignKit: Inter chỉ dùng 400/500/600
+  mono: fonts.mono,
+  monoBold: fonts.monoBold,
 } as const;

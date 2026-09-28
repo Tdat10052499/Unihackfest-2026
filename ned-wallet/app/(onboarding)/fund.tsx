@@ -10,7 +10,8 @@ import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { useAuth } from '../../services/auth';
 import { formatSol, getSetupCost } from '../../services/onboarding';
 import { NoticeCard, OnbScreen, PrimaryButton, onbText } from '../../components/onboarding/ui';
-import { onbColors, onbFonts } from '../../components/onboarding/theme';
+import { Badge, Card } from '../../components/design';
+import { colors, fonts, glass, radius, sizes, space, type } from '../../constants/design';
 
 const POLL_MS = 3000;
 const FAUCET_URL = 'https://faucet.solana.com';
@@ -95,10 +96,7 @@ export default function FundScreen() {
   return (
     <OnbScreen>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.badge}>
-          <Feather name="droplet" size={12} color={onbColors.warning} />
-          <Text style={styles.badgeText}>Devnet test SOL — no real money</Text>
-        </View>
+        <Badge icon="droplet" tone="warning" label="Devnet test SOL — no real money" />
         <Text style={[onbText.h1, styles.title]} accessibilityRole="header">
           Add test SOL to get started
         </Text>
@@ -107,7 +105,7 @@ export default function FundScreen() {
           money). This is a one-time step.
         </Text>
 
-        <View style={styles.amounts}>
+        <Card style={styles.amounts}>
           <View style={styles.amount}>
             <Text style={styles.amountLabel}>Needed</Text>
             <Text style={styles.amountValue}>{required === null ? '…' : `≈ ${formatSol(required)} SOL`}</Text>
@@ -115,23 +113,23 @@ export default function FundScreen() {
           <View style={styles.amountDivider} />
           <View style={styles.amount}>
             <Text style={styles.amountLabel}>Your balance</Text>
-            <Text style={[styles.amountValue, enough && { color: onbColors.successText }]}>
+            <Text style={[styles.amountValue, enough && { color: colors.successText }]}>
               {balance === null ? '…' : `${formatSol(balance)} SOL`}
             </Text>
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.card}>
+        <Card style={styles.card}>
           <View style={styles.qr}>{walletAddress ? <QRCode value={walletAddress} size={148} /> : null}</View>
           <Text style={styles.cardLabel}>Your wallet address (Solana devnet)</Text>
           <Text style={styles.address} selectable>
             {walletAddress ?? '…'}
           </Text>
           <Pressable accessibilityRole="button" onPress={copyAddress} style={styles.copy}>
-            <Feather name={copied ? 'check' : 'copy'} size={14} color={onbColors.lavender} />
+            <Feather name={copied ? 'check' : 'copy'} size={14} color={colors.purple[200]} />
             <Text style={styles.copyText}>{copied ? 'Copied' : 'Copy address'}</Text>
           </Pressable>
-        </View>
+        </Card>
 
         {airdrop === 'sent' ? (
           <NoticeCard tone="info" style={styles.notice}>
@@ -147,7 +145,7 @@ export default function FundScreen() {
         <PrimaryButton title="Get test SOL" onPress={getTestSol} loading={airdrop === 'loading'} disabled={!walletAddress} />
         <Pressable accessibilityRole="link" onPress={() => Linking.openURL(FAUCET_URL)} style={styles.faucet}>
           <Text style={styles.faucetText}>Or open faucet.solana.com (choose Devnet, paste your address)</Text>
-          <Feather name="external-link" size={13} color={onbColors.lavender} />
+          <Feather name="external-link" size={13} color={colors.purple[200]} />
         </Pressable>
         <Text style={[onbText.caption, styles.waiting]}>Checking your balance every few seconds…</Text>
       </ScrollView>
@@ -156,69 +154,40 @@ export default function FundScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 28 },
-  badge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.35)',
-  },
-  badgeText: { fontFamily: onbFonts.bodySemi, fontSize: 11, color: onbColors.warning },
-  title: { marginTop: 14 },
-  lead: { marginTop: 8 },
-  amounts: {
-    marginTop: 20,
-    flexDirection: 'row',
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: onbColors.surface,
-    borderWidth: 1,
-    borderColor: onbColors.border,
-  },
-  amount: { flex: 1, gap: 4 },
-  amountDivider: { width: 1, backgroundColor: onbColors.border, marginHorizontal: 12 },
-  amountLabel: { fontFamily: onbFonts.body, fontSize: 12, color: onbColors.textSubtle },
-  amountValue: { fontFamily: onbFonts.monoBold, fontSize: 15, color: onbColors.text },
-  card: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: onbColors.border,
-    alignItems: 'center',
-  },
-  qr: { padding: 10, borderRadius: 12, backgroundColor: '#FFFFFF' },
-  cardLabel: { marginTop: 14, fontFamily: onbFonts.bodySemi, fontSize: 12, color: onbColors.textSubtle },
-  address: { marginTop: 6, fontFamily: onbFonts.mono, fontSize: 13, color: onbColors.text, textAlign: 'center' },
+  scroll: { paddingHorizontal: space[6], paddingTop: space[6], paddingBottom: space[8] },
+  title: { marginTop: space[4] },
+  lead: { marginTop: space[2] },
+  amounts: { marginTop: space[5], flexDirection: 'row' },
+  amount: { flex: 1, gap: space[1] },
+  amountDivider: { width: 1, backgroundColor: glass.border, marginHorizontal: space[3] },
+  amountLabel: type.caption,
+  amountValue: { ...type.mono, fontFamily: fonts.monoBold },
+  card: { marginTop: space[4], alignItems: 'center' },
+  qr: { padding: space[3], borderRadius: radius.md, backgroundColor: colors.white },
+  cardLabel: { ...type.caption, marginTop: space[4], fontFamily: fonts.bodySemi },
+  address: { ...type.mono, marginTop: space[2], fontSize: 13, textAlign: 'center' },
   copy: {
-    marginTop: 10,
-    minHeight: 44,
-    paddingHorizontal: 14,
+    marginTop: space[3],
+    minHeight: sizes.touch,
+    paddingHorizontal: space[4],
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(155,79,222,0.14)',
+    gap: space[2],
+    borderRadius: radius.pill,
+    backgroundColor: glass.iconTint,
     borderWidth: 1,
-    borderColor: 'rgba(155,79,222,0.4)',
+    borderColor: glass.accentBorder,
   },
-  copyText: { fontFamily: onbFonts.bodySemi, fontSize: 13, color: '#E4D0FA' },
-  notice: { marginTop: 16 },
+  copyText: { ...type.body, fontFamily: fonts.bodySemi, color: colors.purple[100] },
+  notice: { marginTop: space[4], marginBottom: space[3] },
   faucet: {
-    marginTop: 12,
-    minHeight: 44,
+    marginTop: space[3],
+    minHeight: sizes.touch,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: space[2],
   },
-  faucetText: { fontFamily: onbFonts.bodyMedium, fontSize: 13, color: onbColors.lavender, textAlign: 'center' },
-  waiting: { marginTop: 4 },
+  faucetText: { ...type.body, fontFamily: fonts.bodyMedium, color: colors.purple[200], textAlign: 'center' },
+  waiting: { marginTop: space[1] },
 });

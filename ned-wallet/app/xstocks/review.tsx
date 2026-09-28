@@ -20,8 +20,9 @@ import {
 } from '@/components/xstocks/Screen';
 import { SlideConfirm } from '@/components/wallet/SlideConfirm';
 import { RiskDisclosure } from '@/components/xstocks/RiskDisclosure';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
-import { StyleSheet, Text, View } from 'react-native';
+import { Badge, DText, Notice } from '@/components/design';
+import { space } from '@/constants/design';
+import { StyleSheet, View } from 'react-native';
 
 const riskKey = (wallet: string) => `@ned_xstocks_risk:${wallet}`;
 
@@ -139,23 +140,24 @@ export default function XStockReviewScreen() {
     <Screen>
       <Header title="Review order" onBack={() => router.back()} />
       <View style={styles.hero}>
-        <Text style={styles.pill}>
-          {side === 'buy' ? 'Buy' : 'Sell'} {stock.symbol}
-        </Text>
-        <Text style={styles.amount}>
+        <Badge
+          tone="accent"
+          label={`${side === 'buy' ? 'Buy' : 'Sell'} ${stock.symbol}`}
+        />
+        <DText variant="hero" adjustsFontSizeToFit numberOfLines={1}>
           {side === 'buy'
             ? `$${amountNumberSafe(amount).toFixed(2)}`
             : `$${netOut.toFixed(2)}`}
-        </Text>
-        <Text style={styles.shares}>
+        </DText>
+        <DText variant="mono" tone="secondary">
           {side === 'buy' ? netOut.toFixed(6) : soldQuantity.toFixed(6)}{' '}
           {stock.symbol}
-        </Text>
+        </DText>
       </View>
       <Card>
-        <Text style={styles.cardTitle}>
+        <DText variant="h3" style={styles.cardTitle}>
           {side === 'buy' ? 'Buy' : 'Sell'} {stock.symbol}
-        </Text>
+        </DText>
         <InfoRow
           label={side === 'buy' ? 'You pay' : 'You sell'}
           value={
@@ -211,10 +213,10 @@ export default function XStockReviewScreen() {
         />
       </Card>
       {!isUsMarketOpen() ? (
-        <Text style={styles.weekend}>
+        <Notice tone="warning">
           US market is closed. Live on-chain prices may differ from Friday’s
           close.
-        </Text>
+        </Notice>
       ) : null}
       {requiresRisk ? (
         <RiskDisclosure
@@ -222,7 +224,11 @@ export default function XStockReviewScreen() {
           onChange={() => setAccepted((value) => !value)}
         />
       ) : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <DText variant="caption" tone="error" style={styles.error}>
+          {error}
+        </DText>
+      ) : null}
       <SlideConfirm
         title={
           busy
@@ -234,9 +240,9 @@ export default function XStockReviewScreen() {
         disabled={busy || (requiresRisk && !accepted)}
         onConfirm={() => void confirm()}
       />
-      <Text style={styles.demo}>
+      <DText variant="caption" align="center" style={styles.demo}>
         Demo mode · real price, no real funds moved
-      </Text>
+      </DText>
     </Screen>
   );
 }
@@ -247,37 +253,8 @@ function amountNumberSafe(value: string) {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', paddingVertical: 18, gap: 12 },
-  pill: {
-    color: '#DDD1EC',
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF0C',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontFamily: onbFonts.bodyMedium,
-    fontSize: 12,
-  },
-  amount: { color: 'white', fontFamily: onbFonts.heading, fontSize: 44 },
-  shares: { color: '#FFFFFF88', fontFamily: onbFonts.mono, fontSize: 12 },
-  cardTitle: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  weekend: {
-    color: '#FBBF24',
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  demo: {
-    color: 'rgba(255,255,255,0.48)',
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  error: { color: '#FB7185', fontSize: 12, marginTop: 8 },
+  hero: { alignItems: 'center', paddingVertical: space[4], gap: space[3] },
+  cardTitle: { marginBottom: space[1] },
+  demo: { marginTop: space[3] },
+  error: { marginTop: space[2] },
 });

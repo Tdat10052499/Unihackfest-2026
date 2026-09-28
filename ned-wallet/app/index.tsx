@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '../services/auth';
 import { MASCOT_IMAGES } from '../constants/mascot';
-import { onbFonts } from '../components/onboarding/theme';
+import { colors, fonts, glass, purple, space } from '../constants/design';
 
 const SPLASH_MS = 900;
 
@@ -68,7 +68,7 @@ export default function SplashScreen() {
       style={styles.fill}
     >
       <LinearGradient
-        colors={['#8A3AD0', '#7B2FBE', '#5A1D9E', '#3A1170']}
+        colors={[purple[400], purple[500], purple[600], purple[700]]}
         locations={[0, 0.38, 0.72, 1]}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 0.8, y: 1 }}
@@ -93,13 +93,13 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 128,
     height: 128,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 36, // biểu tượng app (OnbSplash), không thuộc thang radius thẻ
+    backgroundColor: glass.onBrand,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
+    borderColor: glass.onBrandBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1E0646',
+    shadowColor: purple[900],
     shadowOpacity: 0.45,
     shadowRadius: 25,
     shadowOffset: { width: 0, height: 18 },
@@ -107,11 +107,11 @@ const styles = StyleSheet.create({
   },
   icon: { width: 98, height: 100 },
   word: {
-    marginTop: 28,
-    fontFamily: onbFonts.heading,
-    fontSize: 34,
+    marginTop: space[8],
+    fontFamily: fonts.display,
+    fontSize: 32,
     letterSpacing: 8,
-    paddingLeft: 8,
-    color: '#FFFFFF',
+    paddingLeft: space[2],
+    color: colors.text,
   },
 });

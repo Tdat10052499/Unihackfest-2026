@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { DemoLedger } from '@/services/demoLedger';
 import type { XStock } from '@/services/xstocks';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { Card, DText } from '@/components/design';
+import { fonts, glass, space } from '@/constants/design';
 import { Mascot } from '@/components/Mascot';
 import { AllocationBar } from './AllocationBar';
 
@@ -47,38 +48,38 @@ export function InvestmentsCard({
   );
   const allTime = value - currentCostBasis + realized;
   return (
-    <View style={styles.card}>
-      <Text style={styles.kicker}>Your investments</Text>
-      <Text style={styles.total}>
+    <Card style={styles.card}>
+      <DText variant="label">Your investments</DText>
+      <DText variant="h1" style={styles.total}>
         $
         {value.toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })}
-      </Text>
-      <Text style={styles.demo}>Demo balance</Text>
+      </DText>
+      <DText variant="caption" tone="accent">
+        Demo balance
+      </DText>
       <View style={styles.stats}>
         <View>
-          <Text style={styles.statLabel}>Today</Text>
-          <Text
-            style={[
-              styles.statValue,
-              today >= 0 ? styles.positive : styles.negative,
-            ]}
+          <DText variant="caption">Today</DText>
+          <DText
+            variant="mono"
+            tone={today >= 0 ? 'success' : 'error'}
+            style={styles.statValue}
           >
             {today >= 0 ? '+' : ''}${today.toFixed(2)}
-          </Text>
+          </DText>
         </View>
         <View>
-          <Text style={styles.statLabel}>All-time</Text>
-          <Text
-            style={[
-              styles.statValue,
-              allTime >= 0 ? styles.positive : styles.negative,
-            ]}
+          <DText variant="caption">All-time</DText>
+          <DText
+            variant="mono"
+            tone={allTime >= 0 ? 'success' : 'error'}
+            style={styles.statValue}
           >
             {allTime >= 0 ? '+' : ''}${allTime.toFixed(2)}
-          </Text>
+          </DText>
         </View>
       </View>
       <AllocationBar holdings={ledger.holdings} stocks={stocks} />
@@ -86,105 +87,63 @@ export function InvestmentsCard({
         <View style={styles.empty}>
           <Mascot mood="curious" size={70} />
           <View style={styles.emptyCopy}>
-            <Text style={styles.emptyTitle}>No investments yet</Text>
-            <Text style={styles.emptyText}>
+            <DText variant="h3">
+              No investments yet
+            </DText>
+            <DText variant="caption" tone="secondary">
               Start with as little as $1. Pick a company below.
-            </Text>
+            </DText>
           </View>
         </View>
       ) : (
         (showAll ? holdings : holdings.slice(0, 3)).map((holding) => (
           <View key={holding.mint} style={styles.holding}>
-            <Text style={styles.holdingSymbol}>{holding.symbol}</Text>
-            <Text style={styles.holdingQty}>{holding.quantity.toFixed(5)}</Text>
-            <Text style={styles.holdingValue}>${holding.value.toFixed(2)}</Text>
+            <DText variant="body" tone="primary" style={styles.holdingSymbol}>
+              {holding.symbol}
+            </DText>
+            <DText variant="caption" style={styles.holdingQty}>
+              {holding.quantity.toFixed(5)}
+            </DText>
+            <DText variant="mono">${holding.value.toFixed(2)}</DText>
           </View>
         ))
       )}
       {holdings.length > 3 ? (
         <Pressable onPress={onSeeAll} style={styles.more}>
-          <Text style={styles.moreText}>
+          <DText variant="body" tone="accent" style={styles.moreText}>
             {showAll ? 'Show less' : 'See all investments ›'}
-          </Text>
+          </DText>
         </Pressable>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginTop: 16,
-    padding: 17,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-  },
-  kicker: {
-    color: 'rgba(255,255,255,0.56)',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontSize: 10,
-  },
-  total: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 30,
-    marginTop: 6,
-  },
-  demo: { color: '#B87AED', fontSize: 10, marginTop: 2 },
-  stats: { flexDirection: 'row', gap: 22, marginTop: 11 },
-  statLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 10 },
-  statValue: { fontFamily: onbFonts.mono, fontSize: 12, marginTop: 4 },
-  positive: { color: '#4ADE80' },
-  negative: { color: '#FB7185' },
+  card: { marginTop: space[4] },
+  total: { marginTop: space[1] },
+  stats: { flexDirection: 'row', gap: space[6], marginTop: space[3] },
+  statValue: { marginTop: space[1] },
   holding: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
-    marginTop: 10,
+    paddingTop: space[3],
+    marginTop: space[2],
     borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: glass.divider,
   },
-  holdingSymbol: {
-    flex: 1,
-    color: onbColors.text,
-    fontFamily: onbFonts.bodyBold,
-  },
-  holdingQty: {
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: onbFonts.mono,
-    fontSize: 10,
-    marginRight: 12,
-  },
-  holdingValue: {
-    color: onbColors.text,
-    fontFamily: onbFonts.mono,
-    fontSize: 12,
-  },
+  holdingSymbol: { flex: 1, fontFamily: fonts.bodySemi },
+  holdingQty: { fontFamily: fonts.mono, marginRight: space[3] },
   empty: {
     flexDirection: 'row',
-    gap: 13,
+    gap: space[3],
     alignItems: 'center',
-    paddingVertical: 14,
-    marginTop: 12,
+    paddingVertical: space[3],
+    marginTop: space[3],
     borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: glass.divider,
   },
-  teddy: { color: '#D5A7F4', fontSize: 28 },
   emptyCopy: { flex: 1 },
-  emptyTitle: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 14,
-  },
-  emptyText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 3,
-  },
-  more: { alignItems: 'center', marginTop: 12 },
-  moreText: { color: '#B87AED', fontFamily: onbFonts.heading, fontSize: 12 },
+  more: { alignItems: 'center', justifyContent: 'center', marginTop: space[3], minHeight: 44 },
+  moreText: { fontFamily: fonts.displaySemi },
 });
