@@ -117,6 +117,16 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Test filter dùng fixture theo schema Tokens API (5 bản ghi kiểm thử, không phải snapshot live do thiếu key); test ledger buy/sell/cost basis/reset, giờ thị trường và cấu hình 6M daily đều pass. `node --test services/__tests__/demoLedger.test.ts services/__tests__/xstocks.test.ts` pass; `pnpm test:xstocks` lỗi do SQLite store pnpm global ở đường dẫn Windows trong WSL. `npx tsc --noEmit` pass; eslint phần code mới 0 lỗi; `npx expo export --platform web` và `--platform android` pass (còn cảnh báo exports dependency đã có).
 - **Còn cần test tay Safari iPhone sau khi thêm key public vào `.env` và deploy**: chạy `pnpm xstocks:diagnose` (gửi output, tuyệt đối không gửi key), đảm bảo ≥5 mã; mở AAPLx, thử 1D/1W/1M/6M; mua $50, xác nhận Cash giảm và danh mục/allocation tăng; bán 50%, xem P/L; Reset demo data trong Settings (dev). Kiểm tra Network không có `/execute`. Chưa đánh dấu Phase 3 hoàn tất đến khi có dữ liệu API và test tay này.
 
+### Căn chỉnh PDF: Home / Swap / xStocks — `feat/ui-pdf-alignment` (28/09/2026)
+
+- Chủ dự án xác nhận hệ thống đã hoạt động ổn sau sửa Jupiter; yêu cầu tiếp theo tập trung thiết kế ba nhóm màn Home, Swap, xStocks. Chưa suy diễn thành hoàn tất toàn bộ checklist Safari Phase 3.
+- Đã đối chiếu PDF 42 trang và canvas: thay Home Neo cũ bằng hero tím → trắng, các thẻ ví nhỏ, bốn action, Your Assets; thanh điều hướng pill. Không dùng số dư/biến động mẫu. Home hiển thị Cash + đầu tư Demo và tách SOL on-chain.
+- Swap dùng thẻ pay/get, keypad hỗ trợ dấu phẩy, slippage, nút gradient, review/receipt, slide xác nhận và lựa chọn nút cho trợ năng. Phí 0.25% hiển thị token/USD và trừ khỏi số nhận Demo. Khoá review khi quote chưa khớp input; quote đổi yêu cầu Accept. Bộ chọn không còn đổi nhãn token mà giữ quote SOL/USDC âm thầm: demo hiện chỉ cho chọn hai tài sản được hỗ trợ.
+- xStocks: list/investments với Teddy empty, chart xanh/đỏ + vùng tô, range dưới chart, vị thế/stats dạng lưới, Buy/Sell cố định, màn tiền lớn/keypad, review/disclosure/slide và result/receipt/View position. Tái dùng theme/fonts/assets, không thêm dependency production.
+- Kiểm tra: `tsc` 0 lỗi; 5 file test Node (ledger, xStocks, Jupiter, tokenResponse, amountInput) pass. Lint main 49 errors/94 warnings → nhánh 48 errors/71 warnings, không có lỗi mới theo file/rule; code đổi 0 errors/0 warnings. Export Web + Android pass với `--max-workers 2` (cảnh báo dependency exports cũ).
+- Đã kiểm tra ảnh Chromium 390×844 bằng fixture cho bảy màn, không tràn ngang; sửa khoảng cách dấu `$` và cố định CTA chi tiết. Chưa test ví thật hay Safari iPhone cho giao diện mới; không thực hiện giao dịch on-chain trong phiên này.
+- Báo cáo, các khác biệt có chủ ý với PDF và checklist test tay: [ui-pdf-alignment.md](02-thiet-ke/ui-pdf-alignment.md). Ưu tiên Safari: Home refresh/navigation; Swap `0,1`, keypad, slippage, Accept giá, slide; xStocks AAPLx bốn khung, mua $50, bán 50%, receipt, quay Home; Network không có `/execute`.
+
 ## 4. Lệnh hay dùng
 
 ### Bổ sung sửa `tokens.filter is not a function` — `fix/p3-xstocks-rework`

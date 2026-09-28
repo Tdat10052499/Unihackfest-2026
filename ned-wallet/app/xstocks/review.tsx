@@ -4,12 +4,24 @@ import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/services/auth';
 import { NED_FEE_BPS } from '@/services/jupiter';
 import { isUsMarketOpen } from '@/services/xstocks';
-import { recordDemoBuy, recordDemoSell, getDemoLedger } from '@/services/demoLedger';
+import {
+  recordDemoBuy,
+  recordDemoSell,
+  getDemoLedger,
+} from '@/services/demoLedger';
 import { useXStocksStore } from '@/stores/useXStocksStore';
-import { ActionButton, Card, Header, InfoRow, Muted, Screen } from '@/components/xstocks/Screen';
+import {
+  ActionButton,
+  Card,
+  Header,
+  InfoRow,
+  Muted,
+  Screen,
+} from '@/components/xstocks/Screen';
+import { SlideConfirm } from '@/components/wallet/SlideConfirm';
 import { RiskDisclosure } from '@/components/xstocks/RiskDisclosure';
 import { onbColors, onbFonts } from '@/components/onboarding/theme';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 const riskKey = (wallet: string) => `@ned_xstocks_risk:${wallet}`;
 
@@ -28,30 +40,51 @@ export default function XStockReviewScreen() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (walletAddress) void AsyncStorage.getItem(riskKey(walletAddress)).then((value) => setRiskAlreadyAccepted(value === '1'));
+    if (walletAddress)
+      void AsyncStorage.getItem(riskKey(walletAddress)).then((value) =>
+        setRiskAlreadyAccepted(value === '1'),
+      );
   }, [walletAddress]);
 
   useEffect(() => {
     if (!walletAddress || !stock || side !== 'sell') return;
     void getDemoLedger(walletAddress).then((ledger) => {
       const holding = ledger.holdings.find((item) => item.mint === stock.id);
-      if (holding) setPosition({ quantity: holding.quantity, costBasisUsd: holding.costBasisUsd });
+      if (holding)
+        setPosition({
+          quantity: holding.quantity,
+          costBasisUsd: holding.costBasisUsd,
+        });
     });
   }, [side, stock, walletAddress]);
 
   const outAmount = useMemo(() => Number(quote?.outAmount ?? 0), [quote]);
-  if (!stock || !quote) return <Screen><Header title="Review order" onBack={() => router.back()} /><Muted>Your quote is missing or expired. Get a fresh quote to continue.</Muted><ActionButton title="Back to trade" onPress={() => router.back()} /></Screen>;
+  if (!stock || !quote)
+    return (
+      <Screen>
+        <Header title="Review order" onBack={() => router.back()} />
+        <Muted>
+          Your quote is missing or expired. Get a fresh quote to continue.
+        </Muted>
+        <ActionButton title="Back to trade" onPress={() => router.back()} />
+      </Screen>
+    );
 
   const outDecimals = side === 'buy' ? stock.decimals : 6;
-  const grossOut = outAmount / (10 ** outDecimals);
+  const grossOut = outAmount / 10 ** outDecimals;
   const netOut = grossOut * (1 - NED_FEE_BPS / 10_000);
-  const feeUsd = side === 'buy' ? amountNumberSafe(amount) * NED_FEE_BPS / 10_000 : grossOut * NED_FEE_BPS / 10_000;
-  const minGross = Number(quote.otherAmountThreshold ?? 0) / (10 ** outDecimals);
+  const feeUsd =
+    side === 'buy'
+      ? (amountNumberSafe(amount) * NED_FEE_BPS) / 10_000
+      : (grossOut * NED_FEE_BPS) / 10_000;
+  const minGross = Number(quote.otherAmountThreshold ?? 0) / 10 ** outDecimals;
   const minNet = minGross * (1 - NED_FEE_BPS / 10_000);
-  const soldQuantity = side === 'sell' ? Number(quote.inAmount) / (10 ** stock.decimals) : 0;
-  const soldCostBasis = side === 'sell' && position.quantity > 0
-    ? position.costBasisUsd * (soldQuantity / position.quantity)
-    : 0;
+  const soldQuantity =
+    side === 'sell' ? Number(quote.inAmount) / 10 ** stock.decimals : 0;
+  const soldCostBasis =
+    side === 'sell' && position.quantity > 0
+      ? position.costBasisUsd * (soldQuantity / position.quantity)
+      : 0;
   const requiresRisk = side === 'buy' && !riskAlreadyAccepted;
 
   async function confirm() {
@@ -61,20 +94,39 @@ export default function XStockReviewScreen() {
     try {
       const latest = await getDemoLedger(walletAddress);
       if (side === 'buy') {
-        const receivedQuantity = Number(quote.outAmount) / (10 ** stock!.decimals) * (1 - NED_FEE_BPS / 10_000);
-        await recordDemoBuy(walletAddress, { mint: stock!.id, symbol: stock!.symbol, usd: amountNumberSafe(amount), quantity: receivedQuantity });
-        if (requiresRisk) await AsyncStorage.setItem(riskKey(walletAddress), '1');
+        const receivedQuantity =
+          (Number(quote.outAmount) / 10 ** stock!.decimals) *
+          (1 - NED_FEE_BPS / 10_000);
+        await recordDemoBuy(walletAddress, {
+          mint: stock!.id,
+          symbol: stock!.symbol,
+          usd: amountNumberSafe(amount),
+          quantity: receivedQuantity,
+        });
+        if (requiresRisk)
+          await AsyncStorage.setItem(riskKey(walletAddress), '1');
       } else {
-        const quantity = Number(quote.inAmount) / (10 ** stock!.decimals);
+        const quantity = Number(quote.inAmount) / 10 ** stock!.decimals;
         const proceedsUsd = Number(quote.outAmount) / 1_000_000;
-        const current = latest.holdings.find((holding) => holding.mint === stock!.id);
-        if (!current || quantity > current.quantity) throw new Error('Your demo position changed. Review the amount again.');
-        await recordDemoSell(walletAddress, { mint: stock!.id, symbol: stock!.symbol, quantity, proceedsUsd });
+        const current = latest.holdings.find(
+          (holding) => holding.mint === stock!.id,
+        );
+        if (!current || quantity > current.quantity)
+          throw new Error(
+            'Your demo position changed. Review the amount again.',
+          );
+        await recordDemoSell(walletAddress, {
+          mint: stock!.id,
+          symbol: stock!.symbol,
+          quantity,
+          proceedsUsd,
+        });
       }
       setResult('success');
       router.replace('/xstocks/result' as Href);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Demo trade failed.';
+      const message =
+        cause instanceof Error ? cause.message : 'Demo trade failed.';
       setError(message);
       setResult('failed', message);
       router.replace('/xstocks/result' as Href);
@@ -86,17 +138,44 @@ export default function XStockReviewScreen() {
   return (
     <Screen>
       <Header title="Review order" onBack={() => router.back()} />
+      <View style={styles.hero}>
+        <Text style={styles.pill}>
+          {side === 'buy' ? 'Buy' : 'Sell'} {stock.symbol}
+        </Text>
+        <Text style={styles.amount}>
+          {side === 'buy'
+            ? `$${amountNumberSafe(amount).toFixed(2)}`
+            : `$${netOut.toFixed(2)}`}
+        </Text>
+        <Text style={styles.shares}>
+          {side === 'buy' ? netOut.toFixed(6) : soldQuantity.toFixed(6)}{' '}
+          {stock.symbol}
+        </Text>
+      </View>
       <Card>
-        <Text style={styles.cardTitle}>{side === 'buy' ? 'Buy' : 'Sell'} {stock.symbol}</Text>
+        <Text style={styles.cardTitle}>
+          {side === 'buy' ? 'Buy' : 'Sell'} {stock.symbol}
+        </Text>
         <InfoRow
           label={side === 'buy' ? 'You pay' : 'You sell'}
-          value={side === 'buy' ? `$${amount} USDC` : `${soldQuantity.toFixed(6)} ${stock.symbol}`}
+          value={
+            side === 'buy'
+              ? `$${amount} USDC`
+              : `${soldQuantity.toFixed(6)} ${stock.symbol}`
+          }
         />
         <InfoRow
           label="You receive"
-          value={side === 'buy' ? `${netOut.toFixed(6)} ${stock.symbol}` : `$${netOut.toFixed(2)} USDC`}
+          value={
+            side === 'buy'
+              ? `${netOut.toFixed(6)} ${stock.symbol}`
+              : `$${netOut.toFixed(2)} USDC`
+          }
         />
-        <InfoRow label="Rate" value={`1 ${stock.symbol} ≈ $${(stock.usdPrice ?? 0).toFixed(4)}`} />
+        <InfoRow
+          label="Rate"
+          value={`1 ${stock.symbol} ≈ $${(stock.usdPrice ?? 0).toFixed(4)}`}
+        />
         <InfoRow label="N.E.D fee" value={`0.25% · $${feeUsd.toFixed(4)}`} />
         {side === 'sell' ? (
           <InfoRow
@@ -105,29 +184,59 @@ export default function XStockReviewScreen() {
           />
         ) : null}
         <InfoRow label="Network fee" value="Demo — not broadcast" />
-        <InfoRow label="Price impact" value={quote.priceImpactPct ? `${quote.priceImpactPct}%` : `${quote.priceImpact ?? 0}%`} />
+        <InfoRow
+          label="Price impact"
+          value={
+            quote.priceImpactPct
+              ? `${quote.priceImpactPct}%`
+              : `${quote.priceImpact ?? 0}%`
+          }
+        />
         <InfoRow
           label="Minimum you get"
-          value={side === 'buy' ? `${minNet.toFixed(6)} ${stock.symbol}` : `$${minNet.toFixed(2)} USDC`}
+          value={
+            side === 'buy'
+              ? `${minNet.toFixed(6)} ${stock.symbol}`
+              : `$${minNet.toFixed(2)} USDC`
+          }
         />
         <InfoRow
           label="Route"
-          value={quote.routePlan?.map((route) => route.swapInfo?.label).filter(Boolean).join(' → ') || 'Jupiter route'}
+          value={
+            quote.routePlan
+              ?.map((route) => route.swapInfo?.label)
+              .filter(Boolean)
+              .join(' → ') || 'Jupiter route'
+          }
         />
       </Card>
       {!isUsMarketOpen() ? (
-        <Text style={styles.weekend}>US market is closed. Live on-chain prices may differ from Friday’s close.</Text>
+        <Text style={styles.weekend}>
+          US market is closed. Live on-chain prices may differ from Friday’s
+          close.
+        </Text>
       ) : null}
       {requiresRisk ? (
-        <RiskDisclosure checked={accepted} onChange={() => setAccepted((value) => !value)} />
+        <RiskDisclosure
+          checked={accepted}
+          onChange={() => setAccepted((value) => !value)}
+        />
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <ActionButton
-        title={busy ? 'Saving demo trade…' : side === 'buy' ? 'Confirm demo buy' : 'Confirm demo sale'}
+      <SlideConfirm
+        title={
+          busy
+            ? 'Saving demo trade…'
+            : side === 'buy'
+              ? 'Slide to buy'
+              : 'Slide to sell'
+        }
         disabled={busy || (requiresRisk && !accepted)}
-        onPress={() => void confirm()}
+        onConfirm={() => void confirm()}
       />
-      <Text style={styles.demo}>Demo mode · real price, no real funds moved</Text>
+      <Text style={styles.demo}>
+        Demo mode · real price, no real funds moved
+      </Text>
     </Screen>
   );
 }
@@ -138,7 +247,37 @@ function amountNumberSafe(value: string) {
 }
 
 const styles = StyleSheet.create({
-  cardTitle: { color: onbColors.text, fontFamily: onbFonts.heading, fontSize: 15, marginBottom: 4 },
-  weekend: { color: '#FBBF24', backgroundColor: 'rgba(245,158,11,0.1)', borderRadius: 12, padding: 12, fontSize: 11, lineHeight: 16 },
-  demo: { color: 'rgba(255,255,255,0.48)', fontSize: 10, textAlign: 'center', marginTop: 10 }, error: { color: '#FB7185', fontSize: 12, marginTop: 8 },
+  hero: { alignItems: 'center', paddingVertical: 18, gap: 12 },
+  pill: {
+    color: '#DDD1EC',
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF0C',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontFamily: onbFonts.bodyMedium,
+    fontSize: 12,
+  },
+  amount: { color: 'white', fontFamily: onbFonts.heading, fontSize: 44 },
+  shares: { color: '#FFFFFF88', fontFamily: onbFonts.mono, fontSize: 12 },
+  cardTitle: {
+    color: onbColors.text,
+    fontFamily: onbFonts.heading,
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  weekend: {
+    color: '#FBBF24',
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  demo: {
+    color: 'rgba(255,255,255,0.48)',
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  error: { color: '#FB7185', fontSize: 12, marginTop: 8 },
 });

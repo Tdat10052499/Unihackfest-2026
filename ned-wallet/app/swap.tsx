@@ -1,47 +1,734 @@
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/services/auth';
 import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
-import { calculateFee, calculateMinimumReceived, getTokens, quoteMintForAsset, searchTokens, Slippage, useSwapQuote, JupiterToken } from '@/services/jupiter';
+import {
+  calculateFee,
+  calculateMinimumReceived,
+  getTokens,
+  quoteMintForAsset,
+  searchTokens,
+  type Slippage,
+  useSwapQuote,
+  type JupiterToken,
+  type JupiterOrder,
+} from '@/services/jupiter';
 import { saveDemoSwap } from '@/services/storage';
-import { recordDemoSwap } from '@/services/demoLedger';
+import { getDemoLedger, recordDemoSwap } from '@/services/demoLedger';
 import { onbColors, onbFonts } from '@/components/onboarding/theme';
 import { amountNumber, sanitizeAmountInput } from '@/utils/amountInput';
+import {
+  ActionButton,
+  Card,
+  Header,
+  InfoRow,
+  Screen,
+} from '@/components/xstocks/Screen';
+import { AmountKeypad } from '@/components/wallet/AmountKeypad';
+import { SlideConfirm } from '@/components/wallet/SlideConfirm';
+import { Mascot } from '@/components/Mascot';
 
+type Asset = 'SOL' | 'USDC';
 type Stage = 'amount' | 'tokens' | 'review' | 'result';
-const decimals = (asset: 'SOL' | 'USDC') => asset === 'SOL' ? 9 : 6;
-const pretty = (raw: string, asset: 'SOL' | 'USDC') => `${(Number(raw) / 10 ** decimals(asset)).toFixed(asset === 'SOL' ? 6 : 2)} ${asset}`;
+const decimals = (asset: Asset) => (asset === 'SOL' ? 9 : 6);
+const pretty = (raw: string | bigint, asset: Asset) =>
+  `${(Number(raw) / 10 ** decimals(asset)).toLocaleString('en-US', { maximumFractionDigits: asset === 'SOL' ? 6 : 4 })} ${asset}`;
 
 export default function SwapScreen() {
-  const router = useRouter(); const { walletAddress } = useAuth();
-  const [from, setFrom] = useState<'SOL' | 'USDC'>('SOL'); const to = from === 'SOL' ? 'USDC' : 'SOL';
-  const [amount, setAmount] = useState(''); const [slippage, setSlippage] = useState<Slippage>('auto'); const [stage, setStage] = useState<Stage>('amount');
-  const [balance, setBalance] = useState(0); const [search, setSearch] = useState(''); const [tokens, setTokens] = useState<JupiterToken[]>([]); const [result, setResult] = useState<'success' | 'failed'>('success');
-  const [selectedToken, setSelectedToken] = useState<JupiterToken | null>(null);
-  const inputMint = quoteMintForAsset(from); const outputMint = quoteMintForAsset(to);
-  const normalizedAmount = sanitizeAmountInput(amount, decimals(from)).normalized;
-  const rawAmount = normalizedAmount ? String(Math.floor(amountNumber(normalizedAmount) * 10 ** decimals(from))) : '';
-  const quoteState = useSwapQuote(inputMint, outputMint, rawAmount, slippage);
-  useEffect(() => { if (!walletAddress) return; void Promise.all([getSolanaBalance(walletAddress), getUsdcTokenBalance(walletAddress)]).then(([sol, usdc]) => setBalance(from === 'SOL' ? sol : usdc)); }, [walletAddress, from]);
-  useEffect(() => { if (stage !== 'tokens') return; void (search ? searchTokens(search) : getTokens('verified')).then(setTokens).catch(() => setTokens([])); }, [stage, search]);
-  const fee = quoteState.quote ? calculateFee(BigInt(quoteState.quote.outAmount)) : 0n;
-  const minimum = quoteState.quote ? calculateMinimumReceived(quoteState.quote) : 0n;
-  const notEnough = amountNumber(normalizedAmount) > balance;
-  const route = quoteState.quote?.routePlan?.map((r) => r.swapInfo?.label).filter(Boolean).join(' → ') || quoteState.quote?.router || 'Jupiter';
-  const flip = () => { setFrom(to); setAmount(''); setStage('amount'); };
-  const confirm = async () => { if (!quoteState.quote || quoteState.isStale) { setResult('failed'); setStage('result'); return; } const inputDisplay = amountNumber(normalizedAmount).toString(); const outputDisplay = (Number(quoteState.quote.outAmount) / 10 ** decimals(to)).toString(); if (walletAddress) await recordDemoSwap(walletAddress, { inputSymbol: from, inputAmount: inputDisplay, outputSymbol: to, outputAmount: outputDisplay, feeUsd: Number(quoteState.quote.outUsdValue || 0) * 0.0025 }); await saveDemoSwap({ type: 'swap', title: `Demo swap ${from} → ${to}`, amount: pretty(rawAmount, from), received: pretty(quoteState.quote.outAmount, to), time: new Date().toISOString() }, walletAddress); setResult('success'); setStage('result'); };
-  if (stage === 'result') return <Screen><View style={styles.result}><Text style={styles.emoji}>{result === 'success' ? '✓' : '!'}</Text><Text style={styles.title}>{result === 'success' ? 'Swap complete' : "Swap didn't go through"}</Text><Text style={styles.muted}>Demo mode · real price, no real funds moved</Text>{result === 'failed' ? <Text style={styles.warning}>The price moved more than your limit, so nothing was swapped.</Text> : null}<Button title={result === 'success' ? 'Done' : 'Try again'} onPress={() => result === 'success' ? router.back() : setStage('review')} /><Button title="Swap again" secondary onPress={() => { setAmount(''); setStage('amount'); }} /></View></Screen>;
-  if (stage === 'tokens') return <Screen><Header title="Pick a token" onBack={() => setStage('amount')} /><TextInput value={search} onChangeText={setSearch} placeholder="Search symbol, name or mint" placeholderTextColor={onbColors.textSubtle} style={styles.input} />{selectedToken && !selectedToken.isVerified ? <View style={styles.unverified}><Text style={styles.warning}>UNVERIFIED TOKEN</Text><Text style={styles.muted}>Only use a token you trust.</Text><Button title="I understand, use this token" onPress={() => setStage('amount')} /></View> : null}<ScrollView>{tokens.slice(0, 30).map((token) => <Pressable key={token.id} style={styles.token} onPress={() => { setSelectedToken(token); setStage('amount'); }}><View><Text style={styles.tokenName}>{token.symbol || token.name || token.id.slice(0, 8)}</Text><Text style={styles.muted}>{token.name || token.id}</Text></View><Text style={token.isVerified ? styles.verified : styles.warning}>{token.isVerified ? 'VERIFIED' : 'UNVERIFIED'}</Text></Pressable>)}</ScrollView><Pressable onPress={() => router.push('/xstocks')}><Text style={styles.link}>Looking for stocks like AAPLx?</Text></Pressable></Screen>;
-  if (stage === 'review') return <Screen><Header title="Review swap" onBack={() => setStage('amount')} /><View style={styles.card}><Text style={styles.label}>You pay</Text><Text style={styles.big}>{amount} {from}</Text><Text style={styles.label}>You get</Text><Text style={styles.big}>{quoteState.quote ? pretty(quoteState.quote.outAmount, to) : '—'}</Text></View><Row label="Rate" value={quoteState.quote ? `1 ${from} ≈ ${(Number(quoteState.quote.outAmount) / 10 ** decimals(to) / (Number(rawAmount) / 10 ** decimals(from))).toFixed(4)} ${to}` : '—'} /><Row label="N.E.D fee (0.25%)" value={`~${fee.toString()} raw units`} /><Row label="Network fee" value="Demo — not broadcast" /><Row label="Price impact" value={`${quoteState.quote?.priceImpact ?? 0}%`} /><Row label="Minimum you get" value={quoteState.quote ? pretty(minimum.toString(), to) : '—'} /><Row label="Route" value={route} />{quoteState.isStale ? <Text style={styles.warning}>Price updated · Accept a fresh quote before confirming.</Text> : null}<Button title={quoteState.isStale ? 'Accept new price' : 'Slide to confirm'} onPress={() => quoteState.isStale ? void quoteState.refresh() : void confirm()} disabled={quoteState.isLoading} /></Screen>;
-  return <Screen><Header title="Swap" onBack={() => router.back()} /><Text style={styles.label}>You pay</Text><View style={styles.card}><TextInput keyboardType="decimal-pad" value={amount} onChangeText={setAmount} placeholder="0.00" placeholderTextColor={onbColors.textSubtle} style={styles.amount} /><Pressable onPress={() => setStage('tokens')}><Text style={styles.pill}>{selectedToken?.symbol || from} <Feather name="chevron-down" size={14} color="white" /></Text></Pressable><Text style={styles.muted}>Balance {balance.toFixed(4)} {from}</Text><View style={styles.chips}><Pressable onPress={() => setAmount((balance * 0.5).toFixed(6))}><Text style={styles.chip}>50%</Text></Pressable><Pressable onPress={() => setAmount(balance.toFixed(6))}><Text style={styles.chip}>Max</Text></Pressable></View></View><Pressable style={styles.flip} onPress={flip}><Feather name="repeat" size={20} color="white" /></Pressable><Text style={styles.label}>You get</Text><View style={styles.card}><Text style={styles.big}>{quoteState.quote ? pretty(quoteState.quote.outAmount, to) : '—'}</Text><Text style={styles.muted}>{quoteState.isLoading ? 'Updating quote…' : quoteState.error || `Updates in ${quoteState.secondsRemaining}s`}</Text></View><View style={styles.slippage}>{(['auto', 0.5, 1, 3] as Slippage[]).map((value) => <Pressable key={String(value)} onPress={() => setSlippage(value)}><Text style={[styles.chip, slippage === value && styles.selected]}>{value === 'auto' ? 'Auto' : `${value}%`}</Text></Pressable>)}</View>{slippage === 3 ? <Text style={styles.warning}>3% slippage may result in a worse price.</Text> : null}<Text style={styles.muted}>N.E.D fee 0.25% · {quoteState.quote ? `$${((Number(quoteState.quote.outUsdValue || 0) * 0.0025) || 0).toFixed(2)}` : '$0.00'} · Network fee paid by you on Devnet</Text><Button title={notEnough ? `Not enough ${from}` : !amount ? 'Enter an amount' : 'Review swap'} disabled={notEnough || !amount || quoteState.isLoading} onPress={() => setStage('review')} /></Screen>;
+  const router = useRouter();
+  const { walletAddress } = useAuth();
+  const [from, setFrom] = useState<Asset>('SOL');
+  const to = from === 'SOL' ? 'USDC' : 'SOL';
+  const [amount, setAmount] = useState('');
+  const [slippage, setSlippage] = useState<Slippage>('auto');
+  const [showSlippage, setShowSlippage] = useState(false);
+  const [stage, setStage] = useState<Stage>('amount');
+  const [balances, setBalances] = useState({ SOL: 0, USDC: 0 });
+  const [search, setSearch] = useState('');
+  const [tokens, setTokens] = useState<JupiterToken[]>([]);
+  const [tokenError, setTokenError] = useState('');
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [result, setResult] = useState<'success' | 'failed'>('success');
+  const [reviewQuote, setReviewQuote] = useState<JupiterOrder | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const lock = useRef(false);
+  const numericAmount = amountNumber(amount);
+  const rawAmount =
+    numericAmount > 0
+      ? String(Math.floor(numericAmount * 10 ** decimals(from)))
+      : '';
+  const quoteState = useSwapQuote(
+    quoteMintForAsset(from),
+    quoteMintForAsset(to),
+    stage === 'result' ? '' : rawAmount,
+    slippage,
+  );
+  const quote = stage === 'result' ? reviewQuote : quoteState.quote;
+  const fee = quote ? calculateFee(BigInt(quote.outAmount)) : 0n;
+  const netOut = quote ? BigInt(quote.outAmount) - fee : 0n;
+  const balance = balances[from];
+  const notEnough = numericAmount > balance;
+  const quoteMatches =
+    quote?.inputMint === quoteMintForAsset(from) &&
+    quote.outputMint === quoteMintForAsset(to) &&
+    quote.inAmount === rawAmount;
+  const priceChanged =
+    !!reviewQuote &&
+    !!quote &&
+    (reviewQuote.outAmount !== quote.outAmount ||
+      reviewQuote.otherAmountThreshold !== quote.otherAmountThreshold);
+  const route =
+    quote?.routePlan
+      ?.map((r) => r.swapInfo?.label)
+      .filter(Boolean)
+      .join(' → ') ||
+    quote?.router ||
+    'Jupiter';
+  const feeUsd = Number(quote?.outUsdValue || 0) * 0.0025;
+
+  useEffect(() => {
+    if (!walletAddress) return;
+    let active = true;
+    void Promise.all([
+      getSolanaBalance(walletAddress),
+      getUsdcTokenBalance(walletAddress),
+      getDemoLedger(walletAddress),
+    ])
+      .then(([sol, usdc, ledger]) => {
+        if (active)
+          setBalances({
+            SOL:
+              sol +
+              ledger.trades.reduce(
+                (sum, trade) =>
+                  trade.side !== 'swap'
+                    ? sum
+                    : sum +
+                      (trade.outputSymbol === 'SOL'
+                        ? Number(trade.outputAmount)
+                        : 0) -
+                      (trade.inputSymbol === 'SOL'
+                        ? Number(trade.inputAmount)
+                        : 0),
+                0,
+              ),
+            USDC: usdc + ledger.cashUsdc,
+          });
+      })
+      .catch(() => {
+        if (active) setError('Unable to load balances. Reopen Swap to retry.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [walletAddress, stage]);
+
+  useEffect(() => {
+    if (stage !== 'tokens') return;
+    let active = true;
+    const timer = setTimeout(() => {
+      setTokenLoading(true);
+      setTokenError('');
+      void (search ? searchTokens(search) : getTokens('verified'))
+        .then((items) => {
+          if (active) setTokens(items);
+        })
+        .catch((cause) => {
+          if (active)
+            setTokenError(
+              cause instanceof Error ? cause.message : 'Could not load tokens.',
+            );
+        })
+        .finally(() => {
+          if (active) setTokenLoading(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [stage, search]);
+
+  function changeAmount(value: string) {
+    setAmount(sanitizeAmountInput(value, decimals(from)).display);
+  }
+  function flip() {
+    setFrom(to);
+    setAmount('');
+  }
+  async function confirm() {
+    if (lock.current || priceChanged) return;
+    if (!quote || quoteState.isStale || !quoteMatches) {
+      setResult('failed');
+      setStage('result');
+      return;
+    }
+    if (!walletAddress) {
+      setError('Connect your wallet to continue.');
+      return;
+    }
+    lock.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      setReviewQuote(quote);
+      const outputDisplay = (Number(netOut) / 10 ** decimals(to)).toString();
+      await recordDemoSwap(walletAddress, {
+        inputSymbol: from,
+        inputAmount: String(numericAmount),
+        outputSymbol: to,
+        outputAmount: outputDisplay,
+        feeUsd,
+      });
+      await saveDemoSwap(
+        {
+          type: 'swap',
+          title: `Demo swap ${from} → ${to}`,
+          amount: pretty(rawAmount, from),
+          received: pretty(netOut, to),
+          time: new Date().toISOString(),
+        },
+        walletAddress,
+      );
+      setResult('success');
+      setStage('result');
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Unable to save demo swap.',
+      );
+    } finally {
+      setBusy(false);
+      lock.current = false;
+    }
+  }
+
+  if (stage === 'result')
+    return (
+      <Screen>
+        <View style={styles.resultHero}>
+          <Mascot
+            mood={result === 'success' ? 'happy' : 'confused'}
+            size={140}
+          />
+          <Text style={styles.resultTitle}>
+            {result === 'success' ? 'Swap complete' : 'Swap didn’t go through'}
+          </Text>
+          <Text style={styles.demo}>
+            Demo mode · real price, no real funds moved
+          </Text>
+        </View>
+        {result === 'success' ? (
+          <Card>
+            <InfoRow label="You paid" value={`${amount} ${from}`} />
+            <InfoRow label="You received" value={pretty(netOut, to)} />
+            <InfoRow label="N.E.D fee (0.25%)" value={pretty(fee, to)} />
+            <InfoRow label="Network fee" value="Demo — not broadcast" />
+          </Card>
+        ) : (
+          <Text style={styles.warning}>
+            Your quote expired. Get a fresh price and try again.
+          </Text>
+        )}
+        <View style={styles.bottom}>
+          <ActionButton
+            title={result === 'success' ? 'Done' : 'Try again'}
+            onPress={() =>
+              result === 'success' ? router.back() : setStage('amount')
+            }
+          />
+          <ActionButton
+            title="Swap again"
+            secondary
+            onPress={() => {
+              setAmount('');
+              setReviewQuote(null);
+              setStage('amount');
+            }}
+          />
+        </View>
+      </Screen>
+    );
+
+  if (stage === 'tokens')
+    return (
+      <Screen>
+        <Header title="Pick a token" onBack={() => setStage('amount')} />
+        <TextInput
+          accessibilityLabel="Search tokens"
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search symbol, name or mint"
+          placeholderTextColor={onbColors.textSubtle}
+          style={styles.search}
+        />
+        <Text style={styles.sectionTitle}>Your tokens</Text>
+        {(['SOL', 'USDC'] as Asset[])
+          .filter(
+            (asset) =>
+              !search || asset.toLowerCase().includes(search.toLowerCase()),
+          )
+          .map((asset) => (
+            <Pressable
+              key={asset}
+              style={styles.token}
+              onPress={() => {
+                setFrom(asset);
+                setAmount('');
+                setStage('amount');
+              }}
+            >
+              <TokenPill asset={asset} />
+              <View>
+                <Text style={styles.tokenValue}>
+                  {balances[asset].toFixed(4)}
+                </Text>
+                <Text style={styles.small}>Demo balance</Text>
+              </View>
+            </Pressable>
+          ))}
+        <Text style={styles.sectionTitle}>Popular</Text>
+        <Text style={styles.muted}>
+          Other tokens are available to explore. This demo swaps SOL and USDC.
+        </Text>
+        {tokenLoading ? (
+          <Text style={styles.muted}>Loading tokens…</Text>
+        ) : null}
+        {tokenError ? <Text style={styles.warning}>{tokenError}</Text> : null}
+        {!tokenLoading && !tokenError && !tokens.length ? (
+          <Text style={styles.muted}>No tokens found.</Text>
+        ) : null}
+        {tokens.slice(0, 20).map((token) => (
+          <View key={token.id} style={styles.token}>
+            <View style={styles.tokenName}>
+              <Text style={styles.tokenValue}>
+                {token.symbol || token.name}
+              </Text>
+              <Text numberOfLines={1} style={styles.small}>
+                {token.name}
+              </Text>
+            </View>
+            <Text style={token.isVerified ? styles.verified : styles.warning}>
+              {token.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
+            </Text>
+          </View>
+        ))}
+        <ActionButton
+          secondary
+          title="Looking for stocks like AAPLx?"
+          onPress={() => router.push('/xstocks')}
+        />
+      </Screen>
+    );
+
+  if (stage === 'review')
+    return (
+      <Screen>
+        <Header title="Review swap" onBack={() => setStage('amount')} />
+        <View style={styles.reviewHero}>
+          <Text style={styles.muted}>You pay</Text>
+          <Text style={styles.reviewAmount}>
+            {amount} {from}
+          </Text>
+          <Feather name="arrow-down" color="#B87AED" size={20} />
+          <Text style={styles.muted}>You get (estimate)</Text>
+          <Text style={styles.reviewReceive}>{pretty(netOut, to)}</Text>
+        </View>
+        <Card>
+          <InfoRow
+            label="Rate"
+            value={
+              quote && numericAmount
+                ? `1 ${from} ≈ ${(Number(netOut) / 10 ** decimals(to) / numericAmount).toFixed(4)} ${to}`
+                : '—'
+            }
+          />
+          <InfoRow
+            label="N.E.D fee (0.25%)"
+            value={`${pretty(fee, to)} · $${feeUsd.toFixed(2)}`}
+          />
+          <InfoRow label="Network fee" value="Demo — not broadcast" />
+          <InfoRow
+            label="Price impact"
+            value={`${quote?.priceImpactPct ?? quote?.priceImpact ?? 0}%`}
+          />
+          <InfoRow
+            label="Max slippage"
+            value={slippage === 'auto' ? 'Auto' : `${slippage}%`}
+          />
+          <InfoRow
+            label="Minimum you get"
+            value={quote ? pretty(calculateMinimumReceived(quote), to) : '—'}
+          />
+          <InfoRow label="Route" value={route} />
+        </Card>
+        {priceChanged || quoteState.isStale ? (
+          <View style={styles.banner}>
+            <Text style={styles.warning}>
+              Price updated · Accept the latest quote to continue.
+            </Text>
+            <ActionButton
+              secondary
+              title={quoteState.isStale ? 'Refresh price' : 'Accept new price'}
+              onPress={() =>
+                quoteState.isStale
+                  ? void quoteState.refresh()
+                  : setReviewQuote(quote)
+              }
+              disabled={quoteState.isLoading}
+            />
+          </View>
+        ) : null}
+        {error ? <Text style={styles.warning}>{error}</Text> : null}
+        <View style={styles.bottom}>
+          <SlideConfirm
+            title={busy ? 'Saving demo swap…' : 'Slide to confirm'}
+            disabled={
+              busy ||
+              priceChanged ||
+              quoteState.isStale ||
+              quoteState.isLoading ||
+              !quoteMatches
+            }
+            onConfirm={() => void confirm()}
+          />
+          <Text style={styles.demo}>
+            Demo mode · real price, no real funds moved
+          </Text>
+        </View>
+      </Screen>
+    );
+
+  return (
+    <Screen>
+      <Header
+        title="Swap"
+        onBack={() => router.back()}
+        right={
+          <Pressable
+            accessibilityLabel="Slippage settings"
+            style={styles.slipButton}
+            onPress={() => setShowSlippage(!showSlippage)}
+          >
+            <Feather name="sliders" size={14} color="white" />
+            <Text style={styles.smallWhite}>
+              {slippage === 'auto' ? 'Auto' : `${slippage}%`}
+            </Text>
+          </Pressable>
+        }
+      />
+      {showSlippage ? (
+        <Card>
+          <Text style={styles.sectionTitle}>Max price change</Text>
+          <View style={styles.slippage}>
+            {(['auto', 0.5, 1, 3] as Slippage[]).map((value) => (
+              <Pressable
+                key={String(value)}
+                style={[styles.chip, slippage === value && styles.selected]}
+                onPress={() => setSlippage(value)}
+              >
+                <Text style={styles.smallWhite}>
+                  {value === 'auto' ? 'Auto' : `${value}%`}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {slippage === 3 ? (
+            <Text style={styles.warning}>
+              3% slippage may result in a worse price.
+            </Text>
+          ) : null}
+        </Card>
+      ) : null}
+      <View style={styles.payCard}>
+        <View style={styles.cardTop}>
+          <Text style={styles.muted}>You pay</Text>
+          <Text style={styles.small}>Balance {balance.toFixed(4)}</Text>
+          {[0.5, 1].map((fraction) => (
+            <Pressable
+              key={fraction}
+              style={styles.quick}
+              onPress={() =>
+                changeAmount(
+                  Math.max(0, balance * fraction).toFixed(decimals(from)),
+                )
+              }
+            >
+              <Text style={styles.quickText}>
+                {fraction === 1 ? 'Max' : '50%'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.amountRow}>
+          <TextInput
+            accessibilityLabel="Amount to swap"
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={changeAmount}
+            placeholder="0"
+            placeholderTextColor={onbColors.textSubtle}
+            style={styles.amount}
+          />
+          <TokenPill asset={from} onPress={() => setStage('tokens')} />
+        </View>
+      </View>
+      <Pressable
+        accessibilityLabel="Reverse swap direction"
+        style={styles.flip}
+        onPress={flip}
+      >
+        <Feather name="repeat" size={20} color="#C9A2F2" />
+      </Pressable>
+      <View style={styles.payCard}>
+        <View style={styles.cardTop}>
+          <Text style={styles.muted}>You get (estimate)</Text>
+          <Text style={styles.small}>Balance {balances[to].toFixed(4)}</Text>
+        </View>
+        <View style={styles.amountRow}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.amount}>
+            {quoteMatches
+              ? (Number(netOut) / 10 ** decimals(to)).toLocaleString('en-US', {
+                  maximumFractionDigits: 6,
+                })
+              : '—'}
+          </Text>
+          <TokenPill asset={to} />
+        </View>
+      </View>
+      <View style={styles.cardTop}>
+        <Text style={styles.small}>
+          {quoteState.isLoading
+            ? 'Updating quote…'
+            : `Updates in ${quoteState.secondsRemaining}s`}
+        </Text>
+        <Text style={styles.small}>Demo balance</Text>
+      </View>
+      <Text style={styles.fee}>N.E.D fee 0.25% · ${feeUsd.toFixed(2)}</Text>
+      <Text style={styles.small}>Network fee: Demo — not broadcast</Text>
+      {quoteState.error || error ? (
+        <Text style={styles.warning}>{quoteState.error || error}</Text>
+      ) : null}
+      <View style={styles.bottom}>
+        <AmountKeypad
+          value={amount}
+          decimals={decimals(from)}
+          onChange={changeAmount}
+        />
+        <ActionButton
+          title={
+            notEnough
+              ? `Not enough ${from}`
+              : !numericAmount
+                ? 'Enter an amount'
+                : quoteState.isLoading
+                  ? 'Getting quote…'
+                  : 'Review swap'
+          }
+          disabled={
+            notEnough ||
+            numericAmount <= 0 ||
+            quoteState.isLoading ||
+            quoteState.isStale ||
+            !quoteMatches
+          }
+          onPress={() => {
+            setReviewQuote(quote);
+            setStage('review');
+          }}
+        />
+      </View>
+    </Screen>
+  );
 }
 
-function Screen({ children }: { children: React.ReactNode }) { return <LinearGradient colors={['#110822', '#0D0618', '#06060E']} style={styles.fill}><SafeAreaView style={styles.safe}>{children}</SafeAreaView></LinearGradient>; }
-function Header({ title, onBack }: { title: string; onBack: () => void }) { return <View style={styles.header}><Pressable onPress={onBack}><Feather name="arrow-left" size={24} color="white" /></Pressable><Text style={styles.title}>{title}</Text><View style={{ width: 24 }} /></View>; }
-function Row({ label, value }: { label: string; value: string }) { return <View style={styles.row}><Text style={styles.muted}>{label}</Text><Text style={styles.rowValue}>{value}</Text></View>; }
-function Button({ title, onPress, disabled, secondary }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={[styles.button, secondary && styles.secondary, disabled && styles.disabled]}><Text style={styles.buttonText}>{title}</Text></Pressable>; }
-const styles = StyleSheet.create({ fill: { flex: 1 }, safe: { flex: 1, padding: 20, maxWidth: 520, width: '100%', alignSelf: 'center' }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }, title: { color: 'white', fontFamily: onbFonts.heading, fontSize: 22 }, label: { color: onbColors.textMuted, fontFamily: onbFonts.bodyMedium, marginBottom: 8 }, card: { backgroundColor: onbColors.surface, borderColor: onbColors.border, borderWidth: 1, borderRadius: 18, padding: 18, marginBottom: 12 }, amount: { color: 'white', fontFamily: onbFonts.mono, fontSize: 32, flex: 1 }, big: { color: 'white', fontFamily: onbFonts.mono, fontSize: 24, marginBottom: 12 }, pill: { color: 'white', fontFamily: onbFonts.bodySemi, fontSize: 16 }, muted: { color: onbColors.textMuted, fontFamily: onbFonts.body, fontSize: 13 }, chips: { flexDirection: 'row', gap: 8, marginTop: 14 }, chip: { color: onbColors.textMuted, borderColor: onbColors.border, borderWidth: 1, borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 }, selected: { backgroundColor: onbColors.purple, color: 'white' }, flip: { alignSelf: 'center', padding: 10, borderRadius: 20, backgroundColor: onbColors.purple, marginVertical: 2 }, slippage: { flexDirection: 'row', gap: 8, marginVertical: 14 }, button: { backgroundColor: onbColors.purple, borderRadius: 16, padding: 17, alignItems: 'center', marginTop: 20 }, secondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: onbColors.border }, disabled: { opacity: 0.45 }, buttonText: { color: 'white', fontFamily: onbFonts.bodyBold, fontSize: 16 }, input: { color: 'white', borderColor: onbColors.border, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 12 }, token: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomColor: onbColors.border, borderBottomWidth: 1 }, tokenName: { color: 'white', fontFamily: onbFonts.bodySemi, fontSize: 16 }, verified: { color: onbColors.successText, fontFamily: onbFonts.bodyBold, fontSize: 11 }, warning: { color: onbColors.warning, fontFamily: onbFonts.bodyMedium, marginVertical: 12 }, unverified: { borderColor: onbColors.warning, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 }, link: { color: onbColors.lavender, textAlign: 'center', marginTop: 12 }, row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11, borderBottomColor: onbColors.border, borderBottomWidth: 1 }, rowValue: { color: 'white', maxWidth: '62%', textAlign: 'right', fontFamily: onbFonts.bodyMedium }, result: { alignItems: 'center', justifyContent: 'center', flex: 1 }, emoji: { color: onbColors.successText, fontSize: 60, fontFamily: onbFonts.heading, marginBottom: 15 } });
+function TokenPill({ asset, onPress }: { asset: Asset; onPress?: () => void }) {
+  const body = (
+    <>
+      <View
+        style={[
+          styles.coin,
+          { backgroundColor: asset === 'SOL' ? '#7B3FD4' : '#2779CB' },
+        ]}
+      >
+        <Text style={styles.coinText}>{asset === 'SOL' ? 'S' : 'U'}</Text>
+      </View>
+      <Text style={styles.tokenValue}>{asset}</Text>
+      {onPress ? (
+        <Feather name="chevron-down" size={13} color="#BEB8CB" />
+      ) : null}
+    </>
+  );
+  return onPress ? (
+    <Pressable style={styles.tokenPill} onPress={onPress}>
+      {body}
+    </Pressable>
+  ) : (
+    <View style={styles.tokenPill}>{body}</View>
+  );
+}
+const styles = StyleSheet.create({
+  payCard: {
+    backgroundColor: '#FFFFFF0A',
+    borderColor: '#FFFFFF1A',
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 16,
+    minHeight: 126,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginBottom: 10,
+  },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  amount: {
+    flex: 1,
+    minWidth: 0,
+    color: 'white',
+    fontFamily: onbFonts.heading,
+    fontSize: 36,
+    paddingVertical: 8,
+  },
+  tokenPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF0D',
+    borderWidth: 1,
+    borderColor: '#FFFFFF1A',
+    padding: 6,
+    paddingRight: 12,
+    minHeight: 44,
+  },
+  coin: {
+    width: 28,
+    height: 28,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coinText: { color: 'white', fontFamily: onbFonts.heading },
+  muted: {
+    color: onbColors.textMuted,
+    fontFamily: onbFonts.body,
+    fontSize: 12,
+  },
+  small: {
+    color: onbColors.textSubtle,
+    fontFamily: onbFonts.body,
+    fontSize: 10,
+  },
+  smallWhite: { color: 'white', fontFamily: onbFonts.bodyMedium, fontSize: 11 },
+  quick: {
+    minHeight: 32,
+    paddingHorizontal: 8,
+    borderRadius: 7,
+    backgroundColor: '#9B4FDE25',
+    borderWidth: 1,
+    borderColor: '#9B4FDE40',
+    justifyContent: 'center',
+  },
+  quickText: { fontSize: 10, color: '#D5A7F4', fontFamily: onbFonts.bodySemi },
+  flip: {
+    alignSelf: 'center',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A102A',
+    borderRadius: 13,
+    borderWidth: 3,
+    borderColor: '#0D0618',
+    marginVertical: -10,
+    zIndex: 2,
+  },
+  slipButton: {
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 44,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFFFFF1A',
+    backgroundColor: '#FFFFFF0A',
+  },
+  slippage: { flexDirection: 'row', gap: 8 },
+  chip: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF0A',
+  },
+  selected: { backgroundColor: '#7B2FBE' },
+  fee: {
+    color: onbColors.textMuted,
+    fontFamily: onbFonts.body,
+    fontSize: 11,
+    marginVertical: 8,
+  },
+  bottom: { marginTop: 'auto', paddingTop: 12 },
+  warning: {
+    color: onbColors.warning,
+    fontFamily: onbFonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    marginVertical: 8,
+  },
+  search: {
+    color: 'white',
+    fontFamily: onbFonts.body,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FFFFFF1A',
+    backgroundColor: '#FFFFFF0A',
+  },
+  sectionTitle: {
+    fontFamily: onbFonts.heading,
+    color: 'white',
+    fontSize: 16,
+    marginVertical: 14,
+  },
+  token: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: '#FFFFFF12',
+  },
+  tokenValue: { color: 'white', fontFamily: onbFonts.bodySemi, fontSize: 14 },
+  tokenName: { flex: 1 },
+  verified: { color: '#4ADE80', fontSize: 10 },
+  reviewHero: { alignItems: 'center', gap: 10, paddingVertical: 18 },
+  reviewAmount: { fontFamily: onbFonts.heading, color: 'white', fontSize: 36 },
+  reviewReceive: {
+    fontFamily: onbFonts.heading,
+    color: '#D5A7F4',
+    fontSize: 28,
+  },
+  resultHero: { alignItems: 'center', paddingTop: 32, gap: 18 },
+  resultTitle: {
+    color: 'white',
+    fontFamily: onbFonts.heading,
+    fontSize: 27,
+    textAlign: 'center',
+  },
+  demo: {
+    color: '#FBBF24',
+    fontFamily: onbFonts.bodyMedium,
+    fontSize: 10,
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  banner: { padding: 12, borderRadius: 14, backgroundColor: '#FBBF2410' },
+});
