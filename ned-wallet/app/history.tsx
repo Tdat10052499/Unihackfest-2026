@@ -150,7 +150,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.page}>
-      <Screen scroll={false} edges={['top', 'left', 'right']} contentStyle={styles.frame}>
+      <Screen glow="settings" scroll={false} edges={['top', 'left', 'right']} contentStyle={styles.frame}>
         <View style={styles.headerBar}>
           <DText variant="h1" accessibilityRole="header" style={styles.title}>
             History

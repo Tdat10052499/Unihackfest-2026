@@ -44,6 +44,7 @@ export const colors = {
   errorText: '#F87171',
   warningText: '#FBBF24',
   infoText: '#A5B4FC',
+  errorSoftText: '#FCA5A5',
 
   white: '#FFFFFF',
   black: '#000000',
@@ -57,6 +58,12 @@ export const glass = {
   borderStrong: 'rgba(255,255,255,0.14)',
   divider: 'rgba(255,255,255,0.07)',
   iconTint: 'rgba(155,79,222,0.18)', // ô icon trong hàng danh sách
+  toggleOff: 'rgba(255,255,255,0.18)',
+  popover: '#1A1428',
+  popoverBorder: 'rgba(184,122,237,0.3)',
+  selectedFill: 'rgba(123,47,190,0.2)',
+  focusBorder: 'rgba(155,79,222,0.5)',
+  cardLabel: 'rgba(255,255,255,0.85)',
   nav: 'rgba(22,16,31,0.94)', // thanh điều hướng nổi
   navActive: 'rgba(155,79,222,0.3)',
   shadow: '0 12px 30px rgba(0,0,0,0.45)',
@@ -69,6 +76,8 @@ export const glass = {
   successBorder: 'rgba(74,222,128,0.35)',
   errorFill: 'rgba(239,68,68,0.1)',
   errorBorder: 'rgba(248,113,113,0.4)',
+  errorSoftFill: 'rgba(239,68,68,0.08)',
+  errorSoftBorder: 'rgba(248,113,113,0.3)',
   warningFill: 'rgba(245,158,11,0.12)',
   warningBorder: 'rgba(251,191,36,0.35)',
   infoFill: 'rgba(99,102,241,0.1)',
@@ -87,14 +96,55 @@ export const light = {
   errorText: '#B91C1C',
 } as const;
 
+/** Dải màu hero Home (HomeV4, sheet = light): 7 mốc, nội suy smoothstep 6 bước/đoạn như canvas */
+const heroKeys: [number, string][] = [
+  [0, '#0A0614'],
+  [0.22, '#140A2C'],
+  [0.42, '#2A1363'],
+  [0.58, '#4A2BA3'],
+  [0.72, '#8A6AD8'],
+  [0.86, '#D9CDF6'],
+  [1, '#FFFFFF'],
+];
+function smoothRamp(keys: [number, string][]) {
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const colorsOut: string[] = [];
+  const locations: number[] = [];
+  for (let k = 0; k < keys.length - 1; k++) {
+    const [p0, c0] = keys[k];
+    const [p1, c1] = keys[k + 1];
+    const a = hex(c0);
+    const b = hex(c1);
+    for (let j = 0; j < 6; j++) {
+      const t = j / 6;
+      const e = t * t * (3 - 2 * t);
+      colorsOut.push(`rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * e)).join(',')})`);
+      locations.push(p0 + (p1 - p0) * t);
+    }
+  }
+  colorsOut.push(keys[keys.length - 1][1]);
+  locations.push(1);
+  return { colors: colorsOut as [string, string, ...string[]], locations: locations as [number, number, ...number[]] };
+}
+const heroRamp = smoothRamp(heroKeys);
+
 /** Home (HomeV4): phần trên tối → tím → nửa dưới sáng; ô thao tác sáng; thẻ ví mini */
 export const home = {
   heroTop: '#0A0614',
-  heroColors: ['#0A0614', '#251052', '#7550C9', '#FFFFFF'] as const,
-  heroLocations: [0, 0.42, 0.72, 1] as const,
+  heroColors: heroRamp.colors,
+  heroLocations: heroRamp.locations,
   tile: 'rgba(250,248,255,0.94)',
   tileShadow: '0 6px 20px rgba(40,12,90,0.18)',
-  cryptoCard: ['#238D9E', '#6341BB'] as const,
+  /** Thẻ ví mini 64×40: linear-gradient(135deg, a 0%, b 55%, c 100%) */
+  walletCards: {
+    cash: ['#9B4FDE', '#6366F1', '#1A0B33'] as const,
+    crypto: ['#1FB58F', '#5B3FD0', '#120826'] as const,
+    stocks: ['#E0A33A', '#8A3AD0', '#1A0B33'] as const,
+  },
+  walletLocations: [0, 0.55, 1] as const,
+  addCardBorder: 'rgba(255,255,255,0.55)',
+  /** Phần xu của số dư lớn */
+  cents: 'rgba(255,255,255,0.72)',
 } as const;
 
 /** Gradient Accents — dùng với expo-linear-gradient, hướng 135deg */
@@ -192,3 +242,79 @@ export const dataColors = {
   up: colors.successText,
   down: colors.errorText,
 } as const;
+
+/**
+ * Đổ bóng & chiều sâu — lấy nguyên từ các board canvas (box-shadow). React Native 0.86 và web đều nhận `boxShadow`.
+ */
+export const shadows = {
+  /** Viên kính trên hero Home (header pill): 0 8px 24px + viền sáng trên */
+  glassPill: '0 8px 24px rgba(8,2,20,0.35), inset 0 1px 0 rgba(255,255,255,0.12)',
+  /** Thanh điều hướng nổi */
+  nav: '0 10px 30px rgba(10,4,24,0.45)',
+  /** Thẻ ví mini trên Home */
+  miniCard: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)',
+  /** Ô thao tác sáng trên Home */
+  tile: '0 6px 20px rgba(40,12,90,0.18)',
+  /** Nút / chấm tím nổi (avatar người nhận, nút kéo xác nhận) */
+  brandGlow: '0 4px 14px rgba(123,47,190,0.45)',
+  /** Nút trắng Continue with Google */
+  google: '0 8px 28px rgba(123,47,190,0.35)',
+  /** Thẻ QR trắng (Receive) */
+  qrCard: '0 18px 48px rgba(20,6,50,0.45)',
+  /** Popover / menu nổi (slippage, toast) */
+  popover: '0 18px 40px rgba(0,0,0,0.55)',
+  toast: '0 12px 30px rgba(0,0,0,0.45)',
+  /** Núm công tắc */
+  knob: '0 1px 3px rgba(0,0,0,0.35)',
+  /** Vầng sáng quanh icon kết quả thành công */
+  successGlow: '0 0 40px rgba(34,197,94,0.25)',
+  /** Vòng focus / đang chọn (OnbMode, ô nhập người nhận) */
+  focusRing: '0 0 0 4px rgba(155,79,222,0.14)',
+  /** Icon app ở Splash */
+  appIcon: '0 18px 50px rgba(30,6,70,0.45), inset 0 1px 0 rgba(255,255,255,0.35)',
+} as const;
+
+/** Kính mờ (backdrop-filter: blur(18px)) — chỉ có hiệu lực trên web; react-native-web tự thêm -webkit- cho Safari */
+export const blur = {
+  glass: { backdropFilter: 'blur(18px)' },
+  soft: { backdropFilter: 'blur(16px)' },
+} as const;
+
+/**
+ * Quầng sáng nền (ambient orbs) theo từng board. Toạ độ theo khung 390px; `x` là tâm ngang so với giữa màn,
+ * `y` là mép trên. `color` là rgb, `alpha` là độ đậm ở tâm, `stop` là điểm tắt (transparent X%).
+ */
+export type Orb = { x: number; y: number; w: number; h: number; color: string; alpha: number; stop: number; mid?: [string, number, number] };
+export const orbs = {
+  /** OnbWelcome / Setup / Profile / Mode / Send: tím giữa, có dải indigo */
+  brand: [{ x: 0, y: 40, w: 400, h: 380, color: '123,47,190', alpha: 0.36, stop: 0.68, mid: ['99,102,241', 0.1, 0.45] }],
+  /** Receive: tím giữa, sau thẻ QR */
+  receive: [{ x: 0, y: 90, w: 400, h: 360, color: '123,47,190', alpha: 0.3, stop: 0.65 }],
+  /** Settings / History: tím góc trên phải */
+  settings: [{ x: 105, y: -60, w: 260, h: 260, color: '123,47,190', alpha: 0.22, stop: 0.65 }],
+  /** Swap: indigo góc trên trái */
+  swap: [{ x: -105, y: -40, w: 240, h: 240, color: '99,102,241', alpha: 0.18, stop: 0.65 }],
+  /** xStocks list: hổ phách góc phải + tím bên trái */
+  market: [
+    { x: 105, y: -60, w: 280, h: 280, color: '245,158,11', alpha: 0.16, stop: 0.65 },
+    { x: -155, y: 260, w: 260, h: 260, color: '123,47,190', alpha: 0.2, stop: 0.62 },
+  ],
+  /** OnbSetup: indigo giữa */
+  setup: [{ x: 0, y: 120, w: 380, h: 360, color: '99,102,241', alpha: 0.26, stop: 0.65 }],
+  /** XStockBuy: tím giữa trên */
+  buy: [{ x: 0, y: 60, w: 300, h: 240, color: '123,47,190', alpha: 0.22, stop: 0.65 }],
+  /** XStockSell: indigo giữa trên */
+  sell: [{ x: 0, y: 60, w: 300, h: 240, color: '99,102,241', alpha: 0.2, stop: 0.65 }],
+  /** XStockReview: tím sau khối số tiền */
+  review: [{ x: 0, y: 90, w: 320, h: 220, color: '123,47,190', alpha: 0.2, stop: 0.65 }],
+  /** xStock detail: xanh nhạt góc phải */
+  detail: [{ x: 135, y: 80, w: 280, h: 280, color: '34,197,94', alpha: 0.1, stop: 0.65 }],
+  /** Màn kết quả thành công: xanh giữa */
+  success: [{ x: 0, y: 140, w: 340, h: 300, color: '34,197,94', alpha: 0.18, stop: 0.62 }],
+  /** Hero Home: elip indigo phải + tím trái */
+  homeHero: [
+    { x: 125, y: 150, w: 420, h: 340, color: '99,102,241', alpha: 0.32, stop: 0.7, mid: ['99,102,241', 0.12, 0.4] },
+    { x: -155, y: 210, w: 380, h: 300, color: '155,79,222', alpha: 0.26, stop: 0.7, mid: ['155,79,222', 0.1, 0.4] },
+  ],
+} satisfies Record<string, Orb[]>;
+export type OrbPreset = keyof typeof orbs;

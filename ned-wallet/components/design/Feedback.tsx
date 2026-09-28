@@ -1,8 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { colors, diagonal, fonts, glass, gradients, radius, space } from '@/constants/design';
+import { colors, fonts, glass, radius, shadows, space } from '@/constants/design';
 import { DText } from './Text';
 
 type Status = 'neutral' | 'accent' | 'success' | 'error' | 'warning' | 'info';
@@ -83,13 +82,33 @@ export function Toggle({
       style={[styles.track, !value && styles.trackOff, disabled && styles.disabled]}
       hitSlop={6}
     >
-      {value ? <LinearGradient colors={gradients.primary} {...diagonal} style={StyleSheet.absoluteFill} /> : null}
       <View style={[styles.knob, value && styles.knobOn]} />
     </Pressable>
   );
 }
 
+/** Vòng dấu tick kết quả thành công (XStockSuccess): 88px, nền xanh mờ, vầng sáng 40px */
+export function SuccessMark({ style }: { style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.success, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Feather name="check" size={40} color={colors.successText} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  success: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.pill,
+    backgroundColor: glass.successFill,
+    borderWidth: 1,
+    borderColor: glass.successBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    boxShadow: shadows.successGlow,
+  },
   flex: { flex: 1 },
   badge: {
     flexDirection: 'row',
@@ -112,15 +131,15 @@ const styles = StyleSheet.create({
   },
   noticeIcon: { marginTop: 1 },
   track: {
-    width: 51,
-    height: 31,
+    width: 50,
+    height: 30,
     borderRadius: radius.pill,
-    overflow: 'hidden',
     justifyContent: 'center',
     padding: 3,
+    backgroundColor: colors.purple[400],
   },
-  trackOff: { backgroundColor: colors.surface3, borderWidth: 1, borderColor: colors.border },
+  trackOff: { backgroundColor: glass.toggleOff },
   disabled: { opacity: 0.45 },
-  knob: { width: 25, height: 25, borderRadius: radius.pill, backgroundColor: colors.white },
+  knob: { width: 24, height: 24, borderRadius: radius.pill, backgroundColor: colors.white, boxShadow: shadows.knob },
   knobOn: { alignSelf: 'flex-end' },
 });

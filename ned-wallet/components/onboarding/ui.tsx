@@ -2,11 +2,11 @@
 import React, { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Button, IconButton, Notice, Screen } from '@/components/design';
-import { colors, fonts, glass, radius, sizes, space, type } from '@/constants/design';
+import { colors, fonts, glass, radius, shadows, sizes, space, type, type OrbPreset } from '@/constants/design';
 import { onbColors } from './theme';
 
 /** Nền gradient tối + quầng sáng tím; các màn onboarding tự bố cục bên trong */
-export function OnbScreen({ children, glow = true }: { children: ReactNode; glow?: boolean }) {
+export function OnbScreen({ children, glow = 'brand' }: { children: ReactNode; glow?: OrbPreset | false }) {
   return (
     <Screen scroll={false} glow={glow} contentStyle={styles.bare}>
       {children}
@@ -113,11 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space[3],
-    shadowColor: colors.brand,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    boxShadow: shadows.google,
   },
   googleMark: {
     width: 24,

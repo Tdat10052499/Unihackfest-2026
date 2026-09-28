@@ -152,7 +152,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.page}>
-      <Screen contentStyle={styles.content} edges={['top', 'left', 'right']}>
+      <Screen glow="settings" contentStyle={styles.content} edges={['top', 'left', 'right']}>
         <DText variant="h1" accessibilityRole="header" style={styles.title}>
           Settings
         </DText>
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
           />
         </ListGroup>
 
-        <Button title="Sign out" icon="log-out" variant="destructive" onPress={signOut} style={styles.signOut} />
+        <Button title="Sign out" icon="log-out" variant="destructiveSoft" onPress={signOut} style={styles.signOut} />
         <DText variant="caption" align="center" style={styles.signOutNote}>
           Your wallet stays safe. Sign in again with Google anytime.
         </DText>

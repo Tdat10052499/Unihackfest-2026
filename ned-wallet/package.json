@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "deploy:web": "node scripts/deploy-web.js",
-    "predeploy": "npx expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll",
+    "predeploy": "npx expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll && node scripts/gh-pages-gitignore.js",
     "deploy": "gh-pages -d dist -t --nojekyll",
     "identity:devnet": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/identity-devnet.ts",
     "test:identity": "node --test services/identity/__tests__/*.test.ts",

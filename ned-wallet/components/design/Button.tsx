@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { colors, diagonal, glass, gradients, radius, sizes, space, type } from '@/constants/design';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+// destructiveSoft: nút Sign out của Settings.dc.html (nền đỏ mờ, viền đỏ nhạt, chữ #FCA5A5)
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'destructiveSoft';
 
 /** Button System (PDF trang 6): cao 52, bo 16, Space Grotesk 16/600 */
 export function Button({
@@ -34,7 +35,9 @@ export function Button({
     ? colors.textTertiary
     : variant === 'outline' || variant === 'ghost'
       ? colors.textAccent
-      : colors.text;
+      : variant === 'destructiveSoft'
+        ? colors.errorSoftText
+        : colors.text;
   const content: ReactNode = loading ? (
     <ActivityIndicator color={textColor} />
   ) : (
@@ -75,6 +78,7 @@ const variantStyle = StyleSheet.create({
   outline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.brand },
   ghost: { backgroundColor: 'transparent' },
   destructive: { backgroundColor: colors.error },
+  destructiveSoft: { backgroundColor: glass.errorSoftFill, borderWidth: 1, borderColor: glass.errorSoftBorder },
 });
 
 const styles = StyleSheet.create({

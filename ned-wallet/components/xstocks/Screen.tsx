@@ -9,21 +9,23 @@ import {
   InfoRow as KitInfoRow,
   Screen as KitScreen,
 } from '@/components/design';
-import { space } from '@/constants/design';
+import { space, type OrbPreset } from '@/constants/design';
 
 export function Screen({
   children,
   scroll = true,
   style,
   footer,
+  glow = false,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   style?: ViewStyle;
   footer?: React.ReactNode;
+  glow?: OrbPreset | false;
 }) {
   return (
-    <KitScreen scroll={scroll} footer={footer} contentStyle={[styles.content, style]}>
+    <KitScreen scroll={scroll} footer={footer} glow={glow} contentStyle={[styles.content, style]}>
       {children}
     </KitScreen>
   );

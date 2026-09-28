@@ -6,7 +6,7 @@ import { resolveRecipient, recipientLabel, shortAddress, type Recipient } from '
 import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { solAmount } from '../services/identity/transactionCost';
 import { AmbientGlow, Badge, Button, Card, DText, Header, IconButton, InfoRow, Notice } from './design';
-import { colors, fonts, glass, gradients, radius, sizes, space, type } from '../constants/design';
+import { colors, fonts, glass, gradients, radius, shadows, sizes, space, type } from '../constants/design';
 import { MASCOT_IMAGES } from '../constants/mascot';
 import { amountNumber, sanitizeAmountInput } from '../utils/amountInput';
 
@@ -86,7 +86,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
   const shown = Number(amount).toFixed(2);
   const overBalance = balance != null && amountNumber(amount) > balance;
   return <LinearGradient colors={gradients.screen} locations={gradients.screenLocations} style={styles.root}>
-    {stage === 'success' ? <AmbientGlow /> : null}
+    {stage === 'success' ? <AmbientGlow preset="success" /> : null}
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       {stage !== 'success' && <Header
         title={stage === 'review' ? 'Review' : 'Send'}
@@ -195,10 +195,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: space[3], minHeight: 56, paddingHorizontal: space[4],
     borderRadius: radius.lg, borderWidth: 1, borderColor: glass.borderStrong, backgroundColor: glass.fill,
   },
-  searchActive: { borderColor: colors.purple[400] },
+  searchActive: { borderColor: glass.focusBorder, boxShadow: shadows.focusRing },
   searchInput: { ...type.bodyLarge, flex: 1, minWidth: 0, minHeight: 52 },
   recipient: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  avatar: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.purple[600], alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.purple[400], alignItems: 'center', justifyContent: 'center', boxShadow: shadows.brandGlow },
   recipientName: { fontFamily: fonts.displaySemi },
   recipientAddress: { fontSize: 12, lineHeight: 17 },
   unverified: { marginTop: space[1] },

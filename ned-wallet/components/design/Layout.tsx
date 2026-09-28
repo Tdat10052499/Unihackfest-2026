@@ -4,21 +4,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { colors, glass, gradients, radius, sizes, space } from '@/constants/design';
+import { colors, glass, gradients, orbs, radius, sizes, space, type Orb, type OrbPreset } from '@/constants/design';
 import { DText } from './Text';
 
 /** Nền tối gradient 170deg + quầng tím (Ambient orb), nội dung tối đa 480px cho web desktop */
 export function Screen({
   children,
   scroll = true,
-  glow = true,
+  glow = false,
   footer,
   contentStyle,
   edges = ['top', 'bottom', 'left', 'right'],
 }: {
   children: ReactNode;
   scroll?: boolean;
-  glow?: boolean;
+  /** Preset quầng sáng của board, `false` để tắt */
+  glow?: OrbPreset | false;
   /** Vùng cố định dưới màn (CTA) */
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
@@ -32,7 +33,7 @@ export function Screen({
       end={{ x: 0.7, y: 1 }}
       style={styles.root}
     >
-      {glow ? <AmbientGlow /> : null}
+      {glow ? <AmbientGlow preset={glow} /> : null}
       <SafeAreaView style={styles.safe} edges={edges}>
         {scroll ? (
           <ScrollView
@@ -51,20 +52,32 @@ export function Screen({
   );
 }
 
-/** radial-gradient(circle, rgba(123,47,190,0.36) 0%, rgba(99,102,241,0.1) 45%, transparent 68%) */
-export function AmbientGlow({ style }: { style?: StyleProp<ViewStyle> }) {
+/** Quầng sáng nền (ambient orbs) theo preset của từng board — xem `orbs` trong constants/design.ts */
+export function AmbientGlow({ preset = 'brand', style }: { preset?: OrbPreset; style?: StyleProp<ViewStyle> }) {
   return (
-    <View pointerEvents="none" style={[styles.glow, style]}>
-      <Svg width="100%" height="100%" viewBox="0 0 400 380">
-        <Defs>
-          <RadialGradient id="nedGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={colors.brand} stopOpacity={0.36} />
-            <Stop offset="0.45" stopColor={colors.info} stopOpacity={0.1} />
-            <Stop offset="0.68" stopColor={colors.info} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="400" height="380" fill="url(#nedGlow)" />
-      </Svg>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+      {(orbs[preset] as readonly Orb[]).map((o, i) => {
+        const id = `orb-${preset}-${i}`;
+        return (
+          <View
+            key={id}
+            style={{ position: 'absolute', top: o.y, left: '50%', marginLeft: o.x - o.w / 2, width: o.w, height: o.h }}
+          >
+            <Svg width="100%" height="100%" viewBox={`0 0 ${o.w} ${o.h}`}>
+              <Defs>
+                <RadialGradient id={id} cx="50%" cy="50%" rx="50%" ry="50%">
+                  {[
+                    <Stop key="c" offset="0" stopColor={`rgb(${o.color})`} stopOpacity={o.alpha} />,
+                    ...(o.mid ? [<Stop key="m" offset={o.mid[2]} stopColor={`rgb(${o.mid[0]})`} stopOpacity={o.mid[1]} />] : []),
+                    <Stop key="e" offset={o.stop} stopColor={`rgb(${o.mid?.[0] ?? o.color})`} stopOpacity={0} />,
+                  ]}
+                </RadialGradient>
+              </Defs>
+              <Rect x="0" y="0" width={o.w} height={o.h} fill={`url(#${id})`} />
+            </Svg>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -131,7 +144,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, width: '100%', maxWidth: sizes.maxContent, alignSelf: 'center' },
   content: { flexGrow: 1, paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[8] },
   footer: { paddingHorizontal: space[5], paddingTop: space[3], paddingBottom: space[3] },
-  glow: { position: 'absolute', top: 40, alignSelf: 'center', width: 400, height: 380 },
   iconButton: {
     width: sizes.touch,
     height: sizes.touch,

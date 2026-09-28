@@ -12,7 +12,7 @@ import {
   Muted,
   Screen,
 } from '@/components/xstocks/Screen';
-import { Badge, DText } from '@/components/design';
+import { Badge, DText, SuccessMark } from '@/components/design';
 import { space } from '@/constants/design';
 
 export default function XStockResultScreen() {
@@ -37,13 +37,9 @@ export default function XStockResultScreen() {
 
   const success = result === 'success';
   return (
-    <Screen>
+    <Screen glow={success ? 'success' : false}>
       <View style={styles.container}>
-        <Mascot
-          mood={success ? 'happy' : 'confused'}
-          size={156}
-          floatAnimation
-        />
+        {success ? <SuccessMark /> : <Mascot mood="confused" size={156} floatAnimation />}
         <DText variant="h2" align="center" style={styles.title}>
           {success
             ? side === 'buy'
