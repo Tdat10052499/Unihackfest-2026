@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '../services/auth';
 import { MASCOT_IMAGES } from '../constants/mascot';
-import { colors, fonts, glass, purple, space } from '../constants/design';
+import { colors, fonts, glass, purple, shadows, space } from '../constants/design';
 
 const SPLASH_MS = 900;
 
@@ -99,11 +99,7 @@ const styles = StyleSheet.create({
     borderColor: glass.onBrandBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: purple[900],
-    shadowOpacity: 0.45,
-    shadowRadius: 25,
-    shadowOffset: { width: 0, height: 18 },
-    elevation: 10,
+    boxShadow: shadows.appIcon,
   },
   icon: { width: 98, height: 100 },
   word: {

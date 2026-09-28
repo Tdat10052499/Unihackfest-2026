@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, glass, radius, space } from '@/constants/design';
+import { colors, glass, radius, shadows, space } from '@/constants/design';
 
 // History thay vị trí dApps của thiết kế (mini-app platform đã bị cắt)
 const items = [
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: glass.border,
-    boxShadow: glass.shadow,
+    boxShadow: shadows.nav,
   },
   item: { width: 52, height: 42, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   active: { backgroundColor: glass.navActive },

@@ -4,4 +4,4 @@ export { Button, type ButtonVariant } from './Button';
 export { Card, type CardVariant } from './Card';
 export { Screen, AmbientGlow, IconButton, Header, SectionLabel } from './Layout';
 export { ListGroup, ListRow, InfoRow } from './List';
-export { Badge, Notice, Toggle } from './Feedback';
+export { Badge, Notice, SuccessMark, Toggle } from './Feedback';

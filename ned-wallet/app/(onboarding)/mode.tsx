@@ -8,7 +8,7 @@ import { useAuth } from '../../services/auth';
 import { useWalletModeStore, type WalletMode } from '../../stores/useWalletModeStore';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
 import { Badge } from '../../components/design';
-import { colors, diagonal, fonts, glass, gradients, radius, space, type } from '../../constants/design';
+import { colors, diagonal, fonts, glass, gradients, radius, shadows, space, type } from '../../constants/design';
 
 const MODES: {
   id: WalletMode;
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   lead: { marginTop: space[2] },
   options: { marginTop: space[6], gap: space[3] },
   option: { padding: space[4], borderRadius: radius.xl, borderWidth: 1.5 },
-  optionOn: { backgroundColor: glass.accentFill, borderColor: colors.purple[400] },
+  optionOn: { backgroundColor: glass.selectedFill, borderColor: colors.purple[400], boxShadow: shadows.focusRing },
   optionOff: { backgroundColor: glass.fill, borderColor: glass.border },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   iconBox: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },

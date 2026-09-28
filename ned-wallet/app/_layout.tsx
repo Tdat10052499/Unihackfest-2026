@@ -10,9 +10,10 @@ import { AuthProvider, useAuth } from '../services/auth';
 import { MwaProvider } from '../contexts/MwaProvider';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import { useFonts } from 'expo-font';
+import { colors } from '../constants/design';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
@@ -36,7 +37,8 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  // Chờ font chữ + font icon nạp xong rồi mới vẽ app (tránh chữ hệ thống và icon trống lúc đầu); lỗi nạp font thì vẫn vẽ
+  const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
     SpaceGrotesk_500Medium,
@@ -45,7 +47,6 @@ export default function RootLayout() {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
-    Inter_700Bold,
     SpaceMono_400Regular,
     SpaceMono_700Bold,
   });
@@ -56,6 +57,8 @@ export default function RootLayout() {
         insets: { top: 0, left: 0, right: 0, bottom: 0 },
       }
     : undefined;
+
+  if (!fontsLoaded && !fontError) return <View style={styles.boot} />;
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -92,4 +95,5 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  boot: { flex: 1, backgroundColor: colors.background },
 });

@@ -78,3 +78,26 @@ Onboarding, Splash, Home, thanh điều hướng, Swap, xStocks (list/detail/tra
 2. Settings: đổi ảnh đại diện, liên kết/huỷ SĐT (xem phí SOL), copy địa chỉ, Sign out → Welcome.
 3. History: lọc All/Received/Sent/Rewards, tìm kiếm, copy chữ ký, mở Explorer; chữ hiển thị tiếng Anh.
 4. Onboarding và Send: nút chính cao 52, màu gradient mới; luồng Send vẫn hiện phí mạng thật.
+
+# Sửa icon, font và hiệu ứng (28/09/2026, đợt 3)
+
+## Nguyên nhân mất icon và sai font trên web
+
+Nhánh `gh-pages` còn sót `.gitignore` cũ có dòng `*/node_modules/`. Expo xuất font chữ và font icon (Feather, Ionicons) vào `dist/assets/node_modules/…`, nên git bỏ qua toàn bộ 46 file `.ttf` khi deploy. Kết quả trên web: icon trống, chữ dùng font hệ thống.
+
+- `scripts/gh-pages-gitignore.js` chạy cuối `predeploy`: ghi `dist/.gitignore` rỗng để ghi đè file cũ, và dừng deploy nếu không tìm thấy file `.ttf`.
+- `app/_layout.tsx` chờ font nạp xong mới vẽ app; nếu nạp lỗi thì vẫn vẽ. Bỏ Inter 700 vì không thuộc DesignKit.
+- Nhánh `gh-pages` còn các thư mục cũ không liên quan (`ned-wallet/`, `ned_program/`, `ned-mock-dapp/`), nên dọn khi có dịp.
+
+## Hiệu ứng lấy từ canvas
+
+- `shadows` trong `constants/design.ts`: header pill, thanh điều hướng, thẻ ví mini, ô thao tác, nút kéo xác nhận, nút Google, thẻ QR, popover, núm công tắc, vầng sáng thành công, vòng focus, icon splash.
+- `blur.glass` (18px): header pill trên Home, chỉ có hiệu lực trên web.
+- `orbs`: quầng sáng riêng cho từng board (Welcome, Setup, Receive, Settings/History, Swap, xStocks list/detail/buy/sell/review, kết quả thành công, hero Home). Board nào không có quầng sáng thì code cũng tắt.
+- Home: hero dùng dải màu smoothstep 7 mốc; thẻ ví mini 64×40 có watermark Teddy line-art và thẻ "+" nét đứt dẫn tới Receive; phần xu của số dư mờ 72%; avatar dùng Teddy line-art.
+- Công tắc theo Settings: 50×30, bật #9B4FDE, núm có bóng. Sign out dùng biến thể `destructiveSoft`. Bảng Max price change của Swap dạng popover. Kết quả mua/bán xStocks dùng vòng tick phát sáng (PDF trang 15).
+
+## Kiểm tra
+
+- Chromium 390×844 với phiên giả (đã gỡ) trên 9 màn: mọi phần tử chữ dùng font DesignKit, icon hiển thị đủ, font không lỗi 404, không tràn ngang.
+- `tsc` pass. Lint 48 errors (có từ trước) / 63 warnings. Test identity/jupiter/xstocks pass. `npm run predeploy`: xuất 46 file font.

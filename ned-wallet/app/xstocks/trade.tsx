@@ -146,7 +146,7 @@ export default function XStockTradeScreen() {
   }
 
   return (
-    <Screen>
+    <Screen glow={side === 'buy' ? 'buy' : 'sell'}>
       <Header
         title={`${side === 'buy' ? 'Buy' : 'Sell'} ${activeStock.symbol}`}
         onBack={() => router.back()}

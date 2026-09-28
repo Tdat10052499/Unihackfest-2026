@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, radius, space, type } from '@/constants/design';
+import { colors, gradients, radius, shadows, space, type } from '@/constants/design';
 
 /** Drag confirmation with an explicit button alternative for keyboard/assistive input. */
 export function SlideConfirm({
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: shadows.brandGlow,
   },
   label: {
     textAlign: 'center',

@@ -23,7 +23,7 @@ export default function NotFoundScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false, title: 'Redirecting' }} />
-      <Screen scroll={false} contentStyle={styles.container}>
+      <Screen glow="settings" scroll={false} contentStyle={styles.container}>
         <View style={styles.iconBox}>
           <ActivityIndicator size="large" color={colors.purple[300]} />
         </View>

@@ -214,7 +214,7 @@ export default function NotificationDetailScreen() {
 
   if (!notification) {
     return (
-      <Screen>
+      <Screen glow="settings">
         <Header title="Notification" onBack={() => router.back()} />
         <View style={styles.emptyCenter}>
           <DText variant="body" align="center">
@@ -298,7 +298,7 @@ export default function NotificationDetailScreen() {
   };
 
   return (
-    <Screen>
+    <Screen glow="settings">
       <Header
         title="Transaction details"
         onBack={goBack}

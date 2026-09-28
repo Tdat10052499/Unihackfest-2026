@@ -18,7 +18,7 @@ import {
 import { saveDemoSwap } from '@/services/storage';
 import { getDemoLedger, recordDemoSwap } from '@/services/demoLedger';
 import { Badge } from '@/components/design';
-import { colors, dataColors, fonts, glass, gradients, radius, space, type } from '@/constants/design';
+import { colors, dataColors, fonts, glass, gradients, radius, shadows, space, type } from '@/constants/design';
 import { amountNumber, sanitizeAmountInput } from '@/utils/amountInput';
 import {
   ActionButton,
@@ -208,7 +208,7 @@ export default function SwapScreen() {
 
   if (stage === 'result')
     return (
-      <Screen>
+      <Screen glow={result === 'success' ? 'success' : false}>
         <View style={styles.resultHero}>
           <Mascot
             mood={result === 'success' ? 'happy' : 'confused'}
@@ -409,7 +409,7 @@ export default function SwapScreen() {
     );
 
   return (
-    <Screen>
+    <Screen glow="swap">
       <Header
         title="Swap"
         onBack={() => router.back()}
@@ -427,7 +427,7 @@ export default function SwapScreen() {
         }
       />
       {showSlippage ? (
-        <Card>
+        <View style={styles.popover}>
           <Text style={styles.sectionTitle}>Max price change</Text>
           <View style={styles.slippage}>
             {(['auto', 0.5, 1, 3] as Slippage[]).map((value) => (
@@ -447,7 +447,7 @@ export default function SwapScreen() {
               3% slippage may result in a worse price.
             </Text>
           ) : null}
-        </Card>
+        </View>
       ) : null}
       <View style={styles.payCard}>
         <View style={styles.cardTop}>
@@ -658,6 +658,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glass.border,
     backgroundColor: glass.fill,
+  },
+  // Bảng "Max price change" nổi như popover của SwapV1.dc.html
+  popover: {
+    padding: space[4],
+    marginBottom: space[3],
+    borderRadius: radius.xl,
+    backgroundColor: glass.popover,
+    borderWidth: 1,
+    borderColor: glass.popoverBorder,
+    boxShadow: shadows.popover,
   },
   slippage: { flexDirection: 'row', gap: space[2] },
   chip: {

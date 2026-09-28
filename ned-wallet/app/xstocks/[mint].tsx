@@ -148,6 +148,7 @@ export default function XStockDetailScreen() {
 
   return (
     <Screen
+      glow="detail"
       footer={
         <View style={styles.actions}>
           <Button

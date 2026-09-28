@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
 import { PublicKey } from '@solana/web3.js';
 import { Button, DText, Header, Notice, Screen } from '@/components/design';
-import { colors, diagonal, fonts, glass, gradients, light, radius, space, type } from '@/constants/design';
+import { colors, diagonal, fonts, glass, gradients, light, radius, shadows, space, type } from '@/constants/design';
 import { MASCOT_IMAGES } from '@/constants/mascot';
 import { useAuth } from '@/services/auth';
 import { useUserStore } from '@/stores/useUserStore';
@@ -78,6 +78,7 @@ export default function ReceiveScreen() {
 
   return (
     <Screen
+      glow="receive"
       footer={
         <Button
           title={copied === 'Details' ? 'Details copied' : 'Share my details'}
@@ -95,7 +96,7 @@ export default function ReceiveScreen() {
       <View style={styles.qrCard}>
         {walletAddress ? (
           <>
-            <QRCode value={walletAddress} size={196} color={light.text} backgroundColor={colors.white} ecl="H" />
+            <QRCode value={walletAddress} size={208} color={light.text} backgroundColor={colors.white} ecl="H" />
             <LinearGradient colors={gradients.purpleIndigo} {...diagonal} style={styles.qrLogo}>
               <Image source={MASCOT_IMAGES.lineArt} style={styles.qrLogoImage} resizeMode="contain" />
             </LinearGradient>
@@ -157,9 +158,10 @@ const styles = StyleSheet.create({
   qrCard: {
     alignSelf: 'center',
     marginTop: space[5],
-    width: 236,
-    height: 236,
-    borderRadius: radius.xl + space[1],
+    width: 244,
+    height: 244,
+    borderRadius: 26, // thẻ QR của Receive.dc.html
+    boxShadow: shadows.qrCard,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',

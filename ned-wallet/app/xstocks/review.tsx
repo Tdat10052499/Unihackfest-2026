@@ -137,7 +137,7 @@ export default function XStockReviewScreen() {
   }
 
   return (
-    <Screen>
+    <Screen glow="review">
       <Header title="Review order" onBack={() => router.back()} />
       <View style={styles.hero}>
         <Badge

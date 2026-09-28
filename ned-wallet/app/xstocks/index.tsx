@@ -96,7 +96,7 @@ export default function XStocksListScreen() {
 
   return (
     <View style={styles.fill}>
-      <Screen style={styles.page}>
+      <Screen style={styles.page} glow="market">
         <View style={styles.listTop}>
           <DText variant="h1" accessibilityRole="header">
             xStocks

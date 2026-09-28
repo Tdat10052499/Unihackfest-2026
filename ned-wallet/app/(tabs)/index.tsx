@@ -19,14 +19,15 @@ import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
 import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
 import { getXStocks, type XStock } from '@/services/xstocks';
 import { NotificationModal } from '@/components/NotificationModal';
-import { Mascot } from '@/components/Mascot';
-import { colors, dataColors, diagonal, fonts, glass, gradients, home, light, radius, sizes, space, type } from '@/constants/design';
+import { AmbientGlow } from '@/components/design';
+import { MASCOT_IMAGES } from '@/constants/mascot';
+import { blur, colors, dataColors, diagonal, fonts, glass, gradients, home, light, radius, shadows, sizes, space, type } from '@/constants/design';
 
-const walletCards = {
-  cash: gradients.purpleIndigo,
-  crypto: home.cryptoCard,
-  stocks: [dataColors.series[1], colors.purple[400]] as const,
-};
+const walletCards = [
+  { label: 'CASH', colors: home.walletCards.cash },
+  { label: 'CRYPTO', colors: home.walletCards.crypto },
+  { label: 'STOCKS', colors: home.walletCards.stocks },
+] as const;
 
 const money = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -145,6 +146,7 @@ export default function HomeScreen() {
           locations={home.heroLocations}
           style={[styles.hero, { paddingTop: Math.max(insets.top, space[4]) }]}
         >
+          <AmbientGlow preset="homeHero" />
           <View style={styles.topRow}>
             <Pressable
               onPress={() => router.push('/settings')}
@@ -155,7 +157,7 @@ export default function HomeScreen() {
                 {avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} style={styles.avatar} />
                 ) : (
-                  <Mascot mood="welcome" size={42} />
+                  <Image source={MASCOT_IMAGES.lineArt} style={styles.avatarArt} resizeMode="contain" />
                 )}
               </LinearGradient>
               <View style={styles.nameWrap}>
@@ -201,52 +203,39 @@ export default function HomeScreen() {
               </Pressable>
             </View>
             <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balance}>
-              {hideBalance
-                ? '••••••'
-                : pricesReady
-                  ? money(cash + investments)
-                  : '—'}
+              {hideBalance ? (
+                '••••••'
+              ) : pricesReady ? (
+                <>
+                  {money(cash + investments).slice(0, -3)}
+                  <Text style={styles.cents}>{money(cash + investments).slice(-3)}</Text>
+                </>
+              ) : (
+                '—'
+              )}
             </Text>
             <Text style={styles.demo}>Demo balance · SOL shown separately</Text>
             <View style={styles.wallets}>
-              {(
-                [
-                  {
-                    label: 'CASH',
-                    colors: walletCards.cash,
-                    text: hideBalance ? '••••' : money(cash),
-                  },
-                  {
-                    label: 'CRYPTO',
-                    colors: walletCards.crypto,
-                    text: hideBalance
-                      ? '••••'
-                      : `${balance.sol.toFixed(3)} SOL`,
-                  },
-                  {
-                    label: 'STOCKS',
-                    colors: walletCards.stocks,
-                    text: hideBalance
-                      ? '••••'
-                      : pricesReady
-                        ? money(investments)
-                        : '—',
-                  },
-                ] as const
-              ).map((card) => (
-                <View key={card.label} style={styles.wallet}>
-                  <LinearGradient
-                    colors={card.colors}
-                    {...diagonal}
-                    style={styles.walletGradient}
-                  >
-                    <Text style={styles.walletLabel}>{card.label}</Text>
-                    <Text numberOfLines={1} style={styles.walletValue}>
-                      {card.text}
-                    </Text>
-                  </LinearGradient>
-                </View>
+              {walletCards.map((card) => (
+                <LinearGradient
+                  key={card.label}
+                  colors={card.colors}
+                  locations={home.walletLocations}
+                  {...diagonal}
+                  style={styles.wallet}
+                >
+                  <Image source={MASCOT_IMAGES.lineArt} style={styles.walletArt} resizeMode="contain" />
+                  <Text style={styles.walletLabel}>{card.label}</Text>
+                </LinearGradient>
               ))}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add money"
+                onPress={() => router.push('/receive' as Href)}
+                style={styles.addWallet}
+              >
+                <Feather name="plus" size={18} color={colors.text} />
+              </Pressable>
             </View>
           </View>
           <View style={styles.actions}>
@@ -385,7 +374,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   loading: { flex: 1, justifyContent: 'center', backgroundColor: home.heroTop },
-  hero: { paddingHorizontal: space[5], paddingBottom: space[10] },
+  hero: { paddingHorizontal: space[5], paddingBottom: space[16], overflow: 'hidden' },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space[3] },
   profile: {
     flexDirection: 'row',
@@ -398,6 +387,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glass.borderStrong,
     backgroundColor: glass.fillStrong,
+    boxShadow: shadows.glassPill,
+    ...blur.glass,
     maxWidth: '65%',
   },
   avatar: {
@@ -408,6 +399,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
+  avatarArt: { width: 42, height: 43, marginBottom: -4 },
   nameWrap: { flex: 1, minWidth: 0 },
   greeting: { ...type.caption, color: colors.textSecondary },
   name: { ...type.bodyLarge, fontFamily: fonts.display, lineHeight: 20 },
@@ -419,6 +411,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glass.borderStrong,
     backgroundColor: glass.fillStrong,
+    boxShadow: shadows.glassPill,
+    ...blur.glass,
     paddingHorizontal: space[1],
   },
   iconButton: {
@@ -433,13 +427,30 @@ const styles = StyleSheet.create({
   balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   kicker: { ...type.label, letterSpacing: 1.4 },
   eye: { minWidth: sizes.touch, minHeight: 32, justifyContent: 'center' },
-  balance: { ...type.hero, marginTop: space[2] },
+  balance: { ...type.hero, letterSpacing: -1.8, lineHeight: 52, marginTop: space[2] },
+  cents: { color: home.cents },
   demo: { ...type.caption, color: colors.textSecondary, marginTop: space[2] },
-  wallets: { flexDirection: 'row', gap: space[3], marginTop: space[5] },
-  wallet: { width: 96, borderRadius: radius.sm, overflow: 'hidden' },
-  walletGradient: { paddingHorizontal: space[2], paddingVertical: 6, height: 52, justifyContent: 'space-between' },
-  walletLabel: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 14, color: colors.text },
-  walletValue: { fontFamily: fonts.monoBold, fontSize: 11, lineHeight: 14, color: colors.text },
+  wallets: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
+  wallet: {
+    width: 64,
+    height: 40,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    boxShadow: shadows.miniCard,
+  },
+  walletArt: { position: 'absolute', right: -6, bottom: -8, width: 34, height: 35, opacity: 0.55 },
+  walletLabel: { position: 'absolute', left: 7, top: 6, fontFamily: fonts.mono, fontSize: 8, lineHeight: 10, color: glass.cardLabel },
+  addWallet: {
+    width: 64,
+    height: 40,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: home.addCardBorder,
+    backgroundColor: glass.fill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actions: { flexDirection: 'row', gap: space[2], marginTop: space[6] },
   action: {
     flex: 1,
@@ -448,7 +459,7 @@ const styles = StyleSheet.create({
     padding: space[3],
     height: 104,
     justifyContent: 'space-between',
-    boxShadow: home.tileShadow,
+    boxShadow: shadows.tile,
   },
   actionIcon: {
     width: 30,
