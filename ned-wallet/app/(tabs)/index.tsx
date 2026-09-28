@@ -1,1084 +1,532 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ScrollView,
-  RefreshControl,
-  TouchableOpacity,
-  InteractionManager,
-  AppState,
   Image,
-  Platform,
-  StatusBar,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect, Redirect } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import {
-  PublicKey,
-  LAMPORTS_PER_SOL,
-} from '@solana/web3.js';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import {
-  getSolanaBalance,
-  getAccountDisplayBalance,
-  formatFiatBalance,
-  AccountDisplayBalance,
-  solanaConnection,
-  fetchOnChainHistory,
-  ActivityItem,
-} from '@/services/solana';
-import {
-  cacheBalance,
-  getCachedBalance,
-  cacheActivities,
-  getCachedActivities,
-  getLinkedPhone,
-  setLinkedPhone,
-} from '@/services/storage';
-import { getOwnPhone } from '@/services/identity/ownPhone';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/services/auth';
 import { useUserStore } from '@/stores/useUserStore';
-import { useOnchainTransfer } from '@/hooks/useOnchainTransfer';
-import { useTranslation } from '@/services/i18n';
-import { DepositModal } from '@/components/DepositModal';
-import { SendModal } from '@/components/SendModal';
-import type { PreparedUsdcTransfer } from '@/services/p2pTransfer';
-import { PhoneLinkingModal } from '@/components/PhoneLinkingModal';
-import { PhoneManagementModal } from '@/components/PhoneManagementModal';
-import { NeoPhysicalWalletCard, StablecoinCardData } from '@/components/neo/NeoPhysicalWalletCard';
-import { AddSubWalletModal } from '@/components/neo/AddSubWalletModal';
-import { StablecoinBalances } from '@/components/neo/NeoSwapModal';
-import { useSubWallets, SubWalletItem } from '@/hooks/useSubWallets';
-import { useOnchainBalance } from '@/hooks/useOnchainBalance';
-import { useWalletCardsStore } from '@/stores/useWalletCardsStore';
-import { AddStablecoinModal } from '@/components/neo/AddStablecoinModal';
-import { useTimeOfDay } from '@/hooks/useTimeOfDay';
-import { useNotificationStore } from '@/stores/useNotificationStore';
-import { NotificationModal } from '@/components/NotificationModal';
-import LoginScreen from '../login';
+import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
 import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
+import { getXStocks, type XStock } from '@/services/xstocks';
+import { DepositModal } from '@/components/DepositModal';
+import { NotificationModal } from '@/components/NotificationModal';
+import { Mascot } from '@/components/Mascot';
+import { onbFonts } from '@/components/onboarding/theme';
+
+const money = (value: number) =>
+  value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { greeting } = useTimeOfDay();
-  const { t } = useTranslation();
-  
   const { isReady, user, walletAddress } = useAuth();
-  
-  const { username, avatarUrl, loadFromStorage, fetchUserProfile } = useUserStore();
-
-  const {
-    transfer: executeTokenTransfer,
-    isTransferring: isExecutingTransfer,
-    isWalletReady,
-    needsRecovery: isNeedsRecovery,
-  } = useOnchainTransfer();
-
-  // State số dư & tiền tệ (USD / VND)
-  const [solBalance, setSolBalance] = useState<number | null>(null);
-  const [accountBalanceState, setAccountBalanceState] = useState<AccountDisplayBalance | null>(null);
-  const [currency, setCurrency] = useState<'USD' | 'VND'>('USD');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // State Modals
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showPhoneLinkingModal, setShowPhoneLinkingModal] = useState(false);
-  const [showPhoneManagementModal, setShowPhoneManagementModal] = useState(false);
-  const [linkedPhoneState, setLinkedPhoneState] = useState<string | null>(null);
-
-  // State Withdraw / Send Recipient & Broadcast Loading
-  const [withdrawAddress, setWithdrawAddress] = useState('');
-  const isSendingTx = isExecutingTransfer;
-
-  // State danh sách lịch sử giao dịch (dùng cho tính toán số liệu)
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-
-  // Địa chỉ ví Solana nhúng (Dynamic)
-  const solanaAddress = walletAddress;
-
-  // Hook truy xuất số dư On-chain thực tế
-  const {
-    usdcBalance: onchainUsdcBalance,
-    formattedUsd: onchainFormattedUsd,
-    formattedVnd: onchainFormattedVnd,
-    refreshBalance: refreshOnchainBalance,
-  } = useOnchainBalance(solanaAddress);
-
-  // Quản lý Ví Tiền Tệ Phụ (Sub-wallets) & Swap
-  const { subWallets, addSubWallet, executeSwap } = useSubWallets(
-    user?.id,
-    onchainUsdcBalance
-  );
-  const [showAddSubWalletModal, setShowAddSubWalletModal] = useState(false);
-  const [showSwapModal, setShowSwapModal] = useState(false);
-  const [selectedSubWalletForSwap, setSelectedSubWalletForSwap] = useState<SubWalletItem | null>(null);
-  
-  // Wallet Cards Store
-  const { walletCards, loadCardsForWallet, resetCards, removeCard } = useWalletCardsStore();
-  const [showAddStablecoinModal, setShowAddStablecoinModal] = useState(false);
-
-  // Hệ thống Thông báo (In-app Notifications)
-  const { unreadCount } = useNotificationStore();
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-
-  // Quản lý Số dư Độc lập cho từng loại Stablecoin
-  const [stablecoinBalances, setStablecoinBalances] = useState<StablecoinBalances>({
-    USDC: 0.0, // Khởi tạo $0, sẽ được đồng bộ từ on-chain
-    EURC: 0.0,
-    PYUSD: 0.0,
+  const { username, avatarUrl } = useUserStore();
+  useEffect(() => {
+    if (walletAddress)
+      void useUserStore.getState().fetchUserProfile(walletAddress);
+  }, [walletAddress]);
+  const [balance, setBalance] = useState({ sol: 0, usdc: 0 });
+  const [ledger, setLedger] = useState<DemoLedger>({
+    cashUsdc: 0,
+    holdings: [],
+    trades: [],
   });
-  const [activeCardCurrency, setActiveCardCurrency] = useState<string>('USDC');
-  const [demoLedger, setDemoLedger] = useState<DemoLedger>({ cashUsdc: 0, holdings: [], trades: [] });
+  const [stocks, setStocks] = useState<XStock[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [showReceive, setShowReceive] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [hideBalance, setHideBalance] = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    if (walletAddress) void getDemoLedger(walletAddress).then((ledger) => { if (active) setDemoLedger(ledger); });
-    return () => { active = false; };
-  }, [walletAddress]));
-
-  // Đồng bộ thẻ theo từng ví (walletAddress), cô lập dữ liệu (lưu cục bộ AsyncStorage)
-  useEffect(() => {
-    if (solanaAddress) {
-      loadCardsForWallet(solanaAddress, username || 'N.E.D User');
-    } else {
-      resetCards();
-    }
-  }, [solanaAddress, username]);
-
-  useEffect(() => {
-    if (onchainUsdcBalance !== undefined && onchainUsdcBalance !== null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror the RPC balance into the view model.
-      setStablecoinBalances((prev) => ({
-        ...prev,
-        USDC: onchainUsdcBalance,
-      }));
-    }
-  }, [onchainUsdcBalance]);
-
-  const handleConfirmSwap = async (
-    fromCur: string,
-    toCur: string,
-    fromAmt: number,
-    toAmt: number
-  ) => {
-    setStablecoinBalances((prev) => {
-      const prevFrom = prev[fromCur as keyof StablecoinBalances] ?? 0;
-      const prevTo = prev[toCur as keyof StablecoinBalances] ?? 0;
-      return {
-        ...prev,
-        [fromCur]: Math.max(0, prevFrom - fromAmt),
-        [toCur]: prevTo + toAmt,
-      };
-    });
-    return {
-      success: true,
-      receivedAmount: toAmt,
-      currency: toCur,
-      symbol: toCur === 'EURC' ? '€' : '$',
-    };
-  };
-
-  // 1. Tải dữ liệu User Profile & Cache khởi tạo
-  useEffect(() => {
-    loadFromStorage();
-    if (user?.id) {
-      fetchUserProfile(solanaAddress || '');
-    }
-  }, [user?.id, solanaAddress, loadFromStorage, fetchUserProfile]);
-
-  useEffect(() => {
-    const loadCachedData = async () => {
-      try {
-        const [cachedBal, cachedActs, linkedPhone] = await Promise.all([
-          getCachedBalance(),
-          getCachedActivities(),
-          getLinkedPhone(),
-        ]);
-        if (cachedBal !== null) {
-          setSolBalance(cachedBal);
-        }
-        if (cachedActs !== null && cachedActs.length > 0) {
-          setActivities(cachedActs);
-        }
-        if (linkedPhone) {
-          setLinkedPhoneState(linkedPhone);
-        }
-      } catch (err) {
-        console.error('Error loading initial cached data:', err);
-      }
-    };
-
-    loadCachedData();
-  }, []);
-
-  // 2. Kiểm tra trạng thái định danh SĐT
-  useEffect(() => {
-    const checkPhoneLinkingPrompt = async () => {
-      if (!user) return;
-      try {
-        const dbPhone = await getOwnPhone();
-        if (dbPhone) {
-          setLinkedPhoneState(dbPhone);
-          await setLinkedPhone(dbPhone);
-          return;
-        }
-        setLinkedPhoneState(null);
-      } catch (err) {
-        console.error('Error checking phone link prompt:', err);
-      }
-    };
-
-    checkPhoneLinkingPrompt();
-  }, [user]);
-
-  // Lấy số dư On-chain
-  const fetchBalance = useCallback(async (address: string, force: boolean = false) => {
-    if (!address) return;
+  const refresh = useCallback(async () => {
+    if (!walletAddress) return;
+    setRefreshing(true);
+    setError('');
     try {
-      const displayData = await getAccountDisplayBalance(address, force);
-      setSolBalance(displayData.solBalance);
-      setAccountBalanceState(displayData);
-      cacheBalance(displayData.solBalance);
-    } catch (err: any) {
-      console.log('Error fetching Devnet balance:', err);
-    }
-  }, []);
-
-  // Lấy lịch sử giao dịch On-chain
-  const fetchActivities = useCallback(async (address: string, force: boolean = false) => {
-    if (!address) return;
-    try {
-      const onChainList = await fetchOnChainHistory(address, force);
-      if (onChainList && Array.isArray(onChainList)) {
-        setActivities(onChainList);
-        cacheActivities(onChainList);
+      const [sol, usdc, demo] = await Promise.all([
+        getSolanaBalance(walletAddress, true),
+        getUsdcTokenBalance(walletAddress, true),
+        getDemoLedger(walletAddress),
+      ]);
+      setBalance({ sol, usdc });
+      setLedger(demo);
+      if (demo.holdings.length) {
+        try {
+          setStocks(await getXStocks());
+        } catch {
+          setError('Investment prices unavailable. Pull down to retry.');
+        }
       }
-    } catch (err: any) {
-      console.log('Error fetching on-chain history:', err);
+    } catch {
+      setError('Unable to refresh balances. Pull down to retry.');
+    } finally {
+      setRefreshing(false);
     }
-  }, []);
+  }, [walletAddress]);
 
-  // 3. Tự động làm mới khi chuyển Tab vào Trang Chủ
   useFocusEffect(
     useCallback(() => {
-      if (solanaAddress) {
-        refreshOnchainBalance(true);
-        fetchBalance(solanaAddress, true);
-        fetchActivities(solanaAddress, true);
-      }
-    }, [solanaAddress, refreshOnchainBalance, fetchBalance, fetchActivities])
+      void refresh();
+      const timer = setInterval(() => void refresh(), 30000);
+      return () => clearInterval(timer);
+    }, [refresh]),
   );
 
-  // 4. Lắng nghe khi App mở lại từ Background
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && solanaAddress) {
-        refreshOnchainBalance(true);
-        fetchActivities(solanaAddress, true);
-      }
-    });
-    return () => sub.remove();
-  }, [solanaAddress, refreshOnchainBalance, fetchActivities]);
-
-  // 5. Luồng Auto-Polling Heartbeat & WebSocket Realtime Sync
-  useEffect(() => {
-    if (!solanaAddress) return;
-
-    let isMounted = true;
-    let subscriptionId: number | null = null;
-    let debounceTimer: any = null;
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh on wallet focus.
-    fetchBalance(solanaAddress);
-    fetchActivities(solanaAddress, true);
-
-    try {
-      const pubKey = new PublicKey(solanaAddress);
-      subscriptionId = solanaConnection.onAccountChange(
-        pubKey,
-        (accountInfo) => {
-          const newBalance = accountInfo.lamports / LAMPORTS_PER_SOL;
-          setSolBalance((prev) => {
-            if (prev !== null && newBalance > prev) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }
-            if (prev !== newBalance) {
-              cacheBalance(newBalance);
-              return newBalance;
-            }
-            return prev;
-          });
-
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (isMounted) {
-              fetchActivities(solanaAddress, true);
-              useNotificationStore.getState().loadNotifications(solanaAddress, true);
-            }
-          }, 1500);
-        },
-        'confirmed'
-      );
-    } catch (err) {
-      console.error('Error setting up onAccountChange WebSocket listener:', err);
-    }
-
-    const pollInterval = setInterval(async () => {
-      if (!isMounted) return;
-      // USDC nằm ở ATA riêng: nhận USDC không đổi số dư SOL của ví → luôn tải lại số dư USDC
-      fetchBalance(solanaAddress, true);
-      refreshOnchainBalance(true);
-      try {
-        const latestBal = await getSolanaBalance(solanaAddress);
-        setSolBalance((prev) => {
-          if (prev !== null && latestBal !== prev) {
-            cacheBalance(latestBal);
-            if (latestBal > prev) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }
-            fetchActivities(solanaAddress, true);
-            useNotificationStore.getState().loadNotifications(solanaAddress, true);
-            return latestBal;
-          } else if (prev === null) {
-            cacheBalance(latestBal);
-            return latestBal;
-          }
-          return prev;
-        });
-      } catch (e) {
-        // RPC error ignored
-      }
-    }, 7000);
-
-    return () => {
-      isMounted = false;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      clearInterval(pollInterval);
-      if (subscriptionId !== null) {
-        solanaConnection.removeAccountChangeListener(subscriptionId).catch((e) => {
-          console.log('Error removing account change listener:', e);
-        });
-      }
-    };
-  }, [solanaAddress, fetchBalance, refreshOnchainBalance, fetchActivities]);
-
-  // Vuốt để làm mới (Pull-to-Refresh)
-  const handlePullToRefresh = useCallback(async () => {
-    if (!solanaAddress) return;
-    setIsRefreshing(true);
-    try {
-      await Promise.all([
-        fetchBalance(solanaAddress, true),
-        refreshOnchainBalance(true),
-        fetchActivities(solanaAddress, true),
-      ]);
-    } catch (err) {
-      console.log('Error refreshing data:', err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [solanaAddress, fetchBalance, refreshOnchainBalance, fetchActivities]);
-
-  // Mở màn hình Camera quét mã QR chuyên nghiệp
-  const handleOpenScanner = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowWithdrawModal(false);
-    router.push('/scan-qr');
-  };
-
-  // The shared SendFlow owns review, phone confirmation and the receipt.
-  const handleSendTransaction = async (recipient: string, amount: number, prepared: PreparedUsdcTransfer) => {
-    if (!solanaAddress || !isWalletReady) throw new Error('Your wallet is not ready. Please retry.');
-    const result = await executeTokenTransfer({ fromAddress: solanaAddress, recipientAddressOrPhone: recipient, amountUsdc: amount, prepared });
-    if (!result.success || !result.transactionHash) throw new Error(result.error || 'Transfer failed.');
-    return result.transactionHash;
-  };
-
-  // Format số dư hiển thị
-  const getFormattedDisplayBalance = (): string => {
-    if (accountBalanceState) {
-      return currency === 'USD'
-        ? accountBalanceState.formattedUsd
-        : accountBalanceState.formattedVnd;
-    }
-    if (onchainFormattedUsd && onchainFormattedUsd !== '$0.00') {
-      return currency === 'USD' ? onchainFormattedUsd : onchainFormattedVnd;
-    }
-    if (solBalance !== null) {
-      return formatFiatBalance(solBalance * 150, currency);
-    }
-    return '$4,309,573.02';
-  };
-
-  const displayGreetingName = username ? username.split('.')[0] : 'N.E.D User';
-  const displayAccountName = username || 'N.E.D User';
-  const displayMaskedWallet = solanaAddress
-    ? `**** ${solanaAddress.slice(-4)}`
-    : '**** 0849';
-
-  // Tính toán tổng Expenses hiển thị
-  const calculateTotalExpenses = (): string => {
-    const sentTotal = activities
-      .filter((a) => a.type === 'sent' || !a.isPositive)
-      .reduce((sum, item) => {
-        const num = parseFloat(item.amount.replace(/[^0-9.-]+/g, '')) || 0;
-        return sum + Math.abs(num);
-      }, 0);
-    return sentTotal > 0 ? `$ ${sentTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '$ 4,750';
-  };
-
-  const isAuthenticated = !!user;
-
-  if (!isReady) {
+  if (!isReady)
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000000" />
-        <Text style={styles.loadingText}>{t('home.connecting', { defaultValue: 'Đang kết nối tài khoản N.E.D...' })}</Text>
+      <View style={styles.loading}>
+        <ActivityIndicator color="#B87AED" />
       </View>
     );
-  }
+  if (!user) return <Redirect href="/welcome" />;
 
-  if (!isAuthenticated) {
-    return <Redirect href="/welcome" />;
-  }
+  const cash = balance.usdc + ledger.cashUsdc;
+  const investments = ledger.holdings.reduce(
+    (sum, item) =>
+      sum +
+      item.quantity *
+        (stocks.find((stock) => stock.id === item.mint)?.usdPrice ?? 0),
+    0,
+  );
+  const pricesReady = ledger.holdings.every((item) =>
+    stocks.some((stock) => stock.id === item.mint),
+  );
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? 'Good morning,'
+      : hour < 18
+        ? 'Good afternoon,'
+        : 'Good evening,';
+  const actions = [
+    {
+      title: 'RECEIVE',
+      icon: 'arrow-down',
+      onPress: () => setShowReceive(true),
+    },
+    { title: 'SEND', icon: 'arrow-up', onPress: () => router.push('/send') },
+    { title: 'SWAP', icon: 'repeat', onPress: () => router.push('/swap') },
+    {
+      title: 'XSTOCKS',
+      icon: 'trending-up',
+      onPress: () => router.push('/xstocks'),
+    },
+  ] as const;
 
   return (
-    <View style={styles.safeContainer}>
-      <StatusBar barStyle="dark-content" />
-
-      {/* ========================================================================= */}
-      {/* 1. STICKY HEADER (Cố định nền Trắng #FFFFFF thuần khiết chuẩn Neo-brutalism) */}
-      {/* ========================================================================= */}
-      <View
-        style={[
-          styles.stickyHeader,
-          {
-            paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 6,
-            backgroundColor: '#FFFFFF',
-          },
-        ]}
-      >
-        {/* Góc trái: Avatar + Lời chào theo thời gian thực (Good Morning/Afternoon/Evening) */}
-        <View style={styles.headerLeftGroup}>
-          <TouchableOpacity
-            style={styles.profileBtnWrapper}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/settings');
-            }}
-            activeOpacity={0.85}
-          >
-            <View style={styles.profileBtnShadow} />
-            <View style={styles.profileBtnBody}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-              ) : (
-                <Feather name="user" size={20} color="#000000" />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.headerGreetingCol}>
-            <Text
-              style={[
-                styles.headerGreetingTitle,
-                { color: '#000000' },
-              ]}
-              numberOfLines={1}
-            >
-              {`${greeting}, ${displayGreetingName}`}
-            </Text>
-            <Text
-              style={[
-                styles.headerGreetingSubtitle,
-                { color: '#4B5563' },
-              ]}
-              numberOfLines={1}
-            >
-              {t('home.welcomeBack', { defaultValue: 'Welcome Back!' })}
-            </Text>
-          </View>
-        </View>
-
-        {/* Góc phải (Actions Group): flexDirection: 'row', alignItems: 'center', gap: 16 */}
-        <View style={styles.actionsGroup}>
-          {/* Icon Chuông (Notification) - Style Neo-brutalism */}
-          <TouchableOpacity
-            style={[styles.bellBtn, styles.bellBtnDay]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowNotificationModal(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={21}
-              color="#000000"
-            />
-            {unreadCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Mã QR Code: Sử dụng đúng component QR Code mở camera scanner đã cung cấp */}
-          <TouchableOpacity
-            style={styles.qrCodeBtn}
-            onPress={handleOpenScanner}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="qr-code-outline"
-              size={28}
-              color="#000000"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ========================================================================= */}
-      {/* 2. SCROLLVIEW CHỨA NỘI DUNG CHÍNH (paddingTop tránh bị Header đè khuất) */}
-      {/* ========================================================================= */}
+    <View style={styles.page}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 76,
-          },
-        ]}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handlePullToRefresh}
-            colors={['#000000']}
-            tintColor="#000000"
-            progressViewOffset={Math.max(insets.top, Platform.OS === 'ios' ? 44 : 24) + 68}
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor="#B87AED"
           />
         }
       >
-
-        {/* ========================================================================= */}
-        {/* 3. VÍ VẬT LÝ CHỨA THẺ STABLECOIN (Physical Wallet Card - Swap Button) */}
-        {/* ========================================================================= */}
-        <NeoPhysicalWalletCard
-          cards={walletCards.map(card => {
-            let balance = 0;
-            let formatted = '$0.00';
-            
-            if (card.currency === 'USDC') {
-               balance = stablecoinBalances.USDC;
-               formatted = `$${balance.toFixed(2)}`;
-            } else if (card.currency === 'EURC') {
-               balance = stablecoinBalances.EURC;
-               formatted = `€${balance.toFixed(2)}`;
-            } else if (card.currency === 'PYUSD') {
-               balance = stablecoinBalances.PYUSD;
-               formatted = `$${balance.toFixed(2)}`;
-            } else if (card.currency === 'USDT') {
-               balance = 0; // Or from a state if we have it
-               formatted = `$0.00`;
-            }
-
-            return {
-              ...card,
-              balanceUsd: formatted,
-              balanceFormatted: formatted,
-              accountName: displayAccountName,
-              maskedWallet: displayMaskedWallet,
-            };
-          })}
-          onDepositPress={() => setShowDepositModal(true)}
-          onSendPress={() => router.push('/send')}
-          onSwapActionPress={() => router.push('/swap')}
-          onCardChange={(card) => setActiveCardCurrency(card.currency)}
-          onAddCardPress={() => setShowAddStablecoinModal(true)}
-          onDeleteCardPress={(card) => {
-            if (solanaAddress) removeCard(card.id, solanaAddress);
-          }}
-        />
-        <TouchableOpacity style={{ backgroundColor: '#7B2FBE', borderRadius: 16, padding: 16, marginTop: 4 }} onPress={() => router.push('/xstocks')}>
-          <Text style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}>XSTOCKS</Text>
-        </TouchableOpacity>
-        {demoLedger.holdings.length > 0 ? (
-          <TouchableOpacity onPress={() => router.push('/xstocks')} style={{ marginTop: 12, borderRadius: 16, padding: 16, backgroundColor: '#F8F5FC', borderWidth: 1, borderColor: '#E9DDF4' }}>
-            <Text style={{ color: '#6B4A86', fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>YOUR ASSETS · DEMO BALANCE</Text>
-            {demoLedger.holdings.slice(0, 3).map((holding) => (
-              <View key={holding.mint} style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-                <Text style={{ color: '#24192E', fontWeight: '700' }}>{holding.symbol}</Text>
-                <Text style={{ color: '#6B4A86', fontVariant: ['tabular-nums'] }}>{holding.quantity.toFixed(5)}</Text>
+        <LinearGradient
+          colors={['#0A0614', '#251052', '#7550C9', '#FFFFFF']}
+          locations={[0, 0.42, 0.72, 1]}
+          style={[styles.hero, { paddingTop: Math.max(insets.top, 16) }]}
+        >
+          <View style={styles.topRow}>
+            <Pressable
+              onPress={() => router.push('/settings')}
+              style={styles.profile}
+              accessibilityLabel="Your profile"
+            >
+              <View style={styles.avatar}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                ) : (
+                  <Mascot mood="welcome" size={42} />
+                )}
               </View>
-            ))}
-          </TouchableOpacity>
-        ) : null}
-
-        {/* ========================================================================= */}
-        {/* 4. KHỐI THỐNG KÊ (Secondary Cards - 2 Cột Đầy Đặn, Padding 20, MinHeight 130) */}
-        {/* ========================================================================= */}
-        <View style={styles.statsRow}>
-          {/* Card Trái (Expenses: Nền xanh lam nhạt #E0F7FA) */}
-          <TouchableOpacity
-            style={styles.statCardWrapper}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/(tabs)/overview');
-            }}
-            activeOpacity={0.88}
-          >
-            <View style={styles.statCardShadow} />
-            <View style={[styles.statCardBody, { backgroundColor: '#E0F7FA' }]}>
-              <View>
-                <Text style={styles.statCardTitle}>{t('home.expenses', { defaultValue: 'Expenses' })}</Text>
-                <Text style={styles.statCardAmount}>
-                  {calculateTotalExpenses()}
+              <View style={styles.nameWrap}>
+                <Text style={styles.greeting}>{greeting}</Text>
+                <Text numberOfLines={1} style={styles.name}>
+                  {username || 'N.E.D User'}
                 </Text>
               </View>
-
-              <View style={styles.expensesBottomRow}>
-                <View style={styles.percentageBadgeRed}>
-                  <Text style={styles.percentageBadgeText}>+ 27%</Text>
-                </View>
-                <Feather name="arrow-up-right" size={26} color="#000000" />
-              </View>
+            </Pressable>
+            <View style={styles.topActions}>
+              <Pressable
+                accessibilityLabel="Scan QR code"
+                style={styles.iconButton}
+                onPress={() => router.push('/scan-qr')}
+              >
+                <Feather name="maximize" size={21} color="white" />
+              </Pressable>
+              <View style={styles.separator} />
+              <Pressable
+                accessibilityLabel="Notifications"
+                style={styles.iconButton}
+                onPress={() => setShowNotifications(true)}
+              >
+                <Feather name="bell" size={21} color="white" />
+              </Pressable>
             </View>
-          </TouchableOpacity>
-
-          {/* Card Phải (Recent Transaction: Nền kem nhạt #FAF5EE) */}
-          <TouchableOpacity
-            style={styles.statCardWrapper}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/transfer-hub');
-            }}
-            activeOpacity={0.88}
-          >
-            <View style={styles.statCardShadow} />
-            <View style={[styles.statCardBody, { backgroundColor: '#FAF5EE' }]}>
-              <View>
-                <Text style={styles.statCardTitle}>{t('home.recentTransaction', { defaultValue: 'Recent Transaction' })}</Text>
-                <Text style={styles.statCardSubtitle}>{t('home.directBank', { defaultValue: 'Direct Bank' })}</Text>
-              </View>
-
-              <View style={styles.recentBottomRow}>
-                {/* Overlapping Avatars (A, D, H) */}
-                <View style={styles.avatarGroupRow}>
-                  <View style={[styles.avatarCircle, { backgroundColor: '#FECDD3', zIndex: 3 }]}>
-                    <Text style={styles.avatarLetter}>A</Text>
-                  </View>
-                  <View style={[styles.avatarCircle, { backgroundColor: '#BAE6FD', marginLeft: -10, zIndex: 2 }]}>
-                    <Text style={styles.avatarLetter}>D</Text>
-                  </View>
-                  <View style={[styles.avatarCircle, { backgroundColor: '#FEF08A', marginLeft: -10, zIndex: 1 }]}>
-                    <Text style={styles.avatarLetter}>H</Text>
-                  </View>
-                </View>
-
-                {/* Nút tròn màu tím chứa dấu + */}
-                <View style={styles.plusBtnCircle}>
-                  <Feather name="plus" size={19} color="#FFFFFF" />
-                </View>
-              </View>
+          </View>
+          <View style={styles.balanceBlock}>
+            <View style={styles.balanceLabelRow}>
+              <Text style={styles.kicker}>CASH + INVESTMENTS</Text>
+              <Pressable
+                accessibilityLabel={
+                  hideBalance ? 'Show balances' : 'Hide balances'
+                }
+                style={styles.eye}
+                onPress={() => setHideBalance(!hideBalance)}
+              >
+                <Feather
+                  name={hideBalance ? 'eye-off' : 'eye'}
+                  color="#C1B3D7"
+                  size={17}
+                />
+              </Pressable>
             </View>
-          </TouchableOpacity>
+            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balance}>
+              {hideBalance
+                ? '••••••'
+                : pricesReady
+                  ? money(cash + investments)
+                  : '—'}
+            </Text>
+            <Text style={styles.demo}>Demo balance · SOL shown separately</Text>
+            <View style={styles.wallets}>
+              {(
+                [
+                  {
+                    label: 'CASH',
+                    colors: ['#9B4FDE', '#6366F1'],
+                    text: hideBalance ? '••••' : money(cash),
+                  },
+                  {
+                    label: 'CRYPTO',
+                    colors: ['#238D9E', '#6341BB'],
+                    text: hideBalance
+                      ? '••••'
+                      : `${balance.sol.toFixed(3)} SOL`,
+                  },
+                  {
+                    label: 'STOCKS',
+                    colors: ['#C98500', '#9B4FDE'],
+                    text: hideBalance
+                      ? '••••'
+                      : pricesReady
+                        ? money(investments)
+                        : '—',
+                  },
+                ] as const
+              ).map((card) => (
+                <View key={card.label} style={styles.wallet}>
+                  <LinearGradient
+                    colors={card.colors}
+                    style={styles.walletGradient}
+                  >
+                    <Text style={styles.walletLabel}>{card.label}</Text>
+                    <Text numberOfLines={1} style={styles.walletValue}>
+                      {card.text}
+                    </Text>
+                  </LinearGradient>
+                </View>
+              ))}
+            </View>
+          </View>
+          <View style={styles.actions}>
+            {actions.map((action) => (
+              <Pressable
+                key={action.title}
+                style={styles.action}
+                onPress={action.onPress}
+              >
+                <View style={styles.actionIcon}>
+                  <Feather name={action.icon} size={20} color="white" />
+                </View>
+                <Text style={styles.actionText}>{action.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </LinearGradient>
+        <View style={styles.assets}>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Assets</Text>
+            <Pressable
+              style={styles.historyLink}
+              onPress={() => router.push('/history')}
+            >
+              <Text style={styles.subtle}>History</Text>
+              <Feather name="arrow-up-right" size={14} color="#6B6780" />
+            </Pressable>
+          </View>
+          <AssetRow
+            symbol="$"
+            name="USDC"
+            detail={`${balance.usdc.toFixed(2)} USDC on Devnet`}
+            value={hideBalance ? '••••' : money(cash)}
+            caption="Demo balance"
+            color="#2779CB"
+          />
+          <AssetRow
+            symbol="◎"
+            name="Solana"
+            detail="Devnet · network fees"
+            value={hideBalance ? '••••' : `${balance.sol.toFixed(4)} SOL`}
+            caption="On-chain balance"
+            color="#7662CE"
+          />
+          {ledger.holdings.map((holding) => (
+            <Pressable
+              key={holding.mint}
+              onPress={() => router.push('/xstocks')}
+            >
+              <AssetRow
+                symbol={holding.symbol[0]}
+                name={holding.symbol}
+                detail={`${holding.quantity.toFixed(5)} shares`}
+                value={
+                  hideBalance
+                    ? '••••'
+                    : stocks.find((s) => s.id === holding.mint)?.usdPrice
+                      ? money(
+                          holding.quantity *
+                            stocks.find((s) => s.id === holding.mint)!
+                              .usdPrice!,
+                        )
+                      : '—'
+                }
+                caption="Demo balance"
+                color="#6B6780"
+              />
+            </Pressable>
+          ))}
+          {!ledger.holdings.length ? (
+            <Pressable
+              onPress={() => router.push('/xstocks')}
+              style={styles.investPrompt}
+            >
+              <Feather name="trending-up" color="#7B2FBE" size={23} />
+              <View style={styles.nameWrap}>
+                <Text style={styles.promptTitle}>Discover xStocks</Text>
+                <Text style={styles.subtle}>
+                  Explore companies with live market prices.
+                </Text>
+              </View>
+              <Feather name="chevron-right" color="#7B2FBE" size={18} />
+            </Pressable>
+          ) : null}
         </View>
-
       </ScrollView>
-
-      {/* ========================================================================= */}
-      {/* MODALS & POPUPS */}
-      {/* ========================================================================= */}
       <DepositModal
-        visible={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
-        solanaAddress={solanaAddress}
+        visible={showReceive}
+        onClose={() => setShowReceive(false)}
+        solanaAddress={walletAddress}
       />
-
-      <SendModal
-        visible={showWithdrawModal}
-        onClose={() => setShowWithdrawModal(false)}
-        solanaAddress={solanaAddress}
-        solBalance={solBalance}
-        initialRecipient={withdrawAddress}
-        onOpenScanner={handleOpenScanner}
-        onConfirmSend={async (target, amt, prepared) => handleSendTransaction(target, amt, prepared)}
-        isSending={isSendingTx}
-        needsRecovery={isNeedsRecovery}
-        onTriggerRecovery={() => setShowWithdrawModal(false)}
-      />
-
-      <PhoneLinkingModal
-        visible={showPhoneLinkingModal}
-        onClose={() => setShowPhoneLinkingModal(false)}
-        userId={user?.id || ''}
-        walletAddress={solanaAddress || ''}
-        onLinkSuccess={(phone) => setLinkedPhoneState(phone)}
-      />
-
-      <PhoneManagementModal
-        visible={showPhoneManagementModal}
-        onClose={() => setShowPhoneManagementModal(false)}
-        userId={user?.id || ''}
-        walletAddress={solanaAddress || ''}
-        currentPhone={linkedPhoneState}
-        onPhoneUpdated={(newPhone) => setLinkedPhoneState(newPhone)}
-      />
-
-
-
-      {/* Modals cho Ví Stablecoin */}
-      <AddStablecoinModal
-        visible={showAddStablecoinModal}
-        onClose={() => setShowAddStablecoinModal(false)}
-        accountName={displayAccountName}
-        maskedWallet={displayMaskedWallet}
-        walletAddress={solanaAddress || ''}
-      />
-
-      <AddSubWalletModal
-        visible={showAddSubWalletModal}
-        onClose={() => setShowAddSubWalletModal(false)}
-        existingWallets={subWallets}
-        onSelectCurrency={(cur) => {
-          addSubWallet(cur);
-        }}
-      />
-
-      {/* Hệ thống Thông báo In-app Modal */}
       <NotificationModal
-        visible={showNotificationModal}
-        onClose={() => setShowNotificationModal(false)}
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: '#EFE9DF', // Nền Kem sáng chuẩn Neo-brutalism (#EFE9DF)
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 110, // Chừa đệm tránh bị che bởi Floating Bottom Tab Bar
-    gap: 20, // Khoảng cách liên kết chặt chẽ giữa các khối, loại bỏ cảm giác rời rạc
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#EFE9DF',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#000000',
-    fontWeight: '700',
-  },
+function AssetRow({
+  symbol,
+  name,
+  detail,
+  value,
+  caption,
+  color,
+}: {
+  symbol: string;
+  name: string;
+  detail: string;
+  value: string;
+  caption: string;
+  color: string;
+}) {
+  return (
+    <View style={styles.assetRow}>
+      <View style={[styles.assetIcon, { backgroundColor: color }]}>
+        <Text style={styles.assetSymbol}>{symbol}</Text>
+      </View>
+      <View style={styles.nameWrap}>
+        <Text style={styles.assetName}>{name}</Text>
+        <Text style={styles.subtle}>{detail}</Text>
+      </View>
+      <View style={styles.assetRight}>
+        <Text style={styles.assetValue}>{value}</Text>
+        <Text style={styles.assetCaption}>{caption}</Text>
+      </View>
+    </View>
+  );
+}
 
-  // 1. Sticky Header Styles (Neo-brutalism, Rounded Corners & Time-based Dynamic)
-  stickyHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    borderWidth: 0,
-    borderBottomWidth: 0,
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderColor: 'transparent',
-    borderBottomColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: '#0A0614' },
+  content: {
+    flexGrow: 1,
+    backgroundColor: 'white',
+    paddingBottom: 104,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
-  headerLeftGroup: {
+  loading: { flex: 1, justifyContent: 'center', backgroundColor: '#0A0614' },
+  hero: { paddingHorizontal: 20, paddingBottom: 44 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  profile: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-    gap: 12,
+    gap: 9,
+    padding: 5,
+    paddingRight: 16,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#FFFFFF24',
+    backgroundColor: '#FFFFFF12',
+    maxWidth: '65%',
   },
-  headerGreetingCol: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  headerGreetingTitle: {
-    fontSize: 15.5,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-  },
-  headerGreetingSubtitle: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    marginTop: 1,
-    letterSpacing: -0.2,
-  },
-  profileBtnWrapper: {
-    position: 'relative',
-    width: 46,
-    height: 46,
-  },
-  profileBtnShadow: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#000000',
-  },
-  profileBtnShadowNight: {
-    backgroundColor: '#000000',
-  },
-  profileBtnBody: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 24,
+    backgroundColor: '#8455CF',
     overflow: 'hidden',
   },
-  profileBtnBodyNight: {
-    backgroundColor: '#25223D',
-    borderColor: '#FFFFFF',
-  },
-  avatarImg: {
-    width: '100%',
-    height: '100%',
-  },
-  actionsGroup: {
+  nameWrap: { flex: 1 },
+  greeting: { color: '#FFFFFFAA', fontFamily: onbFonts.body, fontSize: 10 },
+  name: { color: 'white', fontFamily: onbFonts.heading, fontSize: 16 },
+  topActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-  },
-  bellBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  bellBtnDay: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#000000',
-    shadowColor: '#000000',
-  },
-  bellBtnNight: {
-    backgroundColor: '#25223D',
-    borderColor: '#FFFFFF',
-    shadowColor: '#000000',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF3B30',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#FFFFFF24',
+    backgroundColor: '#FFFFFF12',
     paddingHorizontal: 3,
-    shadowOffset: { width: 1, height: 1 },
-    shadowColor: '#000000',
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
   },
-  bellBadgeText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  qrCodeBtn: {
-    width: 42,
-    height: 42,
-    justifyContent: 'center',
+  iconButton: {
+    width: 40,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-
-
-
-  // 4. Secondary Statistic Cards Styles (Kéo giãn toàn bộ width: 100%, Padding 22, minHeight 180 để loại bỏ deadspace)
-  statsRow: {
-    flexDirection: 'row',
-    gap: 14,
-    width: '100%',
-    marginBottom: 6,
+  separator: { height: 20, width: 1, backgroundColor: '#FFFFFF24' },
+  balanceBlock: { marginTop: 26 },
+  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  kicker: {
+    color: '#FFFFFF99',
+    fontFamily: onbFonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 1.4,
   },
-  statCardWrapper: {
+  eye: { minWidth: 44, minHeight: 32, justifyContent: 'center' },
+  balance: {
+    color: 'white',
+    fontFamily: onbFonts.heading,
+    fontSize: 46,
+    letterSpacing: -1.8,
+  },
+  demo: {
+    color: '#D4C9EA',
+    fontFamily: onbFonts.body,
+    fontSize: 10,
+    marginTop: 8,
+  },
+  wallets: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  wallet: { width: 85, borderRadius: 8, overflow: 'hidden' },
+  walletGradient: { padding: 8, height: 48, justifyContent: 'space-between' },
+  walletLabel: {
+    fontFamily: onbFonts.bodyBold,
+    fontSize: 8,
+    color: '#FFFFFFBB',
+  },
+  walletValue: { fontFamily: onbFonts.monoBold, fontSize: 9, color: 'white' },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 26 },
+  action: {
     flex: 1,
-    position: 'relative',
-    minHeight: 180,
-  },
-  statCardShadow: {
-    position: 'absolute',
-    top: 4.5,
-    left: 4.5,
-    right: -4.5,
-    bottom: -4.5,
-    backgroundColor: '#000000',
-    borderRadius: 24,
-  },
-  statCardBody: {
-    borderRadius: 22,
-    borderWidth: 2.5,
-    borderColor: '#000000',
-    paddingVertical: 22,
-    paddingHorizontal: 18,
+    backgroundColor: '#FFFFFFEB',
+    borderRadius: 16,
+    padding: 12,
+    height: 100,
     justifyContent: 'space-between',
-    minHeight: 180,
+    boxShadow: '0 4px 14px rgba(32,12,60,0.08)',
   },
-  statCardTitle: {
-    fontSize: 15.5,
-    fontWeight: '800',
-    color: '#000000',
-    letterSpacing: -0.2,
+  actionIcon: {
+    width: 30,
+    height: 30,
+    backgroundColor: '#1B1428',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statCardSubtitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666666',
+  actionText: { color: '#24192E', fontFamily: onbFonts.bodyBold, fontSize: 9 },
+  assets: { paddingHorizontal: 20 },
+  section: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontFamily: onbFonts.heading,
+    fontSize: 20,
+    color: '#221A2E',
+  },
+  historyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 44,
+  },
+  subtle: {
+    color: '#6B6780',
+    fontFamily: onbFonts.body,
+    fontSize: 11,
     marginTop: 4,
   },
-  statCardAmount: {
-    fontSize: 25,
-    fontWeight: '900',
-    color: '#000000',
-    marginTop: 8,
-    letterSpacing: -0.4,
-  },
-  expensesBottomRow: {
+  assetRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
     alignItems: 'center',
-    marginTop: 18,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderColor: '#F0ECF5',
   },
-  percentageBadgeRed: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: '#000000',
+  assetIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  percentageBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  recentBottomRow: {
+  assetSymbol: { color: 'white', fontFamily: onbFonts.heading, fontSize: 20 },
+  assetName: { color: '#24192E', fontFamily: onbFonts.bodySemi, fontSize: 14 },
+  assetRight: { alignItems: 'flex-end' },
+  assetValue: { color: '#24192E', fontFamily: onbFonts.monoBold, fontSize: 12 },
+  assetCaption: { color: '#6B6780', fontSize: 10, marginTop: 5 },
+  investPrompt: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
     alignItems: 'center',
-    marginTop: 18,
-  },
-  avatarGroupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarCircle: {
-    width: 32,
-    height: 32,
+    backgroundColor: '#F6F0FB',
+    padding: 16,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: 20,
   },
-  avatarLetter: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#000000',
-  },
-  plusBtnCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#A855F7',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // 5. Recovery Card Styles
-  recoveryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: '#000000',
-    width: '100%',
-  },
-  recoveryIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FDE68A',
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  recoveryTextCol: {
-    flex: 1,
-    marginRight: 6,
-  },
-  recoveryTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#92400E',
-    marginBottom: 2,
-  },
-  recoveryDesc: {
-    fontSize: 11,
-    color: '#B45309',
-    lineHeight: 14,
-  },
-  recoveryBtn: {
-    backgroundColor: '#D97706',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#000000',
-  },
-  recoveryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
+  promptTitle: { fontFamily: onbFonts.heading, color: '#492369', fontSize: 14 },
+  error: { color: '#A54C16', fontSize: 12, marginBottom: 12 },
 });
