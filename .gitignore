@@ -1,16 +1,1 @@
-# Dependencies
-node_modules/
-*/node_modules/
-
-# Environment files
-.env
-.env*
-.env*.local
-*.env
-
-# Build & OS
-.DS_Store
-dist/
-build/
-.expo/
-.vercel
+# gh-pages: publish everything in dist (fonts live under assets/node_modules)
