@@ -84,3 +84,12 @@ export function getAccountIdentifier(user?: any, phone?: string | null): string 
   return 'NED-ACC';
 }
 
+
+/** SĐT E.164 VN hiển thị che giữa theo thiết kế: +84901234567 → "+84 90 •••• 4567" */
+export function maskPhoneDisplay(e164?: string | null): string {
+  if (!e164) return '';
+  const digits = e164.replace(/[^\d]/g, '');
+  const local = digits.startsWith('84') ? digits.slice(2) : digits.replace(/^0/, '');
+  if (local.length < 7) return e164;
+  return `+84 ${local.slice(0, 2)} •••• ${local.slice(-4)}`;
+}

@@ -1,19 +1,12 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  Dimensions,
-  Platform,
-} from 'react-native';
-import { Ionicons, Feather, FontAwesome5 } from '@expo/vector-icons';
+import { View, StyleSheet, Pressable, Modal, ScrollView, Dimensions } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
 import { Mascot } from '@/components/Mascot';
+import { Badge, Button, DText, IconButton } from '@/components/design';
+import { colors, fonts, glass, radius, sizes, space } from '@/constants/design';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -27,13 +20,13 @@ function getRelativeTime(timestamp: number): string {
   const now = Date.now();
   const diffSec = Math.floor((now - timestamp) / 1000);
 
-  if (diffSec < 60) return 'Vừa xong';
+  if (diffSec < 60) return 'Just now';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffMin < 60) return `${diffMin}m ago`;
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ trước`;
+  if (diffHour < 24) return `${diffHour}h ago`;
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return `${diffDay} ngày trước`;
+  if (diffDay < 7) return `${diffDay}d ago`;
 
   const date = new Date(timestamp);
   return `${date.getDate()}/${date.getMonth() + 1}`;
@@ -46,7 +39,6 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
     unreadCount,
     markAsRead,
     markAllAsRead,
-    activeNotification,
     setActiveNotification,
   } = useNotificationStore();
 
@@ -72,385 +64,151 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
   };
 
   const renderTypeIcon = (type: InAppNotification['type']) => {
-    switch (type) {
-      case 'RECEIVE_MONEY':
-        return (
-          <View style={[styles.iconBox, { backgroundColor: '#CCFF00' }]}>
-            <Feather name="arrow-down-left" size={18} color="#000" />
-          </View>
-        );
-      case 'TRANSFER':
-        return (
-          <View style={[styles.iconBox, { backgroundColor: '#FF8A8A' }]}>
-            <Feather name="arrow-up-right" size={18} color="#000" />
-          </View>
-        );
-      case 'WARNING':
-        return (
-          <View style={[styles.iconBox, { backgroundColor: '#FDE047' }]}>
-            <Ionicons name="warning" size={18} color="#000" />
-          </View>
-        );
-      case 'SYSTEM':
-      default:
-        return (
-          <View style={[styles.iconBox, { backgroundColor: '#A5F3FC' }]}>
-            <Ionicons name="notifications" size={18} color="#000" />
-          </View>
-        );
-    }
+    const icon =
+      type === 'RECEIVE_MONEY'
+        ? { name: 'arrow-down-left' as const, bg: glass.successFill, fg: colors.successText }
+        : type === 'TRANSFER'
+          ? { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text }
+          : type === 'WARNING'
+            ? { name: 'alert-triangle' as const, bg: glass.warningFill, fg: colors.warningText }
+            : { name: 'bell' as const, bg: glass.iconTint, fg: colors.purple[300] };
+    return (
+      <View style={[styles.iconBox, { backgroundColor: icon.bg }]}>
+        <Feather name={icon.name} size={18} color={icon.fg} />
+      </View>
+    );
   };
 
   return (
-    <Modal
-      visible={visible}
-        animationType="slide"
-        transparent
-        onRequestClose={handleClose}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.backdropClickArea}
-            activeOpacity={1}
-            onPress={handleClose}
-          />
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable accessibilityLabel="Close notifications" style={styles.backdropClickArea} onPress={handleClose} />
 
-          {/* Khung Bottom Sheet trượt lên */}
-          <View style={styles.sheetContainer}>
-            {/* Thanh tay cầm kéo (Drag Handle) */}
-            <View style={styles.dragHandle} />
+        <View style={styles.sheetContainer}>
+          <View style={styles.dragHandle} />
 
-            {/* Header: Tiêu đề to font Black/Heavy & Nút đánh dấu đã đọc tất cả */}
-            <View style={styles.headerRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={styles.headerTitle}>Thông báo</Text>
-                {unreadCount > 0 && (
-                  <View style={styles.unreadCountBadge}>
-                    <Text style={styles.unreadCountBadgeText}>{unreadCount}</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {unreadCount > 0 && (
-                  <TouchableOpacity
-                    style={styles.markAllBtn}
-                    onPress={handleMarkAllAsRead}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.markAllBtnText}>Đọc tất cả</Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={styles.closeIconBtn}
-                  onPress={handleClose}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="close" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTitleRow}>
+              <DText variant="h2" accessibilityRole="header">
+                Notifications
+              </DText>
+              {unreadCount > 0 && <Badge label={String(unreadCount)} tone="accent" />}
             </View>
-
-            {/* Danh sách thông báo */}
-            <ScrollView
-              style={styles.scrollList}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {notifications.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Mascot mood="sad" size={100} floatAnimation containerStyle={{ marginBottom: 12 }} />
-                  <Text style={styles.emptyTitle}>Chưa có thông báo nào</Text>
-                  <Text style={styles.emptySubtitle}>
-                    Các giao dịch nhận tiền, cảnh báo và cập nhật hệ thống sẽ xuất hiện tại đây.
-                  </Text>
-                </View>
-              ) : (
-                notifications.map((item) => {
-                  const isUnread = !item.isRead;
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      onPress={() => handleSelectNotification(item)}
-                      activeOpacity={0.85}
-                      style={[
-                        styles.cardShadowWrapper,
-                        { marginBottom: 12 },
-                      ]}
-                    >
-                      {/* Lớp bóng đổ cứng đen 3px 3px */}
-                      <View style={styles.cardShadow} />
-
-                      {/* Lớp thân thẻ: Nền Vàng nhạt (#FFF8DC) nếu chưa đọc, Trắng nếu đã đọc */}
-                      <View
-                        style={[
-                          styles.cardBody,
-                          isUnread ? styles.cardUnread : styles.cardRead,
-                        ]}
-                      >
-                        {/* Cột trái: Icon trạng thái */}
-                        {renderTypeIcon(item.type)}
-
-                        {/* Cột giữa: Nội dung */}
-                        <View style={styles.cardCenter}>
-                          <View style={styles.cardTitleRow}>
-                            <Text
-                              style={[
-                                styles.cardTitle,
-                                isUnread && styles.cardTitleUnread,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {item.title}
-                            </Text>
-                          </View>
-
-                          <Text style={styles.cardMessage} numberOfLines={2}>
-                            {item.message}
-                          </Text>
-
-                          {item.amount !== undefined && (
-                            <View style={styles.amountChip}>
-                              <Text style={styles.amountChipText}>
-                                +${Number(item.amount).toFixed(2)} {item.currency || 'USDC'}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-
-                        {/* Cột phải: Thời gian tương đối & Chấm đỏ nếu chưa đọc */}
-                        <View style={styles.cardRight}>
-                          <Text style={styles.timeText}>
-                            {getRelativeTime(item.createdAt)}
-                          </Text>
-                          {isUnread && <View style={styles.redDot} />}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-              <View style={{ height: 30 }} />
-            </ScrollView>
+            <View style={styles.headerActions}>
+              {unreadCount > 0 && <Button title="Mark all read" variant="ghost" compact onPress={handleMarkAllAsRead} style={styles.markAll} />}
+              <IconButton icon="x" accessibilityLabel="Close" color={colors.text} onPress={handleClose} />
+            </View>
           </View>
+
+          <ScrollView style={styles.scrollList} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {notifications.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Mascot mood="sleepy" size={100} floatAnimation containerStyle={{ marginBottom: space[3] }} />
+                <DText variant="h3" align="center">
+                  No notifications yet
+                </DText>
+                <DText variant="body" align="center">
+                  Money you receive, alerts and app updates show up here.
+                </DText>
+              </View>
+            ) : (
+              notifications.map((item) => {
+                const isUnread = !item.isRead;
+                return (
+                  <Pressable
+                    key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isUnread ? 'Unread: ' : ''}${item.title}`}
+                    onPress={() => handleSelectNotification(item)}
+                    style={({ pressed }) => [styles.card, isUnread ? styles.cardUnread : styles.cardRead, pressed && styles.pressed]}
+                  >
+                    {renderTypeIcon(item.type)}
+                    <View style={styles.cardCenter}>
+                      <DText variant="bodyLarge" style={[styles.cardTitle, isUnread && styles.cardTitleUnread]} numberOfLines={1}>
+                        {item.title}
+                      </DText>
+                      <DText variant="caption" tone="secondary" numberOfLines={2}>
+                        {item.message}
+                      </DText>
+                      {item.amount !== undefined && (
+                        <Badge
+                          label={`+$${Number(item.amount).toFixed(2)} ${item.currency || 'USDC'}`}
+                          tone="success"
+                          style={styles.amountChip}
+                        />
+                      )}
+                    </View>
+                    <View style={styles.cardRight}>
+                      <DText variant="caption">{getRelativeTime(item.createdAt)}</DText>
+                      {isUnread && <View style={styles.unreadDot} />}
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
         </View>
-      </Modal>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  backdropClickArea: {
-    flex: 1,
-  },
+  modalOverlay: { flex: 1, backgroundColor: glass.scrim, justifyContent: 'flex-end' },
+  backdropClickArea: { flex: 1 },
   sheetContainer: {
-    backgroundColor: '#FAF5EE', // Nền giấy kem thô cổ điển
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderColor: '#000000',
+    width: '100%',
+    maxWidth: sizes.maxContent,
+    alignSelf: 'center',
+    backgroundColor: colors.surface1,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.border,
     maxHeight: SCREEN_HEIGHT * 0.85,
     minHeight: SCREEN_HEIGHT * 0.5,
-    paddingTop: 10,
+    paddingTop: space[2],
   },
   dragHandle: {
     width: 44,
     height: 5,
-    borderRadius: 3,
-    backgroundColor: '#000000',
+    borderRadius: radius.pill,
+    backgroundColor: colors.border,
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: space[3],
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    paddingHorizontal: space[5],
+    paddingBottom: space[3],
+    borderBottomWidth: 1,
+    borderBottomColor: glass.divider,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: -0.5,
-  },
-  unreadCountBadge: {
-    backgroundColor: '#FF3B30',
-    borderWidth: 1.5,
-    borderColor: '#000',
-    borderRadius: 12,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-  },
-  unreadCountBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#FFF',
-  },
-  markAllBtn: {
-    backgroundColor: '#000000',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    shadowOffset: { width: 2, height: 2 },
-    shadowColor: '#000000',
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-  markAllBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  closeIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#000',
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollList: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  cardShadowWrapper: {
-    position: 'relative',
-  },
-  cardShadow: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    right: -3,
-    bottom: -3,
-    backgroundColor: '#000000',
-    borderRadius: 12,
-  },
-  cardBody: {
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  markAll: { height: sizes.touch, paddingHorizontal: space[3] },
+  scrollList: { flex: 1 },
+  scrollContent: { paddingHorizontal: space[5], paddingTop: space[4], paddingBottom: space[8], gap: space[3] },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
-  },
-  // Nền Vàng nhạt (#FFF8DC) cho thông báo chưa đọc, Trắng cho đã đọc
-  cardUnread: {
-    backgroundColor: '#FFF8DC', // Cornsilk pastel ấm
-  },
-  cardRead: {
-    backgroundColor: '#FFFFFF',
-  },
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardCenter: {
-    flex: 1,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  cardTitleUnread: {
-    fontWeight: '900',
-    color: '#000000',
-  },
-  cardMessage: {
-    fontSize: 12,
-    color: '#4B5563',
-    lineHeight: 16,
-  },
-  amountChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#DCFCE7',
     borderWidth: 1,
-    borderColor: '#008000',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    marginTop: 4,
+    borderRadius: radius.lg,
+    padding: space[3],
+    gap: space[3],
   },
-  amountChipText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#008000',
-  },
-  cardRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  timeText: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  redDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30',
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 20,
-  },
-  emptyIconBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 2,
-    borderColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#000000',
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  cardUnread: { backgroundColor: glass.accentFill, borderColor: glass.accentBorder },
+  cardRead: { backgroundColor: glass.fill, borderColor: glass.border },
+  pressed: { opacity: 0.85 },
+  iconBox: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  cardCenter: { flex: 1, minWidth: 0, gap: 2 },
+  cardTitle: { fontFamily: fonts.bodyMedium, fontSize: 15 },
+  cardTitleUnread: { fontFamily: fonts.bodySemi },
+  amountChip: { marginTop: space[1] },
+  cardRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: space[2], alignSelf: 'stretch' },
+  unreadDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.purple[400] },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', gap: space[2], paddingVertical: space[12], paddingHorizontal: space[5] },
 });

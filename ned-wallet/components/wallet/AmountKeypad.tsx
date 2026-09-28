@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { onbFonts } from '@/components/onboarding/theme';
+import { colors, fonts, space } from '@/constants/design';
 import { sanitizeAmountInput } from '@/utils/amountInput';
 
 export function AmountKeypad({
@@ -38,7 +38,7 @@ export function AmountKeypad({
             }
           >
             {key === 'back' ? (
-              <Feather name="delete" size={23} color="white" />
+              <Feather name="delete" size={23} color={colors.text} />
             ) : (
               <Text style={styles.digit}>{key}</Text>
             )}
@@ -49,12 +49,12 @@ export function AmountKeypad({
   );
 }
 const styles = StyleSheet.create({
-  keys: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 22 },
+  keys: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space[5] },
   key: {
     width: '33.333%',
     height: 54,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  digit: { color: 'white', fontFamily: onbFonts.headingMedium, fontSize: 25 },
+  digit: { color: colors.text, fontFamily: fonts.displayMedium, fontSize: 24 },
 });

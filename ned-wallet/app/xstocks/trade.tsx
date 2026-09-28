@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -23,7 +22,8 @@ import {
   Screen,
 } from '@/components/xstocks/Screen';
 import { AmountKeypad } from '@/components/wallet/AmountKeypad';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { DText } from '@/components/design';
+import { colors, fonts, glass, radius, space, type } from '@/constants/design';
 
 export default function XStockTradeScreen() {
   const router = useRouter();
@@ -153,9 +153,11 @@ export default function XStockTradeScreen() {
       />
       {side === 'buy' ? (
         <>
-          <Text style={styles.amountLabel}>Amount to invest</Text>
+          <DText variant="label" style={styles.amountLabel}>
+            Amount to invest
+          </DText>
           <View style={styles.amountBox}>
-            <Text style={styles.currency}>$</Text>
+            <DText variant="hero">$</DText>
             <TextInput
               value={amount}
               onChangeText={(value) =>
@@ -163,7 +165,7 @@ export default function XStockTradeScreen() {
               }
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholderTextColor={colors.textTertiary}
               style={[
                 styles.input,
                 { width: Math.min(250, Math.max(60, amount.length * 31 + 20)) },
@@ -177,14 +179,18 @@ export default function XStockTradeScreen() {
                 onPress={() => setQuickValue(String(value))}
                 style={styles.shortcut}
               >
-                <Text style={styles.shortcutText}>${value}</Text>
+                <DText variant="caption" tone="accent" style={styles.shortcutText}>
+                  ${value}
+                </DText>
               </Pressable>
             ))}
             <Pressable
               onPress={() => setQuickValue(usdcAvailable.toFixed(2))}
               style={styles.shortcut}
             >
-              <Text style={styles.shortcutText}>Max</Text>
+              <DText variant="caption" tone="accent" style={styles.shortcutText}>
+                Max
+              </DText>
             </Pressable>
           </View>
           <Card>
@@ -200,14 +206,16 @@ export default function XStockTradeScreen() {
             value="Calculated from the live quote on review"
           />
           {insufficientCash ? (
-            <Text style={styles.error}>
+            <DText variant="caption" tone="error" style={styles.error}>
               Not enough USDC. Available: ${usdcAvailable.toFixed(2)}.
-            </Text>
+            </DText>
           ) : null}
         </>
       ) : (
         <>
-          <Text style={styles.amountLabel}>Amount to sell</Text>
+          <DText variant="label" style={styles.amountLabel}>
+            Amount to sell
+          </DText>
           <View style={styles.toggle}>
             <Pressable
               style={[
@@ -216,7 +224,7 @@ export default function XStockTradeScreen() {
               ]}
               onPress={() => setSellMode('usd')}
             >
-              <Text style={styles.toggleText}>USD value</Text>
+              <DText variant="caption" tone="primary">USD value</DText>
             </Pressable>
             <Pressable
               style={[
@@ -225,11 +233,11 @@ export default function XStockTradeScreen() {
               ]}
               onPress={() => setSellMode('shares')}
             >
-              <Text style={styles.toggleText}>Shares</Text>
+              <DText variant="caption" tone="primary">Shares</DText>
             </Pressable>
           </View>
           <View style={styles.amountBox}>
-            <Text style={styles.currency}>{sellMode === 'usd' ? '$' : ''}</Text>
+            <DText variant="hero">{sellMode === 'usd' ? '$' : ''}</DText>
             <TextInput
               value={amount}
               onChangeText={(value) =>
@@ -242,15 +250,15 @@ export default function XStockTradeScreen() {
               }
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholderTextColor={colors.textTertiary}
               style={[
                 styles.input,
                 { width: Math.min(250, Math.max(60, amount.length * 31 + 20)) },
               ]}
             />
-            <Text style={styles.unit}>
+            <DText variant="caption" tone="secondary">
               {sellMode === 'shares' ? activeStock.symbol : ''}
-            </Text>
+            </DText>
           </View>
           <View style={styles.shortcuts}>
             {[0.25, 0.5, 0.75, 1].map((value) => (
@@ -259,9 +267,9 @@ export default function XStockTradeScreen() {
                 onPress={() => setSellPercent(value)}
                 style={styles.shortcut}
               >
-                <Text style={styles.shortcutText}>
+                <DText variant="caption" tone="accent" style={styles.shortcutText}>
                   {value === 1 ? 'All' : `${value * 100}%`}
-                </Text>
+                </DText>
               </Pressable>
             ))}
           </View>
@@ -274,14 +282,18 @@ export default function XStockTradeScreen() {
             value={`${sellQuantity.toFixed(6)} ${activeStock.symbol}`}
           />
           {sellQuantity > position.quantity ? (
-            <Text style={styles.error}>
+            <DText variant="caption" tone="error" style={styles.error}>
               That is more than you own ({position.quantity.toFixed(6)}{' '}
               {activeStock.symbol}).
-            </Text>
+            </DText>
           ) : null}
         </>
       )}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <DText variant="caption" tone="error" style={styles.error}>
+          {error}
+        </DText>
+      ) : null}
       <View style={styles.bottom}>
         <AmountKeypad
           value={amount}
@@ -305,26 +317,20 @@ export default function XStockTradeScreen() {
         />
       </View>
       {loading ? (
-        <ActivityIndicator color="#B87AED" style={styles.spinner} />
+        <ActivityIndicator color={colors.purple[300]} style={styles.spinner} />
       ) : null}
       <View>
-        <Text style={styles.footnote}>
+        <DText variant="caption" tone="secondary">
           Demo mode uses live Jupiter pricing. Orders are not signed or
           broadcast.
-        </Text>
+        </DText>
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  amountLabel: {
-    color: '#FFFFFF88',
-    textAlign: 'left',
-    fontFamily: onbFonts.body,
-    fontSize: 12,
-    marginTop: 18,
-  },
+  amountLabel: { marginTop: space[4] },
   bottom: { marginTop: 'auto' },
   amountBox: {
     flexDirection: 'row',
@@ -332,45 +338,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 96,
   },
-  currency: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 48,
-  },
   input: {
+    ...type.hero,
     maxWidth: '80%',
     minWidth: 75,
     textAlign: 'left',
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 52,
-    padding: 10,
+    padding: space[2],
   },
-  unit: { color: onbColors.textMuted, fontSize: 12 },
-  shortcuts: { flexDirection: 'row', gap: 8, marginTop: 13, marginBottom: 8 },
+  shortcuts: {
+    flexDirection: 'row',
+    gap: space[2],
+    marginTop: space[3],
+    marginBottom: space[2],
+  },
   shortcut: {
     flex: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
+    minHeight: 40,
+    justifyContent: 'center',
+    borderRadius: radius.md,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: glass.fillStrong,
   },
-  shortcutText: {
-    color: '#D5A7F4',
-    fontFamily: onbFonts.bodyMedium,
-    fontSize: 11,
-  },
+  shortcutText: { fontFamily: fonts.bodyMedium, color: colors.purple[200] },
   toggle: {
     flexDirection: 'row',
-    borderRadius: 10,
-    padding: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginBottom: 12,
+    borderRadius: radius.md,
+    padding: space[1],
+    backgroundColor: glass.fillStrong,
+    marginBottom: space[3],
   },
-  toggleItem: { flex: 1, padding: 9, alignItems: 'center', borderRadius: 8 },
-  activeToggle: { backgroundColor: 'rgba(155,79,222,0.3)' },
-  toggleText: { color: onbColors.text, fontSize: 11 },
-  error: { color: '#FBBF24', fontSize: 12, marginTop: 10 },
-  spinner: { marginTop: 10 },
-  footnote: { color: 'rgba(255,255,255,0.55)', fontSize: 11, lineHeight: 17 },
+  toggleItem: {
+    flex: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: radius.sm,
+  },
+  activeToggle: { backgroundColor: glass.iconTint },
+  error: { marginTop: space[2] },
+  spinner: { marginTop: space[2] },
 });

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { onbFonts } from '@/components/onboarding/theme';
+import { colors, gradients, radius, space, type } from '@/constants/design';
 
 /** Drag confirmation with an explicit button alternative for keyboard/assistive input. */
 export function SlideConfirm({
@@ -47,7 +47,7 @@ export function SlideConfirm({
         onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       >
         <LinearGradient
-          colors={['#7B2FBE', '#6366F1']}
+          colors={gradients.purpleIndigo}
           style={StyleSheet.absoluteFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
@@ -57,7 +57,7 @@ export function SlideConfirm({
           {...pan.panHandlers}
           style={[styles.thumb, { transform: [{ translateX: offset }] }]}
         >
-          <Feather name="arrow-right" size={22} color="#7B2FBE" />
+          <Feather name="arrow-right" size={22} color={colors.brand} />
         </Animated.View>
       </View>
       <Pressable
@@ -73,9 +73,9 @@ export function SlideConfirm({
 }
 const styles = StyleSheet.create({
   track: {
-    marginTop: 16,
+    marginTop: space[4],
     height: 60,
-    borderRadius: 32,
+    borderRadius: radius.pill,
     overflow: 'hidden',
     justifyContent: 'center',
   },
@@ -85,27 +85,26 @@ const styles = StyleSheet.create({
     top: 5,
     width: 50,
     height: 50,
-    backgroundColor: 'white',
-    borderRadius: 28,
+    backgroundColor: colors.white,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
     textAlign: 'center',
     paddingLeft: 40,
-    fontFamily: onbFonts.bodySemi,
-    color: 'white',
-    fontSize: 13,
+    ...type.button,
+    fontSize: 15,
   },
   alternative: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
+    marginTop: space[1],
   },
   alternativeText: {
-    color: '#BEB3CE',
-    fontFamily: onbFonts.body,
-    fontSize: 11,
+    ...type.caption,
+    color: colors.textSecondary,
   },
   disabled: { opacity: 0.4 },
 });

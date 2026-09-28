@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { resolveRecipient, recipientLabel, type Recipient } from '../services/identity/resolve';
+import { Feather } from '@expo/vector-icons';
+import { resolveRecipient, recipientLabel, shortAddress, type Recipient } from '../services/identity/resolve';
 import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { solAmount } from '../services/identity/transactionCost';
-import { onbBackground, onbFonts, onbPrimaryGradient } from './onboarding/theme';
+import { AmbientGlow, Badge, Button, Card, DText, Header, IconButton, InfoRow, Notice } from './design';
+import { colors, fonts, glass, gradients, radius, sizes, space, type } from '../constants/design';
+import { MASCOT_IMAGES } from '../constants/mascot';
 import { amountNumber, sanitizeAmountInput } from '../utils/amountInput';
 
 interface Props {
@@ -74,80 +77,147 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
     } catch (err) { setError(err instanceof Error ? err.message : 'Transfer failed.'); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <LinearGradient colors={onbBackground.colors} style={styles.root}>
+  const goBack = () => {
+    setError(''); setConfirmedPhone(false);
+    if (stage === 'recipient' || stage === 'success') onClose();
+    else setStage(stage === 'review' ? 'amount' : 'recipient');
+  };
+  const sendAgain = () => { setStage('amount'); setConfirmedPhone(false); setSignature(null); setCost(null); setPrepared(null); };
+  const shown = Number(amount).toFixed(2);
+  const overBalance = balance != null && amountNumber(amount) > balance;
+  return <LinearGradient colors={gradients.screen} locations={gradients.screenLocations} style={styles.root}>
+    {stage === 'success' ? <AmbientGlow /> : null}
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity disabled={busy} accessibilityLabel="Back" onPress={() => {
-          setError(''); setConfirmedPhone(false);
-          if (stage === 'recipient' || stage === 'success') onClose();
-          else setStage(stage === 'review' ? 'amount' : 'recipient');
-        }}><Text style={styles.link}>‹ Back</Text></TouchableOpacity>
-        <Text style={styles.title}>{stage === 'review' ? 'Review' : stage === 'success' ? 'Sent' : 'Send'}</Text>
-        {onScan && stage === 'recipient' ? <TouchableOpacity onPress={onScan}><Text style={styles.link}>Scan QR</Text></TouchableOpacity> : <View />}
-      </View>
-      <Text style={styles.muted}>USDC · Solana Devnet</Text>
+      {stage !== 'success' && <Header
+        title={stage === 'review' ? 'Review' : 'Send'}
+        onBack={busy ? undefined : goBack}
+        right={onScan && stage === 'recipient' ? <IconButton icon="maximize" accessibilityLabel="Scan QR" onPress={onScan} /> : undefined}
+      />}
       {stage === 'recipient' && <>
-        <Text style={styles.text}>To</Text>
-        <TextInput accessibilityLabel="Recipient" style={styles.input} value={input} onChangeText={changeInput} placeholder="Phone, @username, name.sol or wallet" placeholderTextColor="#999" autoCapitalize="none" autoCorrect={false} />
-        <Text style={styles.muted}>Search by Vietnamese phone number, N.E.D username, .sol name or Solana address.</Text>
-        {looking && <ActivityIndicator color="#B87AED" />}
-      </>}
-      {recipient && <View style={styles.card}>
-        <Text style={styles.title}>{recipientLabel(recipient)}{recipient.phoneUnverified ? ' · Unverified number' : ''}</Text>
-        <Text selectable style={styles.address}>{recipient.wallet}</Text>
-        <Text style={styles.muted}>{recipient.source === 'sns' ? `${input.trim()} · SNS Mainnet lookup` : recipient.source === 'ned' ? 'N.E.D' : 'Wallet address'}</Text>
-      </View>}
-      {stage === 'recipient' && recipient?.source === 'sns' && <Text style={styles.warning}>Lookup only in this demo — .sol names resolve on Mainnet, transfers run on Devnet.</Text>}
-      {stage === 'recipient' && <SendButton busy={busy} label="Continue" onPress={() => { setError(''); setStage('amount'); }} disabled={!recipient || looking || recipient.source === 'sns' || recipient.wallet === wallet || !wallet} />}
-      {stage === 'amount' && <>
-        <Text style={styles.title}>Amount in USDC</Text>
-        <TextInput accessibilityLabel="Amount in USDC" style={[styles.input, styles.amount]} value={amount} onChangeText={value => setAmount(sanitizeAmountInput(value, 6).display)} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#999" />
-        <View style={styles.header}>{[5, 10, 20, 50].map(n => <TouchableOpacity key={n} onPress={() => setAmount(String(n))}><Text style={styles.link}>${n}</Text></TouchableOpacity>)}</View>
-        {balance != null && <Text style={styles.muted}>Cash available: {balance.toFixed(2)} USDC</Text>}
-        <Text style={styles.muted}>You pay the SOL network fee and any recipient account rent. Exact cost is shown at review.</Text>
-        <SendButton busy={busy} label="Review" onPress={review} disabled={amountNumber(amount) <= 0 || (balance != null && amountNumber(amount) > balance)} />
-      </>}
-      {(stage === 'review' || stage === 'success') && <>
-        <Text style={styles.amount}>{stage === 'success' ? 'Sent ' : ''}${Number(amount).toFixed(2)}</Text>
-        <View style={styles.card}>
-          <Text style={styles.text}>{amount} USDC</Text>
-          <Text style={styles.text}>Network fee: {solAmount(cost?.fee ?? 0)} SOL</Text>
-          <Text style={styles.text}>Recipient account rent: {solAmount(cost?.rent ?? 0)} SOL</Text>
+        <DText variant="body" tone="secondary" style={styles.fieldLabel}>To</DText>
+        <View style={[styles.search, !!input && styles.searchActive]}>
+          <Feather name="search" size={18} color={colors.textTertiary} />
+          <TextInput accessibilityLabel="Recipient" style={styles.searchInput} value={input} onChangeText={changeInput} placeholder="Phone, @username, name.sol or wallet" placeholderTextColor={colors.textTertiary} autoCapitalize="none" autoCorrect={false} />
+          {looking && <ActivityIndicator color={colors.purple[300]} />}
         </View>
+        <DText variant="caption" tone="secondary">Search by Vietnamese phone number, N.E.D username, .sol name or Solana address.</DText>
+        <DText variant="caption" tone="tertiary">USDC · Solana Devnet</DText>
+      </>}
+      {recipient && stage !== 'success' && <RecipientCard recipient={recipient} input={input} />}
+      {stage === 'recipient' && recipient?.source === 'sns' && <Notice tone="warning">Lookup only in this demo — .sol names resolve on Mainnet, transfers run on Devnet.</Notice>}
+      {stage === 'recipient' && <View style={styles.push}><Button loading={busy} title="Continue" onPress={() => { setError(''); setStage('amount'); }} disabled={!recipient || looking || recipient.source === 'sns' || recipient.wallet === wallet || !wallet} /></View>}
+      {stage === 'amount' && <>
+        <View style={styles.amountBlock}>
+          <View style={styles.amountRow}>
+            <DText variant="hero" style={styles.dollar}>$</DText>
+            <TextInput accessibilityLabel="Amount in USDC" style={styles.amountInput} value={amount} onChangeText={value => setAmount(sanitizeAmountInput(value, 6).display)} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={colors.textTertiary} />
+          </View>
+          <DText variant="body" tone="secondary" align="center">≈ {amountNumber(amount).toFixed(2)} USDC</DText>
+        </View>
+        <View style={styles.chips}>{[5, 10, 20, 50].map(n => <Pressable key={n} accessibilityRole="button" onPress={() => setAmount(String(n))} style={({ pressed }) => [styles.chip, pressed && styles.pressed]}><DText variant="button">${n}</DText></Pressable>)}</View>
+        <View style={styles.metaRow}>
+          {balance != null ? <DText variant="caption" tone={overBalance ? 'error' : 'secondary'}>Cash available: {balance.toFixed(2)} USDC</DText> : <View />}
+        </View>
+        <DText variant="caption" tone="secondary">You pay the SOL network fee and any recipient account rent. Exact cost is shown at review.</DText>
+        <View style={styles.push}><Button loading={busy} title="Review" onPress={review} disabled={amountNumber(amount) <= 0 || overBalance} /></View>
       </>}
       {stage === 'review' && <>
-        {recipient?.phoneUnverified && <View style={styles.card}>
-          <Text style={styles.warning}>Unverified number. This number has not been verified by OTP. Confirm the recipient through another channel.</Text>
-          <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: confirmedPhone }} disabled={busy} onPress={() => setConfirmedPhone(!confirmedPhone)}>
-            <Text style={styles.link}>{confirmedPhone ? '☑' : '☐'} Is this @{recipient.username}?</Text>
-          </TouchableOpacity>
-        </View>}
-        <SendButton busy={busy} label="Confirm and send" onPress={send} disabled={!!recipient?.phoneUnverified && !confirmedPhone} />
+        <View style={styles.amountBlock}>
+          <DText variant="body" tone="secondary" align="center">You&apos;re sending</DText>
+          <DText variant="hero" align="center">${shown}</DText>
+          <DText variant="mono" tone="secondary" align="center">{amount} USDC</DText>
+        </View>
+        {recipient && <RecipientCard recipient={recipient} input={input} />}
+        <Card>
+          <InfoRow label="From" value="Cash · USDC" />
+          {recipient ? <InfoRow label="To wallet" value={shortAddress(recipient.wallet)} mono /> : null}
+          <InfoRow label="Network fee" value={`${solAmount(cost?.fee ?? 0)} SOL`} mono />
+          <InfoRow label="Recipient account rent" value={`${solAmount(cost?.rent ?? 0)} SOL`} mono />
+          <InfoRow label="Arrives" value="In a few seconds" last />
+        </Card>
+        {recipient?.phoneUnverified && <Notice tone="warning">
+          <DText variant="caption" tone="primary">Unverified number. This number has not been verified by OTP. Confirm the recipient through another channel.</DText>
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmedPhone }} disabled={busy} onPress={() => setConfirmedPhone(!confirmedPhone)} style={styles.check}>
+            <Feather name={confirmedPhone ? 'check-square' : 'square'} size={18} color={colors.warningText} />
+            <DText variant="body" tone="primary" style={styles.checkText}>Is this @{recipient.username}?</DText>
+          </Pressable>
+        </Notice>}
+        <View style={styles.push}><Button loading={busy} title="Confirm and send" onPress={send} disabled={!!recipient?.phoneUnverified && !confirmedPhone} /></View>
       </>}
       {stage === 'success' && <>
-        <Text style={styles.text}>Your transfer is confirmed on Devnet.</Text>
-        {signature && <TouchableOpacity onPress={() => void Linking.openURL(`https://explorer.solana.com/tx/${signature}?cluster=devnet`)}><Text style={styles.link}>View on Solana Explorer</Text></TouchableOpacity>}
-        <SendButton busy={busy} label="Done" onPress={onClose} />
-        <SendButton busy={busy} label="Send again" onPress={() => { setStage('amount'); setConfirmedPhone(false); setSignature(null); setCost(null); setPrepared(null); }} />
+        <View style={styles.successTop}>
+          <Image source={MASCOT_IMAGES.happy} style={styles.mascot} resizeMode="contain" accessibilityIgnoresInvertColors />
+          <DText variant="h1" align="center" accessibilityRole="header">Sent ${shown}</DText>
+          <DText variant="body" tone="secondary" align="center">Your transfer is confirmed on Devnet.</DText>
+        </View>
+        <Card>
+          {recipient ? <InfoRow label="To" value={recipientLabel(recipient)} mono /> : null}
+          <InfoRow label="Amount" value={`${amount} USDC`} mono />
+          <InfoRow label="Network fee" value={`${solAmount(cost?.fee ?? 0)} SOL`} mono />
+          <InfoRow label="Recipient account rent" value={`${solAmount(cost?.rent ?? 0)} SOL`} mono last />
+        </Card>
+        {signature && <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(`https://explorer.solana.com/tx/${signature}?cluster=devnet`)} style={styles.explorer}>
+          <DText variant="body" tone="accent" style={styles.explorerText}>View on Solana Explorer</DText>
+          <Feather name="arrow-up-right" size={15} color={colors.textAccent} />
+        </Pressable>}
+        <View style={styles.push}>
+          <Button loading={busy} title="Done" onPress={onClose} />
+          <Button loading={busy} variant="secondary" title="Send again" onPress={sendAgain} />
+        </View>
       </>}
-      {!!error && <Text accessibilityRole="alert" style={styles.warning}>{error}</Text>}
+      {!!error && <View accessibilityRole="alert"><Notice tone="error">{error}</Notice></View>}
     </ScrollView>
   </LinearGradient>;
 }
-const styles = StyleSheet.create({
-  root: { flex: 1 }, content: { padding: 20, gap: 18, flexGrow: 1, maxWidth: 560, width: '100%', alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  title: { color: 'white', fontFamily: onbFonts.heading, fontSize: 18 }, text: { color: 'white', fontFamily: onbFonts.body, fontSize: 14, lineHeight: 22 },
-  muted: { color: '#B9B2C5', fontFamily: onbFonts.body, fontSize: 12, lineHeight: 19 }, link: { color: '#C9A2F2', fontFamily: onbFonts.bodySemi, paddingVertical: 12 },
-  warning: { color: '#FCD34D', lineHeight: 22 }, address: { color: '#C9C3D4', fontFamily: onbFonts.mono, fontSize: 12 },
-  card: { padding: 16, borderRadius: 16, gap: 10, borderWidth: 1, borderColor: '#ffffff25', backgroundColor: '#ffffff0c' },
-  input: { color: 'white', backgroundColor: '#ffffff0c', borderWidth: 1, borderColor: '#9B4FDE', borderRadius: 16, padding: 16, fontSize: 16 },
-  amount: { color: 'white', fontFamily: onbFonts.heading, fontSize: 42, textAlign: 'center' },
-  button: { minHeight: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', padding: 12 }, buttonText: { color: 'white', fontFamily: onbFonts.heading, fontSize: 17 },
-});
 
-function SendButton({ label, onPress, busy, disabled = false }: { label: string; onPress(): void; busy: boolean; disabled?: boolean }) {
-  return <TouchableOpacity accessibilityRole="button" disabled={disabled || busy} onPress={onPress} style={{ opacity: disabled || busy ? 0.45 : 1 }}>
-    <LinearGradient colors={onbPrimaryGradient} style={styles.button}><Text style={styles.buttonText}>{busy ? 'Please wait…' : label}</Text></LinearGradient>
-  </TouchableOpacity>;
+/** Thẻ người nhận: chữ cái đầu · tên · địa chỉ / nguồn · nhãn N.E.D / .SOL / Unverified */
+function RecipientCard({ recipient, input }: { recipient: Recipient; input: string }) {
+  const label = recipientLabel(recipient);
+  const initials = (recipient.username ?? input.trim() ?? '?').replace(/^@/, '').slice(0, 2).toUpperCase() || '?';
+  return <Card style={styles.recipient}>
+    <View style={styles.avatar}><DText variant="button">{initials}</DText></View>
+    <View style={styles.flex}>
+      <DText variant="bodyLarge" style={styles.recipientName} numberOfLines={1}>{label}</DText>
+      <DText variant="mono" tone="secondary" style={styles.recipientAddress} selectable>{recipient.wallet}</DText>
+      <DText variant="caption" tone="secondary">{recipient.source === 'sns' ? `${input.trim()} · SNS Mainnet lookup` : recipient.source === 'ned' ? 'N.E.D' : 'Wallet address'}</DText>
+      {recipient.phoneUnverified ? <Badge icon="alert-triangle" tone="warning" label="Unverified number" style={styles.unverified} /> : null}
+    </View>
+    {recipient.source === 'ned' ? <Badge tone="accent" label="N.E.D" /> : recipient.source === 'sns' ? <Badge tone="info" label=".SOL" /> : null}
+  </Card>;
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1, minWidth: 0 },
+  content: { padding: space[5], gap: space[4], flexGrow: 1, maxWidth: sizes.maxContent, width: '100%', alignSelf: 'center' },
+  fieldLabel: { marginBottom: -space[2] },
+  search: {
+    flexDirection: 'row', alignItems: 'center', gap: space[3], minHeight: 56, paddingHorizontal: space[4],
+    borderRadius: radius.lg, borderWidth: 1, borderColor: glass.borderStrong, backgroundColor: glass.fill,
+  },
+  searchActive: { borderColor: colors.purple[400] },
+  searchInput: { ...type.bodyLarge, flex: 1, minWidth: 0, minHeight: 52 },
+  recipient: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  avatar: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.purple[600], alignItems: 'center', justifyContent: 'center' },
+  recipientName: { fontFamily: fonts.displaySemi },
+  recipientAddress: { fontSize: 12, lineHeight: 17 },
+  unverified: { marginTop: space[1] },
+  amountBlock: { alignItems: 'center', gap: space[1], paddingVertical: space[4] },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  dollar: { marginRight: 2 },
+  amountInput: { ...type.hero, minWidth: 60, maxWidth: 260, textAlign: 'center', padding: 0 },
+  chips: { flexDirection: 'row', gap: space[2] },
+  chip: {
+    flex: 1, height: sizes.touch, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: glass.fill, borderWidth: 1, borderColor: glass.border,
+  },
+  pressed: { backgroundColor: colors.surface3 },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  check: { flexDirection: 'row', alignItems: 'center', gap: space[2], minHeight: sizes.touch },
+  checkText: { fontFamily: fonts.bodySemi },
+  push: { marginTop: 'auto', gap: space[3], paddingTop: space[4] },
+  successTop: { alignItems: 'center', gap: space[2], paddingTop: space[10] },
+  mascot: { width: 150, height: 130, marginBottom: space[2] },
+  explorer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[1], minHeight: sizes.touch },
+  explorerText: { fontFamily: fonts.bodySemi },
+});

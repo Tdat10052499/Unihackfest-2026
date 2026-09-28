@@ -10,7 +10,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -38,7 +37,8 @@ import {
   type SetupCost,
 } from '../../services/onboarding';
 import { NoticeCard, OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
-import { onbColors, onbFonts } from '../../components/onboarding/theme';
+import { Toggle } from '../../components/design';
+import { colors, fonts, glass, radius, space, type } from '../../constants/design';
 
 const DEBOUNCE_MS = 400;
 
@@ -170,27 +170,27 @@ export default function ProfileScreen() {
   };
 
   const userHint = {
-    empty: { text: '3–20 characters: letters, numbers or _', color: onbColors.textSubtle },
-    invalid: { text: 'Use 3–20 characters: letters, numbers or _', color: onbColors.warning },
-    checking: { text: `Checking @${username}…`, color: onbColors.textSubtle },
-    available: { text: `@${username} is available`, color: onbColors.successText },
+    empty: { text: '3–20 characters: letters, numbers or _', color: colors.textTertiary },
+    invalid: { text: 'Use 3–20 characters: letters, numbers or _', color: colors.warningText },
+    checking: { text: `Checking @${username}…`, color: colors.textTertiary },
+    available: { text: `@${username} is available`, color: colors.successText },
     taken: {
       text: suggestions.length ? `@${username} is taken. Try one of these:` : `@${username} is taken.`,
-      color: onbColors.danger,
+      color: colors.errorText,
     },
-    error: { text: 'Could not check this username. Check your connection.', color: onbColors.warning },
+    error: { text: 'Could not check this username. Check your connection.', color: colors.warningText },
   }[usernameState];
 
   const phoneHint = {
-    empty: { text: "We never text you. It's only used so friends can find you.", color: onbColors.textSubtle },
-    invalid: { text: 'Enter a Vietnamese mobile number, e.g. 90 123 4567', color: onbColors.warning },
-    checking: { text: 'Checking this number…', color: onbColors.textSubtle },
-    ok: { text: 'Looks good', color: onbColors.successText },
+    empty: { text: "We never text you. It's only used so friends can find you.", color: colors.textTertiary },
+    invalid: { text: 'Enter a Vietnamese mobile number, e.g. 90 123 4567', color: colors.warningText },
+    checking: { text: 'Checking this number…', color: colors.textTertiary },
+    ok: { text: 'Looks good', color: colors.successText },
     taken: {
       text: "This number is already linked to another N.E.D account. If it's yours, use your @username.",
-      color: onbColors.danger,
+      color: colors.errorText,
     },
-    error: { text: 'Could not check this number. Check your connection.', color: onbColors.warning },
+    error: { text: 'Could not check this number. Check your connection.', color: colors.warningText },
   }[phoneState];
 
   const setupCost = cost ? cost.profile + (phoneOn ? cost.phone : 0) : null;
@@ -215,15 +215,15 @@ export default function ProfileScreen() {
               value={username}
               onChangeText={(t) => setUsername(normalizeUsername(t))}
               placeholder="yourname"
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholderTextColor={colors.textTertiary}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
               maxLength={20}
               style={styles.input}
             />
-            {usernameState === 'checking' ? <ActivityIndicator size="small" color={onbColors.purple300} /> : null}
-            {usernameState === 'available' ? <Feather name="check" size={18} color={onbColors.successText} /> : null}
+            {usernameState === 'checking' ? <ActivityIndicator size="small" color={colors.purple[300]} /> : null}
+            {usernameState === 'available' ? <Feather name="check" size={18} color={colors.successText} /> : null}
           </View>
           <Text style={[styles.hint, { color: userHint.color }]} accessibilityLiveRegion="polite">
             {userHint.text}
@@ -243,13 +243,7 @@ export default function ProfileScreen() {
               <Text style={onbText.label}>Let friends find me by phone</Text>
               <Text style={[onbText.small, styles.toggleSub]}>Optional. You can add it later.</Text>
             </View>
-            <Switch
-              accessibilityLabel="Let friends find me by phone"
-              value={phoneOn}
-              onValueChange={setPhoneOn}
-              trackColor={{ false: 'rgba(255,255,255,0.15)', true: onbColors.purple400 }}
-              thumbColor="#FFFFFF"
-            />
+            <Toggle accessibilityLabel="Let friends find me by phone" value={phoneOn} onValueChange={setPhoneOn} />
           </View>
 
           {phoneOn ? (
@@ -261,13 +255,13 @@ export default function ProfileScreen() {
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="90 123 4567"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="phone-pad"
                   autoComplete="tel"
                   style={styles.input}
                 />
-                {phoneState === 'checking' ? <ActivityIndicator size="small" color={onbColors.purple300} /> : null}
-                {phoneState === 'ok' ? <Feather name="check" size={18} color={onbColors.successText} /> : null}
+                {phoneState === 'checking' ? <ActivityIndicator size="small" color={colors.purple[300]} /> : null}
+                {phoneState === 'ok' ? <Feather name="check" size={18} color={colors.successText} /> : null}
               </View>
               <Text style={[styles.hint, { color: phoneHint.color }]} accessibilityLiveRegion="polite">
                 {phoneHint.text}
@@ -314,51 +308,51 @@ export default function ProfileScreen() {
 }
 
 function fieldBorder(ok: boolean, bad: boolean) {
-  return { borderColor: bad ? 'rgba(248,113,113,0.7)' : ok ? 'rgba(74,222,128,0.5)' : onbColors.border };
+  return { borderColor: bad ? glass.errorBorder : ok ? glass.successBorder : glass.borderStrong };
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 16 },
-  lead: { marginTop: 8 },
-  label: { marginTop: 26 },
+  scroll: { paddingHorizontal: space[6], paddingTop: space[6], paddingBottom: space[4] },
+  lead: { marginTop: space[2] },
+  label: { marginTop: space[6] },
   field: {
-    marginTop: 8,
+    marginTop: space[2],
     height: 54,
-    paddingHorizontal: 14,
+    paddingHorizontal: space[4],
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderRadius: 14,
+    gap: space[2],
+    borderRadius: radius.lg,
     borderWidth: 1,
-    backgroundColor: onbColors.surface,
+    backgroundColor: glass.fill,
   },
-  prefix: { fontFamily: onbFonts.mono, fontSize: 16, color: onbColors.textSubtle },
+  prefix: { ...type.mono, fontSize: 16, color: colors.textTertiary },
   country: {
-    fontFamily: onbFonts.body,
+    ...type.body,
     fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
-    paddingRight: 10,
+    color: colors.text,
+    paddingRight: space[3],
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.12)',
+    borderRightColor: glass.borderStrong,
   },
-  input: { flex: 1, minWidth: 0, height: 50, color: onbColors.text, fontFamily: onbFonts.mono, fontSize: 16 },
-  hint: { marginTop: 6, fontFamily: onbFonts.body, fontSize: 12, lineHeight: 17 },
-  suggestions: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  input: { flex: 1, minWidth: 0, height: 50, color: colors.text, fontFamily: fonts.mono, fontSize: 16 },
+  hint: { ...type.caption, marginTop: space[2] },
+  suggestions: { marginTop: space[2], flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   chip: {
     height: 34,
-    paddingHorizontal: 12,
+    paddingHorizontal: space[3],
     justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: 'rgba(155,79,222,0.14)',
+    borderRadius: radius.pill,
+    backgroundColor: glass.iconTint,
     borderWidth: 1,
-    borderColor: 'rgba(155,79,222,0.4)',
+    borderColor: glass.accentBorder,
   },
-  chipText: { fontFamily: onbFonts.mono, fontSize: 12, color: '#E4D0FA' },
-  toggleRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  toggleSub: { marginTop: 2, color: onbColors.textSubtle },
-  notice: { marginTop: 16 },
-  link: { marginTop: 6, fontFamily: onbFonts.bodySemi, fontSize: 12, color: onbColors.lavender, textDecorationLine: 'underline' },
-  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28 },
-  cost: { marginTop: 10 },
+  chipText: { ...type.mono, fontSize: 12, color: colors.purple[100] },
+  toggleRow: { marginTop: space[6], flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  toggleSub: { marginTop: 2, color: colors.textTertiary },
+  notice: { marginTop: space[4] },
+  link: { ...type.caption, marginTop: space[2], fontFamily: fonts.bodySemi, color: colors.purple[200], textDecorationLine: 'underline' },
+  footer: { paddingHorizontal: space[6], paddingTop: space[3], paddingBottom: space[8] },
+  cost: { marginTop: space[3] },
 });

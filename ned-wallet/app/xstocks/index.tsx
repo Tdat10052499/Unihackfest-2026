@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -17,7 +16,8 @@ import {
   type XStockSort,
 } from '@/services/xstocks';
 import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { Badge, Button, DText } from '@/components/design';
+import { colors, fonts, glass, radius, space, type } from '@/constants/design';
 import { WalletNav } from '@/components/wallet/WalletNav';
 import { Screen } from '@/components/xstocks/Screen';
 import { InvestmentsCard } from '@/components/xstocks/InvestmentsCard';
@@ -95,15 +95,15 @@ export default function XStocksListScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Screen style={{ paddingBottom: 110 }}>
+    <View style={styles.fill}>
+      <Screen style={styles.page}>
         <View style={styles.listTop}>
-          <Text style={styles.title}>xStocks</Text>
+          <DText variant="h1" accessibilityRole="header">
+            xStocks
+          </DText>
           <MarketBadge />
         </View>
-        <Text style={styles.subtitle}>
-          Own a slice of real companies, from $1.
-        </Text>
+        <DText variant="body">Own a slice of real companies, from $1.</DText>
         <InvestmentsCard
           ledger={ledger}
           stocks={stocks}
@@ -115,63 +115,79 @@ export default function XStocksListScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search stocks & ETFs"
-          placeholderTextColor="rgba(255,255,255,0.35)"
+          placeholderTextColor={colors.textTertiary}
           style={styles.search}
         />
         <View style={styles.sorts}>
           {(['movers', 'traded', 'az'] as XStockSort[]).map((value) => (
             <Pressable
               key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sort === value }}
               onPress={() => setSort(value)}
               style={[styles.chip, sort === value && styles.selected]}
             >
-              <Text
-                style={[styles.chipText, sort === value && styles.selectedText]}
+              <DText
+                variant="caption"
+                tone={sort === value ? 'primary' : 'secondary'}
+                style={styles.chipText}
               >
                 {value === 'movers'
                   ? 'Top movers'
                   : value === 'traded'
                     ? 'Most traded'
                     : 'A–Z'}
-              </Text>
+              </DText>
             </Pressable>
           ))}
         </View>
 
         <View style={styles.listHeader}>
-          <Text style={styles.sectionTitle}>Stocks & ETFs</Text>
+          <DText variant="h3">Stocks & ETFs</DText>
           {load.status === 'ready' ? (
-            <Text style={styles.count}>{visible.length} assets</Text>
+            <DText variant="caption">{visible.length} assets</DText>
           ) : null}
         </View>
         {load.status === 'loading' ? (
           <View style={styles.state}>
-            <ActivityIndicator color="#B87AED" />
-            <Text style={styles.stateText}>Loading xStocks…</Text>
+            <ActivityIndicator color={colors.purple[300]} />
+            <DText variant="body" align="center" style={styles.stateText}>
+              Loading xStocks…
+            </DText>
           </View>
         ) : null}
         {load.status === 'error' ? (
           <View style={styles.state}>
-            <Text style={styles.errorTitle}>xStocks unavailable</Text>
-            <Text style={styles.stateText}>{load.message}</Text>
-            <Pressable onPress={() => void loadStocks()} style={styles.retry}>
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
+            <DText variant="h3">xStocks unavailable</DText>
+            <DText variant="body" align="center" style={styles.stateText}>
+              {load.message}
+            </DText>
+            <Button
+              title="Retry"
+              compact
+              onPress={() => void loadStocks()}
+              style={styles.retry}
+            />
           </View>
         ) : null}
         {load.status === 'empty' ? (
           <View style={styles.state}>
-            <Text style={styles.errorTitle}>No xStocks found</Text>
-            <Text style={styles.stateText}>
+            <DText variant="h3">No xStocks found</DText>
+            <DText variant="body" align="center" style={styles.stateText}>
               Jupiter returned no matching stocks. Try again later.
-            </Text>
-            <Pressable onPress={() => void loadStocks()} style={styles.retry}>
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
+            </DText>
+            <Button
+              title="Retry"
+              compact
+              onPress={() => void loadStocks()}
+              style={styles.retry}
+            />
           </View>
         ) : null}
         {load.status === 'ready' && visible.length === 0 ? (
-          <Text style={styles.noSearch}>No assets match “{query}”.</Text>
+          <DText variant="body" align="center" style={styles.noSearch}>
+            No assets match “{query}”.
+          </DText>
         ) : null}
         {load.status === 'ready'
           ? visible.map((stock) => (
@@ -191,122 +207,60 @@ export default function XStocksListScreen() {
 function MarketBadge() {
   const open = isUsMarketOpen();
   return (
-    <View
-      style={[
-        styles.marketBadge,
-        open ? styles.marketOpen : styles.marketClosed,
-      ]}
-    >
-      <View
-        style={[styles.dot, { backgroundColor: open ? '#22C55E' : '#FBBF24' }]}
-      />
-      <Text
-        style={[styles.marketText, { color: open ? '#4ADE80' : '#FBBF24' }]}
-      >
-        {open ? 'US market open' : 'US market closed'}
-      </Text>
-    </View>
+    <Badge
+      tone={open ? 'success' : 'warning'}
+      icon="clock"
+      label={open ? 'US market open' : 'US market closed'}
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  page: { paddingBottom: 110 },
   listTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  title: { color: 'white', fontFamily: onbFonts.heading, fontSize: 28 },
-  subtitle: {
-    color: 'rgba(255,255,255,0.52)',
-    fontFamily: onbFonts.body,
-    fontSize: 12,
-    marginTop: 0,
+    gap: space[3],
+    marginBottom: space[2],
   },
   search: {
-    height: 46,
-    borderRadius: 14,
+    ...type.body,
+    color: colors.text,
+    height: 48,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 14,
-    marginTop: 17,
-    color: onbColors.text,
-    fontFamily: onbFonts.body,
+    borderColor: glass.border,
+    backgroundColor: glass.fill,
+    paddingHorizontal: space[4],
+    marginTop: space[4],
   },
-  sorts: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  sorts: { flexDirection: 'row', gap: space[2], marginTop: space[3] },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: space[3],
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 20,
+    borderColor: glass.borderStrong,
+    borderRadius: radius.pill,
   },
-  selected: { backgroundColor: 'rgba(155,79,222,0.2)', borderColor: '#9B4FDE' },
-  chipText: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
-  selectedText: { color: '#D5A7F4' },
+  selected: { backgroundColor: glass.iconTint, borderColor: colors.purple[400] },
+  chipText: { fontFamily: fonts.bodyMedium },
   listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 22,
-    marginBottom: 3,
+    marginTop: space[6],
+    marginBottom: space[1],
   },
-  sectionTitle: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 15,
-  },
-  count: { color: onbColors.textMuted, fontSize: 10 },
   state: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 34,
-    paddingHorizontal: 12,
+    paddingVertical: space[8],
+    paddingHorizontal: space[3],
   },
-  stateText: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  errorTitle: {
-    color: onbColors.text,
-    fontFamily: onbFonts.heading,
-    fontSize: 16,
-  },
-  retry: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 13,
-    borderRadius: 12,
-    backgroundColor: onbColors.purple,
-  },
-  retryText: { color: 'white', fontFamily: onbFonts.bodyBold, fontSize: 12 },
-  noSearch: {
-    color: onbColors.textMuted,
-    paddingVertical: 20,
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  marketBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  marketOpen: {
-    backgroundColor: 'rgba(34,197,94,0.1)',
-    borderColor: 'rgba(34,197,94,0.25)',
-  },
-  marketClosed: {
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderColor: 'rgba(245,158,11,0.24)',
-  },
-  dot: { width: 6, height: 6, borderRadius: 5 },
-  marketText: { fontSize: 9, fontFamily: onbFonts.bodyMedium },
+  stateText: { marginTop: space[2] },
+  retry: { alignSelf: 'center', marginTop: space[3] },
+  noSearch: { paddingVertical: space[5] },
 });

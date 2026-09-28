@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Button, Card, DText, InfoRow, Notice } from './design';
+import { colors, glass, radius, sizes, space, type } from '../constants/design';
 import { PublicKey } from '@solana/web3.js';
 import { useAuth } from '../services/auth';
 import { buildLinkPhoneTx, buildUnlinkPhoneTx, fetchPhoneRecord, fetchReverseRecord, derivePhonePda } from '../services/identity/dualPda';
@@ -73,22 +75,31 @@ function PhoneManagementContent({ visible, onClose, walletAddress, onPhoneUpdate
     finally { setBusy(false); lock.current = false; }
   }
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { if (!busy) onClose(); }}>
-    <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#0009', padding: 20 }}>
-      <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, backgroundColor: '#16101F', borderRadius: 20 }} contentContainerStyle={{ padding: 24, gap: 18 }}>
-        <Text style={{ color: 'white', fontSize: 22 }}>{hasPhone ? 'Unlink phone' : 'Link phone'}</Text>
-        <Text style={{ color: '#FCD34D' }}>Unverified number · No OTP verification. Only a scrypt hash is sent on-chain. Anyone who knows your number can look up your wallet.</Text>
-        {hasPhone && <Text style={{ color: 'white' }}>Enter your linked number if it is not saved on this device. Unlinking returns its account rent to your wallet.</Text>}
-        <TextInput accessibilityLabel="Vietnamese phone number" editable={!busy} value={phone} onChangeText={value => { setPhone(value); setPrepared(null); }} keyboardType="phone-pad" placeholder="+84…" placeholderTextColor="#AAA" style={{ padding: 14, color: 'white', borderWidth: 1, borderColor: '#9B4FDE', borderRadius: 12 }} />
-        {prepared && <Text style={{ color: 'white', lineHeight: 24 }}>Network fee: {solAmount(prepared.fee)} SOL{'\n'}Account rent: {solAmount(prepared.rent)} SOL{'\n'}Rent returned: {solAmount(prepared.refund)} SOL</Text>}
-        {!!error && <Text accessibilityRole="alert" style={{ color: '#FCD34D' }}>{error}</Text>}
-        <TouchableOpacity disabled={busy || hasPhone === null} onPress={() => void (prepared ? submit() : prepare())} style={{ backgroundColor: '#7B2FBE', padding: 18, borderRadius: 14, opacity: busy || hasPhone === null ? 0.5 : 1 }}>
-          <Text style={{ color: 'white', textAlign: 'center' }}>{busy ? 'Please wait…' : prepared ? `Confirm ${prepared.unlink ? 'unlink' : 'link'} phone` : 'Review SOL cost'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity disabled={busy} onPress={onClose}><Text style={{ color: '#C9A2F2', textAlign: 'center', padding: 12 }}>Cancel</Text></TouchableOpacity>
+    <View style={styles.backdrop}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={styles.sheet} contentContainerStyle={styles.sheetContent}>
+        <DText variant="h2">{hasPhone ? 'Unlink phone' : 'Link phone'}</DText>
+        <Notice tone="warning">Unverified number · No OTP verification. Only a scrypt hash is sent on-chain. Anyone who knows your number can look up your wallet.</Notice>
+        {hasPhone && <DText variant="body">Enter your linked number if it is not saved on this device. Unlinking returns its account rent to your wallet.</DText>}
+        <TextInput accessibilityLabel="Vietnamese phone number" editable={!busy} value={phone} onChangeText={value => { setPhone(value); setPrepared(null); }} keyboardType="phone-pad" placeholder="+84…" placeholderTextColor={colors.textTertiary} style={styles.input} />
+        {prepared && <Card variant="default" padding={space[4]}>
+          <InfoRow label="Network fee" value={`${solAmount(prepared.fee)} SOL`} mono />
+          <InfoRow label="Account rent" value={`${solAmount(prepared.rent)} SOL`} mono />
+          <InfoRow label="Rent returned" value={`${solAmount(prepared.refund)} SOL`} mono last />
+        </Card>}
+        {!!error && <DText accessibilityRole="alert" variant="caption" tone="error">{error}</DText>}
+        <Button disabled={hasPhone === null} loading={busy} onPress={() => void (prepared ? submit() : prepare())} title={prepared ? `Confirm ${prepared.unlink ? 'unlink' : 'link'} phone` : 'Review SOL cost'} />
+        <Button variant="ghost" disabled={busy} onPress={onClose} title="Cancel" />
       </ScrollView>
     </View>
   </Modal>;
 }
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: 'center', backgroundColor: glass.scrim, padding: space[5] },
+  sheet: { flexGrow: 0, width: '100%', maxWidth: sizes.maxContent, alignSelf: 'center', backgroundColor: colors.surface1, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border },
+  sheetContent: { padding: space[6], gap: space[4] },
+  input: { ...type.mono, height: sizes.button, paddingHorizontal: space[4], borderWidth: 1, borderColor: colors.brand, borderRadius: radius.md, backgroundColor: colors.surface2 },
+});
 
 export function PhoneManagementModal(props: Props) {
   return props.visible ? <PhoneManagementContent key={props.walletAddress} {...props} /> : null;

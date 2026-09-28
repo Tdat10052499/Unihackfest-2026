@@ -8,7 +8,7 @@ import { useAuth } from '../../services/auth';
 import { resolveOnboarding, type OnboardingState } from '../../services/onboarding';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 import { NoticeCard, OnbScreen, PrimaryButton, onbText } from '../../components/onboarding/ui';
-import { onbColors, onbFonts } from '../../components/onboarding/theme';
+import { colors, fonts, glass, radius, sizes, space, type } from '../../constants/design';
 
 const RETURNING_AUTO_MS = 1500;
 
@@ -98,11 +98,11 @@ export default function SetupScreen() {
             <View key={s.label} style={styles.step}>
               {s.state === 'done' ? (
                 <View style={styles.doneDot}>
-                  <Feather name="check" size={12} color={onbColors.successText} />
+                  <Feather name="check" size={12} color={colors.successText} />
                 </View>
               ) : s.state === 'active' ? (
                 <View style={styles.dot}>
-                  <ActivityIndicator size="small" color={onbColors.purple300} />
+                  <ActivityIndicator size="small" color={colors.purple[300]} />
                 </View>
               ) : (
                 <View style={[styles.dot, styles.waitingDot]} />
@@ -134,7 +134,7 @@ export default function SetupScreen() {
             <PrimaryButton title={returning ? 'Go to my wallet' : 'Continue'} onPress={next} />
           ) : (
             <View style={styles.secure}>
-              <Feather name="lock" size={14} color="rgba(255,255,255,0.5)" />
+              <Feather name="lock" size={14} color={colors.textTertiary} />
               <Text style={styles.secureText}>Secured with MPC. No recovery phrase to write down.</Text>
             </View>
           )}
@@ -145,30 +145,30 @@ export default function SetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, alignItems: 'center', paddingHorizontal: 28, paddingTop: 70 },
+  body: { flex: 1, alignItems: 'center', paddingHorizontal: space[8], paddingTop: space[16] },
   mascot: { width: 200, height: 156 },
-  heading: { marginTop: 26 },
-  center: { marginTop: 8, textAlign: 'center' },
-  steps: { marginTop: 30, width: '100%', gap: 14 },
-  step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  waitingDot: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)' },
+  heading: { marginTop: space[6] },
+  center: { marginTop: space[2], textAlign: 'center' },
+  steps: { marginTop: space[8], width: '100%', gap: space[4] },
+  step: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  dot: { width: 24, height: 24, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  waitingDot: { borderWidth: 2, borderColor: glass.borderStrong },
   doneDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(34,197,94,0.18)',
+    borderRadius: radius.pill,
+    backgroundColor: glass.successFill,
     borderWidth: 1,
-    borderColor: 'rgba(74,222,128,0.5)',
+    borderColor: glass.successBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepText: { fontFamily: onbFonts.bodyMedium, fontSize: 15, color: onbColors.text },
-  stepActive: { fontFamily: onbFonts.bodySemi },
-  stepWaiting: { color: 'rgba(255,255,255,0.45)' },
+  stepText: { ...type.bodyLarge, fontFamily: fonts.bodyMedium },
+  stepActive: { fontFamily: fonts.bodySemi },
+  stepWaiting: { color: colors.textTertiary },
   spacer: { flex: 1 },
-  footer: { width: '100%', paddingBottom: 28, minHeight: 84, justifyContent: 'flex-end' },
-  errorCard: { marginBottom: 12 },
-  secure: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  secureText: { fontFamily: onbFonts.body, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  footer: { width: '100%', paddingBottom: space[8], minHeight: 84, justifyContent: 'flex-end' },
+  errorCard: { marginBottom: space[3] },
+  secure: { height: sizes.button, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2] },
+  secureText: type.caption,
 });

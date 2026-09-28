@@ -1,7 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import type { XStock } from '@/services/xstocks';
-import { onbColors, onbFonts } from '@/components/onboarding/theme';
+import { DText } from '@/components/design';
+import { colors, fonts, glass, radius, space } from '@/constants/design';
 
 export function StockRow({
   stock,
@@ -14,28 +16,38 @@ export function StockRow({
   return (
     <Pressable onPress={onPress} style={styles.row}>
       <View style={styles.logo}>
-        <Text style={styles.logoText}>{stock.symbol.slice(0, 1)}</Text>
+        <DText variant="h3" style={styles.logoText}>
+          {stock.symbol.slice(0, 1)}
+        </DText>
       </View>
       <View style={styles.name}>
         <View style={styles.titleLine}>
-          <Text style={styles.symbol}>{stock.symbol}</Text>
-          {stock.isVerified ? <Text style={styles.verified}>✓</Text> : null}
+          <DText variant="body" tone="primary" style={styles.symbol}>
+            {stock.symbol}
+          </DText>
+          {stock.isVerified ? (
+            <Feather name="check-circle" size={12} color={colors.successText} />
+          ) : null}
         </View>
-        <Text numberOfLines={1} style={styles.company}>
+        <DText variant="caption" tone="secondary" numberOfLines={1}>
           {stock.name || 'xStock'}
-        </Text>
+        </DText>
       </View>
       <View style={styles.right}>
-        <Text style={styles.price}>
+        <DText variant="mono">
           $
           {(stock.usdPrice ?? 0).toLocaleString('en-US', {
             maximumFractionDigits: 4,
           })}
-        </Text>
-        <Text style={[styles.change, positive ? styles.up : styles.down]}>
+        </DText>
+        <DText
+          variant="caption"
+          tone={positive ? 'success' : 'error'}
+          style={styles.change}
+        >
           {positive ? '+' : ''}
           {stock.priceChange24h.toFixed(2)}%
-        </Text>
+        </DText>
       </View>
     </Pressable>
   );
@@ -45,37 +57,23 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    gap: space[3],
+    paddingVertical: space[3],
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: glass.divider,
   },
   logo: {
     width: 40,
     height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(155,79,222,0.2)',
+    borderRadius: radius.md,
+    backgroundColor: glass.iconTint,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  logoText: { color: '#D5A7F4', fontFamily: onbFonts.heading, fontSize: 17 },
+  logoText: { color: colors.purple[200] },
   name: { flex: 1, minWidth: 0 },
-  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  symbol: {
-    color: onbColors.text,
-    fontFamily: onbFonts.bodyBold,
-    fontSize: 14,
-  },
-  verified: { color: onbColors.successText, fontSize: 12 },
-  company: {
-    color: onbColors.textMuted,
-    fontFamily: onbFonts.body,
-    fontSize: 11,
-    marginTop: 3,
-  },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  symbol: { fontFamily: fonts.bodySemi },
   right: { alignItems: 'flex-end' },
-  price: { color: onbColors.text, fontFamily: onbFonts.mono, fontSize: 13 },
-  change: { fontFamily: onbFonts.bodyMedium, fontSize: 11, marginTop: 4 },
-  up: { color: onbColors.successText },
-  down: { color: onbColors.warning },
+  change: { fontFamily: fonts.bodyMedium, marginTop: 2 },
 });

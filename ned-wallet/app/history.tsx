@@ -1,24 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  TextInput,
-  Linking,
-  Alert,
-  Platform,
-  StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { View, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, TextInput, Linking, Alert } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../services/auth';
 import { Mascot } from '@/components/Mascot';
+import { Badge, DText, IconButton, Screen } from '@/components/design';
+import { colors, fonts, glass, radius, sizes, space, type } from '@/constants/design';
+import { WalletNav } from '@/components/wallet/WalletNav';
 import {
   fetchOnChainHistory,
   ActivityItem,
@@ -35,10 +24,16 @@ import { useTranslation } from '../services/i18n';
 
 import { displayNamesFor } from '../services/identity/resolve';
 
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'received', label: 'Received' },
+  { key: 'sent', label: 'Sent' },
+  { key: 'reward', label: 'Rewards' },
+] as const;
+
 type FilterType = 'all' | 'received' | 'sent' | 'reward';
 
 export default function HistoryScreen() {
-  const router = useRouter();
   const { t } = useTranslation();
   const { walletAddress } = useAuth();
 
@@ -106,10 +101,7 @@ export default function HistoryScreen() {
     if (!sig) return;
     try {
       await Clipboard.setStringAsync(sig);
-      Alert.alert(
-        t('settings.title', { defaultValue: 'Thông Báo' }),
-        t('activities.copied', { defaultValue: 'Đã sao chép Transaction Signature!' })
-      );
+      Alert.alert('Copied', 'Transaction signature copied.');
     } catch (e) {
       console.log('Copy signature error:', e);
     }
@@ -119,8 +111,8 @@ export default function HistoryScreen() {
   const handleOpenExplorer = (sig?: string) => {
     if (!sig) return;
     const url = `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
-    Linking.openURL(url).catch((err) => {
-      Alert.alert(t('activities.errorTitle', { defaultValue: 'Lỗi' }), t('activities.explorerError', { defaultValue: 'Không thể mở liên kết Solana Explorer.' }));
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Could not open link', 'Unable to open Solana Explorer.');
     });
   };
 
@@ -141,445 +133,209 @@ export default function HistoryScreen() {
     return true;
   });
 
+  const titleFor = (item: ActivityItem) =>
+    item.demoSwap
+      ? 'Demo swap'
+      : item.counterpartyWallet && names[item.counterpartyWallet]
+        ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}`
+        : getActivityTitle(item, t);
+  const iconFor = (item: ActivityItem) =>
+    item.demoSwap
+      ? { name: 'repeat' as const, bg: glass.iconTint, fg: colors.purple[300] }
+      : item.type === 'received'
+        ? { name: 'arrow-down-left' as const, bg: glass.successFill, fg: colors.successText }
+        : item.type === 'reward'
+          ? { name: 'gift' as const, bg: glass.warningFill, fg: colors.warningText }
+          : { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text };
+
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+    <View style={styles.page}>
+      <Screen scroll={false} edges={['top', 'left', 'right']} contentStyle={styles.frame}>
+        <View style={styles.headerBar}>
+          <DText variant="h1" accessibilityRole="header" style={styles.title}>
+            History
+          </DText>
+          <IconButton
+            icon="refresh-cw"
+            accessibilityLabel="Refresh history"
+            color={colors.text}
+            onPress={() => void handleRefresh()}
+          />
+        </View>
 
-      {/* 1. Header Bar */}
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('activities.title', { defaultValue: 'Lịch Sử Giao Dịch' })}</Text>
-        <TouchableOpacity
-          style={styles.refreshBtn}
-          onPress={handleRefresh}
-          disabled={isRefreshing}
-          activeOpacity={0.7}
-        >
-          <Feather name="refresh-cw" size={18} color="#00A859" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 2. Thanh Tìm Kiếm (Search Bar) */}
-      <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Feather name="search" size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+          <Feather name="search" size={18} color={colors.textTertiary} />
           <TextInput
+            accessibilityLabel="Search history"
             style={styles.searchInput}
-            placeholder={t('activities.searchPlaceholder', { defaultValue: 'Tìm theo số tiền, chữ ký tx...' })}
-            placeholderTextColor="#94A3B8"
+            placeholder="Search amount, name or signature"
+            placeholderTextColor={colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             clearButtonMode="while-editing"
           />
           {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
-            </TouchableOpacity>
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Feather name="x-circle" size={18} color={colors.textTertiary} />
+            </Pressable>
           ) : null}
         </View>
-      </View>
 
-      {/* 3. Filter Pills Bar */}
-      <View style={styles.filterBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          <TouchableOpacity
-            style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
-            onPress={() => setFilter('all')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-              {t('activities.all', { defaultValue: 'Tất cả' })} ({activities.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterPill, filter === 'received' && styles.filterPillActive]}
-            onPress={() => setFilter('received')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterText, filter === 'received' && styles.filterTextActive]}>
-              {t('activities.received', { defaultValue: 'Nhận tiền' })}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterPill, filter === 'sent' && styles.filterPillActive]}
-            onPress={() => setFilter('sent')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterText, filter === 'sent' && styles.filterTextActive]}>
-              {t('activities.sent', { defaultValue: 'Chuyển tiền' })}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterPill, filter === 'reward' && styles.filterPillActive]}
-            onPress={() => setFilter('reward')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterText, filter === 'reward' && styles.filterTextActive]}>
-              {t('activities.reward', { defaultValue: 'Phần thưởng' })}
-            </Text>
-          </TouchableOpacity>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterScroll}>
+          {FILTERS.map((f) => {
+            const on = filter === f.key;
+            return (
+              <Pressable
+                key={f.key}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                onPress={() => setFilter(f.key)}
+                style={[styles.filterPill, on && styles.filterPillActive]}
+              >
+                <DText variant="body" style={[styles.filterText, on && styles.filterTextActive]}>
+                  {f.key === 'all' ? `${f.label} (${activities.length})` : f.label}
+                </DText>
+              </Pressable>
+            );
+          })}
         </ScrollView>
-      </View>
 
-      {/* 4. Danh Sách Giao Dịch Toàn Bộ */}
-      <ScrollView
-        contentContainerStyle={styles.scrollList}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={['#00A859']}
-            tintColor="#00A859"
-          />
-        }
-      >
-        {isLoading ? (
-          <View style={styles.centerBox}>
-            <ActivityIndicator size="large" color="#00A859" />
-            <Text style={styles.loadingText}>{t('activities.loading', { defaultValue: 'Đang tải lịch sử giao dịch...' })}</Text>
-          </View>
-        ) : filteredActivities.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Mascot
-              mood={searchQuery ? 'question' : 'sad'}
-              size={110}
-              floatAnimation
-              containerStyle={{ marginBottom: 12 }}
-            />
-            <Text style={styles.emptyTitle}>{t('activities.empty', { defaultValue: 'Không có giao dịch nào' })}</Text>
-            <Text style={styles.emptySubtitle}>
-              {searchQuery
-                ? t('activities.emptySearchDesc', { defaultValue: 'Không tìm thấy giao dịch khớp với từ khóa tìm kiếm.' })
-                : t('activities.emptyDesc', { defaultValue: 'Chưa có biến động giao dịch on-chain nào trong danh mục này.' })}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.activityCard}>
-            {filteredActivities.map((item, index) => {
-              const isLast = index === filteredActivities.length - 1;
-              return (
-                <View key={item.id}>
-                  <View style={styles.activityItemRow}>
-                    {/* Icon Hình Tròn */}
-                    <View
-                      style={[
-                        styles.activityIconCircle,
-                        { backgroundColor: item.iconBg || '#00A859' },
-                      ]}
-                    >
-                      {item.type === 'reward' ? (
-                        <MaterialCommunityIcons
-                          name="gift-outline"
-                          size={20}
-                          color="#FFFFFF"
-                        />
-                      ) : item.type === 'received' ? (
-                        <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
-                      ) : (
-                        <Feather name="arrow-up-right" size={18} color="#FFFFFF" />
-                      )}
+        <ScrollView
+          contentContainerStyle={styles.scrollList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.purple[300]]} tintColor={colors.purple[300]} />
+          }
+        >
+          {isLoading ? (
+            <View style={styles.centerBox}>
+              <ActivityIndicator size="large" color={colors.purple[300]} />
+              <DText variant="caption" tone="secondary">Loading history…</DText>
+            </View>
+          ) : filteredActivities.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Mascot mood={searchQuery ? 'question' : 'sleepy'} size={110} floatAnimation containerStyle={{ marginBottom: space[3] }} />
+              <DText variant="h3" align="center">No activity yet</DText>
+              <DText variant="body" align="center">
+                {searchQuery ? 'Nothing matches your search.' : 'Money you send, receive or swap shows up here.'}
+              </DText>
+            </View>
+          ) : (
+            <View style={styles.activityCard}>
+              {filteredActivities.map((item, index) => {
+                const icon = iconFor(item);
+                return (
+                  <View key={item.id} style={[styles.activityItemRow, index > 0 && styles.divider]}>
+                    <View style={[styles.activityIcon, { backgroundColor: icon.bg }]}>
+                      <Feather name={icon.name} size={18} color={icon.fg} />
                     </View>
-
-                    {/* Chi Tiết Giao Dịch */}
                     <View style={styles.activityContentCol}>
                       <View style={styles.titleAndAmountRow}>
-                        <Text style={styles.activityItemTitle}>{item.demoSwap ? 'Demo swap' : item.counterpartyWallet && names[item.counterpartyWallet] ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}` : getActivityTitle(item, t)}</Text>
-                        <Text
-                          style={[
-                            styles.activityItemAmount,
-                            item.isPositive
-                              ? styles.amountPositive
-                              : styles.amountNegative,
-                          ]}
-                        >
+                        <DText variant="bodyLarge" style={styles.activityItemTitle} numberOfLines={1}>
+                          {titleFor(item)}
+                        </DText>
+                        <DText variant="mono" tone={item.isPositive ? 'success' : 'primary'} style={styles.amount}>
                           {item.amount}
-                        </Text>
+                        </DText>
                       </View>
-
                       <View style={styles.timeAndMetaRow}>
-                        <Text style={styles.activityItemTime}>{item.demoSwap ? `${item.amount} → ${item.received || '—'} · N.E.D fee ${item.nedFee || '0.25%'}` : formatLocalizedRelativeTime(item.blockTime, t)}</Text>
-
-                        {/* Signature Pill & Hành động */}
-                        {item.signature ? (
-                          <View style={styles.signatureActionPill}>
-                            <TouchableOpacity
-                              style={styles.sigTextBtn}
+                        <DText variant="caption" tone="secondary" style={styles.metaText} numberOfLines={1}>
+                          {item.demoSwap
+                            ? `${item.amount} → ${item.received || '—'} · N.E.D fee ${item.nedFee || '0.25%'}`
+                            : formatLocalizedRelativeTime(item.blockTime, t)}
+                        </DText>
+                        {item.demoSwap ? (
+                          <Badge label="Demo" tone="warning" />
+                        ) : item.signature ? (
+                          <View style={styles.sigActions}>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel="Copy transaction signature"
                               onPress={() => handleCopySignature(item.signature)}
+                              style={styles.sigButton}
                             >
-                              <Text style={styles.sigShortText}>
-                                {item.signature.slice(0, 4)}...{item.signature.slice(-4)}
-                              </Text>
-                              <Feather name="copy" size={11} color="#64748B" style={{ marginLeft: 4 }} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={styles.explorerIconBtn}
+                              <DText variant="caption" style={styles.sigText}>
+                                {item.signature.slice(0, 4)}…{item.signature.slice(-4)}
+                              </DText>
+                              <Feather name="copy" size={12} color={colors.textSecondary} />
+                            </Pressable>
+                            <Pressable
+                              accessibilityRole="link"
+                              accessibilityLabel="View on Solana Explorer"
                               onPress={() => handleOpenExplorer(item.signature)}
+                              style={styles.sigButton}
                             >
-                              <Feather name="external-link" size={11} color="#00A859" />
-                            </TouchableOpacity>
+                              <Feather name="external-link" size={14} color={colors.textAccent} />
+                            </Pressable>
                           </View>
                         ) : (
-                          <View style={styles.confirmedBadge}>
-                            <Ionicons name="checkmark-circle" size={12} color="#00A859" />
-                            <Text style={styles.confirmedText}>{t('activities.confirmed', { defaultValue: 'Confirmed' })}</Text>
-                          </View>
+                          <Badge label="Confirmed" tone="success" icon="check" />
                         )}
                       </View>
                     </View>
                   </View>
-
-                  {!isLast && <View style={styles.dividerLine} />}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </SafeAreaView>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+      </Screen>
+      <WalletNav active="History" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  refreshBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#D1F4E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
-  },
+  page: { flex: 1, backgroundColor: colors.background },
+  frame: { paddingHorizontal: space[4], paddingBottom: 0 },
+  headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space[1], paddingBottom: space[4] },
+  title: { fontFamily: fonts.display },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    height: 44,
+    gap: space[2],
+    height: 48,
+    paddingHorizontal: space[4],
+    borderRadius: radius.lg,
+    backgroundColor: glass.fill,
+    borderWidth: 1,
+    borderColor: glass.border,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-  },
-  filterBar: {
-    backgroundColor: '#FFFFFF',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  filterScroll: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
+  searchInput: { ...type.body, flex: 1, color: colors.text, height: '100%' },
+  filterBar: { flexGrow: 0, marginTop: space[3] },
+  filterScroll: { gap: space[2], paddingBottom: space[1] },
   filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-  },
-  filterPillActive: {
-    backgroundColor: '#00A859',
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  scrollList: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  centerBox: {
-    alignItems: 'center',
+    minHeight: 36,
     justifyContent: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#64748B',
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: space[4],
+    borderRadius: radius.pill,
+    backgroundColor: glass.fill,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginTop: 20,
+    borderColor: glass.border,
   },
-  emptyIconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  filterPillActive: { backgroundColor: colors.brand, borderColor: colors.purple[400] },
+  filterText: { fontFamily: fonts.bodyMedium, color: colors.textSecondary },
+  filterTextActive: { color: colors.text },
+  scrollList: { paddingTop: space[4], paddingBottom: 120 },
+  centerBox: { alignItems: 'center', gap: space[3], paddingVertical: space[12] },
+  emptyCard: { alignItems: 'center', gap: space[2], paddingVertical: space[10], paddingHorizontal: space[6] },
   activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: radius.xl,
+    backgroundColor: glass.fill,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    borderColor: glass.border,
+    paddingHorizontal: space[4],
   },
-  activityItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  activityIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  activityContentCol: {
-    flex: 1,
-  },
-  titleAndAmountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityItemTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  activityItemAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  amountPositive: {
-    color: '#00A859',
-  },
-  amountNegative: {
-    color: '#0F172A',
-  },
-  timeAndMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  activityItemTime: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  signatureActionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    gap: 6,
-  },
-  sigTextBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sigShortText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#475569',
-    fontWeight: '600',
-  },
-  explorerIconBtn: {
-    paddingLeft: 4,
-    borderLeftWidth: 1,
-    borderLeftColor: '#CBD5E1',
-  },
-  confirmedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  confirmedText: {
-    fontSize: 11,
-    color: '#00A859',
-    fontWeight: '600',
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginLeft: 56,
-  },
+  activityItemRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], minHeight: sizes.touch + space[4] },
+  divider: { borderTopWidth: 1, borderColor: glass.divider },
+  activityIcon: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  activityContentCol: { flex: 1, minWidth: 0, gap: 2 },
+  titleAndAmountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  activityItemTitle: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15 },
+  amount: { fontFamily: fonts.monoBold },
+  timeAndMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  metaText: { flex: 1 },
+  sigActions: { flexDirection: 'row', alignItems: 'center' },
+  sigButton: { flexDirection: 'row', alignItems: 'center', gap: space[1], minHeight: 32, paddingHorizontal: space[1] },
+  sigText: { fontFamily: fonts.mono, color: colors.textSecondary },
 });

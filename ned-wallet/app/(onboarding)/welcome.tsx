@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 import { GoogleButton, NoticeCard, OnbScreen, onbText } from '../../components/onboarding/ui';
-import { onbColors, onbFonts } from '../../components/onboarding/theme';
+import { colors, fonts, glass, radius, space, type } from '../../constants/design';
 
 // "No network fees, ever" trong thiết kế đã bỏ: không có gas sponsorship (docs/04-ke-hoach-code.md, Cập nhật sau Phase 0)
 const BENEFITS: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
@@ -60,7 +60,7 @@ export default function WelcomeScreen() {
           {BENEFITS.map((b) => (
             <View key={b.text} style={styles.benefit}>
               <View style={styles.benefitIcon}>
-                <Feather name={b.icon} size={17} color={onbColors.lavender} />
+                <Feather name={b.icon} size={17} color={colors.purple[200]} />
               </View>
               <Text style={styles.benefitText}>{b.text}</Text>
             </View>
@@ -82,32 +82,25 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: 24 },
-  mascotWrap: { alignItems: 'center', paddingTop: 28 },
+  body: { flex: 1, paddingHorizontal: space[6] },
+  mascotWrap: { alignItems: 'center', paddingTop: space[8] },
   mascot: { width: 210, height: 160 },
-  title: {
-    marginTop: 26,
-    fontFamily: onbFonts.heading,
-    fontSize: 34,
-    lineHeight: 37,
-    letterSpacing: -1,
-    color: onbColors.text,
-  },
-  subtitle: { marginTop: 12, fontSize: 15, lineHeight: 22 },
-  benefits: { marginTop: 24, gap: 12 },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  title: { ...type.h1, marginTop: space[6], fontFamily: fonts.display },
+  subtitle: { ...type.bodyLarge, marginTop: space[3], color: colors.textSecondary },
+  benefits: { marginTop: space[6], gap: space[3] },
+  benefit: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   benefitIcon: {
     width: 34,
     height: 34,
-    borderRadius: 10,
-    backgroundColor: 'rgba(155,79,222,0.16)',
+    borderRadius: radius.md,
+    backgroundColor: glass.iconTint,
     borderWidth: 1,
-    borderColor: 'rgba(155,79,222,0.3)',
+    borderColor: glass.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  benefitText: { fontFamily: onbFonts.bodyMedium, fontSize: 14, color: 'rgba(255,255,255,0.88)' },
-  spacer: { flex: 1, minHeight: 24 },
-  error: { marginBottom: 12 },
-  terms: { marginTop: 14, marginBottom: 28 },
+  benefitText: { ...type.body, fontFamily: fonts.bodyMedium, color: colors.text },
+  spacer: { flex: 1, minHeight: space[6] },
+  error: { marginBottom: space[3] },
+  terms: { marginTop: space[4], marginBottom: space[8] },
 });

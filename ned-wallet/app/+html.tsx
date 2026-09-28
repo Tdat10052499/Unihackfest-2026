@@ -1,15 +1,16 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
+import { colors } from '@/constants/design';
 
 /**
  * Custom root HTML cho Expo Router Static Web Output (PWA)
  * Đảm bảo:
  * 1. Tắt cache cứng (no-cache, no-store, must-revalidate) để phục vụ cập nhật nhanh tại sự kiện.
- * 2. Cấu hình thẻ meta PWA chuẩn standalone và phong cách Neo-brutalism.
+ * 2. Cấu hình thẻ meta PWA chuẩn standalone và nền tối theo DesignKit.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
-    <html lang="vi">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -26,7 +27,7 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Cấu hình PWA Standalone */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="theme-color" content="#FDF8F5" />
+        <meta name="theme-color" content={colors.background} />
         <meta name="mobile-web-app-capable" content="yes" />
 
         {/* Reset cuộn màn hình trên Web */}
@@ -41,7 +42,7 @@ export default function Root({ children }: PropsWithChildren) {
 
 const responsiveBackground = `
 body {
-  background-color: #FDF8F5;
+  background-color: ${colors.background};
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;

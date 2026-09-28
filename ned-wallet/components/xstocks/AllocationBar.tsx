@@ -1,14 +1,17 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { DText } from '@/components/design';
+import { dataColors, radius, space } from '@/constants/design';
 import type { DemoHolding } from '@/services/demoLedger';
 import type { XStock } from '@/services/xstocks';
 
+// Màu cố định theo mã (dataviz đã kiểm tra trên nền tối)
 const COLORS: Record<string, string> = {
-  AAPLx: '#9B4FDE',
-  NVDAx: '#C98500',
-  SPYx: '#3987E5',
-  TSLAx: '#199E70',
-  Other: '#6B6780',
+  AAPLx: dataColors.series[0],
+  NVDAx: dataColors.series[1],
+  SPYx: dataColors.series[2],
+  TSLAx: dataColors.series[3],
+  Other: dataColors.other,
 };
 
 export function AllocationBar({
@@ -52,9 +55,9 @@ export function AllocationBar({
         {segments.map((segment) => (
           <View key={segment.symbol} style={styles.item}>
             <View style={[styles.dot, { backgroundColor: segment.color }]} />
-            <Text style={styles.label}>
+            <DText variant="caption" tone="secondary">
               {segment.symbol} {Math.round((segment.value / total) * 100)}%
-            </Text>
+            </DText>
           </View>
         ))}
       </View>
@@ -65,14 +68,13 @@ export function AllocationBar({
 const styles = StyleSheet.create({
   bar: {
     height: 8,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     overflow: 'hidden',
     flexDirection: 'row',
     gap: 2,
-    marginVertical: 12,
+    marginVertical: space[3],
   },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 7, height: 7, borderRadius: 5 },
-  label: { color: 'rgba(255,255,255,0.65)', fontSize: 10 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space[3] },
+  item: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  dot: { width: 8, height: 8, borderRadius: radius.pill },
 });
