@@ -22,3 +22,9 @@ Thư mục này gom **mọi thông tin quan trọng** để cả đội (và tr�
 - Canvas thiết kế là nguồn mới nhất; khi thiết kế đổi, xuất lại file vào `02-thiet-ke/canvas/` và cập nhật danh mục.
 - Quyết định mới → thêm vào mục "Quyết định đã chốt" trong `02-thiet-ke/trang-thai-thiet-ke.md` (ghi ngày + ai quyết).
 - Dùng trợ lý AI lập trình? Hãy trỏ nó đọc `docs/README.md` trước khi code.
+
+## Compliance
+
+- **N.E.D Compliance Hub** (team only, Google Doc): https://docs.google.com/document/d/1JQbL5JY5La6Rzev-gaFV1VUUxMW1AmLJQZgTGjqnErA/edit
+- Owner: Nguyễn Minh Chính, Compliance Lead. Send any user-facing text (slides, app copy, README, demo video) for review before it is shown to judges.
+
