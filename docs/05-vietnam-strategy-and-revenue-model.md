@@ -1,5 +1,7 @@
 # N.E.D Wallet — Proposed Direction and New Revenue Model
 
+> **Superseded on 1 Oct 2026 by strategy v2:** [`06-strategy-v2/strategy-v2.en.md`](06-strategy-v2/strategy-v2.en.md). Kept as a legal reference. Note: the 5–7% remittance-cost figure used below was corrected in v2 (World Bank: Japan → VN 3.70% / 2.05%).
+
 > **Status:** proposal, not yet reviewed by a mentor or a lawyer.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat (with an AI research assistant)
 > **Suggested location in the repo:** `docs/05-vietnam-strategy-and-revenue-model.md`
