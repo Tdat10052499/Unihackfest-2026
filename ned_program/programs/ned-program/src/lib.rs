@@ -108,4 +108,30 @@ pub mod ned_program {
     pub fn close(ctx: Context<Close>) -> Result<()> {
         close_handler(ctx)
     }
+
+    // P1 group (ships together or not at all): dispute, concede, propose_cancel, accept_cancel
+
+    /// Client disputes a submitted milestone before its review deadline (blocks auto-release)
+    pub fn dispute(ctx: Context<Dispute>, index: u8) -> Result<()> {
+        dispute_handler(ctx, index)
+    }
+
+    /// Freelancer concedes a disputed milestone: refund to the client
+    pub fn concede(ctx: Context<Concede>, index: u8) -> Result<()> {
+        concede_handler(ctx, index)
+    }
+
+    /// Client or freelancer proposes a split of what is still locked
+    pub fn propose_cancel(ctx: Context<ProposeCancel>, freelancer_amount: u64) -> Result<()> {
+        propose_cancel_handler(ctx, freelancer_amount)
+    }
+
+    /// The other party accepts the split; the expected values must match the current proposal
+    pub fn accept_cancel(
+        ctx: Context<AcceptCancel>,
+        expected_freelancer_amount: u64,
+        expected_unsettled: u64,
+    ) -> Result<()> {
+        accept_cancel_handler(ctx, expected_freelancer_amount, expected_unsettled)
+    }
 }
