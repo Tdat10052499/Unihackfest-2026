@@ -32,11 +32,11 @@ export const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC
 export const ATA_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
 
 /**
- * Team-controlled devnet wallet that simulates the payout partner; must equal PAYOUT_PARTNERS in ned_program.
- * TODO(N12): replace with the public key of ~/.config/solana/ned-demo-partner.json. Until then it is the
- * default key (all zeros), which the program never accepts as a destination.
+ * Team-controlled devnet wallet that simulates the payout partner; must equal PAYOUT_PARTNERS in ned_program
+ * (deployed in N6/N7). TODO(N12): replace both with the public key of ~/.config/solana/ned-demo-partner.json;
+ * this placeholder has no saved private key, so USDC sent to it cannot be recycled.
  */
-export const DEMO_PAYOUT_PARTNER = PublicKey.default;
+export const DEMO_PAYOUT_PARTNER = new PublicKey('DwjFswK4mFycQgV2pckFWYj8T2jTWc4RWgBNgDcbZYjt');
 
 /** Fixed demo rate for "≈ … VND (estimate)" (Wise mid-market, 2 Oct 2026). Update on demo day. */
 export const USD_VND_RATE = 26_019.5;
