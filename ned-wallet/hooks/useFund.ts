@@ -1,5 +1,6 @@
 // One contract (deep link app/contracts/[fund]), as a FundView plus the decoded account. Polls every 8 s.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PublicKey } from '@solana/web3.js';
 import { useAuth } from '../services/auth';
 import { getFund } from '../services/milestone/queries';
 import { toFundView, type FundAccount, type FundView } from '../services/milestone/view';
@@ -7,6 +8,15 @@ import { onFundChanged } from './milestoneRefresh';
 import { useChainTime } from './useChainTime';
 import { counterpartyNames, POLL_MS } from './useFunds';
 import { useRegion } from './useRegion';
+
+function isAddress(value: string): boolean {
+  try {
+    new PublicKey(value);
+    return value.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export function useFund(address: string): { fund?: FundView; raw?: FundAccount; loading: boolean; refresh(): Promise<void> } {
   const { walletAddress } = useAuth();
@@ -18,6 +28,12 @@ export function useFund(address: string): { fund?: FundView; raw?: FundAccount; 
   const inFlight = useRef(false);
 
   const refresh = useCallback(async () => {
+    // An empty or mistyped address (harness input, bad deep link) is not polled
+    if (!isAddress(address)) {
+      setRaw(undefined);
+      setLoading(false);
+      return;
+    }
     if (inFlight.current) return;
     inFlight.current = true;
     try {

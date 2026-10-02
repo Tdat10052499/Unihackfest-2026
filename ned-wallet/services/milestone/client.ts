@@ -91,6 +91,7 @@ export async function buildAccept(p: {
   username: string;
 }): Promise<Built> {
   const own = p.choice === 'ownWallet';
+  if (!own && !p.username) throw new Error('A username is needed for the payout reference');
   const reference = own ? new Uint8Array(32) : payoutReference(demoRecipientId(p.username));
   const accept = ix(
     'accept',

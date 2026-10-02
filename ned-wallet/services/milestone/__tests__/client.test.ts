@@ -76,6 +76,9 @@ test('accept: ownWallet → freelancer + zero reference; payoutPartner → DEMO_
   assert.deepEqual(Uint8Array.from((d.data as any).payout_reference), payoutReference('demo-vinh-001'));
   assert.deepEqual(keys(vn.tx.instructions[0]), [[FUND_ADDRESS.toBase58(), false, true], [FREELANCER.toBase58(), true, false]]);
   assert.equal(vn.rent, 0);
+  await assert.rejects(client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'payoutPartner', username: '' }), /username/);
+  // own wallet needs no username
+  await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'ownWallet', username: '' });
 });
 
 test('ATA create-idempotent is added where program-spec 4.1 needs the ATA; rent only if it is missing', async () => {
