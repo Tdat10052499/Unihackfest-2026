@@ -12,6 +12,492 @@ export type NedProgram = {
   },
   "instructions": [
     {
+      "name": "accept",
+      "docs": [
+        "Freelancer accepts and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference"
+      ],
+      "discriminator": [
+        65,
+        150,
+        70,
+        216,
+        133,
+        6,
+        107,
+        4
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "freelancer",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "payoutKind",
+          "type": {
+            "defined": {
+              "name": "payoutKind"
+            }
+          }
+        },
+        {
+          "name": "payoutDestination",
+          "type": "pubkey"
+        },
+        {
+          "name": "payoutReference",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "approve",
+      "docs": [
+        "Client approves a submitted (or disputed) milestone: release to the destination"
+      ],
+      "discriminator": [
+        69,
+        74,
+        217,
+        36,
+        115,
+        117,
+        97,
+        76
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "client",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "destinationToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "destination"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "docs": [
+        "Creator closes a never-funded or settled contract; leftover → client, rent → rent_payer"
+      ],
+      "discriminator": [
+        98,
+        165,
+        201,
+        177,
+        108,
+        65,
+        206,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "writable": true
+        },
+        {
+          "name": "client"
+        },
+        {
+          "name": "clientToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "createFund",
+      "docs": [
+        "Client creates a contract: 1–5 milestones, each with an amount, a submission deadline and a review deadline"
+      ],
+      "discriminator": [
+        38,
+        128,
+        18,
+        11,
+        203,
+        0,
+        153,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "client",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the rent of the fund and the vault (may be the client)"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "arg",
+                "path": "fundId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fundId",
+          "type": "u64"
+        },
+        {
+          "name": "freelancer",
+          "type": "pubkey"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "milestones",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "milestoneInput"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "createProfile",
       "docs": [
         "Tạo hồ sơ: NameRecord [b\"name\", username] + ReverseRecord [b\"reverse\", wallet]"
@@ -168,6 +654,509 @@ export type NedProgram = {
       "args": [
         {
           "name": "phoneKey",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "lock",
+      "docs": [
+        "Client locks the full contract amount in the vault"
+      ],
+      "discriminator": [
+        21,
+        19,
+        208,
+        43,
+        237,
+        62,
+        255,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "client",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "clientToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refund",
+      "docs": [
+        "Anyone refunds a milestone not submitted by its submission deadline"
+      ],
+      "discriminator": [
+        2,
+        96,
+        183,
+        251,
+        63,
+        208,
+        46,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "client"
+        },
+        {
+          "name": "clientToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "releaseAfterReview",
+      "docs": [
+        "Anyone releases a submitted milestone after its review deadline"
+      ],
+      "discriminator": [
+        166,
+        250,
+        3,
+        104,
+        87,
+        93,
+        133,
+        142
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "destinationToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "destination"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "submit",
+      "docs": [
+        "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the delivery link or file"
+      ],
+      "discriminator": [
+        88,
+        166,
+        102,
+        181,
+        162,
+        127,
+        170,
+        48
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "freelancer",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        },
+        {
+          "name": "evidence",
           "type": {
             "array": [
               "u8",
@@ -418,9 +1407,152 @@ export type NedProgram = {
         85,
         123
       ]
+    },
+    {
+      "name": "sharedFund",
+      "discriminator": [
+        184,
+        140,
+        222,
+        47,
+        54,
+        97,
+        207,
+        134
+      ]
     }
   ],
   "events": [
+    {
+      "name": "cancelProposed",
+      "discriminator": [
+        72,
+        24,
+        221,
+        107,
+        89,
+        143,
+        148,
+        174
+      ]
+    },
+    {
+      "name": "fundAccepted",
+      "discriminator": [
+        164,
+        70,
+        200,
+        11,
+        111,
+        255,
+        21,
+        47
+      ]
+    },
+    {
+      "name": "fundCancelled",
+      "discriminator": [
+        47,
+        153,
+        7,
+        241,
+        63,
+        253,
+        242,
+        244
+      ]
+    },
+    {
+      "name": "fundClosed",
+      "discriminator": [
+        28,
+        14,
+        30,
+        198,
+        251,
+        98,
+        180,
+        85
+      ]
+    },
+    {
+      "name": "fundCreated",
+      "discriminator": [
+        31,
+        8,
+        73,
+        167,
+        79,
+        82,
+        191,
+        82
+      ]
+    },
+    {
+      "name": "fundLocked",
+      "discriminator": [
+        64,
+        125,
+        19,
+        161,
+        128,
+        92,
+        62,
+        82
+      ]
+    },
+    {
+      "name": "milestoneDisputed",
+      "discriminator": [
+        83,
+        106,
+        229,
+        228,
+        159,
+        61,
+        122,
+        16
+      ]
+    },
+    {
+      "name": "milestoneRefunded",
+      "discriminator": [
+        44,
+        160,
+        228,
+        6,
+        82,
+        43,
+        123,
+        85
+      ]
+    },
+    {
+      "name": "milestoneReleased",
+      "discriminator": [
+        49,
+        225,
+        91,
+        223,
+        34,
+        165,
+        109,
+        181
+      ]
+    },
+    {
+      "name": "milestoneSubmitted",
+      "discriminator": [
+        242,
+        19,
+        75,
+        99,
+        12,
+        28,
+        19,
+        33
+      ]
+    },
     {
       "name": "phoneLinked",
       "discriminator": [
@@ -532,9 +1664,510 @@ export type NedProgram = {
       "code": 6008,
       "name": "invalidAmount",
       "msg": "Token amount must be greater than 0."
+    },
+    {
+      "code": 6009,
+      "name": "invalidMilestoneCount",
+      "msg": "A contract needs 1 to 5 milestones."
+    },
+    {
+      "code": 6010,
+      "name": "amountTooLarge",
+      "msg": "The contract total is above the maximum amount."
+    },
+    {
+      "code": 6011,
+      "name": "invalidDeadline",
+      "msg": "A deadline is not valid."
+    },
+    {
+      "code": 6012,
+      "name": "reviewWindowTooShort",
+      "msg": "The review deadline must be at least the minimum review window after the submission deadline."
+    },
+    {
+      "code": 6013,
+      "name": "workWindowTooShort",
+      "msg": "Too little time is left before the first submission deadline."
+    },
+    {
+      "code": 6014,
+      "name": "sameParty",
+      "msg": "The client and the freelancer must be different wallets."
+    },
+    {
+      "code": 6015,
+      "name": "invalidFreelancer",
+      "msg": "The freelancer address is not valid."
+    },
+    {
+      "code": 6016,
+      "name": "titleTooLong",
+      "msg": "The title is longer than 32 bytes."
+    },
+    {
+      "code": 6017,
+      "name": "invalidMint",
+      "msg": "Only devnet USDC is accepted."
+    },
+    {
+      "code": 6018,
+      "name": "invalidFundState",
+      "msg": "The contract is not in the right state for this action."
+    },
+    {
+      "code": 6019,
+      "name": "invalidPayoutKind",
+      "msg": "Choose where the earnings go."
+    },
+    {
+      "code": 6020,
+      "name": "invalidPayoutDestination",
+      "msg": "This payout destination is not allowed for this choice."
+    },
+    {
+      "code": 6021,
+      "name": "payoutPartnerNotAllowed",
+      "msg": "This payout partner is not on the allowlist."
+    },
+    {
+      "code": 6022,
+      "name": "invalidPayoutReference",
+      "msg": "The payout reference is missing or not allowed for this choice."
+    },
+    {
+      "code": 6023,
+      "name": "milestoneIndexOutOfRange",
+      "msg": "This milestone does not exist in the contract."
+    },
+    {
+      "code": 6024,
+      "name": "invalidMilestoneStatus",
+      "msg": "The milestone is not in the right state for this action."
+    },
+    {
+      "code": 6025,
+      "name": "deadlinePassed",
+      "msg": "The deadline for this action has passed."
+    },
+    {
+      "code": 6026,
+      "name": "deadlineNotReached",
+      "msg": "The deadline has not passed yet."
+    },
+    {
+      "code": 6027,
+      "name": "notAParty",
+      "msg": "Only the client or the freelancer can do this."
+    },
+    {
+      "code": 6028,
+      "name": "noCancelProposal",
+      "msg": "There is no cancel proposal."
+    },
+    {
+      "code": 6029,
+      "name": "cannotAcceptOwnProposal",
+      "msg": "The other party must accept the proposal."
+    },
+    {
+      "code": 6030,
+      "name": "cancelAmountTooLarge",
+      "msg": "The proposed amount is larger than what is still locked."
+    },
+    {
+      "code": 6031,
+      "name": "cancelProposalChanged",
+      "msg": "The cancel proposal changed. Review it again."
+    },
+    {
+      "code": 6032,
+      "name": "fundNotClosable",
+      "msg": "This contract cannot be closed now."
+    },
+    {
+      "code": 6033,
+      "name": "mathOverflow",
+      "msg": "Arithmetic overflow."
     }
   ],
   "types": [
+    {
+      "name": "cancelProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposer",
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancerAmount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundAccepted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "payoutKind",
+            "type": {
+              "defined": {
+                "name": "payoutKind"
+              }
+            }
+          },
+          {
+            "name": "payoutDestination",
+            "type": "pubkey"
+          },
+          {
+            "name": "payoutReference",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "toDestination",
+            "type": "u64"
+          },
+          {
+            "name": "toClient",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "leftoverToClient",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancer",
+            "type": "pubkey"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "milestoneCount",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "milestone"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundLocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "created"
+          },
+          {
+            "name": "accepted"
+          },
+          {
+            "name": "funded"
+          },
+          {
+            "name": "settled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestone",
+      "docs": [
+        "One milestone slot (65 bytes)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "submitBy",
+            "type": "i64"
+          },
+          {
+            "name": "reviewBy",
+            "type": "i64"
+          },
+          {
+            "name": "submittedAt",
+            "docs": [
+              "0 until submitted"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "evidence",
+            "docs": [
+              "SHA-256 of the delivery link or file, computed by the app"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "milestoneStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneDisputed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneInput",
+      "docs": [
+        "`create_fund` argument (24 bytes)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "submitBy",
+            "type": "i64"
+          },
+          {
+            "name": "reviewBy",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "caller",
+            "type": "pubkey"
+          },
+          {
+            "name": "conceded",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneReleased",
+      "docs": [
+        "The payout partner matches a deposit to a recipient by this event (`payout_reference`)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "destination",
+            "type": "pubkey"
+          },
+          {
+            "name": "payoutReference",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "byTimeout",
+            "type": "bool"
+          },
+          {
+            "name": "caller",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "pending"
+          },
+          {
+            "name": "submitted"
+          },
+          {
+            "name": "disputed"
+          },
+          {
+            "name": "released"
+          },
+          {
+            "name": "refunded"
+          },
+          {
+            "name": "cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milestoneSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "evidence",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "nameRecord",
       "docs": [
@@ -554,6 +2187,23 @@ export type NedProgram = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "payoutKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "unset"
+          },
+          {
+            "name": "ownWallet"
+          },
+          {
+            "name": "payoutPartner"
           }
         ]
       }
@@ -652,6 +2302,179 @@ export type NedProgram = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "sharedFund",
+      "docs": [
+        "PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 708 bytes with the discriminator"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "fundKind"
+              }
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "fundState"
+              }
+            }
+          },
+          {
+            "name": "payoutKind",
+            "type": {
+              "defined": {
+                "name": "payoutKind"
+              }
+            }
+          },
+          {
+            "name": "client",
+            "docs": [
+              "memcmp filter \"as client\" (offset 12)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancer",
+            "docs": [
+              "memcmp filter \"as freelancer\" (offset 44)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "PDA seed; equals `client` in v1"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "rentPayer",
+            "docs": [
+              "Receives the rent of the fund and the vault on `close`"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "payoutDestination",
+            "docs": [
+              "A wallet (ATA owner), never a token account; default until `accept`"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "fundId",
+            "type": "u64"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "total",
+            "docs": [
+              "Sum of milestone amounts"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "released",
+            "type": "u64"
+          },
+          {
+            "name": "refunded",
+            "type": "u64"
+          },
+          {
+            "name": "milestoneCount",
+            "type": "u8"
+          },
+          {
+            "name": "milestones",
+            "docs": [
+              "MAX_MILESTONES slots (literal so the IDL gets a plain array length); slots >= milestone_count stay zeroed and are ignored"
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "milestone"
+                  }
+                },
+                5
+              ]
+            }
+          },
+          {
+            "name": "cancelProposer",
+            "docs": [
+              "default = no proposal"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "cancelFreelancerAmount",
+            "type": "u64"
+          },
+          {
+            "name": "title",
+            "docs": [
+              "UTF-8, zero-padded"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vaultBump",
+            "type": "u8"
+          },
+          {
+            "name": "payoutReference",
+            "docs": [
+              "PayoutPartner only: hash of the partner's recipient ID; zero for OwnWallet"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }
