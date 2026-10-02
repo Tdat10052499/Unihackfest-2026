@@ -133,12 +133,12 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 
 Đặc tả: [`09-milestone-lock/program-spec.md`](09-milestone-lock/program-spec.md). Kế hoạch: [`09-milestone-lock/non-ui-plan.md`](09-milestone-lock/non-ui-plan.md).
 
-### Program P0 — N4 + N5 (nhánh `feat/n4-milestone-p0`, 02/10/2026, **chưa deploy**)
+### Program P0 — N4 + N5 (nhánh `feat/n4-milestone-p0`, 02/10/2026; deploy devnet ở N6 bên dưới)
 
 - `ned_program` có thêm 8 instruction P0: `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`. Thêm account `SharedFund` (708 byte; `client` ở offset 12, `freelancer` ở 44) và lỗi mới mã 6009 (`InvalidMilestoneCount`) → 6033 (`MathOverflow`). Identity giữ nguyên.
 - `PAYOUT_PARTNERS` đang dùng public key tạm `DwjFswK4mFycQgV2pckFWYj8T2jTWc4RWgBNgDcbZYjt`, không lưu private key; thay ở N12.
 - Kiểm tra: `anchor build && cargo test` đều pass: 10 test identity, 17 test milestone (nhóm 1–6, 9–15 của program-spec mục 8; nhóm 13 mới làm nửa approve + auto-release + refund) và 4 test helper. `program_autofixer`: 0 issue.
-- `.so` mới 420 000 byte, bản identity là 231 520 byte. Lúc deploy (N6) có thể phải `solana program extend` trước.
+- `.so` mới 420 000 byte, bản identity là 231 520 byte.
 
 **Compute units mỗi instruction** (LiteSVM, test `g15_compute_units_per_instruction`; fund 3 milestone, đường Vietnam trừ dòng `accept (OwnWallet)`):
 
@@ -155,6 +155,25 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 | `close` (đóng vault + fund) | 16 851 |
 
 Mọi instruction đều dưới 30 000 CU, chưa tới 15% hạn mức mặc định 200 000.
+
+### Deploy devnet — N6 (02/10/2026)
+
+| Mục | Giá trị |
+| --- | --- |
+| Program ID | `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh` (giữ nguyên) |
+| Chữ ký upgrade | `2bDxqhioVtTekVmMiHa4GQtLyCmV3GDttkT2WwQc3uLW69DPyXYBYAu3ifihbSLigi1xRBkkLZyfuRDkapk5QxUq` (finalized, slot 506732736) |
+| Program data length | 420 000 byte. Đã `solana program extend … 188640` từ 231 360 byte, tốn 0,958 SOL rent |
+| Upgrade authority | `FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ` (ví deploy) |
+| IDL on-chain | Metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, 13 instruction, khớp `target/idl/ned_program.json`. Đã chép vào `ned-wallet/idl/` |
+| `PAYOUT_PARTNERS` | Key tạm `DwjFsw…ZYjt` (không có private key). Đổi ở N12 thì phải deploy lại |
+| Ví deploy | 8,546 → 7,529 SOL (tốn ≈ 1,017 SOL; phần lớn là rent extend) |
+
+- Kiểm tra sau deploy: `npm run identity:check` PASS (username, SĐT + cảnh báo, địa chỉ, batch reverse, `sns.sol`), nghĩa là identity không bị ảnh hưởng. `npx tsc --noEmit` 0 lỗi, 34 test node pass.
+- **Lưu ý khi đổi IDL (Anchor 1.1.2):**
+  - `anchor deploy` cố *init* lại IDL dù metadata account đã có, nên lỗi `Failed to initialize IDL`; phần upgrade program vẫn thành công.
+  - Sau đó `anchor idl upgrade` cũng lỗi ở bước cuối (`Failed to upgrade IDL`), để lại buffer.
+  - Cách đã chạy được: `npx @solana-program/program-metadata@0.5.1 update idl <program> --buffer <buffer đầy đủ> --close-buffer --rpc https://api.devnet.solana.com -k ~/.config/solana/id.json`, rồi `close-buffer` cho buffer hỏng. Mỗi lần thất bại tốn ≈ 0,05 SOL; các buffer đã đóng và lấy lại rent.
+  - Lần sau nên kiểm tra trước bằng `--export` + `simulateTransaction` (miễn phí).
 
 ## 4. Lệnh hay dùng
 
