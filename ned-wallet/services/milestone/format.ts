@@ -18,13 +18,15 @@ export function usdcFromUnits(units: bigint): string {
 /** "10.00 USDC" */
 export const formatUsdc = (units: bigint) => `${usdcFromUnits(units)} USDC`;
 
-/** User input ("10", "10,5", "0.000001") → base units; null when empty or invalid. Never uses floats. */
+/**
+ * User input ("10", "10,5", "0.000001", ".5", "5.") → base units. Null when empty or not a plain decimal with at
+ * most 6 decimals: "1a2", "1.2.3", "-5" and "1.0000001" are rejected, never repaired. Never uses floats.
+ */
 export function unitsFromUsdc(input: string): bigint | null {
-  const { normalized } = sanitizeAmountInput(input.trim(), DECIMALS);
-  if (!normalized || normalized === '.') return null;
-  const [whole = '0', frac = ''] = normalized.split('.');
-  if (!/^\d*$/.test(whole) || !/^\d*$/.test(frac)) return null;
-  return BigInt(whole || '0') * UNIT + BigInt(frac.padEnd(DECIMALS, '0') || '0');
+  const value = input.trim();
+  if (!/^(\d+([.,]\d{0,6})?|[.,]\d{1,6})$/.test(value)) return null;
+  const [whole, frac = ''] = sanitizeAmountInput(value, DECIMALS).normalized.split('.');
+  return BigInt(whole || '0') * UNIT + BigInt(frac.padEnd(DECIMALS, '0'));
 }
 
 /** VND amount at the fixed demo rate, rounded to the nearest 1,000 VND */
