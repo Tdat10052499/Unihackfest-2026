@@ -108,6 +108,22 @@ Write a draft IDL fragment for `create_fund` and `SharedFund` by hand from progr
 - **If both round-trip:** `services/chain/idl.ts` uses the coder.
 - **If not:** write Borsh by hand, extending the existing `borshString` pattern in `services/identity/dualPda.ts`, which adds about 2 h. Write the result into this file.
 
+**Result (2 Oct 2026): `BorshCoder` works; N8 uses it. No hand-written Borsh is needed.**
+
+- **Fixture.** `ned-wallet/services/chain/__tests__/fixtures/milestone-draft-idl.json` is a hand-written draft in the Anchor 1.x IDL format (spec 0.1.0). It contains `create_fund`, `accept`, `SharedFund`, `Milestone`, `MilestoneInput` and the four enums. Its discriminators are `sha256("global:<ix>")[0..8]` and `sha256("account:SharedFund")[0..8]`, the same method that produces the deployed identity IDL. Replace it with the generated IDL after N6.
+- **What the tests prove** (`services/chain/__tests__/idl.test.ts`, 9 tests, all pass under `node --test`):
+  - `create_fund` encodes byte for byte the same as a hand-computed Borsh buffer, including multi-byte UTF-8, u64 max and negative i64.
+  - A 708-byte `SharedFund` built from section 3.1 decodes field by field, with `client` at offset 12 and `freelancer` at 44. Decoding it and encoding it again gives the same 708 bytes, and `coder.accounts.size('SharedFund') === 708`.
+  - Every `PayoutKind` and `MilestoneStatus` variant round-trips, and a wrong discriminator is rejected.
+- **`services/chain/idl.ts` API:** `loadCoder`, `encodeIx`, `decodeAccount`, `buildIx` (account order and flags taken from the IDL), plus `toBN` / `fromBN`.
+- **Conventions that N8 must follow** \[Verified in the tests\]:
+  - Field and arg names keep the IDL's snake_case (`fund_id`, `payout_kind`).
+  - Enum values are `{ VariantName: {} }` with the IDL's PascalCase name (`{ OwnWallet: {} }`); a camelCase variant name is rejected.
+  - Integers are `BN`; `decode.ts` converts them to `bigint` with `fromBN`.
+- **`BN` import.** Node's ESM loader exposes Anchor's `BN` only on the CommonJS `default`, so `idl.ts` reads `anchor.BN ?? anchor.default.BN`.
+- **Web check.** A temporary import of `idl.ts` into the web bundle (not committed) loaded in headless Chromium. `BN` was defined and `accept` encoded to 73 bytes, the same as in Node. Anchor's browser build adds about 172 KB to the main web bundle (10.29 → 10.46 MB, uncompressed).
+- **Not yet tested:** the Android/Hermes bundle.
+
 ### N3 · Program module split and test helpers
 
 - Move the code into this layout:
