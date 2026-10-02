@@ -1,69 +1,19 @@
 //! Test identity on-chain (Phương án C) + transfer_stablecoin bằng LiteSVM.
 //! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
 
-use anchor_lang::{AccountDeserialize, InstructionData, ToAccountMetas};
-use litesvm::LiteSVM;
-use ned_program::{NameRecord, PhoneRecord, ReverseRecord, NAME_SEED, PHONE_SEED, REVERSE_SEED};
-use solana_keypair::Keypair;
-use solana_message::Message;
+mod common;
+
+use anchor_lang::{InstructionData, ToAccountMetas};
+use common::*;
+use ned_program::{NameRecord, PhoneRecord, ReverseRecord};
 use solana_signer::Signer;
-use solana_transaction::Transaction;
 
 use anchor_lang::prelude::Pubkey;
 use anchor_lang::solana_program::instruction::Instruction;
 
-const PROGRAM_SO: &[u8] = include_bytes!("../../../target/deploy/ned_program.so");
-const SYSTEM_PROGRAM_ID: Pubkey = anchor_lang::solana_program::system_program::ID;
-const TOKEN_PROGRAM_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-
 // -----------------------------------------------------------------------------
-// Helpers
+// Instruction builders
 // -----------------------------------------------------------------------------
-
-fn setup() -> LiteSVM {
-    let mut svm = LiteSVM::new();
-    svm.add_program(ned_program::ID, PROGRAM_SO).expect("load program");
-    svm
-}
-
-fn new_user(svm: &mut LiteSVM) -> Keypair {
-    let user = Keypair::new();
-    svm.airdrop(&user.pubkey(), 10_000_000_000).expect("airdrop");
-    user
-}
-
-/// Gửi 1 instruction; Err chứa toàn bộ log để so khớp tên lỗi Anchor
-fn send(svm: &mut LiteSVM, ix: Instruction, payer: &Keypair) -> Result<(), String> {
-    svm.expire_blockhash();
-    let msg = Message::new(&[ix], Some(&payer.pubkey()));
-    let tx = Transaction::new(&[payer], msg, svm.latest_blockhash());
-    svm.send_transaction(tx).map(|_| ()).map_err(|e| format!("{:?}\n{}", e.err, e.meta.logs.join("\n")))
-}
-
-fn assert_err(result: Result<(), String>, expected: &str) {
-    match result {
-        Ok(()) => panic!("expected error {expected}, but transaction succeeded"),
-        Err(logs) => assert!(logs.contains(expected), "expected {expected}, got:\n{logs}"),
-    }
-}
-
-fn name_pda(username: &str) -> Pubkey {
-    Pubkey::find_program_address(&[NAME_SEED, username.as_bytes()], &ned_program::ID).0
-}
-fn reverse_pda(wallet: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[REVERSE_SEED, wallet.as_ref()], &ned_program::ID).0
-}
-fn phone_pda(phone_key: &[u8; 32]) -> Pubkey {
-    Pubkey::find_program_address(&[PHONE_SEED, phone_key.as_ref()], &ned_program::ID).0
-}
-
-fn read<T: AccountDeserialize>(svm: &LiteSVM, address: &Pubkey) -> Option<T> {
-    let account = svm.get_account(address)?;
-    if account.data.is_empty() {
-        return None;
-    }
-    T::try_deserialize(&mut account.data.as_slice()).ok()
-}
 
 fn create_profile_ix(user: &Pubkey, username: &str) -> Instruction {
     Instruction {
@@ -286,50 +236,6 @@ fn cannot_rename_someone_elses_name() {
 // -----------------------------------------------------------------------------
 // transfer_stablecoin
 // -----------------------------------------------------------------------------
-
-/// Mint SPL Token (82 byte): mint_authority COption, supply, decimals, is_initialized, freeze_authority COption
-fn mint_data(authority: &Pubkey, supply: u64, decimals: u8) -> Vec<u8> {
-    let mut d = Vec::with_capacity(82);
-    d.extend_from_slice(&1u32.to_le_bytes());
-    d.extend_from_slice(authority.as_ref());
-    d.extend_from_slice(&supply.to_le_bytes());
-    d.push(decimals);
-    d.push(1);
-    d.extend_from_slice(&0u32.to_le_bytes());
-    d.extend_from_slice(&[0u8; 32]);
-    d
-}
-
-/// Token account SPL (165 byte): mint, owner, amount, delegate, state=Initialized, is_native, delegated_amount, close_authority
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
-    let mut d = Vec::with_capacity(165);
-    d.extend_from_slice(mint.as_ref());
-    d.extend_from_slice(owner.as_ref());
-    d.extend_from_slice(&amount.to_le_bytes());
-    d.extend_from_slice(&0u32.to_le_bytes());
-    d.extend_from_slice(&[0u8; 32]);
-    d.push(1);
-    d.extend_from_slice(&0u32.to_le_bytes());
-    d.extend_from_slice(&0u64.to_le_bytes());
-    d.extend_from_slice(&0u64.to_le_bytes());
-    d.extend_from_slice(&0u32.to_le_bytes());
-    d.extend_from_slice(&[0u8; 32]);
-    d
-}
-
-fn put_token_program_account(svm: &mut LiteSVM, address: Pubkey, data: Vec<u8>) {
-    let lamports = svm.minimum_balance_for_rent_exemption(data.len());
-    svm.set_account(
-        address,
-        solana_account::Account { lamports, data, owner: TOKEN_PROGRAM_ID, executable: false, rent_epoch: 0 },
-    )
-    .unwrap();
-}
-
-fn token_amount(svm: &LiteSVM, address: &Pubkey) -> u64 {
-    let data = svm.get_account(address).unwrap().data;
-    u64::from_le_bytes(data[64..72].try_into().unwrap())
-}
 
 #[test]
 fn transfer_stablecoin_still_works() {
