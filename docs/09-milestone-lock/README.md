@@ -7,6 +7,7 @@
 | [`product-spec.md`](product-spec.md) | Product, flow, Vietnam path, screens, words, demo, cut order, disclosures | Everyone |
 | [`program-spec.md`](program-spec.md) | Anchor accounts, byte offsets, instructions, events, errors, tests, deploy | Developers |
 | [`unit_economics.py`](unit_economics.py) | Fee and revenue illustration; run `python3 unit_economics.py` | Biz, pitch |
+| [`refactor-plan.md`](refactor-plan.md) | Current code state, target architecture, PR0–PR7 with files and hours, schedule to 10 Oct, risks | Developers, PO |
 
 **In one line:** a foreign client locks USDC per milestone in `ned_program`; on approval or after the review deadline it goes to the freelancer's own wallet (international) or to a payout partner that pays VND to a Vietnamese bank account (Vietnam, partner simulated in the demo). N.E.D holds nothing and charges nothing in v1.
 
