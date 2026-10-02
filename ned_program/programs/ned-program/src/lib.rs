@@ -53,4 +53,59 @@ pub mod ned_program {
     pub fn transfer_stablecoin(ctx: Context<TransferStablecoin>, amount: u64) -> Result<()> {
         transfer_stablecoin_handler(ctx, amount)
     }
+
+    // =========================================================================
+    // 3. MILESTONE LOCK (docs/09-milestone-lock/program-spec.md section 4)
+    // =========================================================================
+
+    /// Client creates a contract: 1–5 milestones, each with an amount, a submission deadline and a review deadline
+    pub fn create_fund(
+        ctx: Context<CreateFund>,
+        fund_id: u64,
+        freelancer: Pubkey,
+        title: String,
+        milestones: Vec<MilestoneInput>,
+    ) -> Result<()> {
+        create_fund_handler(ctx, fund_id, freelancer, title, milestones)
+    }
+
+    /// Freelancer accepts and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference
+    pub fn accept(
+        ctx: Context<Accept>,
+        payout_kind: PayoutKind,
+        payout_destination: Pubkey,
+        payout_reference: [u8; 32],
+    ) -> Result<()> {
+        accept_handler(ctx, payout_kind, payout_destination, payout_reference)
+    }
+
+    /// Client locks the full contract amount in the vault
+    pub fn lock(ctx: Context<Lock>) -> Result<()> {
+        lock_handler(ctx)
+    }
+
+    /// Freelancer marks a milestone delivered; `evidence` = SHA-256 of the delivery link or file
+    pub fn submit(ctx: Context<Submit>, index: u8, evidence: [u8; 32]) -> Result<()> {
+        submit_handler(ctx, index, evidence)
+    }
+
+    /// Client approves a submitted (or disputed) milestone: release to the destination
+    pub fn approve(ctx: Context<Approve>, index: u8) -> Result<()> {
+        approve_handler(ctx, index)
+    }
+
+    /// Anyone releases a submitted milestone after its review deadline
+    pub fn release_after_review(ctx: Context<ReleaseAfterReview>, index: u8) -> Result<()> {
+        release_after_review_handler(ctx, index)
+    }
+
+    /// Anyone refunds a milestone not submitted by its submission deadline
+    pub fn refund(ctx: Context<Refund>, index: u8) -> Result<()> {
+        refund_handler(ctx, index)
+    }
+
+    /// Creator closes a never-funded or settled contract; leftover → client, rent → rent_payer
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        close_handler(ctx)
+    }
 }

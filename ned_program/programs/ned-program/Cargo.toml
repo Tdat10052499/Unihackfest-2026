@@ -18,6 +18,8 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
+# Mainnet USDC mint and an empty payout-partner list (program-spec 2); not used before audit
+mainnet = []
 
 
 [dependencies]
