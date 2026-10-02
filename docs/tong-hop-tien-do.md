@@ -166,7 +166,7 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
 - Kiểm tra:
   - `cargo test`: 10 identity + 23 milestone (thêm nhóm 7, 8 và nửa huỷ của nhóm 13) + 4 helper, tất cả pass.
   - `program_autofixer`: 0 issue.
-- IDL có 17 instruction. `.so` 475 280 byte, cần extend thêm 55 280 byte trước khi deploy.
+- IDL có 17 instruction. `.so` 475 280 byte.
 - Phần app (builder, rules, action, `FEATURES.dispute`) làm ở N8/N9/N11, không làm ở N7.
 
 ### Deploy devnet — N6 (02/10/2026)
@@ -187,6 +187,26 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
   - Sau đó `anchor idl upgrade` cũng lỗi ở bước cuối (`Failed to upgrade IDL`), để lại buffer.
   - Cách đã chạy được: `npx @solana-program/program-metadata@0.5.1 update idl <program> --buffer <buffer đầy đủ> --close-buffer --rpc https://api.devnet.solana.com -k ~/.config/solana/id.json`, rồi `close-buffer` cho buffer hỏng. Mỗi lần thất bại tốn ≈ 0,05 SOL; các buffer đã đóng và lấy lại rent.
   - Lần sau nên kiểm tra trước bằng `--export` + `simulateTransaction` (miễn phí).
+
+### Deploy devnet lần 2 — N7 (02/10/2026)
+
+| Mục | Giá trị |
+| --- | --- |
+| Chữ ký upgrade | `eokWJZ1oius7q234LLWXNoR1sqSHFWnVK8TfuJkWqYyER3MZNCC2M3YYJkJ1Ax3iY8m7z7unCstrzW36nLFLLpy` (slot 506736737) |
+| Program data length | 475 280 byte. Đã `solana program extend … 55280` từ 420 000 byte, tốn 0,2808 SOL rent |
+| Upgrade authority | `FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ` (ví deploy) |
+| IDL on-chain | 17 instruction, khớp `target/idl/ned_program.json`. Đã chép vào `ned-wallet/idl/` |
+| `PAYOUT_PARTNERS` | Vẫn là key tạm `DwjFsw…ZYjt` (N12) |
+| Ví deploy | 7,529 → 7,243 SOL (tốn ≈ 0,287 SOL; phần lớn là rent extend) |
+
+- Quy trình không lỗi, nên dùng lại lần sau:
+  1. `solana program extend` nếu `.so` lớn hơn data length.
+  2. `anchor deploy --provider.cluster devnet --no-idl`.
+  3. `npx @solana-program/program-metadata@0.5.1 create-buffer target/idl/ned_program.json`.
+  4. `fetch-buffer`, so với file IDL local.
+  5. `update idl <program> --buffer <buffer> --close-buffer --export` rồi `simulateTransaction` (miễn phí).
+  6. Gửi lệnh `update` thật.
+- Kiểm tra sau deploy: `npm run identity:check` PASS, `npx tsc --noEmit` 0 lỗi, 34 test node pass.
 
 ## 4. Lệnh hay dùng
 
