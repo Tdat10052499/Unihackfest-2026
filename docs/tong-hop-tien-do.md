@@ -208,6 +208,20 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
   6. Gửi lệnh `update` thật.
 - Kiểm tra sau deploy: `npm run identity:check` PASS, `npx tsc --noEmit` 0 lỗi, 34 test node pass.
 
+### Smoke run devnet — N10 (02/10/2026, `npm run milestone:devnet`)
+
+- Script dùng chính builder của app (`services/milestone/client.ts`), nên chạy pass nghĩa là phần mã hoá và danh sách account của app khớp program thật.
+- Keypair tạm: client `BT9czjT3…RT7B`, freelancer `EcpCrZB6…PrA4y`, lưu ở `~/.config/solana/ned-milestone-*.json` (ngoài repo). USDC của client lấy từ faucet Circle (20 USDC).
+
+| Lần chạy | Kết quả | Fund |
+| --- | --- | --- |
+| VND path: create → accept → lock → submit/approve 0 → submit 1 → chờ → `release_after_review` 1 → close | PASS. Partner nhận 2 USDC; Settled 2/0/2 | `HqhrBhHEJLDKrft9C86YbhwByZhH3HktM2D1qMBT3Ca4` |
+| `--refund`: create → accept → lock → chờ → refund 0, 1 → close | PASS. Client nhận lại 2 USDC; Settled 0/2/2 | `13uVjgED4fdttWbcu1W9jmLAiQtv6ZVi1LoFiLwXfedp` |
+
+- CU đo trên devnet (chỉ tính program): `create_fund` 19 806 (2 milestone), `accept` 7 642, `lock` 16 191, `submit` 7 518, `approve` 21 124, `release_after_review` 21 291, `refund` 16 471, `close` 13 961.
+- Ví deploy: 7,2428 → 7,2013 SOL. 2 USDC gửi tới partner tạm không lấy lại được cho tới N12.
+- Harness `/dev/milestone`: chỉ hiện khi `__DEV__` hoặc build với `EXPO_PUBLIC_DEV_TOOLS=1`, không có link trong app.
+
 ## 4. Lệnh hay dùng
 
 ### Bổ sung sửa `tokens.filter is not a function` — `fix/p3-xstocks-rework`
