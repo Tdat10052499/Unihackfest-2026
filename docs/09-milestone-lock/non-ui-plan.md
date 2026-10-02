@@ -301,6 +301,9 @@ interface FundView {
   needsMyAction: boolean;
   tooLate: boolean;                              // work window passed before lock
   explorerUrl: string; vaultExplorerUrl: string;
+  // added in N8 (2 Oct 2026): fund-level actions had no field, and acceptSplit needs the proposal
+  actions: ActionKind[];                         // fund-level: accept, lock, close, proposeSplit, acceptSplit
+  split?: { proposedByMe: boolean; toFreelancerUnits: bigint; toFreelancerLabel: string; toClientLabel: string }; // P1 only
 }
 
 // hooks
@@ -331,7 +334,8 @@ interface ContractDraft {
   title: string;                 // ≤ 32 bytes
   milestones: { amountUsdc: string; submitBy: number; reviewSeconds: number }[];
 }
-// validateDraft(draft, now) → { ok: boolean; errors: { field: string; message: string }[] }
+// validateDraft(draft, now, client?) → { ok: boolean; errors: { field: string; message: string }[] }  (client enables the same-party check)
+// toFundView(fund, me, region, now, { names?, p1? }) → FundView  (names: wallet → "@username"; p1 defaults to FEATURES.dispute)
 ```
 
 After every action the hooks refresh the affected fund. Errors are English sentences from `describeTxError(err, 'contract')`.
