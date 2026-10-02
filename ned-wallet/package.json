@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --test \"services/**/*.test.ts\" \"utils/**/*.test.ts\"",
     "deploy:web": "node scripts/deploy-web.js",
     "predeploy": "npx expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll && node scripts/gh-pages-gitignore.js",
     "deploy": "gh-pages -d dist -t --nojekyll",
