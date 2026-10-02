@@ -729,3 +729,273 @@ fn g14_layout_size_and_memcmp_offsets() {
     assert_eq!(u64::from_le_bytes(data[245..253].try_into().unwrap()), USDC, "milestones at offset 245");
     assert!(data[245 + 2 * 65..570].iter().all(|b| *b == 0), "unused slots zeroed");
 }
+
+// -----------------------------------------------------------------------------
+// P1 builders: dispute, concede, propose_cancel, accept_cancel
+// -----------------------------------------------------------------------------
+
+fn dispute_ix(fund: Pubkey, client: &Pubkey, index: u8) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::Dispute { fund, client: *client }.to_account_metas(None),
+        data: ned_program::instruction::Dispute { index }.data(),
+    }
+}
+
+fn concede_ix(fund: Pubkey, freelancer: &Pubkey, client: &Pubkey, mint: Pubkey, index: u8) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::Concede {
+            fund,
+            freelancer: *freelancer,
+            client: *client,
+            client_token: ata(client, &mint),
+            vault: vault_pda(&fund),
+            mint,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::Concede { index }.data(),
+    }
+}
+
+fn propose_ix(fund: Pubkey, signer: &Pubkey, freelancer_amount: u64) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::ProposeCancel { fund, signer: *signer }.to_account_metas(None),
+        data: ned_program::instruction::ProposeCancel { freelancer_amount }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn accept_cancel_ix(
+    fund: Pubkey,
+    signer: &Pubkey,
+    destination: Pubkey,
+    client: &Pubkey,
+    mint: Pubkey,
+    expected_freelancer_amount: u64,
+    expected_unsettled: u64,
+) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::AcceptCancel {
+            fund,
+            signer: *signer,
+            destination,
+            destination_token: ata(&destination, &mint),
+            client: *client,
+            client_token: ata(client, &mint),
+            vault: vault_pda(&fund),
+            mint,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::AcceptCancel { expected_freelancer_amount, expected_unsettled }.data(),
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 7. Dispute
+// -----------------------------------------------------------------------------
+
+#[test]
+fn g07_dispute_blocks_auto_release_approve_and_concede_still_settle() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = e.funded(1, milestones(3, 10 * USDC));
+    for index in 0u8..3 {
+        e.as_freelancer(submit_ix(fund, &f, index)).unwrap();
+    }
+    let ms = e.fund(1).milestones;
+
+    // only the client disputes, only a Submitted milestone, only until review_by (inclusive)
+    assert_err(e.as_freelancer(dispute_ix(fund, &f, 0)), "ConstraintHasOne");
+    set_clock(&mut e.svm, ms[0].review_by);
+    let meta = e.as_client(dispute_ix(fund, &c, 0)).unwrap();
+    cu("dispute", &meta);
+    assert_eq!(e.fund(1).milestones[0].status, MilestoneStatus::Disputed);
+    assert_err(e.as_client(dispute_ix(fund, &c, 0)), "InvalidMilestoneStatus");
+    e.as_client(dispute_ix(fund, &c, 1)).unwrap();
+
+    // a dispute blocks auto-release even after the review deadline
+    set_clock(&mut e.svm, ms[1].review_by + 1);
+    assert_err(e.as_client(release_ix(fund, &c, f, mint, 0)), "InvalidMilestoneStatus");
+    // dispute after review_by fails
+    set_clock(&mut e.svm, ms[2].review_by + 1);
+    assert_err(e.as_client(dispute_ix(fund, &c, 2)), "DeadlinePassed");
+    // ... so milestone 2 auto-releases
+    e.as_client(release_ix(fund, &c, f, mint, 2)).unwrap();
+
+    // approve still works on a disputed milestone
+    e.as_client(approve_ix(fund, &c, f, mint, 0)).unwrap();
+    assert_eq!(e.balance(&f), 20 * USDC);
+
+    // concede: freelancer only, disputed only; refunds the client
+    assert_err(e.as_client(concede_ix(fund, &c, &c, mint, 1)), "ConstraintHasOne");
+    assert_err(e.as_freelancer(concede_ix(fund, &f, &c, mint, 0)), "InvalidMilestoneStatus");
+    let before = e.balance(&c);
+    let meta = e.as_freelancer(concede_ix(fund, &f, &c, mint, 1)).unwrap();
+    cu("concede", &meta);
+    assert_eq!(e.balance(&c), before + 10 * USDC);
+
+    let state = e.fund(1);
+    assert_eq!(state.milestones[1].status, MilestoneStatus::Refunded);
+    assert_eq!(state.state, FundState::Settled);
+    assert_eq!(state.released, 20 * USDC);
+    assert_eq!(state.refunded, 10 * USDC);
+    assert_invariant(&state);
+}
+
+#[test]
+fn g07_dispute_of_pending_and_out_of_range_fails() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = e.funded(1, milestones(2, USDC));
+    assert_err(e.as_client(dispute_ix(fund, &c, 0)), "InvalidMilestoneStatus");
+    assert_err(e.as_client(dispute_ix(fund, &c, 2)), "MilestoneIndexOutOfRange");
+    assert_err(e.as_freelancer(concede_ix(fund, &f, &c, mint, 4)), "MilestoneIndexOutOfRange");
+}
+
+// -----------------------------------------------------------------------------
+// 8. Cancel
+// -----------------------------------------------------------------------------
+
+#[test]
+fn g08_cancel_split_client_proposes_freelancer_accepts() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = e.funded(1, milestones(2, 10 * USDC));
+    let stranger = new_user(&mut e.svm);
+    let s = stranger.pubkey();
+
+    // only a party proposes; the amount is capped by what is still locked
+    assert_err(send_signed(&mut e.svm, &[propose_ix(fund, &s, 0)], &stranger, &[]), "NotAParty");
+    assert_err(e.as_client(propose_ix(fund, &c, 20 * USDC + 1)), "CancelAmountTooLarge");
+    // nothing to accept yet
+    assert_err(e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 0, 20 * USDC)), "NoCancelProposal");
+
+    let meta = e.as_client(propose_ix(fund, &c, 12 * USDC)).unwrap();
+    cu("propose_cancel", &meta);
+    let state = e.fund(1);
+    assert_eq!(state.cancel_proposer, c);
+    assert_eq!(state.cancel_freelancer_amount, 12 * USDC);
+
+    // the proposer cannot accept their own proposal; a stranger cannot accept
+    assert_err(e.as_client(accept_cancel_ix(fund, &c, f, &c, mint, 12 * USDC, 20 * USDC)), "CannotAcceptOwnProposal");
+    assert_err(send_signed(&mut e.svm, &[accept_cancel_ix(fund, &s, f, &c, mint, 12 * USDC, 20 * USDC)], &stranger, &[]), "NotAParty");
+    // stale expected values
+    assert_err(e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 11 * USDC, 20 * USDC)), "CancelProposalChanged");
+    assert_err(e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 12 * USDC, 19 * USDC)), "CancelProposalChanged");
+
+    let client_before = e.balance(&c);
+    let meta = e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 12 * USDC, 20 * USDC)).unwrap();
+    cu("accept_cancel", &meta);
+    assert_eq!(e.balance(&f), 12 * USDC);
+    assert_eq!(e.balance(&c), client_before + 8 * USDC);
+    let state = e.fund(1);
+    assert_eq!(state.state, FundState::Settled);
+    assert_eq!(state.released, 12 * USDC);
+    assert_eq!(state.refunded, 8 * USDC);
+    assert!(state.milestones[..2].iter().all(|m| m.status == MilestoneStatus::Cancelled));
+    assert_eq!(state.cancel_proposer, Pubkey::default());
+    assert_eq!(state.cancel_freelancer_amount, 0);
+    assert_eq!(token_amount(&e.svm, &vault_pda(&fund)), 0);
+    e.as_client(close_ix(fund, &c, &c, &c, mint)).unwrap();
+}
+
+#[test]
+fn g08_changed_proposal_and_proposal_cleared_on_status_change() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = e.funded(1, milestones(2, 10 * USDC));
+
+    // freelancer proposes, then overwrites; the client's view of the first proposal is stale
+    e.as_freelancer(propose_ix(fund, &f, 15 * USDC)).unwrap();
+    e.as_freelancer(propose_ix(fund, &f, 18 * USDC)).unwrap();
+    assert_err(e.as_client(accept_cancel_ix(fund, &c, f, &c, mint, 15 * USDC, 20 * USDC)), "CancelProposalChanged");
+
+    // any milestone status change (submit) clears the proposal
+    e.as_freelancer(submit_ix(fund, &f, 0)).unwrap();
+    assert_eq!(e.fund(1).cancel_proposer, Pubkey::default());
+    assert_err(e.as_client(accept_cancel_ix(fund, &c, f, &c, mint, 18 * USDC, 20 * USDC)), "NoCancelProposal");
+
+    // a new proposal, then a release: cleared again, and unsettled shrinks
+    e.as_freelancer(propose_ix(fund, &f, 5 * USDC)).unwrap();
+    e.as_client(approve_ix(fund, &c, f, mint, 0)).unwrap();
+    assert_eq!(e.fund(1).cancel_proposer, Pubkey::default());
+    assert_err(e.as_client(accept_cancel_ix(fund, &c, f, &c, mint, 5 * USDC, 10 * USDC)), "NoCancelProposal");
+
+    // after the release, a proposal above the remaining 10 USDC fails
+    assert_err(e.as_freelancer(propose_ix(fund, &f, 10 * USDC + 1)), "CancelAmountTooLarge");
+
+    // client proposes 0 to the freelancer; freelancer accepts → everything left refunds
+    e.as_client(propose_ix(fund, &c, 0)).unwrap();
+    let before = e.balance(&c);
+    e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 0, 10 * USDC)).unwrap();
+    assert_eq!(e.balance(&c), before + 10 * USDC);
+    let state = e.fund(1);
+    assert_eq!(state.milestones[0].status, MilestoneStatus::Released, "terminal milestones stay as they were");
+    assert_eq!(state.milestones[1].status, MilestoneStatus::Cancelled);
+    assert_eq!(state.state, FundState::Settled);
+    assert_invariant(&state);
+}
+
+#[test]
+fn g08_cancel_on_the_vietnam_path_pays_the_partner_and_disputed_milestones_count() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let partner = PAYOUT_PARTNERS[0];
+    let fund = fund_pda(&c, 1);
+    e.as_client(e.create_ix(1, milestones(2, 10 * USDC))).unwrap();
+    e.as_freelancer(accept_ix(fund, &f, PayoutKind::PayoutPartner, partner, [9; 32])).unwrap();
+    e.as_client(lock_ix(fund, &c, mint)).unwrap();
+    e.as_freelancer(submit_ix(fund, &f, 0)).unwrap();
+    e.as_client(dispute_ix(fund, &c, 0)).unwrap();
+
+    // the disputed milestone is still unsettled: the split covers both milestones
+    e.as_client(propose_ix(fund, &c, 7 * USDC)).unwrap();
+    assert_err(e.as_freelancer(accept_cancel_ix(fund, &f, f, &c, mint, 7 * USDC, 20 * USDC)), "InvalidPayoutDestination");
+    e.as_freelancer(accept_cancel_ix(fund, &f, partner, &c, mint, 7 * USDC, 20 * USDC)).unwrap();
+    assert_eq!(e.balance(&partner), 7 * USDC);
+    assert_eq!(e.balance(&f), 0);
+    let state = e.fund(1);
+    assert_eq!(state.released + state.refunded, state.total);
+    assert!(state.milestones[..2].iter().all(|m| m.status == MilestoneStatus::Cancelled));
+    // a settled fund rejects every P1 action
+    assert_err(e.as_client(propose_ix(fund, &c, 0)), "InvalidFundState");
+}
+
+// -----------------------------------------------------------------------------
+// 13. Invariant, cancel half: approve + cancel
+// -----------------------------------------------------------------------------
+
+#[test]
+fn g13_invariant_full_cycle_approve_then_cancel() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let ms = vec![
+        MilestoneInput { amount: 3 * USDC, submit_by: SUBMIT0, review_by: SUBMIT0 + REVIEW_WINDOW },
+        MilestoneInput { amount: 4 * USDC, submit_by: SUBMIT0 + 100, review_by: SUBMIT0 + 100 + REVIEW_WINDOW },
+        MilestoneInput { amount: 5 * USDC, submit_by: SUBMIT0 + 200, review_by: SUBMIT0 + 200 + REVIEW_WINDOW },
+    ];
+    let fund = e.funded(7, ms);
+    assert_invariant(&e.fund(7));
+    e.as_freelancer(submit_ix(fund, &f, 0)).unwrap();
+    e.as_client(approve_ix(fund, &c, f, mint, 0)).unwrap();
+    assert_invariant(&e.fund(7));
+    e.as_freelancer(submit_ix(fund, &f, 1)).unwrap();
+    assert_invariant(&e.fund(7));
+    // 9 USDC still locked (milestones 1 and 2): 6 to the freelancer, 3 back to the client
+    e.as_freelancer(propose_ix(fund, &f, 6 * USDC)).unwrap();
+    assert_invariant(&e.fund(7));
+    e.as_client(accept_cancel_ix(fund, &c, f, &c, mint, 6 * USDC, 9 * USDC)).unwrap();
+    let state = e.fund(7);
+    assert_invariant(&state);
+    assert_eq!(state.state, FundState::Settled);
+    assert_eq!(state.released, 9 * USDC);
+    assert_eq!(state.refunded, 3 * USDC);
+    assert_eq!(state.released + state.refunded, state.total);
+    assert_eq!(e.balance(&f), 9 * USDC);
+    assert_eq!(token_amount(&e.svm, &vault_pda(&fund)), 0);
+}
