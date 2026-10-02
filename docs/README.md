@@ -36,4 +36,4 @@ Thư mục này gom **mọi thông tin quan trọng** để cả đội (và tr�
 
 ## Research
 
-- [Competitor comparison: Phantom, Solflare, Binance Wallet](07-research/competitor-comparison.md) (2/10/2026)
+- [08-research/](08-research/README.md): target customer, competitor comparison, legal brief (2/10/2026)
