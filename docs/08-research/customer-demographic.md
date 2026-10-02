@@ -78,7 +78,7 @@ A sender abroad who keeps a Vietnamese number can already send to a receiver in 
 | 3 | Scams when paying strangers | Check before you send: on-chain facts about the receiver | Low | Mostly app work |
 | 4 | Proving income for tax, visas, loans | Income statement in USD and VND with on-chain receipts | Low | Mostly app work |
 
-**Wording rules:** say "send" or "transfer", never "pay" or "payment" for USDC (Law on Digital Technology Industry). The receiver check shows facts only, never "safe" or "scam-free". Anything not built by 9/10 is roadmap, never done.
+**Wording rules:** say "send" or "transfer", never "pay" or "payment" for USDC (crypto is not a lawful means of payment under Decree 52/2024). The receiver check shows facts only, never "safe" or "scam-free". Anything not built by 9/10 is roadmap, never done.
 
 ## Who to recruit for the survey and interviews
 
