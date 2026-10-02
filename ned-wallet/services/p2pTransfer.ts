@@ -1,5 +1,8 @@
 import { PublicKey, Transaction } from '@solana/web3.js';
-import { solanaConnection, USDC_DEVNET_MINT, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createSplTokenTransferInstruction } from './solana';
+import { createAssociatedTokenAccountInstruction, createSplTokenTransferInstruction } from './solana';
+import { USDC_DEVNET_MINT } from '../constants/chain';
+import { connection as solanaConnection } from './chain/connection';
+import { ata } from './chain/ata';
 import { prepareTransactionCost } from './identity/transactionCost';
 
 export type PreparedUsdcTransfer = Awaited<ReturnType<typeof prepareUsdcTransfer>>;
@@ -9,8 +12,8 @@ export async function prepareUsdcTransfer(from: string, to: string, amount: numb
   if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(Math.round(amount * 1e6))) throw new Error('Enter a valid USDC amount.');
   const owner = new PublicKey(from), recipient = new PublicKey(to);
   if (owner.equals(recipient)) throw new Error('You cannot send to your own wallet.');
-  const source = getAssociatedTokenAddress(USDC_DEVNET_MINT, owner);
-  const destination = getAssociatedTokenAddress(USDC_DEVNET_MINT, recipient);
+  const source = ata(USDC_DEVNET_MINT, owner);
+  const destination = ata(USDC_DEVNET_MINT, recipient);
   const [balance, target] = await Promise.all([
     solanaConnection.getTokenAccountBalance(source, 'confirmed'),
     solanaConnection.getAccountInfo(destination, 'confirmed'),

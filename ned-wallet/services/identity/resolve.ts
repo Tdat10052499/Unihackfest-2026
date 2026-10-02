@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { connection } from '../chain/connection';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { createIdentityResolver } from './resolveCore';
 import { computePhoneKey, normalizeVietnamPhone } from './phoneKey';
 import { fetchNameRecord, fetchPhoneRecord, fetchReverseRecord, fetchReverseRecords, IDENTITY_PROGRAM_ID } from './dualPda';
 import { resolveSns, reverseSns } from './sns';
 
-export const identityConnection = new Connection(process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL || 'https://api.devnet.solana.com', 'confirmed');
+export const identityConnection = connection;
 const resolver = createIdentityResolver({
   namespace: `devnet:${IDENTITY_PROGRAM_ID.toBase58()}`,
   storage: AsyncStorage,
