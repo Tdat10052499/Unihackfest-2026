@@ -1,5 +1,7 @@
 # N.E.D Wallet — Strategy v2: "Transparent Hụi" for Vietnamese People Abroad
 
+> **Superseded on 2 Oct 2026 by strategy v3 (Shared Money):** [`../07-strategy-v3/strategy-v3.en.md`](../07-strategy-v3/strategy-v3.en.md). Kept for its market and legal research.
+
 > **Status:** proposal v2. The project owner approved this direction on 1 Oct 2026. Not yet reviewed by a mentor, the Compliance Lead or a lawyer.
 > **Supersedes:** [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). V1 is kept as a legal reference.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat, with an AI research assistant

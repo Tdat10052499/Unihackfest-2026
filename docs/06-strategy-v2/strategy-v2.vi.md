@@ -1,5 +1,7 @@
 # N.E.D Wallet — Đề xuất hướng đi v2: "Hụi minh bạch" cho người Việt xa quê
 
+> **Đã được thay thế ngày 02/10/2026 bởi đề xuất v3 (Shared Money):** [`../07-strategy-v3/strategy-v3.en.md`](../07-strategy-v3/strategy-v3.en.md). Giữ lại để tra cứu dữ liệu thị trường và pháp lý.
+
 > **Trạng thái:** đề xuất v2. Chủ dự án đã đồng ý hướng đi ngày 01/10/2026. Chưa được mentor, Compliance Lead hay luật sư thẩm định.
 > **Thay thế:** [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). V1 vẫn giữ để tra cứu phần pháp lý.
 > **Cập nhật:** 01/10/2026 · **Người lập:** Ho Du Tuan Dat, cùng trợ lý AI nghiên cứu
