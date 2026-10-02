@@ -33,3 +33,7 @@ Thư mục này gom **mọi thông tin quan trọng** để cả đội (và tr�
 - **N.E.D Compliance Hub** (team only, Google Doc): https://docs.google.com/document/d/1JQbL5JY5La6Rzev-gaFV1VUUxMW1AmLJQZgTGjqnErA/edit
 - Owner: Nguyễn Minh Chính, Compliance Lead. Send any user-facing text (slides, app copy, README, demo video) for review before it is shown to judges.
 
+
+## Research
+
+- [Competitor comparison: Phantom, Solflare, Binance Wallet](07-research/competitor-comparison.md) (2/10/2026)
