@@ -41,7 +41,7 @@ const MESSAGES: Record<string, string> = {
   // milestone (program-spec section 6)
   InvalidMilestoneCount: 'A contract needs 1 to 5 milestones.',
   AmountTooLarge: 'The contract total is above the 1,000 USDC demo limit.',
-  InvalidDeadline: 'Check the deadlines: each one must be in the future and in order.',
+  InvalidDeadline: 'A deadline is not valid.',
   ReviewWindowTooShort: 'The review deadline is too close to the submission deadline.',
   WorkWindowTooShort: 'Too little time is left before the first submission deadline. Close this contract and create a new one.',
   SameParty: 'The client and the freelancer must be different accounts.',
@@ -94,6 +94,11 @@ export function describeTxError(err: unknown, context: TxErrorContext = 'profile
     if (message) return message;
   }
   if (err instanceof UserFacingError) return err.message;
+  // Token program InsufficientFunds (custom error 0x1 from Tokenkeg, log "Error: insufficient funds"): not enough
+  // USDC, e.g. lock above the balance. Checked before the SOL rule below, which also matches 0x1.
+  if (/Tokenkeg\w* failed: custom program error: 0x1\b|Error: insufficient funds/i.test(raw)) {
+    return 'Not enough USDC for this action.';
+  }
   if (/insufficient (funds|lamports)|no record of a prior credit|0x1\b/i.test(raw)) {
     return context === 'profile'
       ? 'Not enough devnet SOL to pay for setup. Top up your wallet and try again.'

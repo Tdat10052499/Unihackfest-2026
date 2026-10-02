@@ -6,12 +6,13 @@ import { PublicKey, type Transaction } from '@solana/web3.js';
 import { FEATURES } from '../constants/features';
 import { useAuth } from '../services/auth';
 import { connection } from '../services/chain/connection';
+import { fetchUsdcUnits } from '../services/chain/balance';
 import { describeTxError, UserFacingError } from '../services/chain/errors';
 import { sendAndConfirm, type SendStatus } from '../services/chain/send';
 import { prepareTransactionCost } from '../services/identity/transactionCost';
 import * as client from '../services/milestone/client';
 import { shortHash } from '../services/milestone/evidence';
-import { unitsFromUsdc } from '../services/milestone/format';
+import { formatUsdc, unitsFromUsdc } from '../services/milestone/format';
 import { getFund } from '../services/milestone/queries';
 import * as rules from '../services/milestone/rules';
 import type { ActionKind, ContractDraft, FundAccount } from '../services/milestone/view';
@@ -59,15 +60,19 @@ export function useMilestoneActions(address?: string): MilestoneActions {
         if (!ok) throw new UserFacingError(NOT_NOW);
       };
       switch (kind) {
-        case 'accept': {
+        case 'accept':
+          // Same fee and rent for both choices; the own-wallet variant needs no username
           check(rules.canAccept(fund, me, now));
-          const username = useUserStore.getState().username;
-          if (!username) throw new UserFacingError('Create your N.E.D profile before accepting a contract.');
-          return client.buildAccept({ fund, freelancer: me, choice: 'ownWallet', username });
-        }
-        case 'lock':
+          return client.buildAccept({ fund, freelancer: me, choice: 'ownWallet', username: '' });
+        case 'lock': {
           check(rules.canLock(fund, me, now));
+          // The Token program would fail with a bare 0x1; say what is missing instead
+          const balance = await fetchUsdcUnits(connection, me);
+          if (balance < fund.total) {
+            throw new UserFacingError(`You need ${formatUsdc(fund.total)} to lock this contract; your wallet has ${formatUsdc(balance)}.`);
+          }
           return client.buildLock({ fund, client: me });
+        }
         case 'submit':
           check(rules.canSubmit(fund, me, index, now));
           return client.buildSubmit({ fund, freelancer: me, index, link: extra?.link ?? '' });
@@ -174,8 +179,11 @@ export function useMilestoneActions(address?: string): MilestoneActions {
       run(async (me) => {
         const fund = await freshFund();
         if (!rules.canAccept(fund, me, await chainNowSeconds())) throw new UserFacingError(NOT_NOW);
-        const username = useUserStore.getState().username;
-        if (!username) throw new UserFacingError('Create your N.E.D profile before accepting a contract.');
+        // The payout-partner reference is built from the username (demo-<username>-001)
+        const username = useUserStore.getState().username ?? '';
+        if (choice === 'payoutPartner' && !username) {
+          throw new UserFacingError('Create your N.E.D profile before choosing a VND payout.');
+        }
         return client.buildAccept({ fund, freelancer: me, choice, username });
       }, address),
     [run, freshFund, address]

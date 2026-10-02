@@ -22,6 +22,19 @@ test('a failed transaction without a program code keeps its own sentence', () =>
   assert.equal(describeTxError(err, 'contract'), 'The transaction failed on-chain. Check its status before retrying.');
 });
 
+test('Token program InsufficientFunds (0x1) means not enough USDC, not SOL', () => {
+  const lock = new Error(
+    'Simulation failed. Message: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x1. ' +
+      'Logs: ["Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]", "Program log: Error: insufficient funds", ' +
+      '"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: custom program error: 0x1"]'
+  );
+  assert.equal(describeTxError(lock, 'contract'), 'Not enough USDC for this action.');
+  assert.equal(describeTxError(lock, 'transfer'), 'Not enough USDC for this action.');
+  // a System program shortfall is still SOL
+  const sol = new Error('Transfer: insufficient lamports 100, need 5000 custom program error: 0x1');
+  assert.match(describeTxError(sol, 'contract'), /Not enough devnet SOL/);
+});
+
 test('user-facing errors pass through', () => {
   assert.equal(describeTxError(new UserFacingError('Not enough devnet SOL for network fee and account rent.'), 'contract'),
     'Not enough devnet SOL for network fee and account rent.');
