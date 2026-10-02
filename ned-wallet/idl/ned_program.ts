@@ -87,6 +87,220 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "acceptCancel",
+      "docs": [
+        "The other party accepts the split; the expected values must match the current proposal"
+      ],
+      "discriminator": [
+        132,
+        234,
+        253,
+        101,
+        254,
+        237,
+        181,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "docs": [
+            "The party that did not propose (checked in the handler)"
+          ],
+          "signer": true
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "destinationToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "destination"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "client"
+        },
+        {
+          "name": "clientToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "expectedFreelancerAmount",
+          "type": "u64"
+        },
+        {
+          "name": "expectedUnsettled",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "approve",
       "docs": [
         "Client approves a submitted (or disputed) milestone: release to the destination"
@@ -386,6 +600,156 @@ export type NedProgram = {
       "args": []
     },
     {
+      "name": "concede",
+      "docs": [
+        "Freelancer concedes a disputed milestone: refund to the client"
+      ],
+      "discriminator": [
+        19,
+        182,
+        3,
+        3,
+        43,
+        35,
+        60,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "freelancer",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "client"
+        },
+        {
+          "name": "clientToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "client"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "fund"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "createFund",
       "docs": [
         "Client creates a contract: 1–5 milestones, each with an amount, a submission deadline and a review deadline"
@@ -572,6 +936,64 @@ export type NedProgram = {
         {
           "name": "username",
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "dispute",
+      "docs": [
+        "Client disputes a submitted milestone before its review deadline (blocks auto-release)"
+      ],
+      "discriminator": [
+        216,
+        92,
+        128,
+        146,
+        202,
+        85,
+        135,
+        73
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "client",
+          "signer": true,
+          "relations": [
+            "fund"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
         }
       ]
     },
@@ -804,6 +1226,64 @@ export type NedProgram = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "proposeCancel",
+      "docs": [
+        "Client or freelancer proposes a split of what is still locked"
+      ],
+      "discriminator": [
+        85,
+        167,
+        149,
+        7,
+        201,
+        252,
+        226,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "docs": [
+            "Must be the fund's client or freelancer (checked in the handler: NotAParty)"
+          ],
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "freelancerAmount",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "refund",
