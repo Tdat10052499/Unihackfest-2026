@@ -153,8 +153,21 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 | `release_after_review` | 27 355 |
 | `refund` | 22 543 |
 | `close` (đóng vault + fund) | 16 851 |
+| `dispute` (P1, N7) | 7 452 |
+| `concede` (P1, N7) | 22 608 |
+| `propose_cancel` (P1, N7) | 7 349 |
+| `accept_cancel` (P1, N7; hai lần chuyển) | 39 781 |
 
-Mọi instruction đều dưới 30 000 CU, chưa tới 15% hạn mức mặc định 200 000.
+Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 CU. Tất cả đều dưới 20% hạn mức mặc định 200 000.
+
+### Program P1 — N7 (nhánh `feat/n7-milestone-p1`, 02/10/2026)
+
+- Thêm `dispute`, `concede`, `propose_cancel`, `accept_cancel(expected_freelancer_amount, expected_unsettled)`. Mọi thay đổi trạng thái milestone đều xoá đề xuất huỷ đang chờ (program-spec 3.3).
+- Kiểm tra:
+  - `cargo test`: 10 identity + 23 milestone (thêm nhóm 7, 8 và nửa huỷ của nhóm 13) + 4 helper, tất cả pass.
+  - `program_autofixer`: 0 issue.
+- IDL có 17 instruction. `.so` 475 280 byte, cần extend thêm 55 280 byte trước khi deploy.
+- Phần app (builder, rules, action, `FEATURES.dispute`) làm ở N8/N9/N11, không làm ở N7.
 
 ### Deploy devnet — N6 (02/10/2026)
 
