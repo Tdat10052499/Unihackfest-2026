@@ -28,9 +28,11 @@ import {
   normalizeVietnamPhone,
 } from '../../services/identity';
 import { saveOwnPhone } from '../../services/identity/ownPhone';
+import { sendAndConfirm } from '../../services/chain/send';
 import {
   buildOnboardingTx,
   describeTxError,
+  FEE_PER_TX,
   formatSol,
   getSetupCost,
   syncProfileToUserStore,
@@ -58,7 +60,7 @@ function suggestionCandidates(base: string): string[] {
 }
 
 export default function ProfileScreen() {
-  const { isReady, isAuthenticated, walletAddress, connection, signAndSendTransaction } = useAuth();
+  const { isReady, isAuthenticated, walletAddress, connection, signTransaction } = useAuth();
 
   const [username, setUsername] = useState('');
   const [usernameState, setUsernameState] = useState<UsernameState>('empty');
@@ -155,15 +157,16 @@ export default function ProfileScreen() {
     try {
       const phoneKey = phoneOn ? phoneRef.current : null;
       const tx = buildOnboardingTx(walletAddress, username, phoneKey?.phoneKey);
-      const signature = await signAndSendTransaction(tx);
-      await connection.confirmTransaction(signature, 'confirmed');
+      // Rent of Name + Reverse (+ Phone); the fee is added by sendAndConfirm
+      const rent = cost ? cost.profile - FEE_PER_TX + (phoneKey ? cost.phone : 0) : 0;
+      const { signature } = await sendAndConfirm(tx, { walletAddress, signTransaction }, { rent, connection });
       console.log(`✅ [onboarding] create_profile @${username}${phoneKey ? ' + link_phone' : ''}: ${signature}`);
       if (phoneKey) await saveOwnPhone(phoneKey.e164);
       syncProfileToUserStore(walletAddress, username);
       router.replace('/mode');
     } catch (err) {
       console.warn('[onboarding] create_profile failed:', err);
-      setSubmitError(describeTxError(err));
+      setSubmitError(describeTxError(err, 'profile'));
     } finally {
       setSubmitting(false);
     }

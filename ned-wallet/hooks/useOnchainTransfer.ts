@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { PublicKey } from '@solana/web3.js';
-import { solanaConnection } from '../services/solana';
+import { sendAndConfirm } from '../services/chain/send';
 import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { useAuth } from '../services/auth';
 
@@ -30,14 +30,7 @@ export function useOnchainTransfer() {
       setStatusMessage('Preparing USDC transfer…');
       const prepared = params.prepared ?? await prepareUsdcTransfer(walletAddress, recipient, params.amountUsdc ?? 0);
       if (!prepared.tx.feePayer?.equals(new PublicKey(walletAddress))) throw new Error('Prepared transfer wallet mismatch. Review the recipient again.');
-      const sol = await solanaConnection.getBalance(new PublicKey(walletAddress), 'confirmed');
-      if (sol < prepared.total) throw new Error('Not enough devnet SOL for network fee and account rent.');
-      setStatusMessage('Confirm in your wallet…');
-      const signed = await signTransaction(prepared.tx);
-      const signature = await solanaConnection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' });
-      setStatusMessage('Waiting for confirmation…');
-      const confirmation = await solanaConnection.confirmTransaction({ signature, blockhash: prepared.blockhash, lastValidBlockHeight: prepared.lastValidBlockHeight }, 'confirmed');
-      if (confirmation.value.err) throw new Error('The transaction failed on-chain. Check its status before retrying.');
+      const { signature } = await sendAndConfirm(prepared.tx, { walletAddress, signTransaction }, { prepared, onStatus: setStatusMessage });
       setTransactionHash(signature);
       return { success: true, transactionHash: signature, recipientAddress: recipient };
     } catch (err) {

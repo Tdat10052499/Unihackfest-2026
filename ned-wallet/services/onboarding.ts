@@ -1,10 +1,9 @@
-// Logic onboarding (T1.3 + T1.6): chi phí thật (không có gas sponsorship), bước tiếp theo, dựng giao dịch tạo hồ sơ, dịch lỗi.
+// Logic onboarding (T1.3 + T1.6): chi phí thật (không có gas sponsorship), bước tiếp theo, dựng giao dịch tạo hồ sơ.
 import { LAMPORTS_PER_SOL, PublicKey, Transaction, type Connection } from '@solana/web3.js';
 import {
   buildCreateProfileTx,
   buildLinkPhoneTx,
   fetchReverseRecord,
-  IDENTITY_ERRORS,
   type ReverseRecord,
 } from './identity';
 import { useUserStore } from '../stores/useUserStore';
@@ -89,24 +88,5 @@ export function syncProfileToUserStore(wallet: string, username: string): void {
   store.setUsername(username);
 }
 
-const FRIENDLY_ERRORS: Record<string, string> = {
-  UsernameTaken: 'That username was just taken. Please pick another one.',
-  InvalidUsername: 'Usernames use 3–20 lowercase letters, numbers or _.',
-  ProfileAlreadyExists: 'This wallet already has a N.E.D profile.',
-  PhoneTaken: "This number is already linked to another N.E.D account. If it's yours, use your @username.",
-  PhoneAlreadyLinked: 'This wallet already has a linked phone number.',
-};
-
-/** Lỗi ký/gửi giao dịch → câu dễ hiểu (mã lỗi program 6000+ theo IDL, thiếu SOL, người dùng huỷ) */
-export function describeTxError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const hex = /custom program error: 0x([0-9a-f]+)/i.exec(raw)?.[1];
-  const code = hex ? parseInt(hex, 16) : Number(/"Custom":\s*(\d+)/.exec(raw)?.[1] ?? NaN);
-  const name = Number.isFinite(code) ? IDENTITY_ERRORS[code] : Object.keys(FRIENDLY_ERRORS).find((n) => raw.includes(n));
-  if (name && FRIENDLY_ERRORS[name]) return FRIENDLY_ERRORS[name];
-  if (/insufficient (funds|lamports)|no record of a prior credit|0x1\b/i.test(raw)) {
-    return 'Not enough devnet SOL to pay for setup. Top up your wallet and try again.';
-  }
-  if (/reject|cancel|denied/i.test(raw)) return 'The request was cancelled. Please try again.';
-  return 'Something went wrong while creating your profile. Please try again.';
-}
+/** Moved to services/chain/errors.ts; re-exported for existing callers. */
+export { describeTxError } from './chain/errors';
