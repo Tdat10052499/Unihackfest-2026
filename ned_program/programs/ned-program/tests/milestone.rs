@@ -999,3 +999,17 @@ fn g13_invariant_full_cycle_approve_then_cancel() {
     assert_eq!(e.balance(&f), 9 * USDC);
     assert_eq!(token_amount(&e.svm, &vault_pda(&fund)), 0);
 }
+
+// -----------------------------------------------------------------------------
+// PDA vector shared with the app (ned-wallet/services/milestone/__tests__/pda.test.ts)
+// -----------------------------------------------------------------------------
+
+#[test]
+fn pda_vector_for_the_app() {
+    let creator = Pubkey::from_str_const("FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ");
+    let fund = fund_pda(&creator, 1_759_400_000_123);
+    let vault = vault_pda(&fund);
+    println!("PDA vector: fund {fund} vault {vault}");
+    assert_eq!(fund, Pubkey::from_str_const("2rM8YfeiMG6oXCRxfgFXWgR91sfVxa5ekmrq5TzXWRcM"));
+    assert_eq!(vault, Pubkey::from_str_const("CpznorLKcrdrGqi8wtvpXv1oPpgZqE8uNXyzGe7u2PsC"));
+}
