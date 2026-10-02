@@ -2,6 +2,8 @@
 
 Nghiên cứu ngày 2/10/2026 · Người thực hiện: Nguyễn Minh Chính (Compliance Lead) · Bản tiếng Anh: [`legal-brief.md`](legal-brief.md). Nếu hai bản khác nhau, hãy báo để sửa cả hai.
 
+> **Cập nhật (2/10/2026):** câu hỏi 1 đã dẫn tới đường Việt Nam trong [`../09-milestone-lock/`](../09-milestone-lock/README.md): freelancer ở Việt Nam chỉ nhận VND từ đối tác chi trả ở nước ngoài và không bao giờ giữ USDC, nên Milestone Lock nay là demo chính. Các dòng về Milestone Lock bên dưới ("Dự kiến", "Chỉ đưa vào lộ trình") đã bị thay thế. Câu hỏi pháp lý còn mở chuyển sang việc phần mềm của N.E.D có bị coi là "dịch vụ liên quan đến tài sản mã hóa" không (Nghị định 284/2026 Điều 7 khoản 4): xem mục pháp lý trong [`ned-research-and-compliance.md`](ned-research-and-compliance.md). Việc áp dụng Nghị định 52/2024 cho *người nhận* là suy luận của nhóm, chưa phải quy định đã xác minh.
+
 Đây không phải tư vấn pháp lý, chỉ là cách đọc các nguồn công khai của một nhóm sinh viên, viết ra để mentor, giảng viên luật hoặc phòng tư vấn pháp luật của trường chỉ cần xác nhận hoặc sửa lại.
 
 ## Mục đích
@@ -17,7 +19,7 @@ N.E.D là ví tự quản (self-custody wallet) trên Solana. Hiện tại app c
 | Đăng nhập bằng Google, ví MPC nhúng | Đã làm | Không: khóa được chia giữa người dùng và Dynamic, một nhà cung cấp của Mỹ |
 | Gửi USDC tới địa chỉ ví, @username hoặc số điện thoại Việt Nam | Đã làm | Không: người dùng chuyển trực tiếp cho nhau |
 | Sao kê thu nhập từ lịch sử on-chain | Dự kiến | Không: chỉ đọc dữ liệu |
-| Tiền ký quỹ (escrow / Milestone Lock): khách hàng khóa USDC trong smart contract; tiền được mở khi khách duyệt công việc | Dự kiến | Smart contract giữ tiền, không phải nhóm |
+| Khoá tiền theo mốc (Milestone Lock): khách ở nước ngoài khóa USDC trong smart contract; khi khách duyệt, tiền được giải ngân tới ví của freelancer ở nước ngoài hoặc tới đối tác chi trả VND tại Việt Nam | Demo chính (trạng thái cũ đã bị thay thế, xem cập nhật ở trên) | Smart contract giữ tiền, không phải nhóm |
 
 Người dùng: freelancer người Việt sống tại Việt Nam, được khách hàng nước ngoài trả bằng USDC hoặc USDT. N.E.D không đổi USDC sang VND, không cung cấp giao dịch mua bán cho người dùng tại Việt Nam, và không thu phí trong thời gian thi.
 
@@ -63,7 +65,7 @@ Người dùng: freelancer người Việt sống tại Việt Nam, được kh�
 | Sao kê thu nhập | Xây và demo | "A clear record of the dollars you received, for your own tax return, visa or loan." (Bản ghi rõ ràng số đô la bạn đã nhận, dùng cho tờ khai thuế, visa hay khoản vay của bạn.) Không bao giờ nói "nộp thuế giúp bạn" hay "đúng luật thuế" |
 | Kiểm tra người nhận | Xây và demo | "See the facts about who you are sending to." (Xem thông tin về người bạn sắp gửi tiền.) Không bao giờ nói "an toàn" hay "chống lừa đảo" |
 | Gửi trước, nhận sau | Chỉ đưa vào lộ trình | "Next, pending legal review." (Tiếp theo, đang chờ thẩm định pháp lý.) |
-| Tiền ký quỹ (escrow / Milestone Lock) | Chỉ đưa vào lộ trình, cho các thị trường cho phép | "Planned for clients and freelancers outside Vietnam, or with a licensed partner in Vietnam." (Dự kiến cho khách hàng và freelancer ngoài Việt Nam, hoặc cùng đối tác được cấp phép tại Việt Nam.) |
+| Khoá tiền theo mốc (Milestone Lock) | **Đã thay thế:** làm và demo trên devnet, đường Việt Nam chỉ nhận VND, đối tác được mô phỏng | "Planned for clients and freelancers outside Vietnam, or with a licensed partner in Vietnam." (Dự kiến cho khách hàng và freelancer ngoài Việt Nam, hoặc cùng đối tác được cấp phép tại Việt Nam.) |
 
 **Từ không bao giờ dùng:** "pay" hay "payment" (thanh toán) cho USDC, "invest" (đầu tư), "safe" (an toàn), "scam-free" (chống lừa đảo), "tax-compliant" (đúng luật thuế). Nhóm dùng "send" hoặc "transfer" (chuyển).
 

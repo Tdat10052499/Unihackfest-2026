@@ -2,6 +2,8 @@
 
 Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · Vietnamese version: [`legal-brief.vi.md`](legal-brief.vi.md)
 
+> **Update (2 Oct 2026):** question 1 led to the Vietnam path in [`../09-milestone-lock/`](../09-milestone-lock/README.md): the freelancer in Vietnam receives only VND from a payout partner abroad and never holds USDC, so Milestone Lock is now the main demo. The Milestone Lock rows below ("Planned", "Roadmap only") are superseded. The open legal question has moved to whether N.E.D's software is a crypto-asset related service (Decree 284/2026 Art. 7(4)): see the legal section of [`ned-research-and-compliance.md`](ned-research-and-compliance.md). Also note that the application of Decree 52/2024 to a *recipient* is our inference, not a verified rule.
+
 This is not legal advice. It is a student team's reading of public sources, written so that a mentor, law lecturer or university legal clinic only has to confirm or correct it.
 
 ## Purpose
@@ -17,7 +19,7 @@ N.E.D is a self-custody wallet on Solana. Today it runs only on devnet, with tes
 | Google login, embedded MPC wallet | Built | No: the key is split between the user and Dynamic, a US provider |
 | Send USDC to an address, @username or Vietnamese phone number | Built | No: user to user |
 | Income statement from on-chain history | Planned | No: read only |
-| Locked client payment (escrow / Milestone Lock): a client locks USDC in a smart contract; it unlocks when the client approves the work | Planned | The contract holds it, not the team |
+| Locked client payment (Milestone Lock): a client abroad locks USDC in a smart contract; it is released when the client approves the work, to the freelancer's wallet abroad or to a payout partner that pays VND in Vietnam | Main demo (superseded status, see update above) | The contract holds it, not the team |
 
 Users: Vietnamese freelancers living in Vietnam, paid by foreign clients in USDC or USDT. N.E.D does not exchange USDC into VND, does not offer trading to users in Vietnam, and charges no fee during the competition.
 
@@ -63,7 +65,7 @@ What this means for the income statement:
 | Income statement | Build and demo | "A clear record of the dollars you received, for your own tax return, visa or loan." Never "pays your tax" or "tax-compliant" |
 | Check before you send | Build and demo | "See the facts about who you are sending to." Never "safe" or "scam-free" |
 | Send to phone, claim later | Roadmap only | "Next, pending legal review" |
-| Locked client payment (escrow / Milestone Lock) | Roadmap only, for markets where it is allowed | "Planned for clients and freelancers outside Vietnam, or with a licensed partner in Vietnam" |
+| Locked client payment (Milestone Lock) | **Superseded:** build and demo on devnet, VND-only path for Vietnam, partner simulated | "A foreign client locks USDC per milestone; a freelancer in Vietnam receives VND through a payout partner. Partner simulated in this demo." |
 
 **Words we never use:** "pay" or "payment" for USDC, "invest", "safe", "scam-free", "tax-compliant". We say "send" or "transfer".
 

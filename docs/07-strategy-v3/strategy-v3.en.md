@@ -1,5 +1,7 @@
 # N.E.D Wallet — Strategy v3: Shared Money
 
+> **Superseded on 2 Oct 2026** by [`../09-milestone-lock/`](../09-milestone-lock/README.md). The team chose one template (Milestone Lock) and one customer (freelancers with foreign clients); Rotating Fund and Group Goal are roadmap only; in Vietnam the freelancer receives VND through a payout partner, which replaces the "ledger and reminder tool" Vietnam version in sections 0 and 10. The word table in §11.3 is replaced by `09-milestone-lock/product-spec.md` section 6, and `unit_economics.py` here by the one in `09-milestone-lock/`. Kept for its market and legal research.
+
 > **Status:** proposal v3, 2 Oct 2026. Combines strategy v2 with the Compliance Lead's target-customer and USP proposal (2 Oct 2026). Not yet reviewed by a mentor, the Compliance Lead or a lawyer. The team decides the first customer segment on **6 Oct 2026** after the survey (section 14).
 > **Supersedes:** [`../06-strategy-v2/`](../06-strategy-v2/README.md) (v2) and [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). Both are kept for reference.
 > **Author:** Ho Du Tuan Dat, with an AI research assistant · **Numbers model:** [`unit_economics.py`](unit_economics.py)

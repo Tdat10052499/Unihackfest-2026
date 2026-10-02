@@ -2,16 +2,18 @@
 
 Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · UniHackFest 2026 · Not legal or financial advice
 
+> **Build spec:** [`../09-milestone-lock/`](../09-milestone-lock/README.md) (2 Oct 2026) turns this research into the product, program and app specification. Where the two differ on product or program design, `09-milestone-lock` wins; this file stays the source for market, competitor, partner and legal research. Revised 2 Oct 2026 to fix contradictions C1–C11 listed there.
+
 ## Bottom line
 
 **Milestone Lock with an offshore payout is the strongest legal and commercial direction N.E.D has had, but on 2 Oct it is a design with zero lines of program code, seven days before code freeze (9 Oct).** This edition merges the team's Milestone Lock brief (2 Oct) with the earlier research (customer demographic, competitors, legal brief, evaluation), re-verifies every number and rule at source, and replaces the earlier Rotating Fund demo plan. Labels: **\[Verified\]** opened at source on 1–2 Oct 2026 · **\[Inference\]** our reasoning · **\[Assumption\]** a planning number to test · **\[Unverified\]** not confirmed.
 
 **The five things that decide the result**
 
-1. **Build the Milestone Lock program and two app screens by 6 Oct, tested.** About 30–45 hours of work for 1–2 developers, three times v3's 8–12 h budget \[Inference\]. Demo = 2 milestones, lock → submit → approve → release, plus one auto-release after the review deadline.
+1. **Build the Milestone Lock program by 5 Oct and the contract screens by 7 Oct, tested.** About 30–45 hours of work for 1–2 developers, three times v3's 8–12 h budget \[Inference\]. Demo = 2 milestones, lock → submit → approve → release, plus one auto-release after the review deadline.
 2. **Say exactly what is legal and what is not.** Crypto is not a lawful payment instrument in Vietnam: Decree 52/2024 Art. 3(11) and Art. 8(6); fines are now **VND 150–200 m for individuals and 300–400 m for organisations** under Decree 340/2025 (in force 9 Feb 2026), which replaced Decree 88/2019 \[Verified\]. The Vietnam freelancer must receive only VND.
 3. **Name the open legal risk instead of hiding it.** Whether N.E.D itself provides a "crypto-asset related service" (Decree 284/2026 Art. 7(4), organisations VND 180–200 m) is unresolved \[Unverified\]. Judges will respect "devnet, non-custodial, no fee, lawyer review before launch".
-4. **Do not claim to be first.** GigSafe, Stillpaid and Solia already run Solana milestone escrow on devnet \[Verified\]. N.E.D's honest edge: the Vietnam corridor with VND payout through a licensed partner, auto-release, and fees of 1–2% against Upwork's 5% + 0–15% and Fiverr's 5.5% + 20% \[Verified\].
+4. **Do not claim to be first.** GigSafe, Stillpaid and Solia already run Solana milestone escrow on devnet \[Verified\]. N.E.D's honest edge: the Vietnam corridor with VND payout through a licensed partner, auto-release, and a planned client fee of 1% (none charged in v1) against Upwork's 5% + 0–15% and Fiverr's 5.5% + 20% \[Verified\].
 5. **Bring evidence on stage.** No official count of Vietnamese freelancers exists (ILO, 2024) \[Verified\]; the team's survey by 6 Oct is the only first-party data judges will see.
 
 **Corrections to earlier documents (details in the last sections):** fines for unlawful payment instruments were VND 50–100 m under Decree 88/2019 in our earlier docs; Decree 340/2025 replaced it. The "17 million holders" figure is from VnEconomy (27 Jan 2026) and baochinhphu (5 Mar 2025), not a January 2026 government portal article.
@@ -23,7 +25,7 @@ Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · UniH
 | Question | Answer | Evidence |
 | --- | --- | --- |
 | **Who** is it for? | Vietnamese freelancers and remote workers (about 22–35, Hanoi and Ho Chi Minh City; design, content, translation, development, ads) working directly for foreign clients; and those clients (startups, agencies, Web3 teams) | [Thanh Niên, 3 Oct 2025](https://thanhnien.vn/ngay-cang-co-nhieu-nguoi-lam-viec-tu-do-tren-nen-tang-so-185251003140934982.htm): 500,000+ in Facebook freelancer groups, profiles aged 25–31 \[Verified, case stories\] |
-| **Who** pays N.E.D? | The client: an assumed 1–2% of the locked amount, charged at release. Free during the competition | \[Assumption\] |
+| **Who** pays N.E.D? | Planned: the client, 1% of the locked amount at release (2% as a sensitivity case). Nothing is charged in v1, and there is no fee code (decision D2) | \[Assumption\] |
 | **What** is it? | Milestone Lock: per-milestone USDC lock, submit, approve, auto-release or refund by deadline, payout to a fixed destination | Team brief, 2 Oct 2026 |
 | **What** is it not? | Not a wallet that lets Vietnam users hold or trade crypto; not a payment service; not custody; not a marketplace | Section "Legal and compliance" |
 | **Why** does it matter? | 68% of Vietnamese freelancers had not been paid at least once (highest of 4 SEA markets); 85% of contractors globally are paid late at least sometimes | [PayPal survey via The Leader, 2017](https://e.theleader.vn/68-per-cent-of-freelancers-in-vietnam-having-experiences-of-not-being-paid-d2518.html) \[Verified, dated\]; [Remote, Feb 2025](https://remote.com/blog/contractor-management/reversing-late-payment-culture) \[Verified\] |
@@ -35,11 +37,11 @@ Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · UniH
 | **When**? | Segment and rules decided 6 Oct; code freeze 9 Oct; final 10 Oct; partner sandbox and lawyer review after the competition | Day plan section |
 | **How** does it work? | Five steps: create → confirm and choose destination → lock → submit → approve or auto-release; refund if not delivered | Product definition section |
 | **How** is it legal? | The Vietnam user only receives VND by bank transfer, a lawful instrument; the crypto leg sits with the foreign client and the licensed partner; N.E.D never holds or converts funds. Open point: whether N.E.D is a "crypto-asset related service" | Legal section \[Inference + Unverified\] |
-| **How much**? | Client: 1–2% \[Assumption\] + Solana fees + partner fee (not public). Freelancer: 0% to N.E.D. Compare Upwork client 5% + freelancer 0–15%; Fiverr buyer 5.5% + seller 20%; Escrow.com 2.6% with US$50 minimum | Business model section \[Verified for competitors\] |
+| **How much**? | Client: planned 1% \[Assumption\], not charged in v1, + Solana fees + partner fee (not public). Freelancer: 0% to N.E.D. Compare Upwork client 5% + freelancer 0–15%; Fiverr buyer 5.5% + seller 20%; Escrow.com 2.6% with US$50 minimum | Business model section \[Verified for competitors\] |
 
 ## Product definition: Milestone Lock
 
-**A foreign client locks USDC per work milestone in a Solana program; when a milestone is approved, the program releases it to a destination fixed at contract creation: the freelancer's own wallet abroad, or a licensed payout partner that pays the Vietnam-based freelancer in VND by bank transfer.** The freelancer in Vietnam never holds, receives or sells crypto. Source: team artifact "N.E.D Milestone Lock" (2 Oct 2026), refined here.
+**A foreign client locks USDC per work milestone in a Solana program; when a milestone is approved, the program releases it to a destination the freelancer fixed in `accept`, before the client locks: the freelancer's own wallet abroad, or a licensed payout partner that pays the Vietnam-based freelancer in VND by bank transfer.** The freelancer in Vietnam never holds, receives or sells crypto. Source: team artifact "N.E.D Milestone Lock" (2 Oct 2026), refined here.
 
 ```mermaid
 flowchart LR
@@ -53,24 +55,24 @@ flowchart LR
   L -->|VND transfer| B
 ```
 
-The destination is fixed when the contract is created; release goes either to the international freelancer's wallet or to the payout partner, which pays VND inside Vietnam.
+The freelancer fixes the destination in `accept`, before the client locks; release goes either to the international freelancer's wallet or to the allowlisted payout partner (with a recipient reference), which pays VND inside Vietnam.
 
 **Parties and what each may do**
 
 | Party | Role | Touches crypto? |
 | --- | --- | --- |
-| Client (company or individual outside Vietnam) | Creates or accepts the contract, locks USDC, approves milestones, pays N.E.D's fee | Yes, USDC on Solana, under the client's own law |
+| Client (company or individual outside Vietnam) | Creates the contract, locks USDC, approves or disputes milestones; would pay N.E.D's planned fee once fees start | Yes, USDC on Solana, under the client's own law |
 | International freelancer (outside Vietnam, including Vietnamese abroad) | Submits milestones, receives USDC in a N.E.D wallet | Yes, only where stablecoins are lawful for them |
-| Freelancer in Vietnam | Submits milestones, receives VND in a Vietnamese bank account | **No, at no step** |
+| Freelancer in Vietnam | Accepts, submits milestones, receives VND in a Vietnamese bank account | **No USDC at any step.** Signs `accept` and `submit` with the embedded login key; demo fees use devnet test SOL, and a fee payer covers them before launch |
 | Licensed payout partner (candidates: Due, Nium) | Receives USDC from the program at its own address, converts outside Vietnam, pays VND via NAPAS | Yes, within its licences |
-| N.E.D | App, program, interface; charges a software fee | **Holds no funds, converts nothing, sends no money itself** |
+| N.E.D | App, program, interface; plans a software fee (none in v1) | **Holds no funds, converts nothing, sends no money itself** |
 
 **The flow (5 steps)**
 
-1. **Create:** either side enters the job, milestones, USDC per milestone, a submission deadline and a review deadline per milestone.
-2. **Confirm and choose where earnings go:** the other side accepts by @username or invite link. The freelancer picks a N.E.D wallet (international) or a Vietnamese bank account through the partner (Vietnam; the partner does KYC). The destination is written into the contract and cannot be changed after locking.
+1. **Create:** the client enters the freelancer's @username, the job title, milestones, USDC per milestone, a submission deadline and a review deadline per milestone (freelancer-created proposals: roadmap).
+2. **Accept and choose where earnings go:** the freelancer accepts (instruction `accept`). The freelancer picks a N.E.D wallet (international) or a Vietnamese bank account through the partner (Vietnam; the partner does KYC). The app fills in the freelancer's own wallet or the allowlisted partner address (the freelancer never types one); the destination is written on-chain in `accept` and can never change.
 3. **Lock:** the client moves USDC into a vault owned by the program. The freelancer sees the amount locked before starting work.
-4. **Submit:** the freelancer marks the milestone delivered; the time is recorded on-chain with a link or hash of the delivery.
+4. **Submit:** the freelancer marks the milestone delivered; the time is recorded on-chain with a SHA-256 hash of the delivery link (never the link itself).
 5. **Approve and release:** the client approves; the program transfers that milestone's USDC to the fixed destination. For Vietnam, the partner converts and sends VND.
 
 **Deadline and dispute rules**
@@ -78,58 +80,62 @@ The destination is fixed when the contract is created; release goes either to th
 | Situation | Rule | Status |
 | --- | --- | --- |
 | Freelancer misses the submission deadline | Anyone can call `refund`; that milestone returns to the client | Fixed |
-| Client does not review before the review deadline | Anyone can call `release`; that milestone goes to the freelancer's destination, unless the client opened a dispute before the deadline | Recommended; team to confirm by 6 Oct |
-| Client opens a dispute | Funds stay locked; mutual cancel (split agreed by both) or a third party both named at creation decides | Roadmap; for the demo only "mutual cancel" |
-| Client cancels before submission | Refund only with the freelancer's signature | Recommended |
+| Client does not review before the review deadline | Anyone can call `release_after_review`; that milestone goes to the freelancer's destination, unless the client opened a dispute before the deadline | Decided (D1, 2 Oct) |
+| Client opens a dispute | Auto-release stops; settles by client approval, freelancer `concede` (refund) or an agreed split; no neutral arbiter in v1 | P1 group (cut together) |
+| Client cancels before submission | Refund only with the freelancer's agreement (agreed-split pair) | P1 group |
 
-**What the Vietnam user sees:** amounts as "≈ … VND (estimate)" next to USD; a tracker "Released → Partner processing → VND received"; a monthly record of VND received. No USDC balance, no swap, no xStocks.
+**What the Vietnam user sees:** amounts as "≈ … VND (estimate)" next to USD; after release, "Released to payout partner · VND payout simulated in this demo" (no faked processing steps); a monthly record of VND received. No USDC balance, no swap, no xStocks.
 
-**Wording rules (app, deck, booth):** say "lock", "release", "receive earnings", "transfer". Never "payment", "pay", "thanh toán", "ký quỹ" (deposit), "escrow" in Vietnamese screens, "invest", "safe", "guaranteed". The artifact's pitch line "freelancers get paid safely" breaks this rule; use "freelancers receive their earnings, locked by code" instead.
+**Wording rules (app, deck, booth):** the only word table is `../09-milestone-lock/product-spec.md` section 6 ("escrow" is banned in every UI, not only Vietnamese screens). The artifact's pitch line "freelancers get paid safely" broke this rule; it now reads "freelancers receive their earnings, locked by code" (fixed 2 Oct).
 
 ## Core system
 
-**The core is one new account type and nine instructions in the existing `ned_program`, plus two app screens; everything else in the repo is either already working (login, @username, devnet USDC send) or should be hidden.** Repo checked at `main` 45bb5b1 (2 Oct 2026): Anchor 1.1.2, Rust 1.89, program ID `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, 10 LiteSVM tests on identity only; last program change 27 Sep \[Verified in repo\].
+**The core is one new account type and twelve instructions (eight never cut) in the existing `ned_program`, plus the contract screens; the exact byte layout, instructions and tests are in `../09-milestone-lock/program-spec.md`; everything else in the repo is either already working (login, @username, devnet USDC send) or should be hidden.** Repo checked at `main` 45bb5b1 (2 Oct 2026): Anchor 1.1.2, Rust 1.89, program ID `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, 10 LiteSVM tests on identity only; last program change 27 Sep \[Verified in repo\].
 
-**Account: `SharedFund` (kind = Milestone)**, seeds `[b"fund", creator, fund_id]`, about 580 bytes. For Milestone, store client and freelancer in the fund and skip `Participant` (keep it for Rotating Fund and Group Goal).
+**Account: `SharedFund` (kind = Milestone)**, seeds `[b"fund", creator, fund_id]`, 708 bytes (layout in the program spec). For Milestone, store client, freelancer and payout destination in the fund and skip `Participant` (keep it for Rotating Fund and Group Goal).
 
 | Field | Purpose |
 | --- | --- |
-| `kind`, `state` | Milestone; Created / Funded / Settled / Cancelled |
-| `creator`, `fund_id` | PDA seeds; rent goes back to creator on close |
-| `client`, `freelancer` | Both fixed at creation; client ≠ freelancer |
+| `kind`, `state` | Milestone; Created / Accepted / Funded / Settled (Cancelled is a milestone status) |
+| `creator`, `fund_id` | PDA seeds |
+| `client`, `freelancer` | Both fixed at creation; client ≠ freelancer; `freelancer` is the wallet that signs `accept` and `submit` |
+| `payout_destination`, `payout_kind` | Set by the freelancer in `accept`, before `lock`, and never changed: own wallet, or payout-partner address |
+| `rent_payer` | Pays and gets back the rent (separate from the client so a fee payer can be added later) |
 | `mint` | Must equal pinned USDC mint (devnet `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`, [Circle](https://developers.circle.com/stablecoins/usdc-contract-addresses) \[Verified\]) |
-| `total`, `released`, `refunded` | Internal accounting; invariant released + refunded ≤ total |
+| `total`, `released`, `refunded` | Internal accounting; invariant released + refunded + unsettled = total |
 | `milestones[5]` | amount, submit\_by, review\_by, submitted\_at, evidence hash (32 bytes), status |
-| `disputed`, `cancel_votes` | Stops auto-release; two-step mutual cancel |
+| milestone status `Disputed`; `cancel_proposer`, `cancel_freelancer_amount` | Stops auto-release; two-step agreed split |
 | `bump`, `vault_bump`, `_reserved` | Stored bumps; 64 bytes for later fields |
 
-Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout destination = the associated token account of `fund.freelancer` (wallet path) or of the partner-issued address recorded as `freelancer` (Vietnam path), enforced by constraint on every release, so nobody can redirect funds.
+Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout destination = the associated token account of `fund.payout_destination`: the freelancer's own wallet (wallet path) or the allowlisted payout-partner address with a 32-byte recipient reference (Vietnam path), enforced by constraint on every release, so nobody can redirect funds. (Corrected 2 Oct: an earlier version stored the partner address in `freelancer`, which would have stopped the Vietnam freelancer from signing `submit`.)
 
-**Instructions and who may call them**
+**Instructions and who may call them** (summary; the authoritative list with accounts and pre-conditions is `../09-milestone-lock/program-spec.md` section 4)
 
 | Instruction | Signer | Rule |
 | --- | --- | --- |
-| `create_fund` | client or freelancer | 1–5 milestones, amount > 0, now < submit\_by < review\_by, minimum review window (60 s demo, 72 h launch \[Assumption\]) |
-| `lock` | client | Moves exactly `total` USDC into the vault with `transfer_checked` |
+| `create_fund` | client (+ rent payer) | 1–5 milestones, amount > 0, now + work window ≤ submit\_by < review\_by, minimum review window (60 s demo, 72 h launch \[Assumption\]) |
+| `accept` | freelancer | Sets payout kind and destination; only once, before `lock` |
+| `lock` | client | After `accept`; moves exactly `total` USDC into the vault with `transfer_checked` |
 | `submit(i, evidence)` | freelancer | Before submit\_by; records time and evidence hash |
 | `approve(i)` | client | Releases milestone i to the fixed destination |
 | `release_after_review(i)` | anyone | Submitted, review\_by passed, not disputed |
 | `refund(i)` | anyone | Not submitted and submit\_by passed; goes to client |
 | `dispute(i)` | client | Submitted and before review\_by; blocks auto-release |
-| `propose_cancel` / `accept_cancel` | both parties | Ends unfinished milestones; agreed split |
-| `close` | creator | All milestones settled or never funded; leftover to client, vault closed, rent to creator |
+| `concede(i)` | freelancer | Disputed; refunds that milestone to the client, so a dispute can always settle |
+| `propose_cancel` / `accept_cancel` | both parties | Ends unfinished milestones; agreed split; `accept_cancel` must repeat the expected amounts |
+| `close` | creator | All milestones settled or never funded; leftover to client, vault closed, rent to the rent payer |
 
 **Security checklist (each from a source opened 2 Oct 2026)**
 
 - [ ] `transfer_checked` with `InterfaceAccount<Mint/TokenAccount>` and `Interface<TokenInterface>` ([Anchor account types](https://www.anchor-lang.com/docs/references/account-types), [Neodyme pitfalls](https://neodyme.io/en/blog/solana_common_pitfalls/))
-- [ ] Mint pinned with `address = USDC_MINT`; `has_one` on client, freelancer, mint, creator, vault; `Signer` on every role
+- [ ] Mint pinned with `address = USDC_MINT`; `has_one` on client, freelancer, creator; vault checked by seeds and stored `vault_bump` (per-instruction accounts in the program spec 4.1); `Signer` on every role
 - [ ] Seeds with stored bump; no `init_if_needed` ([Solana program security course](https://solana.com/developers/courses/program-security))
 - [ ] Pay from stored amounts, never `vault.amount` (anyone can donate tokens to a vault)
 - [ ] State change before every CPI; `checked_add`/`checked_sub` on top of `overflow-checks = true`
 - [ ] Time from `Clock::get()?.unix_timestamp`; one boundary convention (`>` after deadline); app countdowns from chain time ([Anza timestamp design](https://docs.anza.xyz/implemented-proposals/bank-timestamp-correction))
 - [ ] `emit!` an event for every state change ([Anchor events](https://www.anchor-lang.com/docs/features/events))
 - [ ] Close the vault with `close_account` CPI after it is empty
-- [ ] No admin, upgrade or arbiter key can move funds; after the final deploy, move upgrade authority to a Squads multisig ([Squads v4](https://github.com/Squads-Protocol/v4)) or make the program immutable before mainnet
+- [ ] No admin, upgrade or arbiter key can move funds; upgrade authority stays with the deploy wallet through 10 Oct so bugs can be fixed on the day; before mainnet, move it to a Squads multisig ([Squads v4](https://github.com/Squads-Protocol/v4)) or make the program immutable (roadmap)
 - [ ] Disclose that Circle can freeze USDC addresses, including a vault ([USDC terms](https://www.circle.com/legal/usdc-terms)); one vault per contract limits the damage
 
 **Tests (LiteSVM, clock moved with `set_sysvar`, [Anchor LiteSVM docs](https://www.anchor-lang.com/docs/testing/litesvm))**: every failing constraint; deadlines at t−1, t, t+1; double release; wrong mint, wrong vault, attacker destination; dispute blocks auto-release; full 3-milestone cycle with approve, auto-release and refund ending in released + refunded = total; compute units logged.
@@ -139,10 +145,10 @@ Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout desti
 | Action | Item | Where | Priority |
 | --- | --- | --- | --- |
 | Build | Milestone Lock program + tests | `ned_program/programs/ned-program/src/`, `tests/` | P0, by 5 Oct |
-| Build | Contract list, create, detail (locked / submitted / released), submit, approve; Vietnam view in ≈ VND | `ned-wallet/app/` | P0, 6–7 Oct |
-| Build | Seeded demo: two wallets funded from the Circle faucet (20 USDC per 2 h per address) and a reset script | `ned-wallet/scripts/` | P0, start now |
+| Build | Contract list, create, accept (choose destination), detail (locked / submitted / released), submit, approve; Vietnam view in ≈ VND | `ned-wallet/app/contracts/` | P0, 6–7 Oct |
+| Build | Demo funding: Mia's wallet funded from the Circle faucet (20 USDC per 2 h per address; 30 USDC needed on the day) and `recycle-demo-usdc` (partner wallet → Mia). Contract B is prepared in the app, not by a script | `ned-wallet/scripts/` | P0, start now |
 | Fix | `getUsdcTokenBalance` adds every token when the USDC account is empty; read only the USDC account, integer amounts | `services/solana.ts` 215–293 | P0 |
-| Fix | Mainnet USDC address typo (43 characters, missing a `q`) and four duplicated USDC constants | `services/jupiter/core.ts:1` and three other files | P1 |
+| Fix | Mainnet USDC address typo (43 characters, missing a `q`) and four duplicated USDC constants | `services/jupiter/core.ts:1` and three other files | P0 |
 | Fix | Phone hash: scrypt with a public salt over about 5×10^8 numbers can be brute-forced; it is still personal data on-chain | `services/identity/phoneKey.ts`, `link_phone` | Say it honestly now; roadmap: OTP + keyed hash off-chain |
 | Keep | Google login + MPC wallet, @username, devnet USDC send, history, 10 identity tests | — | — |
 | Hide | Swap, xStocks, dApp browser, Earn, orphan screens, fake MWA signing | deck, demo path, `app/(tabs)/` | P1 |
@@ -243,7 +249,7 @@ Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout desti
 | [Trustless Work](https://www.trustlesswork.com/) (Stellar) | Milestone escrow infrastructure | — | — | USDC on Stellar | — | Live but small (1,285 escrows) |
 | [vLance](https://www.vlance.vn/page/dieu-khoan-su-dung-danh-cho-freelancer), [FreelancerViet](https://freelancerviet.vn/en/how-it-works/client/freelance.html) | FreelancerViet: protected milestone deposits | vLance contests: 72 h | vLance contests 20% | No | Domestic VND only | No foreign clients paying in USD |
 
-**What N.E.D can say (true as of 2 Oct 2026):** "A foreign client locks USDC for each milestone before work starts. Each milestone is released to the freelancer's wallet, or reaches a Vietnamese freelancer as VND through a licensed payout partner. The client pays 1–2%; the freelancer pays N.E.D nothing."
+**What N.E.D can say (true as of 2 Oct 2026):** "A foreign client locks USDC for each milestone before work starts. Each milestone is released to the freelancer's wallet, or reaches a Vietnamese freelancer as VND through a licensed payout partner. The client will pay a planned 1% once fees start; the freelancer pays N.E.D nothing."
 
 **What N.E.D must not say:** "first Solana escrow" or "first auto-release"; "licensed Vietnamese crypto partner" (Vietnam had issued no crypto licence as of 19 Sep 2026); "cheaper than Wise"; "Deel and Payoneer have no stablecoins"; "zero fees" (client fee, network fee and partner spread remain); any dispute-resolution or enforceability promise; an exact time-to-VND.
 
@@ -256,7 +262,7 @@ Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout desti
 | [Due](https://due.readme.io/docs/supported-payment-methods) | Yes; virtual accounts unique to a customer auto-convert crypto to fiat; sandbox issues test USDC | NAPAS, "instant to T+0" | Individuals to enterprises; Vietnam not on its banned list | FINTRAC MSB, Bank of Canada PSP; MiCA CASP (CNMV Spain) covering crypto exchange only | Not public | USDC → VND route not shown in one example; must confirm with sales |
 | [Nium](https://docs.nium.com/docs/payouts/country-and-regional-guides/vnd-payments-to-vietnam) | Yes, since 27 Aug 2026, converted to USD on arrival; Nium does not custody stablecoins | NAPAS 2,000–500 m VND real time; CITAD above; MoMo, ZaloPay | "Eligible corporate clients" (KYB) | MAS MPI, FCA, EMI Lithuania/Malta, 33 US MTLs; no crypto licence listed | Not public | Startup eligibility and deposit-address design unknown |
 | [Ripple Payments](https://docs.ripple.com/products/payments-direct-2/introduction/payout-network/asia-pacific) | USDC on Solana listed as a payout asset | NAPAS 50,000–499,999,999 VND per transaction | Banks, fintechs, crypto firms | "85+ licences" (self-reported) | Not public | Built for institutions |
-| [Stripe Global Payouts](https://docs.stripe.com/global-payouts) | Stablecoin balance; Vietnam in private preview | SWIFT wire only | US/UK senders with Treasury | Not checked | US$1.50 + 0.25% cross-border + 0.5% FX | Fallback only |
+| [Stripe Global Payouts](https://docs.stripe.com/global-payouts) | Stablecoin balance; Vietnam in private preview | SWIFT wire only | US/UK senders with Treasury | Not checked | US$1.50 + 1.00% cross-border (Vietnam) + 1% FX for US senders, 2% for others ([pricing](https://docs.stripe.com/global-payouts/pricing)) | Fallback only |
 | [Tazapay](https://developer.tazapay.com/collection-accounts/coverage/stablecoins.md) | USDC on 15 chains incl. Solana; "stablecoin-in, local-fiat-out" | VND claimed in a blog; rails unverified | Platforms, fintechs | MTLs in SG, IN, HK, US (third-party); Circle buying it (announced 8 Sep 2026) | Not public | Worth asking after Circle deal |
 | [Rise](https://www.riseworks.io/pricing) | No Solana | VND US$10 + 1.45% | Employers; freelancer holds a Rise account | FinCEN MSB | US$49/contractor/month | Freelancer may hold crypto: not usable for the Vietnam path |
 
@@ -264,14 +270,14 @@ Vault = token account PDA `[b"vault", fund]` owned by the fund PDA. Payout desti
 
 | Design | Who holds the partner account | Strength | Risk |
 | --- | --- | --- | --- |
-| A. Client-side payout | The foreign client; the contract releases to the client's partner address tagged for this freelancer, partner pays VND | Freelancer never owns crypto; N.E.D is not a party | Client could cancel the payout instruction after release; needs partner support for a per-freelancer address |
+| A. Client-side payout | The foreign client; the contract releases to the allowlisted partner address with a recipient reference for this freelancer (or, if the partner requires it, a per-freelancer address), partner pays VND | Freelancer never owns crypto; N.E.D is not a party | Client could cancel the payout instruction after release; needs partner support for matching by reference or per-freelancer addresses |
 | B. Freelancer-side account | The freelancer opens a partner account whose USDC auto-converts to VND | Simple; Due supports individuals | Freelancer arguably owns USDC for a moment: the open question in the team brief |
 
-Recommendation: **design A** for the pitch, "payout partner simulated" on screen, and ask Due and Nium in writing whether a per-recipient deposit address under the client's account is supported \[Inference\].
+Recommendation: **design A** for the pitch, "payout partner simulated" on screen, and ask Due and Nium in writing whether a deposit can be matched to a recipient by a reference, or whether a per-recipient deposit address under the client's account is needed \[Inference\]. v1 implements the reference (`../09-milestone-lock/program-spec.md`, D9 and D13).
 
 **Domestic options are not usable yet.** Vietnam's five pilot exchanges had no licence by 19 Sep 2026 ([CryptoRank](https://cryptorank.io/news/feed/b7225-nine-months-seven-applicants-zero-licences-vietnams-crypto-waiting-game)); the Da Nang sandbox projects (Basal Pay, TORA, Umi Pay and others) cap accounts at 500 USDT or 5 transactions, require physical presence and have the Vietnamese user convert crypto themselves ([Tuổi Trẻ, Jan 2026](https://news.tuoitre.vn/foreign-visitor-demand-drives-pilot-for-digital-asset-conversions-in-da-nang-103260115000440801.htm)) \[Verified\].
 
-**Outreach after 10 Oct, in order:** Due (sandbox, Solana USDC → VND channel, client-owned virtual account), Nium (startup eligibility, deposit addresses), Tazapay, Ripple. Log every reply in Compliance Hub.
+**Outreach:** the PO sent the first written questions to Due and Nium on 2 Oct 2026 (USDC on Solana → VND via NAPAS, who must be the customer, per-recipient or per-payout address, deposits from a program address, purpose codes, sandbox and fees). Next, after 10 Oct: sandbox requests to whichever replies, then Tazapay and Ripple. CL logs every reply in Compliance Hub.
 
 ## Legal and compliance
 
@@ -320,13 +326,14 @@ Recommendation: **design A** for the pitch, "payout partner simulated" on screen
 | Japan | USDC sold through a licensed Electronic Payment Instruments exchange (SBI VC Trade, Mar 2025) | Japanese clients can hold USDC lawfully | Verified |
 | Sanctions | [OFAC virtual currency guidance](https://ofac.treasury.gov/media/913571/download?inline): screen addresses, geo-block sanctioned jurisdictions; strict liability for US persons | Screen client wallets before `lock` (roadmap; manual for demo) | Verified |
 
-**Questions for a lawyer (bring these exact five)**
+**Questions for a lawyer (bring these exact six)**
 
 1. Is a Solana program that N.E.D cannot control, locking a foreign client's USDC and releasing it to a foreign payout partner, "lưu ký" (custody) or a "dịch vụ liên quan đến tài sản mã hóa" under Resolution 05 Art. 3 and Decree 284 Art. 7(4), if built and marketed from Vietnam?
 2. Could N.E.D be seen as "cung ứng" (supplying) an unlawful payment instrument (Decree 52 Art. 8(6)) or an unlicensed "thu hộ, chi hộ" service (Art. 22(1), Art. 8(7))?
 3. Does a Vietnamese freelancer who receives only VND from a foreign licensed partner, for a contract priced in USD, breach anything, and does design A or B change that?
 4. Are freelance fees from foreign clients business income (500 m threshold, 2%) or salary-type remuneration under Law 109/2025?
 5. Which structure is safest before launch: a Vietnamese software company, an offshore entity, or partnering with a licensed provider that operates the contract?
+6. Does a Vietnam resident who signs on-chain `accept` and `submit` messages with an embedded key, but never holds USDC (fees paid by a fee payer), "use" a crypto asset in any regulated sense?
 
 ## KYC, AML and personal data
 
@@ -373,15 +380,15 @@ Recommendation: **design A** for the pitch, "payout partner simulated" on screen
 | Escrow.com | US$50 minimum, split as agreed | — | [Escrow.com](https://www.escrow.com/fee-calculator) \[Verified\] |
 | Contra | US$2–29 per project | US$0 (2% if paid out in crypto) | [Contra](https://contra.com/pricing) \[Verified\] |
 | **N.E.D (planned)** | **US$10 at 1% (US$20 at 2%)** + Solana fees under US$0.01 | **US$0 to N.E.D**; partner fee if paid in VND | \[Assumption\] |
-| Partner fee reference | — | Stripe Global Payouts US$1.50 + 0.25% + 0.5% ≈ US$9; Request Finance bank payout 1% + US$10 = US$20 | [Stripe](https://stripe.com/pricing), [Request Finance](https://www.requestfinance.com/pricing) \[Verified\] |
+| Partner fee reference | — | Stripe Global Payouts to Vietnam US$1.50 + 1% + 1% ≈ US$21.50 (US sender); Request Finance bank payout 1% + US$10 = US$20 | [Stripe](https://docs.stripe.com/global-payouts/pricing), [Request Finance](https://www.requestfinance.com/pricing) \[Verified\] |
 
-Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is returned when the contract closes.
+Rent for the contract and vault accounts (about 0.008 SOL for 708 + 165 bytes \[Inference\]) is returned when the contract closes.
 
 **Revenue lines**
 
 | Line | Who pays | Mechanism | Status |
 | --- | --- | --- | --- |
-| Milestone Lock fee | Client | 1–2% of the locked amount, taken at release | \[Assumption\]; free during the competition and the pilot |
+| Milestone Lock fee | Client | Planned 1% of the locked amount at release (2% sensitivity) | \[Assumption\]; not charged and not coded in v1 (D2); model in `../09-milestone-lock/unit_economics.py` |
 | Agency plan | Client with several freelancers | Monthly subscription, contract templates, reports | \[Assumption\] |
 | Payout pass-through | Client or freelancer | Partner's fee at cost, no mark-up at first | Waiting for quotes |
 | B2B licence | Platforms, payout partners | License the Milestone Lock module | \[Unverified\] demand |
@@ -417,7 +424,7 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 | --- | --- | --- | --- |
 | Technical depth and difficulty (30%) | 5 | Time-based permissionless release and refund, dispute state, fixed destination, MPC login | 8 |
 | On-chain/off-chain architecture, contract quality (25%) | 6 | Security checklist done, 25+ LiteSVM tests incl. deadline edges and attacks, events | 8 |
-| Use of Solana stack, composability, performance (25%) | 5 | Token interface + Circle devnet USDC, compute-unit table, Squads upgrade authority; Blink if time | 7–8 |
+| Use of Solana stack, composability, performance (25%) | 5 | Token interface + Circle devnet USDC, compute-unit table; Squads upgrade authority on the roadmap slide; Blink if time | 7–8 |
 | Demo completeness (20%) | 3 | Live run + 60–90 s backup video + explorer links | 8 |
 
 **Format and rules that can cost points or disqualify**
@@ -437,11 +444,7 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 
 **Words**
 
-| Use | Never |
-| --- | --- |
-| lock, release, refund, receive earnings, transfer, record | pay, payment, thanh toán, ký quỹ, escrow (in Vietnamese UI), invest, safe, guaranteed, scam-free, tax-compliant, first, zero fees |
-| "candidate payout partners (Due, Nium), simulated in the demo" | "our partner", "licensed Vietnamese crypto partner" |
-| "devnet, test money" | any live-money or yield claim |
+See the word table in `../09-milestone-lock/product-spec.md` section 6 (single source).
 
 **Deck (10 slides, English)**
 
@@ -456,7 +459,7 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 9. Roadmap: partner sandbox, lawyer review, OTP, audit, Rotating Fund, Group Goal.
 10. Team and the ask.
 
-**Live demo script (under 2 minutes):** create a 2-milestone contract (Mia → Vinh) → Mia locks 200 devnet USDC → Vinh's screen shows "≈ 5.2 m VND locked" (200 × 26,019.5 VND, Wise mid-market rate on 2 Oct; use the live rate on the day) → Vinh submits milestone 1 → Mia approves → released to the payout-partner address, labelled "Demo: payout partner simulated" → milestone 2 was submitted earlier with a 60-second review window: anyone presses release after it expires → open the explorer to show the vault is owned by the program, not by N.E.D.
+**Live demo script (under 2 minutes; canonical version in `../09-milestone-lock/product-spec.md` section 7):** Mia creates a 2-milestone contract for Vinh → Vinh accepts and chooses VND → Mia locks 20 devnet USDC (2 × 10; the faucet gives 20 per address every 2 h) → Vinh's screen shows "≈ 520,000 VND locked" (20 × 26,019.5 VND, Wise mid-market rate on 2 Oct; update on the day) → Vinh submits milestone 1 → Mia approves → released to the payout-partner address, labelled "Released to payout partner · VND payout simulated in this demo" → open contract B, prepared in the app with Mia's and Vinh's own logins 10–15 minutes before the pitch and submitted with a 60-second review window: anyone presses release after it expires → open the explorer to show the vault is owned by the program, not by N.E.D.
 
 **Judge Q&A in WH form (Compliance Lead owns 1–5)**
 
@@ -466,12 +469,12 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 4. **Where does personal data go?** "Login through Dynamic in the US with explicit consent; bank data only at the partner; on-chain only addresses and hashes. Our phone hash can be brute-forced today, so OTP and an off-chain keyed hash come before launch."
 5. **How does the freelancer pay tax?** "Up to VND 500 m a year of business revenue is PIT-free under Law 109/2025; above that they file quarterly. We give them a record, not tax advice."
 6. **Why would a client lock money?** "To win good freelancers and get an automatic refund if work is not delivered." Then show the survey or interview quote.
-7. **What if the client never reviews?** "Release opens to anyone after the review deadline, unless the client opened a dispute in time."
-8. **What if they disagree?** "Funds stay locked; mutual cancel with an agreed split today, a neutral reviewer named at creation on the roadmap."
+7. **What if the client never reviews?** "Release opens to anyone after the review deadline." Add "unless the client opened a dispute in time" only if the P1 dispute group shipped.
+8. **What if they disagree?** If the P1 group shipped: "The client can dispute before the deadline; then the client approves, the freelancer concedes, or both agree a split. There is no neutral arbiter yet, so a client can block auto-release; an arbiter is on the roadmap." If not: "Today the client approves or the deadline releases; disputes and a neutral arbiter are on the roadmap."
 9. **Why Solana?** "About US$7.2 bn of USDC lives there, fees are under a cent, and Circle's devnet USDC lets us show real token flows."
 10. **Who else does this?** "Upwork and Fiverr lock money on their platforms at 5–25%; GigSafe and Stillpaid run Solana escrow on devnet; nobody we found pays a Vietnamese freelancer VND from an on-chain lock."
 11. **When is it live, and what is missing?** "Partner sandbox, lawyer opinion, OTP and an audit; then a pilot with real pairs."
-12. **How do you make money?** "1–2% from the client at release; free until the legal opinion."
+12. **How do you make money?** "A planned 1% from the client at release; nothing is charged until we have a legal opinion."
 
 ## Day-by-day plan to 10 Oct
 
@@ -479,19 +482,19 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 
 | Date | Dev | CL | Biz | Design / PO |
 | --- | --- | --- | --- | --- |
-| 2–3 Oct | `SharedFund` account, `create_fund`, `lock`, `submit`; fix USDC balance bug; fund demo wallets from the Circle faucet | Launch survey with consent line; send this doc to PO; send the review note to Đạt (point 2 dropped) | Rebase `unit_economics.py` on Milestone Lock (client 1%, free pilot) | Contract screens in DesignKit; PO confirms review-deadline rule |
-| 4–5 Oct | `approve`, `release_after_review`, `refund`, `dispute`, cancel, `close`; LiteSVM tests; devnet deploy | 6 interviews + 5 client talks; book a law lecturer or university legal clinic for 7 Oct; write partner questions to Due and Nium | Ask Due/Nium for a fee quote; US$1,000 cost slide | Deck skeleton with real screenshots |
-| 6 Oct | Screens wired to the program; seed and reset script | Survey results → go/no-go with PO (thresholds in the customer section) | Market slide from verified rows only | Vietnam view in ≈ VND, wording check with CL |
-| 7 Oct | Auto-release and refund in the UI; explorer links; turn on Vietnamese | Expert check of the five lawyer questions; consent screen text in the app | Business model slide | Booth one-pager on compliance |
+| 2–3 Oct | `SharedFund` account, `create_fund`, `accept`, `lock`, `submit`; fix USDC balance bug; fund demo wallets from the Circle faucet | Launch survey with consent line; send this doc to PO; send the review note to Đạt (point 2 dropped) | Rebase `unit_economics.py` on Milestone Lock (client 1%, free pilot) | Contract screens in DesignKit (review-deadline rule decided: D1) |
+| 4–5 Oct | `approve`, `release_after_review`, `refund`, `close` (P0), then the P1 group `dispute`, `concede`, cancel pair; LiteSVM tests; devnet deploy | 6 interviews + 5 client talks; book a law lecturer or university legal clinic for 7 Oct; log Due and Nium replies (questions sent 2 Oct) | Ask Due/Nium for a fee quote; US$1,000 cost slide | Deck skeleton with real screenshots |
+| 6 Oct | Screens wired to the program; `recycle-demo-usdc` script | Survey results → go/no-go with PO (thresholds in the customer section) | Market slide from verified rows only | Vietnam view in ≈ VND, wording check with CL |
+| 7 Oct | Auto-release and refund in the UI; explorer links; turn on Vietnamese | Expert check of the six lawyer questions; consent screen text in the app | Business model slide | Booth one-pager on compliance |
 | 8 Oct | Bug fixes; compute-unit table; README matches what runs; hide Swap/xStocks | Q&A drill, 15 minutes, questions 1–5 | Rehearse numbers | Final deck |
-| 9 Oct | **Code freeze**; record the 60–90 s backup video; move upgrade authority to Squads | **Compliance sign-off**: every claim on slides, app and booth true or marked roadmap | Send slides to organisers | Full rehearsal, 5:00 limit |
+| 9 Oct | **Code freeze**; record the 60–90 s backup video (upgrade authority stays with the deploy wallet) | **Compliance sign-off**: every claim on slides, app and booth true or marked roadmap | Send slides to organisers | Full rehearsal, 5:00 limit |
 | 10 Oct | **Final** | On stage for Q&A 1–5 | Q&A on numbers | Booth |
 
-**Cut order if late:** Blink → `dispute` and cancel (keep the status values) → Vietnamese UI → income record. **Never cut:** create, lock, submit, approve, auto-release, refund, tests, the VND-only view.
+**Cut order if late** (same as `../09-milestone-lock/product-spec.md` section 8): Blink → the P1 group `dispute`, `concede`, `propose_cancel`, `accept_cancel` (all four together) → Vietnamese UI → income record → Home card. **Never cut:** `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`, their tests, the VND-only view.
 
 ## Open decisions, unverified points and corrections
 
-**Five team decisions are due on 6 Oct; nine points stay \[Unverified\] and must not appear on slides as facts.**
+**Five team decisions were due on 6 Oct; the recommendations below were adopted on 2 Oct as decisions D1–D5 in `../09-milestone-lock/README.md` (the team can still override them by 6 Oct). Nine points stay \[Unverified\] and must not appear on slides as facts.**
 
 **Team decisions (from the Milestone Lock brief, with a recommendation)**
 
@@ -521,10 +524,13 @@ Rent for the contract and vault accounts (about 0.007 SOL \[Inference\]) is retu
 
 | Date | Item | Was | Now |
 | --- | --- | --- | --- |
+| 2 Oct 2026 | Payout destination field | Partner address stored in `freelancer` | Separate `payout_destination`; `freelancer` signs (C1) |
+| 2 Oct 2026 | Stripe Global Payouts reference fee | US$1.50 + 0.25% + 0.5% ≈ US$9 | Vietnam: US$1.50 + 1.00% + 1% FX (US sender) ≈ US$21.50 on US$1,000 (C8) |
+| 2 Oct 2026 | Partner outreach timing | After 10 Oct | First questions sent to Due and Nium on 2 Oct (C9) |
 | 2 Oct 2026 | Fine for unlawful payment instruments | VND 50–100 m, Decree 88/2019 | VND 150–200 m individuals, 300–400 m organisations, Decree 340/2025 (from 9 Feb 2026) |
 | 2 Oct 2026 | Article of the payment ban | "6(6) or 8(6)" \[Unverified\] | Decree 52/2024 Art. 8(6), with definitions in Art. 3(10)–(11) \[Verified\] |
 | 2 Oct 2026 | Source of the payment ban | Law 71/2025 (wrong, earlier legal brief) | Decree 52/2024; Law 71 only defines crypto assets |
-| 2 Oct 2026 | Milestone Lock brief: "receiving USDC as wages is a grey zone under Decree 52" | Grey zone | Prohibited: USDC is an unlawful payment instrument under Art. 3(11) and 8(6) |
+| 2 Oct 2026 | Milestone Lock brief: "receiving USDC as wages is a grey zone under Decree 52" | Grey zone | Treated as prohibited: the text of Art. 3(11) and 8(6) is \[Verified\]; applying it to a recipient is \[Inference\] for a lawyer to confirm |
 | 2 Oct 2026 | Milestone Lock brief: pitch line "freelancers get paid safely" | Uses "paid" and "safely" | "Freelancers receive their earnings, locked by code" |
 | 2 Oct 2026 | 17 m crypto holders source | Government portal, Jan 2026 | VnEconomy, 27 Jan 2026; baochinhphu, 5 Mar 2025 |
 | 2 Oct 2026 | Earlier competitor research | No Solana escrow projects listed | GigSafe, Stillpaid, Solia exist on Solana devnet |

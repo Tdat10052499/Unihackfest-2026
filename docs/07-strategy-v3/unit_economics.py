@@ -1,5 +1,8 @@
 """N.E.D Wallet — strategy v3 ("Shared Money") unit-economics model.
 
+SUPERSEDED on 2 Oct 2026 by docs/09-milestone-lock/unit_economics.py.
+Kept for reference; do not use these numbers in the pitch.
+
 Beachhead used here: Vietnamese workers in Japan (segment A).
 Every input is an ASSUMPTION unless marked SOURCED. Edit the values and run
 `python3 unit_economics.py`. Standard library only.

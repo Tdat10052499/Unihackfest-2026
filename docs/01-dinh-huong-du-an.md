@@ -1,5 +1,7 @@
 # N.E.D Wallet — Tổng hợp định hướng dự án
 
+> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../ned-wallet/ARCHITECTURE.md).
+
 > Bản rút gọn từ tài liệu định hướng trong Project "N.E.D Wallet" (cập nhật 25/09/2026), giữ nguyên các quyết định và số liệu. Đây là **nguồn sự thật về định hướng sản phẩm**; các quyết định thiết kế sau ngày 25/09 nằm ở [`02-thiet-ke/trang-thai-thiet-ke.md`](02-thiet-ke/trang-thai-thiet-ke.md) (mục 6) và [`03-ky-thuat/dev-handoff.md`](03-ky-thuat/dev-handoff.md).
 
 ## Lưu ý về nguồn & phạm vi tài liệu

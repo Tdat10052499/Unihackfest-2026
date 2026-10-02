@@ -1,0 +1,104 @@
+# Milestone Lock: product and app specification (v1)
+
+Status: **build spec, frozen for coding on 3 Oct 2026** (review fixes R1–R12 in [`README.md`](README.md#review-fixes-3-oct)). Program details are in [`program-spec.md`](program-spec.md). Research and legal reasoning are in [`../08-research/ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md). Labels: **\[Verified\]** opened at source · **\[Inference\]** our reasoning · **\[Assumption\]** planning value to test · **\[Unverified\]** not confirmed.
+
+## 1. The product in one sentence
+
+**A foreign client locks USDC per milestone in a Solana program before work starts; when a milestone is approved, or the review deadline passes without a dispute, the program releases it to the destination the freelancer chose: their own wallet abroad, or a licensed payout partner that pays a freelancer in Vietnam in VND.**
+
+Pitch line: *"Freelancers receive their earnings, locked by code."*
+
+## 2. Parties
+
+| Party | Does | Holds or receives crypto? |
+| --- | --- | --- |
+| **Client** (outside Vietnam) | Creates the contract, locks USDC, approves, may dispute | Yes, USDC on Solana, under the client's own law |
+| **International freelancer** (outside Vietnam, including Vietnamese abroad) | Accepts, chooses own wallet, submits | Yes, USDC in their N.E.D wallet, only where stablecoins are lawful for them |
+| **Freelancer in Vietnam** | Accepts, chooses VND payout, submits, may concede a dispute | **No USDC at any step.** Signs `accept` and `submit` with the embedded login key; see 4.3 on network fees |
+| **Payout partner** (candidates: Due, Nium; **simulated in the demo** by a team-controlled devnet wallet on the program's allowlist) | Receives USDC at its own address, converts outside Vietnam, pays VND via NAPAS | Yes, within its licences |
+| **N.E.D** | App and program | Holds no funds, converts nothing, charges no fee in v1 |
+
+## 3. Flow
+
+1. **Create (client).** The client enters the freelancer's @username, a title (≤ 32 bytes, no personal data), 1–5 milestones with a USDC amount, a submission deadline and a review deadline each. Freelancer-created proposals are on the roadmap.
+2. **Accept and choose where earnings go (freelancer).** "USDC to my N.E.D wallet" (international) or "VND to my Vietnamese bank account through a payout partner" (Vietnam). The freelancer never types an address: the app fills in their own wallet, or the allowlisted partner address plus a recipient reference (demo: SHA-256 of a made-up recipient ID such as `demo-vinh-001`; at launch, the ID the partner issues after KYC). The destination is written on-chain and cannot change afterwards.
+3. **Lock (client).** The client sees the destination type and locks the full amount. The freelancer sees "Locked" before starting work.
+4. **Submit (freelancer).** Marks a milestone delivered. The app stores the SHA-256 of the delivery link as evidence, never the link itself.
+5. **Approve (client), or auto-release.** Approval releases that milestone. If the client does nothing by the review deadline, anyone can release it, unless the client opened a dispute in time.
+
+| Situation | Rule | Status |
+| --- | --- | --- |
+| Freelancer misses the submission deadline | Anyone can refund that milestone to the client | Fixed |
+| Client does not review by the review deadline | Anyone can release it to the destination, unless disputed in time | Fixed (decision D1) |
+| Client disputes (before the review deadline) | Auto-release stops. The milestone settles when the client approves, the freelancer concedes (refund to the client), or both agree a split (`propose_cancel` / `accept_cancel`) | P1, ships as one group. No neutral arbiter in v1: a client can block auto-release by disputing, and the freelancer can then only wait, negotiate or concede. Say so |
+| Client wants to cancel before delivery | Only with the freelancer's agreement (same cancel pair) | P1 |
+| Nobody locked yet | Client can close the contract; rent returned | Fixed |
+| Too little time left | `accept` and `lock` fail if less than the minimum work window (60 s on devnet, 24 h at launch \[Assumption\]) remains before the first submission deadline; the client closes and creates a new contract | Fixed |
+
+## 4. Vietnam path
+
+### 4.1 What the Vietnam freelancer sees
+
+- Amounts as **"≈ 520,000 VND (estimate)"** next to USD (20 USDC in the demo). Use a fixed rate constant `DEMO_USD_VND_RATE` with its date (26,019.5 VND on 2 Oct 2026, Wise mid-market \[Verified in 08-research\]). Update the constant on demo day; no backend.
+- After release, a status line: **"Released to payout partner · VND payout simulated in this demo"**. Do not fake timed "processing" or "received" steps.
+- No USDC balance, swap, xStocks, Earn or dApp browser. Contract screens and income record only.
+
+### 4.2 How the app knows the user is in Vietnam
+
+A local setting "I live in Vietnam" (default on) chosen in onboarding and in Settings, stored on the device. It selects the Vietnam view and pre-selects the VND destination in `accept`. Before launch this becomes the payout partner's KYC result \[Inference\].
+
+### 4.3 Network fees (known gap, disclosed)
+
+Solana needs a fee payer for every transaction. In the devnet demo, every user pays fees with **devnet test SOL**, which has no value (current architecture: no gas sponsorship, `ned-wallet/ARCHITECTURE.md`). **Before launch**, Vietnam users must not hold SOL: a fee payer (for example the Solana Foundation's Kora relayer) covers `accept` and `submit`. `create_fund` already separates `payer` from `client` for this. This needs a small server, so it is a launch item, not a demo item (decision D4).
+
+Disclosure line: *"Demo on devnet: network fees use test SOL. Before launch, Vietnam users will hold no crypto, not even for fees."*
+
+## 5. App screens (Expo, web first)
+
+| Route | Who | Content | P |
+| --- | --- | --- | --- |
+| `app/contracts/index.tsx` | both | Two lists, "As client" and "As freelancer", from `getProgramAccounts` with discriminator + `memcmp` at offset 12 or 44; status chips | P0 |
+| `app/contracts/new.tsx` | client | Freelancer @username (existing `services/identity/resolve.ts`), title, milestones, deadlines; review summary; sends `create_fund` | P0 |
+| `app/contracts/[fund].tsx` | both | Role-aware detail: amounts, destination type, per-milestone status and chain-time countdown, action buttons (accept, lock, submit, approve, release, refund, close; dispute and cancel if P1 is done), explorer links | P0 |
+| `app/contracts/accept.tsx` (or a sheet on the detail screen) | freelancer | Choose "USDC to my wallet" or "VND to my bank (payout partner, simulated)"; the app passes the freelancer's own address or `DEMO_PAYOUT_PARTNER`; Vietnam view pre-selects VND | P0 |
+| Home entry point | both | "Contracts" card on Home; hide Swap, xStocks, Earn, dApps from the demo path | P1 |
+
+Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor builders from the IDL), `queries.ts` (memcmp lists, decoding), `format.ts` (USDC base units ↔ display, VND estimate), `evidence.ts` (SHA-256). Screens use `useAuth()` only (rule in `ned-wallet/AGENTS.md`). Keep the demo payout-partner address in `constants/` as `DEMO_PAYOUT_PARTNER`, equal to the program's `PAYOUT_PARTNERS` entry, with a comment saying it is a team-controlled devnet wallet. Open a contract by deep link `app/contracts/[fund]` (used for the prepared demo contract).
+
+**Fix first (P0):**
+
+- `services/solana.ts` `getUsdcTokenBalance` (around lines 246–262) adds every SPL token into the "USDC" balance when the USDC account is empty. Read only the USDC ATA.
+- `services/jupiter/core.ts:1` has a mainnet USDC address missing a `q`. Keep one USDC constant module and import it everywhere.
+
+## 6. Words
+
+This table replaces `07-strategy-v3` §11.3 and the word lists in `08-research`.
+
+| Use | Never |
+| --- | --- |
+| lock, release, refund, receive earnings, transfer, record, contract, milestone | pay / payment / thanh toán (for USDC), escrow (in UI), ký quỹ, deposit, invest, yield, interest, safe / an toàn, guaranteed, scam-free, tax-compliant, first, zero fees, credit score |
+| "candidate payout partners (Due, Nium), simulated in the demo" | "our partner", "licensed Vietnamese crypto partner" |
+| "devnet, test money" | any live-money claim |
+
+The word "escrow" may appear only in technical docs and in answers to judges who use it first.
+
+## 7. Demo script (under 2 minutes, two browsers)
+
+Amounts are small because the Circle faucet gives 20 devnet USDC per address every 2 hours \[Verified in 08-research\].
+
+1. Mia (client, Singapore) creates "Landing page design": 2 milestones × 10 USDC.
+2. Vinh (freelancer, Vietnam view) accepts and chooses "VND to my bank account".
+3. Mia locks 20 devnet USDC; Vinh's screen shows "≈ 520,000 VND locked (estimate)".
+4. Vinh submits milestone 1; Mia approves; the status shows "Released to payout partner · VND payout simulated in this demo".
+5. Open contract B by deep link. The team prepared it **in the app, with Mia's and Vinh's own logins**, 15 minutes before the pitch: 1 milestone × 10 USDC, submission deadline **create time + 5 minutes** (so `accept` and `lock` still have the 60 s work window), review deadline 60 s after that. Vinh accepted, Mia locked, Vinh submitted. Its review deadline has passed, so anyone presses Release.
+6. Open the explorer: the vault is owned by the program, not by N.E.D.
+
+The embedded logins cannot be scripted, so no script signs as Mia or Vinh. Script in `ned-wallet/scripts/`: `recycle-demo-usdc` sends the USDC that reached `DEMO_PAYOUT_PARTNER` back to Mia's address (the partner keypair is a local file, outside the repo). Mia needs **30 USDC** on stage day (10 for contract B, then 20 for contract A): two faucet claims at least 2 hours apart the day before, or recycled USDC. Give Vinh devnet SOL. Rehearse the 15-minute preparation of contract B at least once.
+
+## 8. Cut order
+
+Cut in this order if late: Blink link → the P1 group `dispute`, `concede`, `propose_cancel`, `accept_cancel` (cut all four together; keep the status values in the account) → Vietnamese-language UI → income record → Home card. **Never cut:** `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`, their tests, and the Vietnam view in ≈ VND.
+
+## 9. Disclosures (app footer, deck, booth)
+
+Devnet, test money only · no KYC yet · disputes have no neutral arbiter (if shipped) · in the Vietnam path the freelancer relies on the payout partner after release · phone numbers not OTP-verified and the phone hash can be brute-forced · program not audited · payout partner simulated · network fees use test SOL · Circle can freeze USDC addresses · not legal, tax or financial advice.
