@@ -3,9 +3,11 @@
 **Owner:** Nguyễn Minh Chính (GitHub: @F4ol4n), Compliance Lead, N.E.D Wallet
 **Deadline (hạn chót):** everything ready by **9/10/2026**; final round ~10/10/2026 (date to be confirmed)
 **Working doc:** [N.E.D Compliance Hub](https://docs.google.com/document/d/1JQbL5JY5La6Rzev-gaFV1VUUxMW1AmLJQZgTGjqnErA/edit) (team only)
-**Last updated:** 1/10/2026
+**Last updated:** 2/10/2026
 
 > Team rule: before anything is shown to judges or the public (slides, app text, README, demo video, social posts), send it to the Compliance Lead to check.
+
+> **Update 2 Oct 2026:** the product is now Milestone Lock for freelancers ([`../09-milestone-lock/`](../09-milestone-lock/README.md)). Swap, xStocks, Earn, the dApp browser and T.E.D are hidden from the demo path, so the xStocks and investment-advice items below matter only if those screens are shown. The current day plan for the Compliance Lead is in [`../08-research/ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md) (day-by-day plan). Fines for unlawful payment instruments now come from Decree 340/2025 (VND 150–200 m, from 9 Feb 2026).
 
 ---
 
@@ -31,7 +33,8 @@
 ## Step 2 — Learn the five laws (Học 5 quy định) · 2/10
 
 - [ ] Resolution 05/2025/NQ-CP — crypto asset pilot (thí điểm tài sản mã hoá)
-- [ ] Law on Digital Technology Industry (Luật Công nghiệp công nghệ số), in force 1/1/2026
+- [ ] Law on Digital Technology Industry (Luật Công nghiệp công nghệ số), in force 1/1/2026 (definitions only; the payment ban is in Decree 52/2024 Art. 8(6))
+- [ ] Decree 52/2024 (non-cash payments), Decree 340/2025 (fines) and Decree 284/2026 (crypto fines, Art. 7(4) and 9(1))
 - [ ] Law on Securities 54/2019, Art. 28 & 32 — investment advice needs a licence (tư vấn đầu tư)
 - [ ] Personal Data Protection Law 91/2025 (bảo vệ dữ liệu cá nhân), in force 1/1/2026
 - [ ] xStocks terms — no shareholder rights; not for US, Canada, UK, Australia
@@ -71,7 +74,7 @@
 
 ## Step 8 — Check the live app (Kiểm tra app thật) · 7/10
 
-- [ ] Walk through: sign up → link phone → send → swap → buy an xStock → T.E.D plan
+- [ ] Walk through: sign up → create a contract (client) → accept and choose VND (freelancer, Vietnam view) → lock → submit → approve → auto-release → refund
 - [ ] Confirm disclaimers, risk disclosure, real fees and "not financial advice" on every screen
 
 ## Step 9 — Prepare to defend (Chuẩn bị bảo vệ) · 8/10
@@ -88,7 +91,7 @@
 - [ ] No invest-urging language anywhere
 - [ ] Approved wording live in the app
 - [ ] Register and data/privacy docs reviewed by an expert
-- [ ] Known gaps listed (no KYC, phone numbers not OTP-verified, fee simulated, no licensed partner yet)
+- [ ] Known gaps listed (no KYC, phone numbers not OTP-verified, payout partner simulated, network fees in test SOL, program not audited; list in `09-milestone-lock/product-spec.md` section 9)
 - [ ] Send the team: "Compliance sign-off done. Known gaps: … Legal questions in Q&A come to me."
 
 ---

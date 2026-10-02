@@ -2,6 +2,8 @@
 
 Nghiên cứu ngày 2/10/2026 · Người thực hiện: Nguyễn Minh Chính (Compliance Lead) · Thông tin về N.E.D lấy từ code trên nhánh main (commit e490c50).
 
+> **Cập nhật (2/10/2026):** Milestone Lock nay là demo chính theo đường chỉ nhận VND ([`../09-milestone-lock/`](../09-milestone-lock/README.md)). Ghi chú "không đưa escrow vào bảng so sánh" bên dưới đã bị thay thế; bảng đối thủ cho Milestone Lock (Upwork, Fiverr, Contra, Escrow.com, GigSafe, Stillpaid…) nằm trong [`ned-research-and-compliance.md`](ned-research-and-compliance.md). Bảng ví bên dưới vẫn dùng được cho phần ví cá nhân (@username, gửi tới số điện thoại).
+
 ## Tóm tắt
 
 **N.E.D không thắng được về quy mô, nhưng có thể thắng ở 3 điểm mà cả 3 đối thủ đều bỏ trống với freelancer Việt Nam:** gửi USDC tới số điện thoại Việt Nam mà người nhận không cần tài khoản sàn, cho người chưa có ví nhận tiền sau (claim later), và sao kê thu nhập ngay trong app. Phantom và Solflare không gửi được tới số điện thoại; Binance Pay thì gửi được nhưng chỉ giữa các tài khoản Binance đã KYC, và đã tắt tính năng gửi cho người không dùng Binance.
@@ -77,7 +79,7 @@ Người dùng phàn nàn nhiều nhất về mất tiền do lừa đảo, hỗ
 | 7 | Phantom: có tiếng Việt [chưa xác nhận] | App khóa tiếng Anh | Bật lại tiếng Việt (file dịch đã có); khi thi vẫn demo bằng tiếng Anh | Có thể |
 | 8 | Cả 3: hiển thị số dư chính xác | Bug: khi không có USDC, app cộng nhầm token khác thành "USDC" | Sửa bug trong services/solana.ts | Nên sửa |
 
-**Lưu ý pháp lý:** escrow (USP 1) cũng là thứ không đối thủ nào có cho công việc freelance, nhưng theo legal brief nó có thể bị coi là thanh toán bằng crypto. Vì vậy không đưa escrow vào bảng so sánh trước giám khảo.
+**Lưu ý pháp lý (đã thay thế ngày 2/10/2026):** trước đây nhóm không đưa escrow lên slide vì có thể bị coi là thanh toán bằng crypto. Với đường chỉ nhận VND, Milestone Lock là demo chính; dùng bảng đối thủ Milestone Lock trong `ned-research-and-compliance.md`, không dùng từ "escrow" trên giao diện.
 
 ## Bảng tiếng Anh cho slide
 

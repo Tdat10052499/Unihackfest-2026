@@ -4,7 +4,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 # Project context
 
-Before building any feature, read `../docs/README.md` (product direction, the 40 designed screens in `../docs/02-thiet-ke/`, and the technical handoff in `../docs/03-ky-thuat/dev-handoff.md`). Follow the decisions there; never re-propose mini-app platform, Perps or Gacha.
+Before building any feature, read `../docs/09-milestone-lock/` (current product: Milestone Lock; `product-spec.md` for screens and words, `program-spec.md` for the on-chain account layout and instructions), then `../docs/README.md` for the screen designs in `../docs/02-thiet-ke/`. Never re-propose mini-app platform, Perps or Gacha. Swap, xStocks, Earn and the dApp browser stay in the code but are hidden from the demo path.
 
 # Architecture (after T0.5)
 

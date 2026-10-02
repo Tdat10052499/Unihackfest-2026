@@ -2,6 +2,8 @@
 
 Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · Not legal advice. Labels: [Sourced] / [Inference] / [Assumption] / [Unverified].
 
+> **Superseded (2 Oct 2026)** by [`ned-research-and-compliance.md`](ned-research-and-compliance.md) (research) and [`../09-milestone-lock/`](../09-milestone-lock/README.md) (build spec). This plan assumed a Rotating Fund demo and a choice between segments A and B; both are replaced (Rotating Fund is roadmap only, the customer is freelancers: decisions D3 and D10). Fines quoted here under Decree 88/2019 (VND 50–100 m) are outdated: Decree 340/2025 (VND 150–200 m for individuals, from 9 Feb 2026) applies. Kept for its rubric scorecard and history.
+
 ## Verdict
 
 **N.E.D has a strong, rare idea (Shared Money held by a Solana program) and a solid identity layer, but on 2 Oct the core of that idea has zero lines of code, 7 days before the internal deadline.** The repo on main (commit 45bb5b1) has had no code change since 28 Sep; the last eight merged pull requests are documents. The demo judges will score (30% of Track 1, 20% of Track 2) does not exist yet.

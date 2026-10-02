@@ -2,6 +2,8 @@
 
 Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · Status: working profile, to be confirmed by the survey and interviews before the team decision on 6 Oct 2026.
 
+> **Update (2 Oct 2026):** USP 1 (Milestone Lock) is now the main demo through the VND-only path in [`../09-milestone-lock/`](../09-milestone-lock/README.md); its "Roadmap only" status below is superseded. Vietnamese abroad are served as international freelancers who receive USDC; sending money home to family is not in v1. The 6 Oct survey is a go/no-go on demand, not a segment choice (decision D10). The latest customer profile is in [`ned-research-and-compliance.md`](ned-research-and-compliance.md).
+
 Labels: **[Sourced]** fact with a source · **[Inference]** conclusion from facts · **[Assumption]** chosen for planning, must be tested · **[Unverified]** searched, no reliable source found.
 
 ## Summary
@@ -73,7 +75,7 @@ A sender abroad who keeps a Vietnamese number can already send to a receiver in 
 
 | # | Pain | USP | Legal risk in Vietnam | Build by 9/10? |
 | --- | --- | --- | --- | --- |
-| 1 | Clients disappear or reverse payments | Locked client payment (escrow / Milestone Lock in v3) | High: may count as paying for services with crypto (see `legal-brief.md`) | Roadmap only |
+| 1 | Clients disappear or reverse payments | Milestone Lock: client locks USDC per milestone | High if a Vietnam resident receives USDC; the VND-only path avoids that (see `../09-milestone-lock/`) | **Main demo** (superseded status) |
 | 2 | Family has no crypto wallet | Send to any Vietnamese phone, claim later | Medium: may count as holding funds | Roadmap only |
 | 3 | Scams when paying strangers | Check before you send: on-chain facts about the receiver | Low | Mostly app work |
 | 4 | Proving income for tax, visas, loans | Income statement in USD and VND with on-chain receipts | Low | Mostly app work |

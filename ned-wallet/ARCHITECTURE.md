@@ -4,6 +4,8 @@ Cập nhật 27/09/2026 — sau T1.2 + T1.4 (auth chuyển hẳn sang Dynamic). 
 
 ## Nguyên tắc
 
+- **Đang xây (02/10/2026): Milestone Lock.** Màn hình trong `app/contracts/`, logic trong `services/milestone/`, đặc tả ở `../docs/09-milestone-lock/`. Vẫn không có backend cho bản demo 10/10.
+
 - **Không backend riêng**: không Supabase, không `ned-hub`, không relayer. Mọi dữ liệu dùng chung nằm **on-chain** hoặc lấy từ API công khai.
 - **Ưu tiên web** (GitHub Pages) cho demo; bản Android APK (EAS) là bản phụ. iOS native cần tài khoản Apple Developer trả phí.
 - **Không có khoá bí mật trong app**: mọi biến `EXPO_PUBLIC_*` đều bị đóng gói vào bundle. Xem `.env.example`.
