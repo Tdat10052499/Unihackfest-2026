@@ -27,11 +27,11 @@ Người dùng: freelancer người Việt sống tại Việt Nam, được kh�
 
 | Quy định | Nội dung | Ý nghĩa với escrow |
 | --- | --- | --- |
-| [Luật Công nghiệp công nghệ số](https://www.wfw.com/articles/landmark-legislation-regulates-digital-assets-in-vietnam/), có hiệu lực từ 1/1/2026 | Tài sản mã hóa "không được công nhận là đồng tiền hợp pháp tại Việt Nam và không được dùng làm phương tiện thanh toán hợp pháp cho hàng hóa, dịch vụ" (dịch từ bản tóm tắt tiếng Anh) | Quy định rõ nhất chống lại escrow: dùng USDC trả cho công việc freelance là thanh toán cho dịch vụ |
+| [Nghị định 52/2024/NĐ-CP](https://luatvietan.vn/quy-dinh-phap-ly-co-ban-ve-tien-ao-tai-viet-nam.html) về thanh toán không dùng tiền mặt (hiệu lực 1/7/2024); mức phạt tại Nghị định 88/2019 Điều 26.6(d); Bộ luật Hình sự Điều 206 | Liệt kê các phương tiện thanh toán không dùng tiền mặt hợp pháp (séc, lệnh chi, thẻ ngân hàng, ví điện tử…) và cấm "phát hành, cung ứng, sử dụng phương tiện thanh toán không hợp pháp"; crypto không phải phương tiện hợp pháp. Phạt 50–100 triệu đồng; có thể bị truy cứu hình sự. Số điều của quy định cấm: 6(6) hay 8(6) tùy nguồn [Chưa kiểm chứng] | Quy định rõ nhất chống lại escrow: dùng USDC trả cho công việc freelance là dùng phương tiện thanh toán không hợp pháp |
 | [Nghị quyết 05/2025/NQ-CP](https://www.bakermckenzie.com/-/media/files/insight/publications/alerts/09/vietnam-new-resolution-on-pilot-program-for-digital-and-crypto-assets-marke.pdf) về thí điểm thị trường tài sản mã hóa, ngày 9/9/2025 | Tài sản mã hóa được dùng "cho mục đích trao đổi hoặc đầu tư"; giao dịch phải qua đơn vị được cấp phép; 6 tháng sau giấy phép đầu tiên, giao dịch ngoài các đơn vị này có thể bị phạt hành chính hoặc truy cứu hình sự | Tính đến 30/8/2026 chưa có giấy phép nào được cấp ([KuCoin News](https://www.kucoin.com/news/flash/vietnam-s-crypto-pilot-five-firms-pass-initial-review-no-licenses-issued-yet)), nên mốc 6 tháng chưa bắt đầu |
-| [Nghị định 52/2024/NĐ-CP](https://www.rajahtannasia.com/wp-content/uploads/2024/09/2024_07_22-Decree-52-2024-ND-CP-NCP.pdf) về thanh toán không dùng tiền mặt | Cấm "cung ứng dịch vụ thanh toán khi không phải tổ chức cung ứng dịch vụ thanh toán, hoặc cung ứng dịch vụ trung gian thanh toán khi chưa có giấy phép của Ngân hàng Nhà nước" (dịch từ bản tóm tắt tiếng Anh) | Nếu escrow bị coi là dịch vụ trung gian thanh toán, N.E.D sẽ cần giấy phép. Chưa rõ, vì các dịch vụ này được định nghĩa xoay quanh đồng Việt Nam |
+| [Nghị định 52/2024/NĐ-CP](https://www.rajahtannasia.com/wp-content/uploads/2024/09/2024_07_22-Decree-52-2024-ND-CP-NCP.pdf), dịch vụ trung gian | Đồng thời cấm "cung ứng dịch vụ thanh toán khi không phải tổ chức cung ứng dịch vụ thanh toán, hoặc cung ứng dịch vụ trung gian thanh toán khi chưa có giấy phép của Ngân hàng Nhà nước" (dịch từ bản tóm tắt tiếng Anh) | Nếu escrow bị coi là dịch vụ trung gian thanh toán, N.E.D sẽ cần giấy phép. Chưa rõ, vì các dịch vụ này được định nghĩa xoay quanh đồng Việt Nam |
 
-**Đính chính:** các tài liệu trước của nhóm nói chính Nghị định 52/2024 cấm thanh toán bằng USDC. Bản tóm tắt tiếng Anh mà nhóm đọc không liệt kê quy định nào về crypto trong Nghị định 52. Luật Công nghiệp công nghệ số là căn cứ rõ hơn, nên từ giờ nhóm trích dẫn luật này.
+**Đính chính (cuối ngày 2/10/2026):** bản trước của tài liệu này nói Luật Công nghiệp công nghệ số (Luật 71/2025/QH15) cấm dùng crypto làm phương tiện thanh toán và Nghị định 52/2024 không có quy định về crypto. Cả hai ý đó đều sai. Văn bản luật (Điều 46–48) chỉ định nghĩa tài sản số, tài sản ảo, tài sản mã hóa, không có quy định cấm thanh toán; quy định cấm nằm ở Nghị định 52/2024 (cấm sử dụng phương tiện thanh toán không hợp pháp). Căn cứ ban đầu của strategy v3 (Nghị định 52/2024; Bộ luật Hình sự Điều 206) là đúng.
 
 **Câu hỏi cho người thẩm định:**
 
@@ -42,7 +42,7 @@ Người dùng: freelancer người Việt sống tại Việt Nam, được kh�
 
 ## Câu hỏi 2: Thuế 0,1% có áp dụng cho chuyển khoản giữa các ví tự quản không?
 
-**Cách hiểu của nhóm: có thể là không.** [Thông tư 32/2026](https://gvlawyers.com.vn/wp-content/uploads/2026/03/EN_Legal-alert-_Circular-32-2026_Taxation-of-transactions-in-crypto-assets.pdf), có hiệu lực từ 27/3/2026, đánh thuế 0,1% trên toàn bộ giá trị giao dịch, dù lãi hay lỗ, đối với "nhà đầu tư cá nhân ... chuyển nhượng tài sản mã hóa thông qua tổ chức cung cấp dịch vụ tài sản mã hóa tại Việt Nam" (dịch từ bản tóm tắt tiếng Anh). Chuyển từ ví tự quản này sang ví tự quản khác không đi qua tổ chức như vậy. [Việt Nam News](https://vietnamnews.vn/economy/1778511/0-1-tax-on-transfer-of-crypto-assets-mof-s-circular.html) đưa tin với cùng cách diễn đạt.
+**Cách hiểu của nhóm: có thể là không.** [Thông tư 32/2026](https://gvlawyers.com.vn/wp-content/uploads/2026/03/EN_Legal-alert-_Circular-32-2026_Taxation-of-transactions-in-crypto-assets.pdf), có hiệu lực từ 27/3/2026 theo GV Lawyers (nguồn khác ghi 1/7/2026) [Unverified], đánh thuế 0,1% trên toàn bộ giá trị giao dịch, dù lãi hay lỗ, đối với "nhà đầu tư cá nhân ... chuyển nhượng tài sản mã hóa thông qua tổ chức cung cấp dịch vụ tài sản mã hóa tại Việt Nam" (dịch từ bản tóm tắt tiếng Anh). Chuyển từ ví tự quản này sang ví tự quản khác không đi qua tổ chức như vậy. [Việt Nam News](https://vietnamnews.vn/economy/1778511/0-1-tax-on-transfer-of-crypto-assets-mof-s-circular.html) đưa tin với cùng cách diễn đạt.
 
 Ý nghĩa với sao kê thu nhập:
 
@@ -67,7 +67,7 @@ Người dùng: freelancer người Việt sống tại Việt Nam, được kh�
 
 **Từ không bao giờ dùng:** "pay" hay "payment" (thanh toán) cho USDC, "invest" (đầu tư), "safe" (an toàn), "scam-free" (chống lừa đảo), "tax-compliant" (đúng luật thuế). Nhóm dùng "send" hoặc "transfer" (chuyển).
 
-**Nếu giám khảo hỏi "Is this legal?":** trả lời bằng tiếng Anh như bản tiếng Anh. Ý nghĩa: Luật Công nghiệp công nghệ số quy định crypto không được dùng để thanh toán hàng hóa, dịch vụ, nên N.E.D không làm thanh toán tại Việt Nam. Hiện người dùng chỉ chuyển đô la giữa các ví của chính họ trên devnet, còn các tính năng giữ tiền sẽ chờ đối tác được cấp phép.
+**Nếu giám khảo hỏi "Is this legal?":** trả lời bằng tiếng Anh như bản tiếng Anh. Ý nghĩa: tại Việt Nam, crypto không phải phương tiện thanh toán hợp pháp theo Nghị định 52/2024, nên N.E.D không làm thanh toán tại Việt Nam. Hiện người dùng chỉ chuyển đô la giữa các ví của chính họ trên devnet, còn các tính năng giữ tiền sẽ chờ đối tác được cấp phép.
 
 ## Nguồn
 
@@ -75,6 +75,8 @@ Các nguồn giống bản tiếng Anh, đều là bản tóm tắt tiếng Anh 
 
 - [Watson Farley & Williams: Luật Công nghiệp công nghệ số và Nghị quyết 05/2025](https://www.wfw.com/articles/landmark-legislation-regulates-digital-assets-in-vietnam/)
 - [Baker McKenzie: Nghị quyết thí điểm thị trường tài sản mã hóa](https://www.bakermckenzie.com/-/media/files/insight/publications/alerts/09/vietnam-new-resolution-on-pilot-program-for-digital-and-crypto-assets-marke.pdf)
+- [Luật Việt An: căn cứ pháp lý cấm dùng tiền ảo để thanh toán (20/3/2025)](https://luatvietan.vn/quy-dinh-phap-ly-co-ban-ve-tien-ao-tai-viet-nam.html)
+- [Toàn văn Luật 71/2025/QH15 Công nghiệp công nghệ số](https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Cong-nghiep-cong-nghe-so-2025-so-71-2025-QH15-621341.aspx)
 - [Rajah & Tann: Nghị định 52/2024/NĐ-CP](https://www.rajahtannasia.com/wp-content/uploads/2024/09/2024_07_22-Decree-52-2024-ND-CP-NCP.pdf)
 - [KuCoin News, 30/8/2026: chưa có giấy phép nào được cấp](https://www.kucoin.com/news/flash/vietnam-s-crypto-pilot-five-firms-pass-initial-review-no-licenses-issued-yet)
 - [GV Lawyers: Thông tư 32/2026](https://gvlawyers.com.vn/wp-content/uploads/2026/03/EN_Legal-alert-_Circular-32-2026_Taxation-of-transactions-in-crypto-assets.pdf)
