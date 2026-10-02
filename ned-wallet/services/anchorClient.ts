@@ -8,41 +8,12 @@ import {
 } from '@solana/web3.js';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { IDL, type NedProgram } from '../idl/ned_program';
+import { PROGRAM_ID } from '../constants/chain';
+import { DEVNET_RPC_URL, connection as devnetConnection } from './chain/connection';
 
-/**
- * Endpoint mặc định kết nối Solana Devnet
- * Ưu tiên Helius Devnet RPC từ biến môi trường, fallback về public devnet RPC
- */
-export const DEVNET_RPC_URL: string =
-  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
-  process.env.EXPO_PUBLIC_SOLANA_RPC_URL ||
-  'https://api.devnet.solana.com';
-
-/**
- * Program ID của Smart Contract `ned_program`
- * Đọc linh hoạt từ EXPO_PUBLIC_ANCHOR_PROGRAM_ID với fallback là địa chỉ đã deploy
- */
-export const DEFAULT_PROGRAM_ID_STR = '8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh';
-
-function resolveProgramId(): PublicKey {
-  const envProgramId = process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID;
-  if (!envProgramId) {
-    console.warn(
-      `[AnchorClient] Cảnh báo: Biến EXPO_PUBLIC_ANCHOR_PROGRAM_ID chưa được định nghĩa trong .env. Sử dụng mặc định: ${DEFAULT_PROGRAM_ID_STR}`
-    );
-  }
-  const idStr = envProgramId?.trim() || DEFAULT_PROGRAM_ID_STR;
-  try {
-    return new PublicKey(idStr);
-  } catch (error) {
-    console.error(
-      `[AnchorClient] Lỗi: Địa chỉ Program ID "${idStr}" không hợp lệ. Fallback về ${DEFAULT_PROGRAM_ID_STR}`
-    );
-    return new PublicKey(DEFAULT_PROGRAM_ID_STR);
-  }
-}
-
-export const PROGRAM_ID: PublicKey = resolveProgramId();
+// Endpoint and program ID come from services/chain/connection.ts and constants/chain.ts; re-exported for old callers.
+export { DEVNET_RPC_URL, PROGRAM_ID };
+export const DEFAULT_PROGRAM_ID_STR = IDL.address;
 
 /**
  * Interface chuẩn cho ví tương thích Anchor trong môi trường Mobile
@@ -81,19 +52,19 @@ export const DEFAULT_CONFIRM_OPTIONS: ConfirmOptions = {
 };
 
 /**
- * Khởi tạo kết nối Solana Connection đơn lẻ (Singleton-friendly)
+ * Kết nối devnet dùng chung; chỉ tạo Connection riêng khi truyền endpoint khác
  */
-let cachedConnection: Connection | null = null;
+let customConnection: Connection | null = null;
 
 export function getConnection(
   customEndpoint?: string,
   commitment: Commitment = 'confirmed'
 ): Connection {
-  const endpoint = customEndpoint || DEVNET_RPC_URL;
-  if (!cachedConnection || cachedConnection.rpcEndpoint !== endpoint) {
-    cachedConnection = new Connection(endpoint, commitment);
+  if (!customEndpoint || customEndpoint === DEVNET_RPC_URL) return devnetConnection;
+  if (!customConnection || customConnection.rpcEndpoint !== customEndpoint) {
+    customConnection = new Connection(customEndpoint, commitment);
   }
-  return cachedConnection;
+  return customConnection;
 }
 
 /**

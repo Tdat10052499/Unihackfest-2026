@@ -1,5 +1,4 @@
 import {
-  Connection,
   PublicKey,
   TransactionInstruction,
   SystemProgram,
@@ -10,21 +9,25 @@ import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import i18n from '../services/i18n';
 
-export const SOLANA_DEVNET_RPC =
-  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
-  process.env.EXPO_PUBLIC_SOLANA_RPC ||
-  process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
-  'https://api.devnet.solana.com';
+import { DEVNET_RPC_URL, connection } from './chain/connection';
+import { ata } from './chain/ata';
+import { fetchUsdcUnits, usdcNumberFromUnits } from './chain/balance';
+import {
+  ATA_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  USD_VND_RATE,
+  USDC_DEVNET_MINT,
+} from '../constants/chain';
 
-
-// USDC Mint chuẩn trên Solana Devnet (Decimals = 6)
-export const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
-export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+// Re-exported under the old names; the values live in constants/chain.ts and services/chain/connection.ts.
+export const SOLANA_DEVNET_RPC = DEVNET_RPC_URL;
+export { USDC_DEVNET_MINT, TOKEN_PROGRAM_ID };
+export const ASSOCIATED_TOKEN_PROGRAM_ID = ATA_PROGRAM_ID;
 export const SYSVAR_RENT_PUBKEY = new PublicKey('SysvarRent111111111111111111111111111111111');
 
 // Tỷ giá quy đổi tiền tệ chuẩn (USD & VND)
-export const USD_TO_VND_RATE = 25000;
+export const USD_TO_VND_RATE = USD_VND_RATE;
 export const SOL_USD_RATE = 150;
 
 /**
@@ -57,16 +60,7 @@ export function getAssociatedTokenAddress(
   programId = TOKEN_PROGRAM_ID,
   associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
 ): PublicKey {
-  if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
-    throw new Error('TokenOwnerOffCurveError');
-  }
-
-  const [address] = PublicKey.findProgramAddressSync(
-    [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
-    associatedTokenProgramId
-  );
-
-  return address;
+  return ata(mint, owner, { allowOwnerOffCurve, tokenProgram: programId, ataProgram: associatedTokenProgramId });
 }
 
 /**
@@ -122,10 +116,7 @@ export function createSplTokenTransferInstruction(
   });
 }
 
-export const solanaConnection = new Connection(SOLANA_DEVNET_RPC, {
-  commitment: 'confirmed',
-  confirmTransactionInitialTimeout: 30000,
-});
+export const solanaConnection = connection;
 
 export interface ActivityItem {
   id: string;
@@ -207,8 +198,7 @@ export async function getSolanaBalance(address: string, force: boolean = false):
 const inFlightUsdcMap = new Map<string, Promise<number>>();
 
 /**
- * Lấy số dư USDC/USDT/SPL Token thực tế từ on-chain Associated Token Account (ATA)
- * Tự động quét toàn bộ Token Accounts thuộc sở hữu của ví (hỗ trợ cả USDT, USDC devnet mint)
+ * Số dư USDC devnet: chỉ đọc USDC ATA của ví (B1 — không cộng token khác), tính từ base units nguyên.
  * Tích hợp Cache 10 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
  * @param address Địa chỉ ví Solana của người dùng
  */
@@ -226,64 +216,9 @@ export async function getUsdcTokenBalance(address: string, force: boolean = fals
 
   const promise = (async () => {
     try {
-      const ownerPubkey = new PublicKey(address);
-
-      // 1. Kiểm tra ATA chuẩn của USDC Devnet trước
-      try {
-        const ata = getAssociatedTokenAddress(USDC_DEVNET_MINT, ownerPubkey);
-        const tokenAccountInfo = await solanaConnection.getParsedAccountInfo(ata, 'confirmed');
-
-        if (tokenAccountInfo.value && 'parsed' in tokenAccountInfo.value.data) {
-          const parsedData = (tokenAccountInfo.value.data as any).parsed;
-          const amountUi = parsedData?.info?.tokenAmount?.uiAmount;
-          if (typeof amountUi === 'number' && amountUi > 0) {
-            usdcBalanceCache.set(address, { timestamp: Date.now(), balance: amountUi });
-            return amountUi;
-          }
-        }
-      } catch (_) {}
-
-      // 2. Tra cứu tất cả SPL Token accounts thuộc sở hữu của ví (hỗ trợ cả USDT, devnet test tokens)
-      const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
-        ownerPubkey,
-        { programId: TOKEN_PROGRAM_ID },
-        'confirmed'
-      );
-
-      let totalTokenAmount = 0;
-      if (tokenAccounts?.value && tokenAccounts.value.length > 0) {
-        for (const item of tokenAccounts.value) {
-          const parsed = item.account?.data?.parsed;
-          const uiAmount = parsed?.info?.tokenAmount?.uiAmount;
-          if (typeof uiAmount === 'number' && uiAmount > 0) {
-            totalTokenAmount += uiAmount;
-          }
-        }
-      }
-
-      // 3. Tra cứu thêm Token-2022 program accounts nếu cần
-      if (totalTokenAmount === 0) {
-        try {
-          const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
-          const token2022Accounts = await solanaConnection.getParsedTokenAccountsByOwner(
-            ownerPubkey,
-            { programId: TOKEN_2022_PROGRAM_ID },
-            'confirmed'
-          );
-          if (token2022Accounts?.value && token2022Accounts.value.length > 0) {
-            for (const item of token2022Accounts.value) {
-              const parsed = item.account?.data?.parsed;
-              const uiAmount = parsed?.info?.tokenAmount?.uiAmount;
-              if (typeof uiAmount === 'number' && uiAmount > 0) {
-                totalTokenAmount += uiAmount;
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      usdcBalanceCache.set(address, { timestamp: Date.now(), balance: totalTokenAmount });
-      return totalTokenAmount;
+      const balance = usdcNumberFromUnits(await fetchUsdcUnits(solanaConnection, new PublicKey(address)));
+      usdcBalanceCache.set(address, { timestamp: Date.now(), balance });
+      return balance;
     } catch (e: any) {
       if (e?.message?.includes('429') || e?.toString()?.includes('429')) {
         console.warn('⚠️ [Solana USDC RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');
@@ -723,7 +658,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
           ).catch(() => ({ value: [] })),
           solanaConnection.getParsedTokenAccountsByOwner(
             pubKey,
-            { programId: new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') },
+            { programId: TOKEN_2022_PROGRAM_ID },
             'confirmed'
           ).catch(() => ({ value: [] })),
         ]);

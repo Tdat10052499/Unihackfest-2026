@@ -1,24 +1,15 @@
 import { loadStockTokens, parseTokenResponse } from './tokenResponse.ts';
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'expo-router';
+export * from './fees.ts';
 
 export const JUPITER_ORDER_URL = 'https://api.jup.ag/swap/v2/order';
 export const JUPITER_TOKENS_URL = 'https://api.jup.ag/tokens/v2';
-export const MAINNET_USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-export const WSOL_MINT = 'So11111111111111111111111111111111111111112';
-export const NED_FEE_BPS = 25;
 export const QUOTE_REFRESH_MS = 15_000;
 export const ORDER_INTERVAL_MS = 2_100;
-export type SwapAsset = 'SOL' | 'USDC';
 export type Slippage = 'auto' | 0.5 | 1 | 3;
 export type JupiterToken = { id: string; name?: string; symbol?: string; icon?: string; decimals: number; isVerified?: boolean; tags?: string[]; usdPrice?: number; liquidity?: number; mcap?: number; holderCount?: number; stats24h?: { priceChange?: number; buyVolume?: number; sellVolume?: number; volumeChange?: number } };
 export type JupiterOrder = { inputMint: string; outputMint: string; inAmount: string; outAmount: string; outUsdValue?: number; otherAmountThreshold: string; slippageBps?: number; priceImpact?: number; priceImpactPct?: string; routePlan?: { swapInfo?: { label?: string; inAmount?: string; outAmount?: string }; percent?: number }[]; feeBps?: number; platformFee?: { amount?: string; feeBps?: number; feeMint?: string }; router?: string; transaction?: string | null; requestId?: string };
-export const DEVNET_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
-export const DEVNET_TO_MAINNET: Record<string, string> = { [DEVNET_USDC_MINT]: MAINNET_USDC_MINT, SOL: WSOL_MINT };
-export function mapDevnetMintToMainnet(mint: string): string | null { return DEVNET_TO_MAINNET[mint] ?? null; }
-export function quoteMintForAsset(asset: SwapAsset): string { return asset === 'SOL' ? WSOL_MINT : MAINNET_USDC_MINT; }
-export function calculateFee(amount: bigint, feeBps = NED_FEE_BPS): bigint { return (amount * BigInt(feeBps)) / 10_000n; }
-export function calculateMinimumReceived(order: JupiterOrder, feeBps = NED_FEE_BPS): bigint { const minimum = BigInt(order.otherAmountThreshold || '0'); return minimum - calculateFee(minimum, feeBps); }
 
 type QueueJob<T> = { run: () => Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void; signal?: AbortSignal };
 class RequestQueue { private jobs: QueueJob<unknown>[] = []; private running = false; private lastRun = 0;
