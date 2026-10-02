@@ -129,6 +129,33 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Đã kiểm tra ảnh Chromium 390×844 bằng fixture cho bảy màn, không tràn ngang; sửa khoảng cách dấu `$` và cố định CTA chi tiết. Chưa test ví thật hay Safari iPhone cho giao diện mới; không thực hiện giao dịch on-chain trong phiên này.
 - Báo cáo, các khác biệt có chủ ý với PDF và checklist test tay: [ui-pdf-alignment.md](02-thiet-ke/ui-pdf-alignment.md). Ưu tiên Safari: Home refresh/navigation; Swap `0,1`, keypad, slippage, Accept giá, slide; xStocks AAPLx bốn khung, mua $50, bán 50%, receipt, quay Home; Network không có `/execute`.
 
+## Milestone Lock
+
+Đặc tả: [`09-milestone-lock/program-spec.md`](09-milestone-lock/program-spec.md). Kế hoạch: [`09-milestone-lock/non-ui-plan.md`](09-milestone-lock/non-ui-plan.md).
+
+### Program P0 — N4 + N5 (nhánh `feat/n4-milestone-p0`, 02/10/2026, **chưa deploy**)
+
+- `ned_program` có thêm 8 instruction P0: `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`. Thêm account `SharedFund` (708 byte; `client` ở offset 12, `freelancer` ở 44) và lỗi mới mã 6009 (`InvalidMilestoneCount`) → 6033 (`MathOverflow`). Identity giữ nguyên.
+- `PAYOUT_PARTNERS` đang dùng public key tạm `DwjFswK4mFycQgV2pckFWYj8T2jTWc4RWgBNgDcbZYjt`, không lưu private key; thay ở N12.
+- Kiểm tra: `anchor build && cargo test` đều pass: 10 test identity, 17 test milestone (nhóm 1–6, 9–15 của program-spec mục 8; nhóm 13 mới làm nửa approve + auto-release + refund) và 4 test helper. `program_autofixer`: 0 issue.
+- `.so` mới 420 000 byte, bản identity là 231 520 byte. Lúc deploy (N6) có thể phải `solana program extend` trước.
+
+**Compute units mỗi instruction** (LiteSVM, test `g15_compute_units_per_instruction`; fund 3 milestone, đường Vietnam trừ dòng `accept (OwnWallet)`):
+
+| Instruction | Compute units |
+| --- | ---: |
+| `create_fund` (3 milestone, tạo fund + vault) | 29 824 |
+| `accept` (PayoutPartner) | 7 650 |
+| `accept` (OwnWallet) | 7 713 |
+| `lock` | 22 260 |
+| `submit` | 7 518 |
+| `approve` | 27 185 |
+| `release_after_review` | 27 355 |
+| `refund` | 22 543 |
+| `close` (đóng vault + fund) | 16 851 |
+
+Mọi instruction đều dưới 30 000 CU, chưa tới 15% hạn mức mặc định 200 000.
+
 ## 4. Lệnh hay dùng
 
 ### Bổ sung sửa `tokens.filter is not a function` — `fix/p3-xstocks-rework`
