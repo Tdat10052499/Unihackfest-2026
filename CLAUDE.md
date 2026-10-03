@@ -2,7 +2,7 @@
 
 Read in this order before analysing or changing anything:
 
-1. `docs/09-milestone-lock/README.md`: the current product direction (2 Oct 2026) and decision log D1–D19. Then `build-plan.md` (current build order from 3 Oct: program v1.1, mobile wallet, web Workspace, landing), `product-spec.md` (flow, Vietnam path, screens, words, demo, brief and delivery content), `program-spec.md` v1.1 before touching the program (byte layout, instructions, errors, tests), and `refactor-plan.md` for the PR details it still holds (what to hide or delete, screen lists).
+1. `docs/09-milestone-lock/README.md`: the current product direction (2 Oct 2026) and decision log D1–D20. Then `build-plan.md` (current build order from 3 Oct: program v1.1, mobile wallet, web Workspace, landing) and `workspace-plan.md` (the Workspace is its own app `ned-workspace/`; shared code in `packages/ned-core`; `ned-wallet/` is mobile only), `product-spec.md` (flow, Vietnam path, screens, words, demo, brief and delivery content), `program-spec.md` v1.1 before touching the program (byte layout, instructions, errors, tests), and `refactor-plan.md` for the PR details it still holds (what to hide or delete, screen lists).
 2. `docs/08-research/ned-research-and-compliance.md`: research behind it (customer, market, competitors, payout partners, Vietnamese and international law, rubric, day plan). Labels [Verified] / [Inference] / [Assumption] / [Unverified].
 3. `docs/05-legal/compliance-lead-tasks.md`: competition decisions confirmed with the organisers (English only, both tracks, no Best AI Product prize) and the review rule for anything shown to judges.
 4. `docs/tong-hop-tien-do.md`: what is already built and tested (Vietnamese).

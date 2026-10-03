@@ -17,7 +17,7 @@ Run the prompts in order. Each prompt is one session.
 | 6 | B4a | Contracts: list, detail, accept, lock | After B1, B3 |
 | 7 | B4b | Contracts: new, submit, review, close, invite link | After B4a |
 | 8 | B5 | Records and notifications (cuttable) | If ahead of schedule |
-| 9 | C1 | Hosting, base URL, router, headers | After B4b, G2, G3 |
+| 9 | C1–C4 | **Replaced by [`workspace-plan.md`](workspace-plan.md) W0–W5 (D20)**; the C1–C4 prompts below are kept for reference only | — |
 | 10 | C2 | Workspace shell and wallet panel | After C1 |
 | 11 | C3 | Brief editor | After C2 |
 | 12 | C4 | Submit and review on the web | After C3 |
@@ -79,7 +79,7 @@ Finish: commit, push, fast-forward main (stop if not a fast-forward).
 ## 3 · B1: content layer (brief, delivery, encrypted notes)
 
 ```text
-Task: build-plan.md phase B1 — brief and delivery content: canonical JSON, hashes, XChaCha20-Poly1305 notes via post_note, per-contract key in the invite link, useContractContent hook.
+Task: build-plan.md phase B1 — brief and delivery content (write content.ts, keys.ts, notes.ts and the action changes in packages/ned-core after W0; ned-wallet keeps shims): canonical JSON, hashes, XChaCha20-Poly1305 notes via post_note, per-contract key in the invite link, useContractContent hook.
 Branch: feat/b1-content-layer.
 Read first: build-plan.md sections 4 (B1) and 10; product-spec.md section 5.1; program-spec.md row 13 and section 4.1 (post_note); non-ui-plan.md sections 3 and 3.1 (the amended interface); services/milestone/*, hooks/useMilestoneActions.ts, services/chain/send.ts.
 Do:
@@ -120,7 +120,7 @@ Read first: build-plan.md sections 4 (B3) and 10; refactor-plan.md PR4; product-
 Do:
 1. WalletNav: Home · Contracts · Records · Settings; remove the SWAP/XSTOCKS tiles and tab (routes stay behind FEATURES flags).
 2. Onboarding: welcome → setup → (fund) → consent → profile (with generated avatar) → residence → home; set CONSENT_SCREEN_READY = true and delete the TODO(N11 bridge) path.
-3. Avatar: port the algorithm of Avatar.dc.html exactly (FNV-1a + murmur3 finaliser, 8 palettes × 6 patterns × 4 rotations) as pure code in services/avatar/ with a node --test unit test (npm test only globs services/** and utils/**); components/Avatar renders it with react-native-svg; seed = wallet address.
+3. Avatar: port the algorithm of Avatar.dc.html exactly (FNV-1a + murmur3 finaliser, 8 palettes × 6 patterns × 4 rotations) as pure code in packages/ned-core/avatar.ts (shared with ned-workspace; if W1 already added it, reuse it) with a node --test unit test; components/Avatar renders it with react-native-svg; seed = wallet address.
 4. Home: greeting by time of day + name; Vietnam view (flag, "Locked for you ≈ VND", received this month, Share @user / Records tiles, needs-your-action, contracts); international view (flag, USDC balance, New contract / Receive / Send tiles). Data from useFunds and existing balance hooks; Home must not show USDC in the Vietnam view.
 5. Settings and Disclosures as the boards (I live in Vietnam, display currency, consent view/withdraw, DEVNET badge); add the D15 disclosure line about invite links.
 6. Copy fixes listed in refactor-plan PR4.

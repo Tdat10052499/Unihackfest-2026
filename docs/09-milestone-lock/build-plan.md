@@ -29,7 +29,7 @@ Status: **adopted 3 Oct 2026** by the PO. This plan replaces the schedule in [`r
 | **G · Gates** | Owner checks before code: same wallet on a second device, Dynamic and Helius domain lists, old devnet funds closed | 1.5 (owner) |
 | **A · Program** | `brief_hash`, non-zero evidence, `post_note`; tests; devnet upgrade; IDL to the app | 6 |
 | **B · Mobile wallet** | Content layer (brief and delivery, encrypted notes), light theme + motion, navigation and onboarding, contract screens, records | 32 |
-| **C · Web** | Hosting (Vercel, base URL, invite-link router, headers), Workspace (wallet panel, brief editor, submit, review), landing page | 20 |
+| **C · Web** | `ned-workspace/` app ([`workspace-plan.md`](workspace-plan.md) W0–W5: shared core, Vite app, wallet panel, brief editor, submit, review, invite-link router, Vercel) and the landing page (C5) | 26 |
 | **D · Hardening** | Two-device end-to-end run, demo operations, README, deploys, backup video | 6 |
 
 That is about 65 hours for one developer in six days.
@@ -196,7 +196,9 @@ Routes `app/contracts/index.tsx`, `new.tsx`, `[fund].tsx`, plus the sheets, exac
 
 As refactor-plan PR6. In the Vietnam view, records are in ≈ VND.
 
-## 5. Phase C · Web (same Expo app; Workspace routes)
+## 5. Phase C · Web
+
+> **3 Oct 2026 (D20):** C1–C4 are replaced by [`workspace-plan.md`](workspace-plan.md) W0–W5. The Workspace is its own app, `ned-workspace/`, and shared code moves to `packages/ned-core`. C1–C4 below are kept only as the feature list. C5 (landing page) is unchanged.
 
 ### C1 · Hosting and routing (about 3 h)
 

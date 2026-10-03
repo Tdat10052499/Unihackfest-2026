@@ -10,6 +10,7 @@
 | [`non-ui-plan.md`](non-ui-plan.md) | Tasks N0–N13 that do not wait for the redesign (program, chain layer, `services/milestone`, hooks, plumbing, scripts, security) and the frozen hook interface for the screens | Developers |
 | [`refactor-plan.md`](refactor-plan.md) | Current code state, target architecture, PR0–PR7 with files and hours, schedule to 10 Oct, risks | Developers, PO |
 | [`build-plan.md`](build-plan.md) | **Current build order (3 Oct):** gates G, program v1.1 (A), mobile wallet (B), web Workspace and landing (C), hardening (D); schedule and cut order to the 9 Oct freeze | Developers, PO |
+| [`workspace-plan.md`](workspace-plan.md) | **`ned-workspace/` as its own app (D20):** architecture, `packages/ned-core`, tasks W0–W5 with prompts; replaces build-plan C1–C4 | Developers, PO |
 | [`prompts-build.md`](prompts-build.md) | One Claude Code prompt per build-plan task (A1 → D2) and the owner checklist G | Developer, PO |
 
 **In one line:** a foreign client locks USDC per milestone in `ned_program`; on approval or after the review deadline it goes to the freelancer's own wallet (international) or to a payout partner that pays VND to a Vietnamese bank account (Vietnam, partner simulated in the demo). N.E.D holds nothing and charges nothing in v1.
@@ -39,6 +40,7 @@ Adopted on 2 Oct 2026 to remove the contradictions below, so coding can start. T
 | D17 | Light theme, no outlines (tone and soft shadow), motion tokens of the canvas "Motion & surfaces" board; Reanimated 4 in the app, Motion for React only on the landing page | Canvas approved 3 Oct; Motion animates DOM elements only | Token files `constants/design.ts`, `constants/motion.ts` |
 | D18 | The Vietnam view never offers "New contract" or client actions | A Vietnam resident locking USDC would hold a crypto asset (C10) | Remove the guard in `useRegion` checks |
 | D19 | The landing page is built by a second team member; cut order in `build-plan.md` section 6 applies from 7 Oct | About 65 hours of work for one developer | — |
+| D20 | The Workspace is its own app, `ned-workspace/` (Vite + React + Motion for React), deployed on Vercel; `ned-wallet/` is mobile only; shared TypeScript moves to `packages/ned-core` (3 Oct, PO). Replaces the "one Expo app" part of D16; the host rule of D16 stays | Clear separation of mobile and web code; a DOM app for the desktop Workspace | About 6 more hours than C1–C4 (`workspace-plan.md`) |
 
 ## Review fixes (3 Oct)
 
