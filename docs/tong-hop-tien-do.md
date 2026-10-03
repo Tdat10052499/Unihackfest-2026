@@ -162,6 +162,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B2 giao diện sáng Modern Minimal v2, bỏ viền, motion | `feat/b2-theme-motion` | `4a762c7`, `d0e8ead` + docs |
 | B3 điều hướng, onboarding, Home hai chế độ xem, Settings, Disclosures | `feat/b3-nav-onboarding` | `285bcf9`, `83a0f43`, `ccc9ecd`, `42c0330`, `3c54d48` + docs |
 | W2 Workspace: Overview, trang hợp đồng chỉ đọc, router invite `/c/:fund`, dán link hợp đồng | `feat/w2-workspace-overview` | `6f75edf`, `0d5a18e`, `5174980` + docs |
+| B4a app: danh sách + chi tiết hợp đồng, accept, lock, release/refund now, close | `feat/b4a-contracts-detail` | `cc08c77`, `aa3e14a` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -175,6 +176,39 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**B4a (03/10/2026): màn hợp đồng trên app.**
+- **`/contracts`** (board ContractsList):
+  - tab As freelancer / As client; lọc Active · Needs action · Completed;
+  - chip trạng thái, avatar, trạng thái rỗng;
+  - "New contract" chỉ khi là client và không ở Vietnam view; "Share my @username" cho freelancer.
+- **`/contracts/[fund]`** (board ContractDetail):
+  - banner "Next ·", banner "Release now / Refund now · ANYONE CAN DO THIS", không đủ thời gian;
+  - bên kia; hero có bằng chứng vault + Explorer; nơi nhận tiền (+SIMULATED);
+  - **Brief card**: `ok` / `mismatch` / `noKey`, có ô dán link;
+  - milestone có tên, "Done when", đếm ngược theo giờ chain (tô vàng khi gần hết);
+  - luật, Disclosures, Contract ID, **Copy contract link** kèm cảnh báo ai có link cũng đọc được brief;
+  - thanh hành động theo vai trò.
+  - Vietnam view **không có hành động của client** (D18): client chỉ thấy thông báo.
+- **Accept** (`/accept`):
+  - brief hiện trước và **bắt buộc "Brief matches ✓"**;
+  - Vietnam view ẩn lựa chọn USDC và hiện ghi chú "You live in Vietnam, so earnings arrive in VND only";
+  - "This can't be changed later", phí liệt kê từng dòng, slide to accept.
+- **Lock** (`/lock`): kiểm tra số dư, link faucet, phí liệt kê, slide; màn **Locked** cho client và bản đối xứng cho freelancer (banner "Locked · you can start" trên trang chi tiết).
+- **Release now / Refund now** là bottom sheet; **Close** (`/close`) cho biết rent trả về và có màn kết quả.
+- Submit / Review trên app là việc của B4b; nút hiện nhưng bị tắt, kèm ghi chú.
+- **Nhãn (open issue 3)** sửa trong core: client "Review time is over · anyone can release", freelancer "Ready to release"; thêm "Submission deadline passed". Có 2 test mới.
+- `SlideConfirm` restyle theo board (pill tint, nút tròn tím), có trạng thái busy; vẫn giữ "Tap to confirm instead".
+- **Preview cho dev:** `/dev/contract-preview?wallet=…&fund=…&view=…&screen=list|detail|accept|lock|locked[&k=…]`, chỉ đọc, chỉ khi `devTools`.
+- **Test:**
+  - core **86/86**, wallet 21, workspace 3; `tsc` app + workspace 0 lỗi; `expo export --platform web` OK.
+- **Devnet:** chạy qua từng trạng thái bằng script tạm (không commit) với hai ví test, VND path, 1 milestone; chụp Chromium 390×844, không chữ bị cắt, không lỗi:
+  - created: client chi tiết, freelancer chi tiết + accept;
+  - accepted: client chi tiết + lock, freelancer chi tiết;
+  - locked: client màn Locked + chi tiết, freelancer chi tiết + màn mirror;
+  - review passed: cả hai chi tiết, nhãn đúng open issue 3;
+  - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
+- **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
 
 **W2 (03/10/2026): Workspace Overview, trang hợp đồng, router invite.**
 - **Hook** (`ned-workspace/src/hooks`):
@@ -409,7 +443,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 
 1. **Đổi khoá** (chỉ chủ dự án làm được): xem checklist ở mục T0.2 bên dưới (relayer, Helius + giới hạn domain, Supabase, Jupiter, deploy lại Pages). Key Helius mainnet hiện làm `identity:check` lỗi ở bước `sns.sol`.
 2. **LICENSE**: README ghi MIT nhưng chưa có file LICENSE. Cần quyết định: thêm file MIT hay bỏ dòng này.
-3. **Nhãn còn thiếu (review N10 #3)**: milestone đã Submitted và quá review deadline vẫn hiện "auto-release in 0:00". Cần chủ dự án chốt câu chữ. Đề xuất: client "Submitted · review time over · anyone can release", freelancer "Submitted · ready to release".
+3. ~~**Nhãn còn thiếu (review N10 #3)**~~ — **đã đóng ở B4a (03/10)**: client "Review time is over · anyone can release", freelancer "Ready to release" (chữ theo prompt B4a); thêm "Submission deadline passed" cho milestone chưa nộp đã quá hạn. Có test trong core.
 4. **Chưa test tay**:
    - harness hai trình duyệt (N10);
    - checklist web N11 (đăng nhập, người cũ, người mới đến Home, Send, `/swap` và `/xstocks` chuyển về Home);
