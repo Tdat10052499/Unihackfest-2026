@@ -265,8 +265,10 @@ Use the `@/components/design` primitives (`Screen`, `Header`, `Card`, `ListRow`,
 ### PR6 · Records and notifications (7 Oct, about 3 h, cuttable)
 
 - **`app/records.tsx`:** releases grouped by month, in ≈ VND for the Vietnam view and USDC for the international view, with a CSV export and the disclaimer.
-- **Source:** open contracts, plus a local cache (`@ned_records_v1:<wallet>`) written whenever the app sees a released milestone.
-- **Limitation:** releases from contracts closed on another device without being seen are missing. This is fine for the demo; launch would read program events.
+- **Source:** a local cache (`@ned_records_v1:<wallet>`), brought up to date from the chain (`@ned/core` `syncRecords`, built in B5 on 3 Oct):
+  - open contracts: when a milestone shows as released, that contract's transactions give the date, the release transaction and the amount;
+  - the wallet's own history: the freelancer signs `accept`, so its signatures list every contract it joined, **including contracts closed on another device**. Each closed contract is read once.
+- **Limitation:** the first scan reads the newest 100 signatures of the wallet (about 13 s on devnet with Helius), and later scans read only newer ones. A contract accepted before those 100 is missing. Launch would read program events from an indexer.
 - **Notifications:** contract changes (new contract, locked, submitted, released) go through `useNotificationStore.addNotification` and `triggerBanner`.
 
 ### PR7 · Demo operations and clean-up (6–8 Oct, about 4 h)
