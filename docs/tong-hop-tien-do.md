@@ -155,6 +155,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | N12 key partner thật, script recycle, deploy lại | `chore/n12-demo-ops` | `692c78c`, `8523571`, `b90a462` |
 | N13 bảo mật + README; sửa theo review | `chore/n13-security-readme` | `8dacce1`, `bf752d4`, `7b866ee`, `55a6954`, `e1e77d5` |
 | W0 `packages/ned-core` + pnpm workspace ở gốc | `feat/w0-ned-core` | `5e55049`, `111c970`, `c3d70a1`, `ad83f13` |
+| W1 khung `ned-workspace` (Vite + React), đăng nhập, wallet panel, `vercel.json` | `feat/w1-workspace-scaffold` | `1a8fb24`, `5b0ac9a`, `fb3648f`, `17ab376`, `df97ef1`, `6e3fc52` |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -169,10 +170,40 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
 
+**W1 (03/10/2026):**
+- **App mới `ned-workspace/`** (Vite 8 + React 19 + TypeScript, trong pnpm workspace):
+  - React Router, TanStack Query, Motion 13.5 (`LazyMotion` + `domAnimation`, `MotionConfig reducedMotion="user"`; khi bật Reduce Motion thì mọi animation tức thì, đúng board MotionSurfaces);
+  - token CSS theo các board `Web*` (`src/styles/tokens.css`), CSS Modules, không viền;
+  - đăng nhập Dynamic Google (redirect) qua `src/auth/` với cùng hình dạng `useAuth()` như mobile;
+  - `configureCore()` từ các biến `VITE_*`; `.env.example` chỉ có tên biến.
+- **Màn hình:**
+  - top bar (logo, badge Devnet, nút ví có avatar sinh từ địa chỉ ví bằng `@ned/core/avatar`);
+  - wallet panel: chưa đăng nhập ("Continue with Google") và home (số dư USDC hoặc ≈ VND theo region, "Needs your action" dạng placeholder, quick actions mở app điện thoại, "Open the full wallet", "Sign out"); Escape, bấm ra ngoài, focus trap, `aria-expanded`; API `confirm(request)` để sẵn, trạng thái confirm làm ở W4;
+  - `/sign-in` theo board WebSignIn; `/` là Overview tạm (lời chào + bảng "Your contracts" đọc từ chain); `*` → `/`;
+  - màn hình hẹp hơn 900 px: "Use the N.E.D app on your phone" + QR tới app điện thoại.
+- **`ned-workspace/vercel.json`:**
+  - rewrite SPA;
+  - CSP ở chế độ **Report-Only** (Dynamic, Ably realtime của ví MPC, RPC devnet Solana/Helius https+wss, Google Fonts);
+  - `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `nosniff`;
+  - lệnh install pnpm 11 cho monorepo. Đã chạy thử install + build trong một bản clone sạch: OK (16 giây).
+- **Test:**
+  - `pnpm --filter ned-workspace build` và `tsc --noEmit`: OK;
+  - core 74/74 + `ned-wallet` 19/19; `ned-wallet` tsc 0 lỗi;
+  - Playwright với `vite preview`: panel mở/đóng (có và không có Reduce Motion), focus trap, Escape trả focus về nút, bấm ra ngoài thì đóng, cổng màn hình hẹp;
+  - Lighthouse desktop `/sign-in`: performance 99, accessibility 100, best practices 100.
+- **Chưa làm / cần chủ dự án:**
+  - đăng nhập Google thật (cần `.env.local` và thêm `http://localhost:4173` vào allowed origins của Dynamic);
+  - so địa chỉ ví với điện thoại; Lighthouse cho `/` khi đã đăng nhập;
+  - tạo project Vercel (chưa đụng dashboard).
+- **Ghi chú:**
+  - board ghi "Received this month", nhưng chain không lưu ngày release, nên panel hiện "Released to you" (tổng từ trước đến nay);
+  - bundle JS 457 kB gzip (Dynamic + web3.js), sẽ tách lazy-load ở W6;
+  - region mặc định `vn` khi máy này chưa lưu (hỏi region trên Workspace: W2).
+
 ### Test (lần chạy cuối, 03/10/2026)
 
 - `anchor build && cargo test`: identity 10/10, milestone 24/24, helpers 4/4, `test_id` 1/1; 0 warning. `program_autofixer`: 0 issue.
-- `npm test`: 91/91. `npx tsc --noEmit`: 0 lỗi. `npx expo export --platform web`: OK.
+- `npm test`: 93/93 (core 74 + wallet 19). `pnpm --filter ned-workspace build`: OK. `npx tsc --noEmit`: 0 lỗi. `npx expo export --platform web`: OK.
 - Devnet: `npm run milestone:devnet` PASS (VND path ×2, `--refund` ×1), lần cuối với partner thật. `recycle:demo-usdc` PASS (16 → 18 USDC).
 - `npm run identity:check`: các bước devnet PASS; bước `sns.sol` trên **mainnet** lỗi (xem vấn đề mở 1).
 
