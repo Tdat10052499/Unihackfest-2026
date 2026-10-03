@@ -1,26 +1,76 @@
-// / — W1 placeholder of the Overview (WebWorkspace board): greeting and the "Your contracts" list from the chain.
-// Stats, Needs your action cards, the side nav and contract links arrive with W2/W3.
+// / — Overview (WebWorkspace board, who = mia / vinh): greeting + call to action, three stats, needs-your-action
+// cards, the contracts table. Vietnam view: ≈ VND, no "New contract", no client actions (decision D18).
+import { useState } from 'react';
+import { Link } from 'react-router';
 import { m } from 'motion/react';
-import type { ChipTone, FundView } from '@ned/core/milestone/view.ts';
+import { USD_VND_RATE_DATE } from '@ned/core/constants.ts';
+import { formatDeadline, formatUsdc, usdcFromUnits, vndFromUnits } from '@ned/core/milestone/format.ts';
+import { unsettled } from '@ned/core/milestone/rules.ts';
+import type { ActionKind, ChipTone, FundAccount, FundView } from '@ned/core/milestone/view.ts';
 import { useAuth } from '../auth/AuthProvider.tsx';
-import { Avatar } from '../components/Avatar.tsx';
-import { useFunds, useUsername } from '../data/queries.ts';
-import { useRegion } from '../data/region.ts';
+import { ContractsTable, partyName } from '../components/ContractsTable.tsx';
+import { Icon, type IconName } from '../components/icons.tsx';
+import { StatusChip } from '../components/StatusChip.tsx';
+import { WorkspaceNav } from '../components/WorkspaceNav.tsx';
+import shell from '../components/Shell.module.css';
+import { useFundAccounts, useFunds, useUsername } from '../hooks/queries.ts';
+import { useRegion } from '../hooks/region.ts';
 import { shortAddress } from '../lib/format.ts';
-import { rise, screen, staggerParent } from '../motion.ts';
+import { rise, staggerParent } from '../motion.ts';
 import styles from './Overview.module.css';
 
-const TONE: Record<ChipTone, [string, string, string]> = {
-  info: ['var(--info-bg)', 'var(--info-ink)', 'var(--info-dot)'],
-  accent: ['var(--purple-bg)', 'var(--purple-ink)', 'var(--purple-dot)'],
-  warning: ['var(--warning-bg)', 'var(--warning-ink)', 'var(--warning-dot)'],
-  success: ['var(--success-bg)', 'var(--success-ink)', 'var(--success-dot)'],
-  neutral: ['var(--neutral-bg)', 'var(--neutral-ink)', 'var(--neutral-dot)'],
+const LOOK: Partial<Record<ActionKind, { icon: IconName; tone: string; cta: string; path?: 'submit' | 'review' }>> = {
+  submit: { icon: 'submit', tone: 'purple', cta: 'Open delivery form', path: 'submit' },
+  approve: { icon: 'review', tone: 'info', cta: 'Review delivery', path: 'review' },
+  releaseNow: { icon: 'release', tone: 'success', cta: 'Release' },
+  refundNow: { icon: 'release', tone: 'warning', cta: 'Open contract' },
+  accept: { icon: 'check', tone: 'info', cta: 'Read and accept' },
+  lock: { icon: 'lock', tone: 'info', cta: 'Open contract' },
+  close: { icon: 'close', tone: 'neutral', cta: 'Open contract' },
 };
+
+const vnd = (units: bigint) => `≈ ${vndFromUnits(units).toLocaleString('en-US')} VND`;
+const rateDay = new Date(`${USD_VND_RATE_DATE}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const mine = (k: { toBase58(): string }, w: string) => k.toBase58() === w;
 
 function greeting(date = new Date()) {
   const h = date.getHours();
   return h < 12 ? 'Good morning,' : h < 18 ? 'Good afternoon,' : 'Good evening,';
+}
+
+function peopleLine(views: FundView[], vn: boolean) {
+  const names = [...new Set(views.map(partyName))];
+  if (!names.length) return 'None yet';
+  if (names.length === 1) return views.length > 1 ? `${vn ? 'All from' : 'All with'} ${names[0]}` : `${vn ? 'From' : 'With'} ${names[0]}`;
+  return `With ${names.length} people`;
+}
+
+function stats(raw: FundAccount[], views: FundView[], wallet: string, vn: boolean) {
+  const active = views.filter((f) => f.state !== 'settled');
+  let lockedForMe = 0n;
+  let lockedByMe = 0n;
+  for (const f of raw) {
+    const open = f.state === 'Funded' ? unsettled(f) : 0n;
+    if (mine(f.freelancer, wallet)) lockedForMe += open;
+    if (mine(f.client, wallet)) lockedByMe += open;
+  }
+  const activeStat = { label: 'Active contracts', value: String(active.length), sub: peopleLine(active, vn) };
+  if (vn) {
+    const toSubmit = views.flatMap((f) => f.milestones.filter((ms) => ms.actions.includes('submit')));
+    const next = toSubmit.map((ms) => ms.submitBy).sort((a, b) => a - b)[0];
+    return [
+      { label: 'Locked for you', value: vnd(lockedForMe), sub: `Estimate · $${usdcFromUnits(lockedForMe)} · rate of ${rateDay}` },
+      { label: 'To submit', value: String(toSubmit.length), sub: next ? `Next deadline ${formatDeadline(next)}` : 'Nothing due' },
+      activeStat,
+    ];
+  }
+  const toReview = views.flatMap((f) => f.milestones.filter((ms) => ms.actions.includes('approve')));
+  const next = toReview.map((ms) => ms.reviewBy).sort((a, b) => a - b)[0];
+  return [
+    { label: 'Locked in your contracts', value: formatUsdc(lockedByMe), sub: 'Held by the program, not by N.E.D' },
+    { label: 'Waiting for your review', value: String(toReview.length), sub: next ? `Auto-release ${formatDeadline(next)}` : 'Nothing to review' },
+    activeStat,
+  ];
 }
 
 export function Overview() {
@@ -28,83 +78,121 @@ export function Overview() {
   const wallet = walletAddress!;
   const username = useUsername(wallet).data;
   const { region } = useRegion(wallet);
+  const vn = region === 'vn';
+  const accounts = useFundAccounts(wallet);
   const { funds, loading, error } = useFunds(wallet, region);
-  const roles = new Set(funds.map((f) => f.role));
-  const withLabel = roles.size !== 1 ? 'With' : roles.has('client') ? 'Freelancer' : 'Client';
+  const [copied, setCopied] = useState(false);
+  const cards = stats(accounts.data?.funds ?? [], funds, wallet, vn);
+  const needs = funds.filter((f) => f.needsMyAction && f.nextAction);
+
+  const share = async () => {
+    if (!username) return;
+    try {
+      await navigator.clipboard.writeText(`@${username}`);
+      setCopied(true);
+    } catch {
+      // clipboard blocked
+    }
+  };
 
   return (
-    <m.main id="main" className={styles.main} variants={screen} initial="hidden" animate="shown">
-      <m.div variants={staggerParent} style={{ display: 'contents' }}>
-        <m.h1 className={styles.greeting} variants={rise} custom={0}>
-          <span className={styles.hello}>{greeting()}</span>
-          <span className={styles.name}>{username ? `@${username}` : shortAddress(wallet)}</span>
-        </m.h1>
+    <div className={shell.shell}>
+      <WorkspaceNav vn={vn} />
+      <m.main id="main" className={shell.main} variants={staggerParent} initial="hidden" animate="shown">
+        <m.div className={styles.head} variants={rise} custom={0}>
+          <h1 className={styles.greeting}>
+            <span className={styles.hello}>{greeting()}</span>
+            <span className={styles.name}>{username ? `@${username}` : shortAddress(wallet)}</span>
+          </h1>
+          {vn ? (
+            <button type="button" className={styles.cta} onClick={() => void share()} disabled={!username} aria-live="polite">
+              <Icon name="share" size={17} color="#FFFFFF" />
+              {copied ? 'Copied' : username ? `Share @${username}` : 'Create your profile in the app'}
+            </button>
+          ) : (
+            <Link to="/new" className={styles.cta}>
+              <Icon name="plus" size={17} color="#FFFFFF" />
+              New contract
+            </Link>
+          )}
+        </m.div>
 
-        <m.section aria-labelledby="ws-contracts" variants={rise} custom={1}>
-          <h2 id="ws-contracts" className={styles.sectionTitle}>
-            Your contracts
+        <m.div className={styles.stats} variants={rise} custom={1}>
+          {cards.map((s) => (
+            <div key={s.label} className={styles.stat}>
+              <div className={styles.statLabel}>{s.label}</div>
+              <div className={styles.statValue}>{loading ? '—' : s.value}</div>
+              <div className={styles.statSub}>{s.sub}</div>
+            </div>
+          ))}
+        </m.div>
+
+        <m.section aria-labelledby="ws-needs" variants={rise} custom={2}>
+          <h2 id="ws-needs" className={styles.sectionTitle}>
+            Needs your action
           </h2>
-          <div className={styles.tableCard}>
-            {loading ? (
-              <p className={styles.message}>Reading your contracts from the chain…</p>
-            ) : error ? (
-              <p className={`${styles.message} ${styles.error}`} role="alert">
-                Could not read your contracts. Check your connection; we try again every few seconds.
-              </p>
-            ) : funds.length === 0 ? (
-              <p className={styles.message}>No contracts yet. When a client creates a contract with you, or you create one, it shows up here.</p>
-            ) : (
-              <div role="table" aria-label="Your contracts" className={styles.table}>
-                <div role="row" className={`${styles.row} ${styles.headRow}`}>
-                  <span role="columnheader">Contract</span>
-                  <span role="columnheader">{withLabel}</span>
-                  <span role="columnheader">Milestones</span>
-                  <span role="columnheader">Next step</span>
-                  <span role="columnheader" style={{ textAlign: 'right' }}>
-                    Amount
-                  </span>
-                  <span role="columnheader">Status</span>
-                </div>
-                {funds.map((f) => (
-                  <ContractRow key={f.address} fund={f} />
-                ))}
-              </div>
-            )}
-          </div>
+          {needs.length ? (
+            <div className={styles.needs}>
+              {needs.map((f) => {
+                const kind = f.nextAction!.kind;
+                const look = LOOK[kind] ?? { icon: 'check' as IconName, tone: 'purple', cta: 'Open contract' };
+                const ms = f.nextAction!.milestone !== undefined ? f.milestones[f.nextAction!.milestone] : undefined;
+                const when = ms?.countdown?.label ?? (ms ? `Due ${formatDeadline(ms.submitBy)}` : f.statusLabel);
+                const href = look.path ? `/contract/${f.address}/${look.path}` : `/contract/${f.address}`;
+                return (
+                  <div key={f.address} className={styles.need}>
+                    <div className={styles.needTop}>
+                      <span className={styles.needIcon} style={{ background: `var(--${look.tone}-bg)` }} aria-hidden>
+                        <Icon name={look.icon} size={18} color={`var(--${look.tone}-ink)`} />
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className={styles.needTitle}>{f.nextAction!.label}</div>
+                        <div className={styles.needSub}>
+                          {f.title} · {f.role === 'client' ? partyName(f) : `for ${partyName(f)}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.needFoot}>
+                      <StatusChip tone={(ms?.tone ?? f.tone) as ChipTone}>{when.charAt(0).toUpperCase() + when.slice(1)}</StatusChip>
+                      <Link to={href} className={styles.needCta}>
+                        {look.cta}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.empty}>{loading ? 'Reading your contracts from the chain…' : 'Nothing needs you right now.'}</p>
+          )}
         </m.section>
-      </m.div>
-    </m.main>
-  );
-}
 
-function ContractRow({ fund: f }: { fund: FundView }) {
-  const [bg, ink, dot] = TONE[f.tone];
-  const done = f.milestones.filter((m) => m.status === 'released' || m.status === 'refunded' || m.status === 'cancelled').length;
-  return (
-    <div role="row" className={styles.row}>
-      <span role="cell" className={styles.title} title={f.title}>
-        {f.title}
-      </span>
-      <span role="cell" className={styles.party}>
-        <Avatar seed={f.counterparty.wallet} size={28} decorative />
-        {f.counterparty.username ? `@${f.counterparty.username}` : shortAddress(f.counterparty.wallet)}
-      </span>
-      <span role="cell" className={styles.cellText}>
-        {done} of {f.milestones.length} done
-      </span>
-      <span role="cell" className={styles.next}>
-        {f.nextAction?.label ?? '—'}
-      </span>
-      <span role="cell" className={styles.amount}>
-        <span className={styles.amountValue}>{f.totalLabel}</span>
-        {f.state === 'funded' && <span className={styles.amountSub}>{f.lockedLabel} locked</span>}
-      </span>
-      <span role="cell">
-        <span className={styles.chip} style={{ background: bg, color: ink }}>
-          <span className={styles.chipDot} style={{ background: dot }} aria-hidden />
-          {f.statusLabel}
-        </span>
-      </span>
+        <m.section aria-labelledby="ws-contracts" variants={rise} custom={3}>
+          <div className={shell.tableTitleRow}>
+            <h2 id="ws-contracts" className={shell.sectionTitle}>
+              Your contracts
+            </h2>
+            <Link to="/contracts" className={shell.seeAll}>
+              See all
+            </Link>
+          </div>
+          {error ? (
+            <p className={`${shell.message} ${shell.error}`} role="alert">
+              Could not read your contracts. Check your connection; we try again every few seconds.
+            </p>
+          ) : funds.length ? (
+            <ContractsTable funds={funds.slice(0, 5)} vn={vn} />
+          ) : (
+            <p className={styles.empty}>
+              {loading
+                ? 'Reading your contracts from the chain…'
+                : vn
+                  ? 'No contracts yet. Share your @username with a client; their contract shows up here.'
+                  : 'No contracts yet. Lock USDC per milestone for a freelancer; it is released when you approve.'}
+            </p>
+          )}
+        </m.section>
+      </m.main>
     </div>
   );
 }

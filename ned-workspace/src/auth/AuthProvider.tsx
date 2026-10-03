@@ -56,7 +56,24 @@ async function switchToDevnet(client: DynamicClient, walletAccount: SolanaWallet
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
+/**
+ * Dev-only read-only preview (builds with VITE_DEV_TOOLS=1; removed from normal builds): `?previewWallet=<address>`
+ * shows the Workspace as that public wallet without a login, for screenshots and browser checks. Nothing can be signed.
+ */
+function previewWallet(): string | null {
+  if (import.meta.env.VITE_DEV_TOOLS !== '1') return null;
+  try {
+    const fromUrl = new URLSearchParams(location.search).get('previewWallet');
+    if (fromUrl) sessionStorage.setItem('ned.previewWallet', fromUrl);
+    return fromUrl ?? sessionStorage.getItem('ned.previewWallet');
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const preview = previewWallet();
+  if (preview) return <Preview wallet={preview}>{children}</Preview>;
   if (!dynamicClient) return <Unconfigured>{children}</Unconfigured>;
   return (
     <DynamicProvider client={dynamicClient}>
@@ -150,6 +167,16 @@ function DynamicAuth({ client, children }: { client: DynamicClient; children: Re
     () => ({ status, walletAddress: address, email: user?.email ?? null, error, login, logout, signTransaction }),
     [status, address, user?.email, error, login, logout, signTransaction]
   );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function Preview({ wallet, children }: { wallet: string; children: ReactNode }) {
+  const value = useMemo<AuthContextValue>(() => {
+    const fail = async (): Promise<never> => {
+      throw new Error('Preview only: nothing can be signed here.');
+    };
+    return { status: 'ready', walletAddress: wallet, email: 'preview@example.com', error: null, login: fail, logout: async () => {}, signTransaction: fail };
+  }, [wallet]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

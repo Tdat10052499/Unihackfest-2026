@@ -1,9 +1,14 @@
-// Page frame: top bar + content (max 1,280 px), or the phone gate below 900 px.
-import { Outlet } from 'react-router';
+// Page frame: top bar + content (max 1,280 px), or the phone gate below 900 px. Pages cross-fade (AnimatePresence,
+// screen fade 200 ms, exit 70 %); each page then rises its first five blocks 40 ms apart (motion.ts).
+import { useLocation, useOutlet } from 'react-router';
+import { AnimatePresence, m } from 'motion/react';
+import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { PhoneGate, useNarrowScreen } from './PhoneGate.tsx';
 import { TopBar } from './TopBar.tsx';
 
 export function Layout() {
+  const location = useLocation();
+  const outlet = useOutlet();
   if (useNarrowScreen()) return <PhoneGate />;
   return (
     <>
@@ -11,7 +16,16 @@ export function Layout() {
         Skip to content
       </a>
       <TopBar />
-      <Outlet />
+      <AnimatePresence mode="wait" initial={false}>
+        <m.div
+          key={location.pathname}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: DURATION.screenFade, ease: EASE } }}
+          exit={{ opacity: 0, transition: { duration: DURATION.screenFade * EXIT_RATIO, ease: EASE } }}
+        >
+          {outlet}
+        </m.div>
+      </AnimatePresence>
     </>
   );
 }
