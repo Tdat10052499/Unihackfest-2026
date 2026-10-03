@@ -26,6 +26,7 @@
 - [Program: build and test](#program-build-and-test)
 - [App: install, test and run](#app-install-test-and-run)
 - [Deploy the web build (GitHub Pages)](#deploy-the-web-build-github-pages)
+- [Workspace (ned-workspace): run, env, deploy](#workspace-ned-workspace-run-env-deploy)
 - [Environment variables](#environment-variables)
 - [Guidelines](#guidelines)
 
@@ -171,6 +172,32 @@ npm run deploy        # publishes dist/ to the gh-pages branch
 ```
 
 The site is served at `https://tdat10052499.github.io/Unihackfest-2026/` (base URL `/Unihackfest-2026`, set in `app.json`). The Dynamic environment must list `https://tdat10052499.github.io` in its CORS origins. Do **not** set `EXPO_PUBLIC_DEV_TOOLS` for the public build.
+
+---
+
+## Workspace (ned-workspace): run, env, deploy
+
+`ned-workspace/` is the computer side of N.E.D (Vite + React, decision D20): Overview, contracts, the brief editor (`/new`), submit and review pages, the wallet panel (sign-in and the confirm step of every signature) and the invite-link router `/c/:fund` (phones go on to the GitHub Pages build with `#k=` kept). Shared logic comes from `packages/ned-core`.
+
+```bash
+pnpm install                      # once, at the repo root (pnpm workspace)
+cd ned-workspace
+cp .env.example .env.local        # fill the values (names below)
+npm run dev                       # http://localhost:5173
+npm test                          # node --test (form model, file fingerprints, invite router)
+npm run build                     # tsc --noEmit + vite build → dist/
+```
+
+| Name | Required | Used for |
+| --- | --- | --- |
+| `VITE_DYNAMIC_ENVIRONMENT_ID` | yes | Dynamic login and embedded wallet; the **same** value as `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` (same users, same wallets) |
+| `VITE_HELIUS_DEVNET_URL` | recommended | Devnet RPC (Helius key restricted to the Workspace domain); empty = public devnet RPC, which rate-limits |
+| `VITE_PROGRAM_ID` | no | Overrides the program ID from the IDL |
+| `VITE_MOBILE_ORIGIN` | no | Mobile build for phones (default `https://tdat10052499.github.io/Unihackfest-2026`) |
+| `VITE_WORKSPACE_ORIGIN` | no | Origin put in invite links (default `https://unihackfest-2026.vercel.app`, also from previews and localhost) |
+| `VITE_DEV_TOOLS` | no | `1` enables the read-only `?previewWallet=<address>` mode for screenshots. **Never on Vercel.** |
+
+**Deploy (Vercel).** The Vercel project uses Root Directory `ned-workspace`; `ned-workspace/vercel.json` sets the install command (pnpm workspace), the build, the SPA rewrite and the security headers (enforced `Content-Security-Policy`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options`, `Permissions-Policy`). Every push to a branch gives a preview URL; `main` is production at `https://unihackfest-2026.vercel.app`. Login works only on origins listed in the Dynamic dashboard (CORS origins), so preview URLs other than production cannot sign in. When a new host is used at runtime (RPC, Dynamic, fonts), add it to the CSP in `vercel.json`, or the browser blocks it.
 
 ---
 
