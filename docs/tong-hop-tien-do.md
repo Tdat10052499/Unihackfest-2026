@@ -164,6 +164,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | W2 Workspace: Overview, trang hợp đồng chỉ đọc, router invite `/c/:fund`, dán link hợp đồng | `feat/w2-workspace-overview` | `6f75edf`, `0d5a18e`, `5174980` + docs |
 | B4a app: danh sách + chi tiết hợp đồng, accept, lock, release/refund now, close | `feat/b4a-contracts-detail` | `cc08c77`, `aa3e14a` + docs |
 | B4b app: tạo hợp đồng 3 bước có brief, submit, review, route invite `/c/[fund]` | `feat/b4b-contracts-flow` | `7806542`, `9e9020d`, `f672557`, `530a05b` + docs |
+| B5 Records + thông báo hợp đồng | `feat/b5-records` | `3c0d378`, `a5ff2b3`, `911a590`, `6e2e743` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -210,6 +211,33 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**B5 (03/10/2026): Records và thông báo hợp đồng.**
+- **`/records`** (board Records / RecordsIntl):
+  - nhóm theo tháng; Vietnam view hiện **≈ VND** (dòng phụ "$x · estimate", tổng "(estimate) · $x · rate of 2 Oct 2026"), international view hiện USDC;
+  - mỗi dòng: "tên việc · Milestone N", ngày, "from @client", chip "Released to payout partner" / "Released", link **Explorer tới đúng giao dịch release**;
+  - **Export CSV** (web tải file, native mở share sheet): ngày UTC, contract, milestone, title, ví client, USDC, VND ước tính, tỷ giá, ngày tỷ giá, nơi nhận, link giao dịch;
+  - câu "Not tax advice", chú thích tỷ giá + payout partner giả lập, badge Devnet, link Disclosures; trạng thái rỗng có mascot.
+- **Nguồn dữ liệu** (`@ned/core` `records.ts`, cache `@ned_records_v1:<wallet>`):
+  - hợp đồng còn mở: khi thấy milestone đã release thì đọc giao dịch của hợp đồng để lấy ngày, chữ ký giao dịch và số tiền;
+  - **lịch sử ví của freelancer**: freelancer ký `accept`, nên từ chữ ký của ví tìm được mọi hợp đồng đã tham gia, **kể cả hợp đồng đã đóng ở máy khác**. Mỗi hợp đồng đã đóng chỉ đọc một lần. Đọc được cả hợp đồng v1 cũ (tên lấy thủ công từ `create_fund`).
+  - **Khác spec cũ** (refactor-plan PR6 chỉ có hợp đồng mở + cache, chấp nhận mất bản ghi): đã sửa PR6 trong cùng branch.
+  - Lần quét đầu đọc 100 chữ ký mới nhất của ví (~13 giây trên devnet với Helius), sau đó chỉ đọc chữ ký mới; gặp 429 thì thử lại.
+- **Thông báo** (`hooks/useContractWatch.ts`, gắn trong `GlobalNotificationManager`):
+  - so sánh mỗi lần đọc hợp đồng với lần trước lưu trên máy (`@ned_contract_seen_v1:<wallet>`); lần đầu không báo gì;
+  - chỉ báo việc **bên kia** làm: hợp đồng mới và lock → freelancer; submit → client; release → freelancer;
+  - qua `useNotificationStore.addNotification` (tự bật banner); loại mới `CONTRACT` có `route`, bấm banner hoặc dòng thông báo mở thẳng trang hợp đồng;
+  - nội dung chỉ dùng dữ liệu on-chain (tên việc, số tiền, hạn review): **không có key, không có brief, không có tên milestone**. Có test kiểm tra không có từ cấm.
+  - release cũng cập nhật cache Records.
+- **Test:** core **94/94** (+8: records, events), wallet **24** (+1 notices), workspace 3; `tsc` app + workspace 0 lỗi; `expo export --platform web` OK.
+- **Devnet (chỉ đọc, không tốn SOL):** Records của freelancer test hiện **8 lần release**, trên cùng là hợp đồng B4b `85qN…1Tuo` (1.00 USDC → payout partner, 3 Oct), dù hợp đồng này đã đóng trước khi app thấy. Chụp Chromium 390×844 cả hai view, không chữ bị cắt, không lỗi; CSV tải về đúng; lần mở sau hiện ngay từ cache. Ví client test: trạng thái rỗng.
+- **Chưa test tay (cần chủ dự án):** thông báo cần đăng nhập thật (preview dev không chạy `GlobalNotificationManager` với ví preview):
+  - mở app bằng hai tài khoản; Mia tạo hợp đồng → Vinh thấy "New contract from …";
+  - Mia lock → Vinh thấy "Locked · you can start"; Vinh submit → Mia thấy "Milestone 1 submitted";
+  - Mia release → Vinh thấy "Milestone 1 released" và dòng mới trong Records.
+- **Vấn đề mới:**
+  - thông báo on-chain cũ của `useNotificationStore` vẫn bằng tiếng Việt ("Nhận tiền thành công") và còn ghi phí cố định; chưa sửa (ngoài phạm vi B5);
+  - `useContractWatch` cũng poll 8 giây, nên khi đang mở màn hợp đồng sẽ có hai lần đọc song song.
 
 **B4b (03/10/2026): tạo hợp đồng, nộp, duyệt, link mời trên app.**
 - **`/contracts/new`** (3 bước, một màn):
