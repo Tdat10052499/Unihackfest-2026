@@ -1,6 +1,7 @@
 // Wallet panel (WebWalletPanel board): a popover under the wallet button, like a wallet extension inside the page.
-// Signed out → Continue with Google. Signed in → wallet home. The confirm state is W4 (see WalletPanelContext).
+// Signed out → Continue with Google. Signed in → wallet home, or the confirm request of a signing action (W3).
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { m } from 'motion/react';
 import { USD_VND_RATE_DATE } from '@ned/core/constants.ts';
 import { usdcFromUnits, vndFromUnits, formatUsdc } from '@ned/core/milestone/format.ts';
@@ -22,7 +23,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
 
 export function WalletPanel({ id }: { id: string }) {
   const { status, walletAddress } = useAuth();
-  const { setOpen, triggerRef } = useWalletPanel();
+  const { setOpen, triggerRef, request } = useWalletPanel();
   const ref = useRef<HTMLDivElement>(null);
   const signedIn = status === 'ready' && walletAddress;
 
@@ -80,18 +81,98 @@ export function WalletPanel({ id }: { id: string }) {
     <m.div
       ref={ref}
       id={id}
-      className={styles.popover}
+      className={request ? `${styles.popover} ${styles.popoverSign}` : styles.popover}
       role="dialog"
-      aria-modal="false"
       tabIndex={-1}
-      aria-label={signedIn ? 'Your N.E.D Wallet' : 'Sign in with N.E.D Wallet'}
+      aria-modal={request ? 'true' : 'false'}
+      aria-label={request ? `Confirm to sign: ${request.title}` : signedIn ? 'Your N.E.D Wallet' : 'Sign in with N.E.D Wallet'}
       variants={popover}
       initial="closed"
       animate="open"
       exit="exit"
     >
-      <div className={styles.panel}>{signedIn ? <Home wallet={walletAddress} onClose={close} /> : <SignedOut />}</div>
+      <div className={styles.panel}>
+        {signedIn && request ? <Confirm wallet={walletAddress} /> : signedIn ? <Home wallet={walletAddress} onClose={close} /> : <SignedOut />}
+      </div>
     </m.div>
+  );
+}
+
+function PanelHead({ wallet, onClose }: { wallet: string; onClose?: () => void }) {
+  const { email } = useAuth();
+  const username = useUsername(wallet).data ?? null;
+  return (
+    <div className={styles.head}>
+      <Avatar seed={wallet} size={40} decorative />
+      <div className={styles.headText}>
+        <p className={styles.name}>{username ? `@${username}` : shortAddress(wallet)}</p>
+        <div className={styles.meta}>
+          <span className={styles.mono} title={wallet}>
+            {shortAddress(wallet)}
+          </span>
+          {email && (
+            <>
+              <span aria-hidden>·</span>
+              <span className={styles.ellipsis}>Google · {email}</span>
+            </>
+          )}
+        </div>
+      </div>
+      {onClose && (
+        <button type="button" className={styles.close} aria-label="Close wallet panel" onClick={onClose}>
+          <Icon name="close" color="var(--ink-2)" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Confirm request (WebWalletPanel board, sign mode): like an extension's approve window */
+function Confirm({ wallet }: { wallet: string }) {
+  const { request, answer } = useWalletPanel();
+  if (!request) return null;
+  const tone = request.note?.tone ?? 'purple';
+  return (
+    <>
+      <PanelHead wallet={wallet} />
+      <div className={styles.sign}>
+        <div className={styles.origin}>
+          <Icon name="lock" size={14} color="var(--ink-2)" />
+          <span>
+            Request from <strong>N.E.D Workspace</strong> · {location.host}
+          </span>
+        </div>
+        <div>
+          <div className={styles.eyebrow}>Confirm to sign</div>
+          <h2 className={styles.signTitle}>{request.title}</h2>
+        </div>
+        <dl className={styles.rows}>
+          {request.rows.map((r) => (
+            <div key={r.label} className={styles.row}>
+              <dt>{r.label}</dt>
+              <dd>
+                <span className={r.mono ? styles.mono : undefined}>{r.value}</span>
+                {r.sub && <span className={styles.rowSub}>{r.sub}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {request.note && (
+          <p role="note" className={styles.note} style={{ background: `var(--${tone}-bg)`, color: `var(--${tone}-ink)` }}>
+            {request.note.text}
+          </p>
+        )}
+        <div className={styles.signButtons}>
+          <button type="button" className={styles.cancel} onClick={() => answer(false)}>
+            Cancel
+          </button>
+          <button type="button" className={styles.confirmBtn} onClick={() => answer(true)}>
+            {request.confirmLabel}
+          </button>
+        </div>
+        <p className={styles.signFoot}>Signed with the wallet linked to your Google account. N.E.D never holds your money.</p>
+      </div>
+    </>
   );
 }
 
@@ -143,11 +224,10 @@ function SignedOut() {
 }
 
 function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
-  const { email, logout } = useAuth();
+  const { logout } = useAuth();
   const { setOpen } = useWalletPanel();
   const username = useUsername(wallet).data ?? null;
   const { region } = useRegion(wallet);
-  const handle = username ? `@${username}` : shortAddress(wallet);
 
   const signOut = async () => {
     setOpen(false);
@@ -156,26 +236,7 @@ function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
 
   return (
     <>
-      <div className={styles.head}>
-        <Avatar seed={wallet} size={40} decorative />
-        <div className={styles.headText}>
-          <p className={styles.name}>{handle}</p>
-          <div className={styles.meta}>
-            <span className={styles.mono} title={wallet}>
-              {shortAddress(wallet)}
-            </span>
-            {email && (
-              <>
-                <span aria-hidden>·</span>
-                <span className={styles.ellipsis}>Google · {email}</span>
-              </>
-            )}
-          </div>
-        </div>
-        <button type="button" className={styles.close} aria-label="Close wallet panel" onClick={onClose}>
-          <Icon name="close" color="var(--ink-2)" />
-        </button>
-      </div>
+      <PanelHead wallet={wallet} onClose={onClose} />
       <div className={styles.home}>
         <Hero wallet={wallet} region={region} />
         <Needs wallet={wallet} region={region} />
@@ -278,6 +339,7 @@ function Needs({ wallet, region }: { wallet: string; region: Region }) {
 }
 
 function QuickActions({ username, region }: { username: string | null; region: Region }) {
+  const { setOpen } = useWalletPanel();
   const [copied, setCopied] = useState(false);
   const share = async () => {
     if (!username) return;
@@ -310,10 +372,10 @@ function QuickActions({ username, region }: { username: string | null; region: R
         </>
       ) : (
         <>
-          <a className={styles.quickItem} href={mobileHref(env.mobileOrigin, '/')} target="_blank" rel="noreferrer">
+          <Link className={styles.quickItem} to="/new" onClick={() => setOpen(false)}>
             {dot('plus', true)}
             New contract
-          </a>
+          </Link>
           <a className={styles.quickItem} href={mobileHref(env.mobileOrigin, '/receive')} target="_blank" rel="noreferrer">
             {dot('receive', false)}
             Receive

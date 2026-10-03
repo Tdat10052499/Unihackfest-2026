@@ -2,6 +2,10 @@
   position: absolute; right: 0; top: calc(100% + 10px); z-index: 40;
   width: 380px; max-width: calc(100vw - 32px); transform-origin: top right;
 }
+.popoverSign {
+  /* a confirm request stays on screen wherever the page is scrolled (WebContractNew board, sign mode) */
+  position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px));
+}
 .panel {
   background: var(--card); color: var(--ink); border-radius: var(--r-20); box-shadow: var(--shadow-pop); overflow: hidden;
   max-height: calc(100vh - 90px); overflow-y: auto;
@@ -75,3 +79,24 @@
 .signOut { border: none; background: none; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--caption); cursor: pointer; }
 .signOut:hover { color: var(--ink); }
 .popover:focus { outline: none; }
+
+/* confirm request (sign mode) */
+.sign { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.origin { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-10); background: var(--field); font-size: 12px; color: var(--ink-2); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--link); }
+.signTitle { margin: 4px 0 0; font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1.15; }
+.rows { margin: 0; padding: 2px 12px; border-radius: var(--r-14); background: var(--row); }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; }
+.row + .row { border-top: 1px solid var(--divider); }
+.row dt { font-size: 13px; color: var(--caption); flex: none; }
+.row dd { margin: 0; text-align: right; min-width: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.rowSub { display: block; margin-top: 1px; font-size: 11px; font-weight: 400; color: var(--caption); }
+.note { margin: 0; padding: 10px 12px; border-radius: var(--r-12); font-size: 12px; line-height: 1.5; }
+.signButtons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cancel, .confirmBtn { height: 50px; border-radius: var(--r-pill); border: none; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.cancel { background: var(--tint); color: var(--link); }
+.cancel:hover { background: var(--tint-hover); }
+.confirmBtn { background: var(--accent); color: #fff; }
+.confirmBtn:hover { background: var(--accent-hover); }
+.signFoot { margin: 0; font-size: 11px; line-height: 1.5; color: var(--caption); text-align: center; }
+.backdrop { position: fixed; inset: 0; z-index: 35; background: rgba(17, 17, 22, 0.32); }

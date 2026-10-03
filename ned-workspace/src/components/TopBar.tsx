@@ -1,6 +1,7 @@
 // Top bar (WebSignIn / WebWorkspace boards): logo, Devnet badge and the wallet button that opens the panel.
 import { Link } from 'react-router';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
+import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { useRegion } from '../hooks/region.ts';
 import { useUsername } from '../hooks/queries.ts';
@@ -12,12 +13,13 @@ import { Logo } from './Logo.tsx';
 import { WalletPanel } from './WalletPanel.tsx';
 import { useWalletPanel } from './WalletPanelContext.tsx';
 import styles from './TopBar.module.css';
+import panelStyles from './WalletPanel.module.css';
 
 export const PANEL_ID = 'ned-wallet-panel';
 
 export function TopBar() {
   const { status, walletAddress } = useAuth();
-  const { open, toggle, triggerRef } = useWalletPanel();
+  const { open, toggle, triggerRef, request } = useWalletPanel();
   const signedIn = status === 'ready' && walletAddress;
 
   return (
@@ -47,6 +49,18 @@ export function TopBar() {
               <Icon name="chevronDown" size={14} width={2.4} />
             </button>
           )}
+          <AnimatePresence>
+            {open && request && (
+              <m.div
+                key="backdrop"
+                className={panelStyles.backdrop}
+                aria-hidden
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { duration: DURATION.backdrop, ease: EASE } }}
+                exit={{ opacity: 0, transition: { duration: DURATION.backdrop * EXIT_RATIO, ease: EASE } }}
+              />
+            )}
+          </AnimatePresence>
           <AnimatePresence>{open && <WalletPanel key="panel" id={PANEL_ID} />}</AnimatePresence>
         </div>
       </div>
