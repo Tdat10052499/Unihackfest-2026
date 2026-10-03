@@ -7,8 +7,10 @@
 import { Buffer } from 'buffer';
 import { PublicKey, Transaction, TransactionInstruction, type Connection } from '@solana/web3.js';
 import idl from '../../idl/ned_program.json';
+import { PROGRAM_ID } from '../../constants/chain';
 
-export const IDENTITY_PROGRAM_ID = new PublicKey(process.env.EXPO_PUBLIC_ANCHOR_PROGRAM_ID || idl.address);
+/** Same program as Milestone Lock; resolved once in constants/chain.ts (IDL address, EXPO_PUBLIC_ANCHOR_PROGRAM_ID override) */
+export const IDENTITY_PROGRAM_ID = PROGRAM_ID;
 
 const NAME_SEED = Buffer.from('name');
 const REVERSE_SEED = Buffer.from('reverse');

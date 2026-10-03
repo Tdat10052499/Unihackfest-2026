@@ -55,7 +55,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
     try {
       const fresh = await resolveRecipient(input, { fresh: true });
       setRecipient(fresh); setConfirmedPhone(false);
-      const nextPrepared = await prepareUsdcTransfer(wallet, fresh.wallet, amountNumber(amount));
+      const nextPrepared = await prepareUsdcTransfer(wallet, fresh.wallet, amount);
       setPrepared(nextPrepared);
       setCost(nextPrepared);
       setStage('review');

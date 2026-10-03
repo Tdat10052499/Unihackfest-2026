@@ -26,6 +26,7 @@ import {
 } from '@dynamic-labs-sdk/solana';
 import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { dynamicClient, IS_WEB } from './client';
+import { connection as devnetConnection } from '../chain/connection';
 
 export type AuthStatus = 'unconfigured' | 'initializing' | 'signed-out' | 'setting-up' | 'ready' | 'error';
 
@@ -53,9 +54,8 @@ export interface AuthContextValue {
   signMessage: (message: string) => Promise<string>;
 }
 
-const FALLBACK_DEVNET_RPC =
-  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL || process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC || 'https://api.devnet.solana.com';
-const fallbackConnection = new Connection(FALLBACK_DEVNET_RPC, 'confirmed');
+/** Until Dynamic returns its devnet connection, use the app's single devnet connection (services/chain/connection.ts) */
+const fallbackConnection: Connection = devnetConnection;
 
 const NOT_CONFIGURED = 'Missing EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID — add it to ned-wallet/.env and restart Metro with --clear.';
 

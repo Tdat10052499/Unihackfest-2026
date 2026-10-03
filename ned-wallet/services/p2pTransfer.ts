@@ -4,12 +4,17 @@ import { USDC_DEVNET_MINT } from '../constants/chain';
 import { connection as solanaConnection } from './chain/connection';
 import { ata } from './chain/ata';
 import { prepareTransactionCost } from './identity/transactionCost';
+import { unitsFromUsdc } from './milestone/format';
 
 export type PreparedUsdcTransfer = Awaited<ReturnType<typeof prepareUsdcTransfer>>;
 
-/** P2P is strictly USDC devnet. Never substitute an unrelated token account. */
-export async function prepareUsdcTransfer(from: string, to: string, amount: number) {
-  if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(Math.round(amount * 1e6))) throw new Error('Enter a valid USDC amount.');
+/**
+ * P2P is strictly USDC devnet. Never substitute an unrelated token account.
+ * `amount` is the USDC the user typed ("1,5", "0.25"); it becomes integer base units without float math.
+ */
+export async function prepareUsdcTransfer(from: string, to: string, amount: string | number) {
+  const units = unitsFromUsdc(typeof amount === 'number' ? String(amount) : amount);
+  if (units === null || units <= 0n) throw new Error('Enter a valid USDC amount.');
   const owner = new PublicKey(from), recipient = new PublicKey(to);
   if (owner.equals(recipient)) throw new Error('You cannot send to your own wallet.');
   const source = ata(USDC_DEVNET_MINT, owner);
@@ -18,8 +23,7 @@ export async function prepareUsdcTransfer(from: string, to: string, amount: numb
     solanaConnection.getTokenAccountBalance(source, 'confirmed'),
     solanaConnection.getAccountInfo(destination, 'confirmed'),
   ]);
-  const units = Math.round(amount * 1e6);
-  if (BigInt(balance.value.amount) < BigInt(units)) throw new Error('Not enough USDC.');
+  if (BigInt(balance.value.amount) < units) throw new Error('Not enough USDC.');
   const tx = new Transaction();
   let rent = 0;
   if (!target) {
