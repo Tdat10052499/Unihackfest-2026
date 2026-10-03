@@ -371,6 +371,17 @@ useContractContent(address: string): {
 }
 ```
 
+**As built in B1 (3 Oct 2026). Changes to the block above, announced here:**
+
+- **Where the code lives.** `content.ts`, `keys.ts` and `notes.ts` are in `packages/ned-core/src/milestone/` (W0), with re-export shims in `ned-wallet/services/milestone/`. `ned-wallet/constants/hosts.ts` exports `MOBILE_ORIGIN` and `WORKSPACE_ORIGIN` from the core config.
+- **The hashed brief includes the on-chain title.** `brief_hash = SHA-256(canonicalBrief(title, BriefDraft))`, canonical JSON `{"v":1,"title","scope","references","milestones":[{"name","criteria"}]}`. Strings are trimmed and NFC-normalised, and empty list entries are dropped. The delivery is `{"v":1,"links","files":[{"name","size","sha256"}],"note"}`. A brief cannot be reused under another title.
+- **Extra limits** \[Assumption, not in build-plan B1\]: milestone name ≤ 80 characters, criterion ≤ 200, URL ≤ 500, file name ≤ 200. Links and references must start with `http(s)://`. A note may use at most 8 parts × 855 plaintext bytes; longer briefs are refused with a sentence.
+- **`useContractContent.importKey(fragmentOrLink)` returns `Promise<boolean>`** (key storage is asynchronous), not `boolean`. A link of another contract returns `false` and never overwrites this contract's key.
+- **`useMilestoneActions` adds `postBrief(brief: BriefDraft)`.** `create` posts the brief after `create_fund`; if a brief transaction fails, the contract exists without a brief (`contentStatus: 'missing'`) and the client posts it again with `postBrief`, which checks the hash against `brief_hash`.
+- **`accept` uses the brief this device showed.** The hash comes from what `useContractContent` last read for this wallet and contract. A screen must have shown the brief (status `'ok'`), or `accept` refuses.
+- **`FundView.contentStatus` comes from `ViewOptions.content`.** `useFund` does not decrypt, so its `contentStatus` is `'loading'`. Screens that need content call `useContractContent` and pass `{ content, inviteLink }` to `toFundView`; the B4 screens do this.
+- **Wallet signatures per action** (devnet, 3 Oct): `create` = 1 + one per brief part (2 for a typical brief); `accept` 1; `submit` 1, because the delivery note rides in the submit transaction (submit + a full 900-byte part = 1,166 bytes ≤ 1,232).
+
 ## 4. Checks before the screens start
 
 - [ ] `anchor build && cargo test`: all P0 tests and the 10 identity tests pass

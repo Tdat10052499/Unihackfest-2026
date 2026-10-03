@@ -158,6 +158,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | W1 khung `ned-workspace` (Vite + React), đăng nhập, wallet panel, `vercel.json` | `feat/w1-workspace-scaffold` | `1a8fb24`, `5b0ac9a`, `fb3648f`, `17ab376`, `df97ef1`, `6e3fc52` |
 | A1 program v1.1 (`brief_hash`, evidence ≠ 0, `post_note`) | `feat/a1-program-v1-1` | `47ab23f` |
 | A2 upgrade devnet v1.1 + IDL + core layout, smoke ×3 | `feat/a1-program-v1-1` | `b114ac9` + commit docs |
+| B1 content layer (brief/delivery JSON, note mã hoá, key trong invite link) | `feat/b1-content-layer` | `f6156f3`, `b8544ca` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -171,6 +172,43 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**B1 (03/10/2026): content layer.**
+- **Core (`packages/ned-core/src/milestone/`):**
+  - `content.ts`: JSON chuẩn (canonical) cho brief và delivery; giới hạn theo build-plan; `briefHash`, `deliveryEvidence`.
+  - `keys.ts`:
+    - key `K` 32 byte cho mỗi hợp đồng, lưu theo ví qua adapter (AsyncStorage trên điện thoại, localStorage trên Workspace);
+    - `inviteLink` (`…/c/<fund>#k=…`); `parseInvite` / `importKeyFromFragment`.
+  - `notes.ts`:
+    - mã hoá XChaCha20-Poly1305; AD = fund ‖ kind ‖ milestone ‖ setId ‖ part ‖ parts;
+    - mỗi part tối đa 900 byte (855 byte nội dung);
+    - `fetchNotes` bỏ qua giao dịch lỗi và instruction của fund khác;
+    - `readContractContent` chỉ nhận bộ note có hash trùng hash on-chain, kiểm tra author (client cho brief, freelancer cho delivery).
+  - `client.ts` / `actions.ts`:
+    - create = `create_fund` + giao dịch brief note;
+    - `postBrief` để gửi lại brief nếu bước note thất bại;
+    - accept dùng hash của brief đã giải mã và hiển thị;
+    - submit nhận `DeliveryDraft`, note đi chung giao dịch submit.
+  - Bỏ `temporaryBriefHash` của A2.
+- **App (`ned-wallet`):**
+  - `constants/hosts.ts`, `services/milestone/keyStore.ts` (AsyncStorage);
+  - `hooks/useContractContent.ts`; `useMilestoneActions` có `create(draft + brief)` (trả về `inviteLink`), `postBrief`, `accept`, `submit(index, delivery)`;
+  - harness `/dev/milestone` có ô scope, link delivery, dán link hợp đồng, xem brief và delivery.
+  - `.env.example` thêm `EXPO_PUBLIC_MOBILE_ORIGIN` / `EXPO_PUBLIC_WORKSPACE_ORIGIN`. `WORKSPACE_ORIGIN` để trống cho tới khi Workspace có router `/c/:fund` (W2).
+- **Phụ thuộc mới:** `@noble/ciphers` ^2.4.0 (đã được duyệt trong prompt B1), thêm vào core (peer), `ned-wallet`, `ned-workspace`.
+- **Test:**
+  - core **84/84** (thêm 9 test B1: thứ tự canonical, vector hash, giới hạn, mã hoá/giải mã, sửa byte / sai key / chuyển part, tách part 899/900/901, invite link, kích thước giao dịch, note lỗi / của người lạ / bộ thứ hai không khớp);
+  - `ned-wallet` 19/19; `tsc` (app, scripts, workspace) 0 lỗi; `expo export --platform web` OK; `vite build` OK.
+- **Devnet (smoke script dùng đúng code core như harness):**
+  - fund `6veAy5aT8nHdzdjLQs1aJerNCPnEfw5ARHaGnT6KF2kv`, PASS;
+  - đọc lại brief được (`ok`); không có key thì `noKey`; accept bằng hash của brief đã đọc;
+  - delivery 2 link đi chung giao dịch submit, client thấy "matches"; đã đóng fund.
+  - Kích thước giao dịch: `create_fund` 483 B, brief note 601 B, accept 308 B, submit + note 496 B; submit + một part 900 byte đầy = 1 166 B, vẫn ≤ 1 232.
+  - Chữ ký ví: create 2 (1 + số part brief), accept 1, submit 1. CU `post_note` ≈ 4 629.
+- **Chưa làm:**
+  - chạy harness trong app với hai tài khoản Google thật (cần chủ dự án);
+  - route `/c/[fund]` trên điện thoại (B4b) và trên Workspace (W2);
+  - Disclosures phải nói rõ "ai có link đều đọc được brief" (product-spec 5.1).
 
 **A2 (03/10/2026): program v1.1 đã lên devnet.**
 - **G4:** trên devnet không còn fund 708 byte nào (program có 17 account, đều là identity), nên không phải đóng gì.
@@ -260,7 +298,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | Deploy N12 (partner thật) | `2PvXW7PwD1jCgy14zTjjhCN1zZ2edC6kUJQZgrrbrXRcdSNjU4NcL4vUFKmxqRxnNt4N6Zi1G9uY9anKn6BqJu1L` (slot 506891469) |
 | IDL on-chain | Metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, 18 instruction (v1.1), khớp `packages/ned-core/src/idl/` |
 | Payout partner demo | `FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp` (keypair `~/.config/solana/ned-demo-partner.json`), USDC ATA `Abey9woydP9w8voHfGsoBzM6tKnAcDugUVWmeQdiD96i` |
-| Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (14 USDC; partner giữ 4), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
+| Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (12 USDC; partner giữ 6), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
 | Ví deploy | 8,546 SOL (02/10) → 7,197 → 7,124 SOL (A2) |
 | Workspace (Vercel) | https://unihackfest-2026.vercel.app (Root Directory `ned-workspace`, CSP đang Report-Only) |
 | Kích thước | `SharedFund` **740 byte** (client @12, freelancer @44, brief_hash @676); `.so` 488 464 byte |
