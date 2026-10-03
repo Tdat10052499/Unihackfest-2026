@@ -101,7 +101,7 @@ export function describeTxError(err: unknown, context: TxErrorContext = 'profile
   }
   if (/insufficient (funds|lamports)|no record of a prior credit|0x1\b/i.test(raw)) {
     return context === 'profile'
-      ? 'Not enough devnet SOL to pay for setup. Top up your wallet and try again.'
+      ? 'Not enough devnet SOL to cover setup. Top up your wallet and try again.'
       : 'Not enough devnet SOL for the network fee and account rent. Top up your wallet and try again.';
   }
   if (/reject|cancel|denied/i.test(raw)) return 'The request was cancelled. Please try again.';

@@ -1,346 +1,225 @@
-// Settings (PDF trang 34 / Settings.dc.html). Chỉ hiện mục đã có tính năng thật; mục chưa làm (App lock,
-// Notifications, Language, đổi chế độ ví) không hiện để không hứa điều app chưa làm được.
+// Settings (Settings / SettingsIntl boards, build-plan B3): profile card with the generated avatar, "I live in
+// Vietnam" switch (the money view, decision D18), display currency, consent (view or withdraw), Disclosures,
+// version with the Devnet badge, Sign out. Only controls that work are shown: the board's Notifications switch waits
+// for real notification settings (B5).
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
+import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { PublicKey } from '@solana/web3.js';
-import {
-  Badge,
-  Button,
-  Card,
-  DText,
-  IconButton,
-  ListGroup,
-  ListRow,
-  Screen,
-  SectionLabel,
-} from '@/components/design';
-import { colors, diagonal, fonts, gradients, radius, space, type } from '@/constants/design';
-import { MASCOT_IMAGES } from '@/constants/mascot';
+import { Avatar } from '@/components/Avatar';
+import { Badge, Button, PressableScale, Screen, Sheet, Toggle } from '@/components/design';
 import { WalletNav } from '@/components/wallet/WalletNav';
-import { PhoneManagementModal } from '@/components/PhoneManagementModal';
+import { elevation, fonts, palette, radius, space, status } from '@/constants/design';
+import { useRegion } from '@/hooks/useRegion';
 import { useAuth } from '@/services/auth';
-import { executeHardReset } from '@/services/storage';
-import { getOwnPhone } from '@/services/identity/ownPhone';
-import { fetchReverseRecord } from '@/services/identity/dualPda';
-import { identityConnection, shortAddress } from '@/services/identity/resolve';
 import { maskPhoneDisplay } from '@/services/identity/format';
-import { resetDemoLedger } from '@/services/demoLedger';
+import { fetchReverseRecord } from '@/services/identity/dualPda';
+import { getOwnPhone } from '@/services/identity/ownPhone';
+import { identityConnection, shortAddress } from '@/services/identity/resolve';
+import { executeHardReset } from '@/services/storage';
+import { useConsentStore } from '@/stores/useConsentStore';
 import { useUserStore } from '@/stores/useUserStore';
-import { useWalletModeStore } from '@/stores/useWalletModeStore';
-
-const MODE_COPY = {
-  simple: { name: 'Simple', desc: 'Your money in dollars. Crypto you receive becomes Cash.', icon: 'dollar-sign' },
-  crypto: { name: 'Crypto', desc: 'See and hold every Solana token you own.', icon: 'sliders' },
-} as const;
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout, walletAddress } = useAuth();
-  const { username, avatarUrl, setAvatarUrl, fetchUserProfile, loadFromStorage } = useUserStore();
-  const mode = useWalletModeStore((s) => (walletAddress ? s.modes[walletAddress] : undefined));
+  const { logout, walletAddress } = useAuth();
+  const { username, fetchUserProfile, loadFromStorage } = useUserStore();
+  const { region, setRegion } = useRegion();
+  const vn = (region ?? 'vn') === 'vn';
+  const consent = useConsentStore((s) => s.getConsent(walletAddress));
+  const withdraw = useConsentStore((s) => s.withdraw);
   const [phone, setPhone] = useState<string | null>(null);
-  const [phoneLinked, setPhoneLinked] = useState<boolean | null>(null);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState('');
+  const [sheet, setSheet] = useState<'consent' | 'signOut' | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       loadFromStorage();
       if (walletAddress) fetchUserProfile(walletAddress);
-    }, [walletAddress, loadFromStorage, fetchUserProfile]),
+    }, [walletAddress, loadFromStorage, fetchUserProfile])
   );
 
   useEffect(() => {
     let active = true;
     if (walletAddress)
       Promise.all([fetchReverseRecord(identityConnection, new PublicKey(walletAddress)), getOwnPhone()])
-        .then(([record, own]) => {
-          if (!active) return;
-          setPhoneLinked(record?.hasPhone ?? false);
-          setPhone(record?.hasPhone ? own : null);
-        })
-        .catch(() => {
-          if (active) {
-            setPhoneLinked(null);
-            setPhone(null);
-          }
-        });
+        .then(([record, own]) => active && setPhone(record?.hasPhone ? own : null))
+        .catch(() => active && setPhone(null));
     return () => {
       active = false;
     };
-  }, [walletAddress, showPhoneModal]);
+  }, [walletAddress]);
 
   const handle = username ? `@${username}` : walletAddress ? shortAddress(walletAddress) : 'No profile yet';
-  const identityLine = [username ? `@${username}` : null, phone ? maskPhoneDisplay(phone) : null]
-    .filter(Boolean)
-    .join(' · ');
-  const modeCopy = mode ? MODE_COPY[mode] : null;
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
-  async function pickAvatar() {
+  const toggleVietnam = (next: boolean) => {
+    setRegion(next ? 'vn' : 'intl');
+    setToast(next ? 'Vietnam view on. Amounts now show in VND (estimate).' : 'Vietnam view off. You now see USDC.');
+  };
+
+  const signOut = async () => {
+    setLeaving(true);
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Photo access needed', 'Allow photo access to change your picture.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: true,
-      });
-      const asset = result.canceled ? null : result.assets?.[0];
-      if (!asset) return;
-      if (!asset.base64) {
-        Alert.alert('Could not load photo', 'Please try another picture.');
-        return;
-      }
-      setPicking(true);
-      setAvatarUrl(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
-    } catch (err) {
-      Alert.alert('Could not update picture', err instanceof Error ? err.message : 'Please try again.');
+      await executeHardReset(logout);
     } finally {
-      setPicking(false);
+      setLeaving(false);
+      setSheet(null);
+      router.replace('/welcome');
     }
-  }
+  };
 
-  async function copyAddress() {
+  const withdrawConsent = async () => {
     if (!walletAddress) return;
-    try {
-      await Clipboard.setStringAsync(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  function signOut() {
-    Alert.alert('Sign out?', 'Your wallet stays safe. Sign in again with Google anytime.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await executeHardReset(logout);
-          } finally {
-            router.replace('/welcome');
-          }
-        },
-      },
-    ]);
-  }
-
-  const phoneSubtitle =
-    phoneLinked === null
-      ? 'Checking your profile…'
-      : phoneLinked
-        ? phone
-          ? `${maskPhoneDisplay(phone)} · tap to unlink`
-          : 'Linked on-chain · tap to unlink'
-        : 'Let friends pay you by phone number';
+    // Without consent N.E.D cannot run the account: withdraw, then sign out (the consent screen asks again next time)
+    withdraw(walletAddress);
+    await signOut();
+  };
 
   return (
     <View style={styles.page}>
-      <Screen glow="settings" contentStyle={styles.content} edges={['top', 'left', 'right']}>
-        <DText variant="h1" accessibilityRole="header" style={styles.title}>
+      <Screen contentStyle={styles.content} edges={['top', 'left', 'right']}>
+        <Text style={styles.title} accessibilityRole="header">
           Settings
-        </DText>
+        </Text>
 
-        <Card style={styles.profile}>
-          <View style={styles.profileRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Change profile picture"
-              onPress={() => void pickAvatar()}
-              disabled={picking}
-            >
-              <LinearGradient colors={gradients.purpleIndigo} {...diagonal} style={styles.avatar}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-                ) : (
-                  <Image source={MASCOT_IMAGES.lineArt} style={styles.avatarArt} resizeMode="contain" />
-                )}
-                {picking ? (
-                  <View style={styles.avatarBusy}>
-                    <ActivityIndicator color={colors.text} />
-                  </View>
-                ) : null}
-              </LinearGradient>
-            </Pressable>
-            <View style={styles.profileText}>
-              <DText variant="h3" style={styles.profileName} numberOfLines={1}>
-                {username || handle}
-              </DText>
-              {identityLine ? (
-                <DText variant="caption" tone="secondary" numberOfLines={1}>
-                  {identityLine}
-                </DText>
-              ) : null}
-              {user ? <Badge label="Signed in with Google" icon="refresh-cw" style={styles.googleBadge} /> : null}
-            </View>
-            <IconButton
-              icon="grid"
-              accessibilityLabel="Show my QR code"
-              color={colors.text}
-              onPress={() => router.push('/receive' as Href)}
-            />
+        {toast ? (
+          <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.toast, elevation.sAccent]}>
+            <Text style={styles.toastText}>{toast}</Text>
           </View>
-        </Card>
+        ) : null}
 
-        {modeCopy ? (
-          <>
-            <SectionLabel>Wallet mode</SectionLabel>
-            <Card variant="accent">
-              <View style={styles.modeRow}>
-                <View style={styles.modeIcon}>
-                  <Feather name={modeCopy.icon} size={18} color={colors.text} />
-                </View>
-                <View style={styles.profileText}>
-                  <View style={styles.modeTitleRow}>
-                    <DText variant="h3" style={styles.modeName}>
-                      {modeCopy.name}
-                    </DText>
-                    <Badge label="ON" tone="accent" />
-                  </View>
-                  <DText variant="caption" tone="secondary">
-                    {modeCopy.desc}
-                  </DText>
+        <View style={styles.profile}>
+          {walletAddress ? <Avatar seed={walletAddress} size={56} decorative /> : null}
+          <View style={styles.flex}>
+            <Text style={styles.handle} numberOfLines={1}>
+              {handle}
+            </Text>
+            {phone ? (
+              <View style={styles.phoneRow}>
+                <Text style={styles.caption}>{maskPhoneDisplay(phone)}</Text>
+                <View style={styles.unverified}>
+                  <Text style={styles.unverifiedText}>UNVERIFIED NUMBER</Text>
                 </View>
               </View>
-            </Card>
-          </>
-        ) : null}
+            ) : null}
+            <Text style={styles.small}>Signed in with Google</Text>
+          </View>
+        </View>
 
-        <SectionLabel>Account</SectionLabel>
-        <ListGroup>
-          <ListRow
-            icon="phone"
-            title={phoneLinked ? 'Phone number' : 'Link phone number'}
-            subtitle={phoneSubtitle}
-            onPress={walletAddress && phoneLinked !== null ? () => setShowPhoneModal(true) : undefined}
-            chevron={phoneLinked !== null}
-          />
-          <ListRow
-            icon="credit-card"
-            title="Wallet address"
-            subtitle={copied ? 'Copied' : 'Tap to copy'}
-            value={walletAddress ? shortAddress(walletAddress) : '—'}
-            onPress={walletAddress ? () => void copyAddress() : undefined}
-            chevron={false}
-            right={<Feather name={copied ? 'check' : 'copy'} size={16} color={copied ? colors.successText : colors.textTertiary} />}
-          />
-        </ListGroup>
+        <Text style={styles.section} accessibilityRole="header">
+          Where you live
+        </Text>
+        <View style={[styles.card, styles.padded]}>
+          <View style={styles.switchRow}>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle}>I live in Vietnam</Text>
+              <Text style={styles.caption}>
+                {vn
+                  ? 'Amounts in VND (estimate). Earnings go to your bank through a payout partner. No crypto balance is shown.'
+                  : 'Off: you see USDC, can send and receive, and earnings go to your N.E.D wallet.'}
+              </Text>
+            </View>
+            <Toggle accessibilityLabel="I live in Vietnam" value={vn} onValueChange={toggleVietnam} disabled={!walletAddress} />
+          </View>
+        </View>
 
-        <SectionLabel>Preferences</SectionLabel>
-        <ListGroup>
-          <ListRow icon="dollar-sign" title="Display currency" value="USD ($)" />
-        </ListGroup>
+        <Text style={styles.section} accessibilityRole="header">
+          Preferences
+        </Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle}>Display currency</Text>
+              <Text style={styles.caption}>Follows where you live</Text>
+            </View>
+            <Text style={styles.value}>{vn ? 'VND estimate' : 'USDC'}</Text>
+          </View>
+        </View>
 
-        <SectionLabel>Security</SectionLabel>
-        <ListGroup>
-          <ListRow
-            icon="shield"
-            iconTone="success"
-            title="Wallet protection"
-            subtitle="MPC wallet by Dynamic. No recovery phrase to lose."
-          />
-          <ListRow
-            icon="key"
-            title="New phone?"
-            subtitle="Sign in with the same Google account to get your wallet back."
-          />
-        </ListGroup>
+        <Text style={styles.section} accessibilityRole="header">
+          Privacy & legal
+        </Text>
+        <View style={styles.card}>
+          <LinkRow title="Consent: view or withdraw" value={consent ? 'Given' : 'Not given'} valueColor={consent ? status.success.ink : status.warning.ink} onPress={() => setSheet('consent')} />
+          <LinkRow title="Disclosures" onPress={() => router.push('/disclosures')} divider />
+          <View style={[styles.row, styles.divider]}>
+            <Text style={[styles.rowTitle, styles.flex]}>Version {version}</Text>
+            <Badge label="Devnet · test money" tone="warning" />
+          </View>
+        </View>
 
-        <SectionLabel>Help & about</SectionLabel>
-        <ListGroup>
-          <ListRow
-            icon="info"
-            title={`Version ${version}`}
-            subtitle="Demo build on Solana Devnet"
-            right={<Badge label="DEVNET" tone="warning" />}
-          />
-        </ListGroup>
-
-        <Button title="Sign out" icon="log-out" variant="destructiveSoft" onPress={signOut} style={styles.signOut} />
-        <DText variant="caption" align="center" style={styles.signOutNote}>
-          Your wallet stays safe. Sign in again with Google anytime.
-        </DText>
-
-        {__DEV__ && walletAddress ? (
-          <Button
-            title="Reset demo data"
-            variant="ghost"
-            onPress={() =>
-              Alert.alert('Reset demo data?', 'This clears demo swaps and xStock positions.', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: () => void resetDemoLedger(walletAddress) },
-              ])
-            }
-          />
-        ) : null}
+        <Button title="Sign out" variant="destructiveSoft" onPress={() => setSheet('signOut')} style={styles.signOut} />
+        <Text style={styles.footnote}>Sign in again with the same Google account to get back to your contracts.</Text>
       </Screen>
 
-      {walletAddress && user ? (
-        <PhoneManagementModal
-          visible={showPhoneModal}
-          onClose={() => setShowPhoneModal(false)}
-          userId={user.id}
-          walletAddress={walletAddress}
-          currentPhone={phone}
-          onPhoneUpdated={(next) => {
-            setPhone(next);
-            setPhoneLinked(!!next);
-          }}
-        />
-      ) : null}
       <WalletNav active="Settings" />
+
+      <Sheet visible={sheet === 'consent'} onClose={() => setSheet(null)} title="Your consent">
+        <Text style={styles.sheetText}>
+          {consent
+            ? `Given on ${new Date(consent.acceptedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. N.E.D processes your Google account name, email and wallet address to run your account; your login is handled by Dynamic in the United States.`
+            : 'No consent is recorded on this device.'}
+        </Text>
+        <Text style={[styles.sheetText, styles.sheetGap]}>
+          Withdrawing signs you out. Your contracts stay on Solana; you are asked for consent again when you sign in.
+        </Text>
+        {consent ? <Button title="Withdraw consent" variant="destructiveSoft" loading={leaving} onPress={() => void withdrawConsent()} style={styles.sheetButton} /> : null}
+        <Button title="Close" variant="secondary" onPress={() => setSheet(null)} style={styles.sheetButtonSmall} />
+      </Sheet>
+
+      <Sheet visible={sheet === 'signOut'} onClose={() => setSheet(null)} title="Sign out?">
+        <Text style={styles.sheetText}>
+          Sign in again with the same Google account to get back to your contracts. Contract links you opened on this device
+          are removed; open them again to read a brief here.
+        </Text>
+        <Button title="Sign out" variant="destructiveSoft" loading={leaving} onPress={() => void signOut()} style={styles.sheetButton} />
+        <Button title="Cancel" variant="secondary" onPress={() => setSheet(null)} style={styles.sheetButtonSmall} />
+      </Sheet>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: space[4], paddingBottom: 120 },
-  title: { paddingHorizontal: space[1], paddingTop: space[2], paddingBottom: space[4], fontFamily: fonts.display },
-  profile: { marginTop: 0 },
-  profileRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  avatarImage: { width: 56, height: 56 },
-  avatarArt: { width: 56, height: 57, marginBottom: -5 },
-  avatarBusy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  profileText: { flex: 1, minWidth: 0, gap: 2 },
-  profileName: { fontFamily: fonts.display },
-  googleBadge: { marginTop: space[1] },
-  modeRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  modeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.purple[500],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
-  modeName: { ...type.h3, fontFamily: fonts.display },
-  signOut: { marginTop: space[6] },
-  signOutNote: { marginTop: space[2], marginBottom: space[2] },
-});
+function LinkRow({ title, value, valueColor, onPress, divider }: { title: string; value?: string; valueColor?: string; onPress(): void; divider?: boolean }) {
+  return (
+    <PressableScale accessibilityRole="button" accessibilityLabel={value ? `${title}, ${value}` : title} onPress={onPress} style={[styles.row, divider && styles.divider]}>
+      <Text style={[styles.rowTitle, styles.flex]}>{title}</Text>
+      {value ? <Text style={[styles.valueSmall, valueColor ? { color: valueColor } : null]}>{value}</Text> : null}
+      <Feather name="chevron-right" size={18} color={palette.muted} />
+    </PressableScale>
+  );
+}
 
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: palette.ground },
+  content: { paddingHorizontal: space[4], paddingBottom: 120 },
+  flex: { flex: 1, minWidth: 0 },
+  title: { paddingHorizontal: space[1], paddingTop: space[1], paddingBottom: space[3], fontFamily: fonts.display, fontSize: 28, color: palette.ink },
+  toast: { marginBottom: space[3], paddingVertical: space[3], paddingHorizontal: 14, borderRadius: 14, backgroundColor: palette.card },
+  toastText: { fontFamily: fonts.body, fontSize: 13, color: palette.ink },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.xl, backgroundColor: palette.card },
+  handle: { fontFamily: fonts.monoBold, fontSize: 16, color: palette.ink },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  unverified: { height: 18, paddingHorizontal: 6, borderRadius: 5, backgroundColor: status.warning.bg, justifyContent: 'center' },
+  unverifiedText: { fontFamily: fonts.bodySemi, fontWeight: '700', fontSize: 10, color: status.warning.ink },
+  small: { marginTop: 2, fontFamily: fonts.body, fontSize: 11, color: palette.caption },
+  section: { paddingTop: 18, paddingHorizontal: 6, paddingBottom: space[2], fontFamily: fonts.bodySemi, fontSize: 13, color: palette.caption },
+  card: { borderRadius: radius.xl, backgroundColor: palette.card },
+  padded: { padding: 14 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space[3], minHeight: 54, paddingHorizontal: 14, paddingVertical: space[2] },
+  divider: { borderTopWidth: 1, borderTopColor: palette.divider },
+  rowTitle: { fontFamily: fonts.bodyMedium, fontSize: 15, color: palette.ink },
+  caption: { marginTop: 2, fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: palette.caption },
+  value: { fontFamily: fonts.bodySemi, fontSize: 14, color: palette.ink2 },
+  valueSmall: { fontFamily: fonts.bodySemi, fontSize: 12, color: palette.caption },
+  signOut: { marginTop: space[6] },
+  footnote: { marginTop: space[2], textAlign: 'center', fontFamily: fonts.body, fontSize: 11, color: palette.caption },
+  sheetText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: palette.ink2 },
+  sheetGap: { marginTop: space[3] },
+  sheetButton: { marginTop: space[5] },
+  sheetButtonSmall: { marginTop: space[2] },
+});

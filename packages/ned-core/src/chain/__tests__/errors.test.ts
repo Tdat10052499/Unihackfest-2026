@@ -41,7 +41,7 @@ test('user-facing errors pass through', () => {
 });
 
 test('common causes and context fallbacks', () => {
-  assert.match(describeTxError(new Error('Attempt to debit an account but found no record of a prior credit.'), 'profile'), /Not enough devnet SOL to pay for setup/);
+  assert.match(describeTxError(new Error('Attempt to debit an account but found no record of a prior credit.'), 'profile'), /Not enough devnet SOL to cover setup/);
   assert.match(describeTxError(new Error('insufficient lamports 10, need 20'), 'contract'), /Not enough devnet SOL for the network fee/);
   assert.equal(describeTxError(new Error('User rejected the request'), 'transfer'), 'The request was cancelled. Please try again.');
   assert.equal(describeTxError(new Error('boom'), 'profile'), 'Something went wrong while creating your profile. Please try again.');

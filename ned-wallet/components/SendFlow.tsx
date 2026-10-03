@@ -116,9 +116,9 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
         </View>
         <View style={styles.chips}>{[5, 10, 20, 50].map(n => <Pressable key={n} accessibilityRole="button" onPress={() => setAmount(String(n))} style={({ pressed }) => [styles.chip, pressed && styles.pressed]}><DText variant="button">${n}</DText></Pressable>)}</View>
         <View style={styles.metaRow}>
-          {balance != null ? <DText variant="caption" tone={overBalance ? 'error' : 'secondary'}>Cash available: {balance.toFixed(2)} USDC</DText> : <View />}
+          {balance != null ? <DText variant="caption" tone={overBalance ? 'error' : 'secondary'}>Available: {balance.toFixed(2)} USDC</DText> : <View />}
         </View>
-        <DText variant="caption" tone="secondary">You pay the SOL network fee and any recipient account rent. Exact cost is shown at review.</DText>
+        <DText variant="caption" tone="secondary">The SOL network fee and any recipient account rent come from your wallet. The exact cost is itemised at review.</DText>
         <View style={styles.push}><Button loading={busy} title="Review" onPress={review} disabled={amountNumber(amount) <= 0 || overBalance} /></View>
       </>}
       {stage === 'review' && <>
@@ -129,7 +129,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
         </View>
         {recipient && <RecipientCard recipient={recipient} input={input} />}
         <Card>
-          <InfoRow label="From" value="Cash · USDC" />
+          <InfoRow label="From" value="Your wallet · USDC" />
           {recipient ? <InfoRow label="To wallet" value={shortAddress(recipient.wallet)} mono /> : null}
           <InfoRow label="Network fee" value={`${solAmount(cost?.fee ?? 0)} SOL`} mono />
           <InfoRow label="Recipient account rent" value={`${solAmount(cost?.rent ?? 0)} SOL`} mono />

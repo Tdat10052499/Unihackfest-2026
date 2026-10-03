@@ -53,7 +53,7 @@ export default function ReceiveScreen() {
   async function share() {
     if (!walletAddress) return;
     const message = [
-      handle ? `Pay me on N.E.D: ${handle}` : 'My N.E.D wallet',
+      handle ? `Find me on N.E.D: ${handle}` : 'My N.E.D wallet',
       `Solana address: ${walletAddress}`,
       'Only send USDC, SOL or Solana tokens.',
     ].join('\n');
@@ -90,7 +90,7 @@ export default function ReceiveScreen() {
     >
       <Header title="Receive" onBack={back} />
       <DText variant="body" align="center" style={styles.lead}>
-        Friends on N.E.D can pay you with your username or phone number. Anyone else can scan this code.
+        People on N.E.D can send you USDC with your @username or phone number. Anyone else can scan this code.
       </DText>
 
       <View style={styles.qrCard}>
