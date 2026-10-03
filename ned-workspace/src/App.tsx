@@ -1,15 +1,16 @@
-// Routes: / Overview, /contracts, /contract/:fund (read-only), /contract/:fund/submit and /review (W4), /new (W3),
+// Routes: / Overview, /contracts, /contract/:fund (read-only), /contract/:fund/submit and /review?i= (W4), /new (W3),
 // /sign-in, and the invite link /c/:fund — outside the layout, so it decides phone vs computer before anything else.
 import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { useAuth } from './auth/AuthProvider.tsx';
 import { Layout } from './components/Layout.tsx';
 import { hasPendingInvite } from './hooks/keyStore.ts';
-import { ComingSoon } from './pages/ComingSoon.tsx';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
 import { InviteRouter, PendingInvite } from './pages/InviteRouter.tsx';
 import { NewContract } from './pages/NewContract.tsx';
+import { Review } from './pages/Review.tsx';
+import { Submit } from './pages/Submit.tsx';
 import { Overview } from './pages/Overview.tsx';
 import { SignIn } from './pages/SignIn.tsx';
 
@@ -49,8 +50,8 @@ export function App() {
           <Route index element={signedIn(<Overview />)} />
           <Route path="contracts" element={signedIn(<Contracts />)} />
           <Route path="contract/:fund" element={signedIn(<Contract />)} />
-          <Route path="contract/:fund/submit" element={signedIn(<ComingSoon page="submit" />)} />
-          <Route path="contract/:fund/review" element={signedIn(<ComingSoon page="review" />)} />
+          <Route path="contract/:fund/submit" element={signedIn(<Submit />)} />
+          <Route path="contract/:fund/review" element={signedIn(<Review />)} />
           <Route path="new" element={signedIn(<NewContract />)} />
           <Route
             path="sign-in"

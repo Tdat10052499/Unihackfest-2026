@@ -142,7 +142,7 @@ export function Contract() {
   );
 }
 
-/** The role's next step: submit and review get their pages (W4); other steps are done in the phone app for now */
+/** The role's next step: submit and review have their pages (W4); other steps are done in the phone app for now */
 function NextStep({ fund, vn }: { fund: FundView; vn: boolean }) {
   const next = fund.nextAction;
   if (!next) {
@@ -166,7 +166,7 @@ function NextStep({ fund, vn }: { fund: FundView; vn: boolean }) {
         {path ? '' : vn ? '. Open the N.E.D app on your phone to do this.' : '. Do this in the N.E.D app for now; the Workspace gets it next.'}
       </span>
       {path ? (
-        <Link to={`/contract/${fund.address}/${path}`} className={styles.primary}>
+        <Link to={`/contract/${fund.address}/${path}?i=${next.milestone ?? 0}`} className={styles.primary}>
           {path === 'submit' ? 'Open delivery form' : 'Review delivery'}
         </Link>
       ) : null}
