@@ -168,10 +168,6 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   resetUser: () => {
     clearSolanaCache();
-    try {
-      const { useWalletCardsStore } = require('./useWalletCardsStore');
-      useWalletCardsStore.getState().resetCards();
-    } catch {}
     set({
       username: null,
       walletAddress: null,

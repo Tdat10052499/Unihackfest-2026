@@ -1,49 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { getOwnPhone, removeOwnPhone, saveOwnPhone } from './identity/ownPhone';
 import { parseDemoSwaps, serializeDemoSwaps } from './history';
-const isAvailable = Platform.OS !== 'web' || typeof window !== 'undefined';
+import { REGION_STORAGE_KEY, useRegionStore } from '../stores/useRegionStore';
+import { CONSENT_STORAGE_KEY, useConsentStore } from '../stores/useConsentStore';
 
 const STORAGE_KEYS = {
-  BALANCE: '@ned_wallet_balance',
   ACTIVITIES: '@ned_wallet_activities',
-  WALLET_ADDRESS: '@ned_wallet_address',
-  HAS_SKIPPED_PHONE_LINK: '@ned_wallet_has_skipped_phone_link',
   LINKED_PHONE: '@ned_wallet_linked_phone',
-  USERNAME: '@ned_wallet_user_handle',
-  FULL_SNS: '@ned_wallet_full_sns',
-  AVATAR_URL: '@ned_wallet_avatar_url',
-};
-
-/**
- * Lưu số dư SOL vào local cache
- */
-export const cacheBalance = async (balance: number): Promise<void> => {
-  if (!isAvailable) return;
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.BALANCE, JSON.stringify(balance));
-  } catch (error) {
-    console.error('Error caching balance to AsyncStorage:', error);
-  }
-};
-
-/**
- * Lấy số dư SOL đã lưu trong local cache
- */
-export const getCachedBalance = async (): Promise<number | null> => {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEYS.BALANCE);
-    if (raw !== null) {
-      const parsed = JSON.parse(raw);
-      if (typeof parsed === 'number') {
-        return parsed;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error('Error reading cached balance from AsyncStorage:', error);
-    return null;
-  }
 };
 
 /**
@@ -108,53 +71,6 @@ export const getDemoSwaps = async (wallet?: string | null): Promise<any[]> => {
 };
 
 /**
- * Lưu địa chỉ ví Solana vào local cache
- */
-export const cacheWalletAddress = async (address: string): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.WALLET_ADDRESS, address);
-  } catch (error) {
-    console.error('Error caching wallet address:', error);
-  }
-};
-
-/**
- * Lấy địa chỉ ví Solana từ local cache
- */
-export const getCachedWalletAddress = async (): Promise<string | null> => {
-  try {
-    return await AsyncStorage.getItem(STORAGE_KEYS.WALLET_ADDRESS);
-  } catch (error) {
-    console.error('Error reading cached wallet address:', error);
-    return null;
-  }
-};
-
-/**
- * Kiểm tra người dùng đã từng bấm Bỏ qua liên kết SĐT hay chưa
- */
-export const getHasSkippedPhoneLink = async (): Promise<boolean> => {
-  try {
-    const val = await AsyncStorage.getItem(STORAGE_KEYS.HAS_SKIPPED_PHONE_LINK);
-    return val === 'true';
-  } catch (error) {
-    console.error('Error reading hasSkippedPhoneLink:', error);
-    return false;
-  }
-};
-
-/**
- * Lưu cờ Bỏ qua liên kết SĐT vào AsyncStorage
- */
-export const setHasSkippedPhoneLink = async (): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.HAS_SKIPPED_PHONE_LINK, 'true');
-  } catch (error) {
-    console.error('Error setting hasSkippedPhoneLink:', error);
-  }
-};
-
-/**
  * Lấy số điện thoại đã liên kết
  */
 export const getLinkedPhone = async (): Promise<string | null> => {
@@ -179,94 +95,10 @@ export const setLinkedPhone = async (phone: string): Promise<void> => {
 };
 
 /**
- * Xóa số điện thoại đã liên kết khỏi AsyncStorage
- */
-export const removeLinkedPhone = async (): Promise<void> => {
-  try {
-    await removeOwnPhone();
-  } catch (error) {
-    console.error('Error removing linkedPhone:', error);
-  }
-};
-
-/**
- * Lấy username đã liên kết từ AsyncStorage
- */
-export const getCachedUsername = async (): Promise<string | null> => {
-  try {
-    return await AsyncStorage.getItem(STORAGE_KEYS.USERNAME);
-  } catch (error) {
-    console.error('Error reading cached username:', error);
-    return null;
-  }
-};
-
-/**
- * Lưu username đã liên kết vào AsyncStorage
- */
-export const setCachedUsername = async (username: string): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username);
-  } catch (error) {
-    console.error('Error setting cached username:', error);
-  }
-};
-
-/**
- * Lấy Full SNS handle (VD: @alex.sol) từ AsyncStorage
- */
-export const getCachedFullSns = async (): Promise<string | null> => {
-  try {
-    return await AsyncStorage.getItem(STORAGE_KEYS.FULL_SNS);
-  } catch (error) {
-    console.error('Error reading cached full SNS:', error);
-    return null;
-  }
-};
-
-/**
- * Lưu Full SNS handle vào AsyncStorage
- */
-export const setCachedFullSns = async (fullSns: string): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.FULL_SNS, fullSns);
-  } catch (error) {
-    console.error('Error setting cached full SNS:', error);
-  }
-};
-
-/**
- * Lấy avatar URL từ AsyncStorage
- */
-export const getCachedAvatarUrl = async (): Promise<string | null> => {
-  try {
-    return await AsyncStorage.getItem(STORAGE_KEYS.AVATAR_URL);
-  } catch (error) {
-    console.error('Error reading cached avatar URL:', error);
-    return null;
-  }
-};
-
-/**
- * Lưu avatar URL vào AsyncStorage
- */
-export const setCachedAvatarUrl = async (avatarUrl: string): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.AVATAR_URL, avatarUrl);
-  } catch (error) {
-    console.error('Error setting cached avatar URL:', error);
-  }
-};
-
-/**
  * Dọn dẹp sâu toàn bộ Corrupted State, logout an toàn và xóa sạch AsyncStorage
  */
 export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<void> => {
   console.log('🧹 [Hard Reset] Bắt đầu dọn dẹp sâu session và bộ nhớ đệm...');
-  try {
-    const { useWalletCardsStore } = require('../stores/useWalletCardsStore');
-    useWalletCardsStore.getState().resetCards();
-  } catch {}
 
   if (typeof logoutFn === 'function') {
     try {
@@ -282,8 +114,6 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
 
   // Region and consent (N11): empty the in-memory stores too, or persist would write the old state back
   try {
-    const { useRegionStore, REGION_STORAGE_KEY } = require('../stores/useRegionStore');
-    const { useConsentStore, CONSENT_STORAGE_KEY } = require('../stores/useConsentStore');
     useRegionStore.setState({ regions: {} });
     useConsentStore.setState({ consents: {} });
     await AsyncStorage.multiRemove([REGION_STORAGE_KEY, CONSENT_STORAGE_KEY]);

@@ -18,7 +18,7 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
 // (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', 'login', '+not-found']);
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -104,7 +104,6 @@ export default function RootLayout() {
                       <Stack.Screen name="home" options={{ headerShown: false }} />
                       <Stack.Screen name="history" options={{ headerShown: false }} />
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
-                      <Stack.Screen name="login" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
                       <Stack.Screen name="receive" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />

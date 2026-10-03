@@ -16,7 +16,6 @@ import {
   ATA_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
-  USD_VND_RATE,
   USDC_DEVNET_MINT,
 } from '../constants/chain';
 
@@ -26,29 +25,6 @@ export { USDC_DEVNET_MINT, TOKEN_PROGRAM_ID };
 export const ASSOCIATED_TOKEN_PROGRAM_ID = ATA_PROGRAM_ID;
 export const SYSVAR_RENT_PUBKEY = new PublicKey('SysvarRent111111111111111111111111111111111');
 
-// Tỷ giá quy đổi tiền tệ chuẩn (USD & VND)
-export const USD_TO_VND_RATE = USD_VND_RATE;
-export const SOL_USD_RATE = 150;
-
-/**
- * Định dạng số dư tiền tệ Fiat hiển thị trực quan (Visual Abstraction - MiniPay standard)
- * @param usdAmount Số dư tính theo USD (lấy trực tiếp từ on-chain)
- * @param currency 'USD' hoặc 'VND'
- */
-export function formatFiatBalance(
-  usdAmount: number,
-  currency: 'USD' | 'VND' = 'USD'
-): string {
-  if (isNaN(usdAmount) || usdAmount < 0) usdAmount = 0;
-  if (currency === 'VND') {
-    const vnd = Math.round(usdAmount * USD_TO_VND_RATE);
-    return `đ ${vnd.toLocaleString('vi-VN')}`;
-  }
-  return `$${usdAmount.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 /**
  * Tính toán địa chỉ ví Associated Token Account (ATA) theo chuẩn Solana Program Derived Address (PDA)
@@ -232,66 +208,6 @@ export async function getUsdcTokenBalance(address: string, force: boolean = fals
 
   inFlightUsdcMap.set(address, promise);
   return promise;
-}
-
-export interface AccountDisplayBalance {
-  usdBalance: number;
-  vndBalance: number;
-  solBalance: number;
-  usdcBalance: number;
-  formattedUsd: string;
-  formattedVnd: string;
-}
-
-/**
- * Lấy dữ liệu số dư tổng hợp động 100% từ Blockchain On-chain
- * Kết hợp số dư USDC và quy đổi tài sản SOL sang Fiat hiển thị
- */
-export async function getAccountDisplayBalance(
-  address: string,
-  force: boolean = false
-): Promise<AccountDisplayBalance> {
-  if (!address) {
-    return {
-      usdBalance: 0,
-      vndBalance: 0,
-      solBalance: 0,
-      usdcBalance: 0,
-      formattedUsd: '$0.00',
-      formattedVnd: 'đ 0',
-    };
-  }
-
-  try {
-    const [sol, usdc] = await Promise.all([
-      getSolanaBalance(address, force).catch(() => 0),
-      getUsdcTokenBalance(address, force).catch(() => 0),
-    ]);
-
-    // Tổng số dư USD tính chuẩn theo số dư Stablecoin USD thực tế (USDC/USDT)
-    // Ẩn hoàn toàn Native SOL khỏi số dư chi tiêu (Native SOL chỉ làm phí gas ngầm)
-    const totalUsd = usdc;
-    const totalVnd = Math.round(totalUsd * USD_TO_VND_RATE);
-
-    return {
-      usdBalance: totalUsd,
-      vndBalance: totalVnd,
-      solBalance: sol,
-      usdcBalance: usdc,
-      formattedUsd: formatFiatBalance(totalUsd, 'USD'),
-      formattedVnd: formatFiatBalance(totalUsd, 'VND'),
-    };
-  } catch (err) {
-    console.error('Error in getAccountDisplayBalance:', err);
-    return {
-      usdBalance: 0,
-      vndBalance: 0,
-      solBalance: 0,
-      usdcBalance: 0,
-      formattedUsd: '$0.00',
-      formattedVnd: 'đ 0',
-    };
-  }
 }
 
 /**
