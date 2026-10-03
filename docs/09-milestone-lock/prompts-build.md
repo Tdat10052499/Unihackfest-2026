@@ -176,6 +176,8 @@ Finish: commit, push, fast-forward main.
 
 ## 9 · C1: hosting, base URL, invite-link router, headers
 
+> **Do not run (3 Oct 2026):** replaced by D20 / workspace-plan W1–W2. C1 was closed on the mobile side only; see build-plan C1.
+
 ```text
 Task: build-plan.md phase C1 — build the same Expo app for GitHub Pages (base /Unihackfest-2026) and Vercel (root), add the invite-link router and security headers.
 Branch: feat/c1-hosting.

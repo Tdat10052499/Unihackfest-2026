@@ -202,6 +202,12 @@ As refactor-plan PR6. In the Vietnam view, records are in ≈ VND.
 
 ### C1 · Hosting and routing (about 3 h)
 
+> **Closed 3 Oct 2026 (`feat/c1-hosting`), under D20.** Not built as written below: `ned-wallet` stays mobile only (GitHub Pages, base `/Unihackfest-2026`, `npm run deploy` unchanged); it gets no Vercel build, no `/workspace` route and no `vercel.json`. What C1 asked for already exists in `ned-workspace`:
+> - security headers in `ned-workspace/vercel.json` (W1; CSP still Report-Only until W5);
+> - the invite-link router `/c/:fund` (W2): under 900 px → `MOBILE_ORIGIN/c/<fund>#k=…` with the fragment intact, otherwise the Workspace contract.
+>
+> The C1 branch only closed the mobile side: invite links from the app now default to the production Workspace origin (`DEFAULT_WORKSPACE_ORIGIN` in `@ned/core`; `EXPO_PUBLIC_WORKSPACE_ORIGIN=""` turns the hop off), and `routeInvite()` in `ned-wallet` always handles the invite itself. `isWorkspaceHost()` is not needed, because the mobile build is never served on the Workspace host.
+
 - **Base URL:**
   - `app.config.ts` reads `EXPO_BASE_URL` (default `/Unihackfest-2026` for GitHub Pages). Vercel builds with `EXPO_BASE_URL=""`.
   - Test both builds; whether Expo accepts an empty base URL is not verified \[Unverified\].

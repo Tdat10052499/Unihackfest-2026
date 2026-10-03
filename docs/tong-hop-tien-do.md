@@ -165,6 +165,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B4a app: danh sách + chi tiết hợp đồng, accept, lock, release/refund now, close | `feat/b4a-contracts-detail` | `cc08c77`, `aa3e14a` + docs |
 | B4b app: tạo hợp đồng 3 bước có brief, submit, review, route invite `/c/[fund]` | `feat/b4b-contracts-flow` | `7806542`, `9e9020d`, `f672557`, `530a05b` + docs |
 | B5 Records + thông báo hợp đồng | `feat/b5-records` | `3c0d378`, `a5ff2b3`, `911a590`, `6e2e743` + docs |
+| C1 đóng phần mobile (link mời đi qua router Workspace mặc định) | `feat/c1-hosting` | xem bên dưới |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -211,6 +212,19 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**C1 (03/10/2026): đóng theo D20, chỉ làm phần mobile.**
+- Prompt C1 cũ (build app Expo lên Vercel, route `/workspace`, `vercel.json` trong `ned-wallet`) **trái với D20**: `ned-wallet` chỉ là app điện thoại. PO chọn đóng C1 phía mobile (03/10).
+- Phần C1 cần đã có trong `ned-workspace`: header bảo mật trong `vercel.json` (W1, CSP vẫn Report-Only tới W5) và router `/c/:fund` (W2).
+- **Đã sửa:**
+  - link mời từ app mặc định đi qua Workspace production (`DEFAULT_WORKSPACE_ORIGIN` trong `@ned/core`). Trước đây `.env` local không có `EXPO_PUBLIC_WORKSPACE_ORIGIN`, nên bản GitHub Pages tạo link thẳng về mobile, bỏ qua router. Đặt biến này thành `""` để tắt bước qua Workspace;
+  - `routeInvite()` bỏ TODO: bản mobile luôn tự xử lý invite; `constants/hosts.ts` ghi rõ vì sao không cần `isWorkspaceHost()`;
+  - build-plan C1 và prompts-build mục 9 ghi "đã đóng".
+- **Test:** wallet **25** (+1: link mời mặc định đi qua `https://unihackfest-2026.vercel.app/c/<fund>#k=…`), core 94; `tsc` 0 lỗi; `expo export --platform web` OK, bundle có origin Workspace.
+- **Kiểm tra:**
+  - Router Workspace live (fund và key giả): rộng 390 → `tdat10052499.github.io/Unihackfest-2026/c/<fund>#k=…`, giữ nguyên fragment; rộng 1440 → ở lại Workspace;
+  - bản mobile mới serve local dưới `/Unihackfest-2026`: `/contracts/<fund>` và `/c/<fund>#k=…` đều trả 200 và tải được; khi chưa đăng nhập thì về `/welcome`, invite được lưu chờ.
+- **Vấn đề:** bản GitHub Pages đang chạy là bản **trước B4b**, chưa có route `/c/…`, nên link từ Workspace sang điện thoại đang rơi về `/`. Cần `npm run deploy` (chờ PO đồng ý).
 
 **B5 (03/10/2026): Records và thông báo hợp đồng.**
 - **`/records`** (board Records / RecordsIntl):
