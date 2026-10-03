@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
+import { FEATURES } from '@/constants/features';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/services/auth';
 import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
@@ -37,7 +38,13 @@ const decimals = (asset: Asset) => (asset === 'SOL' ? 9 : 6);
 const pretty = (raw: string | bigint, asset: Asset) =>
   `${(Number(raw) / 10 ** decimals(asset)).toLocaleString('en-US', { maximumFractionDigits: asset === 'SOL' ? 6 : 4 })} ${asset}`;
 
-export default function SwapScreen() {
+/** Hidden from the demo path (FEATURES.swap); the route name stays /swap because services/jupiter checks it */
+export default function SwapRoute() {
+  if (!FEATURES.swap) return <Redirect href="/(tabs)" />;
+  return <SwapScreen />;
+}
+
+function SwapScreen() {
   const router = useRouter();
   const { walletAddress } = useAuth();
   const [from, setFrom] = useState<Asset>('SOL');
