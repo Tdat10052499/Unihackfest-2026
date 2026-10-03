@@ -16,6 +16,7 @@
     "test:identity": "node --test services/identity/__tests__/*.test.ts",
     "milestone:devnet": "ts-node -P tsconfig.scripts.json scripts/milestone-devnet.ts",
     "recycle:demo-usdc": "ts-node -P tsconfig.scripts.json scripts/recycle-demo-usdc.ts",
+    "milestone:status": "ts-node -P tsconfig.scripts.json scripts/milestone-status.ts",
     "identity:check": "ts-node -P tsconfig.scripts.json scripts/identity-readonly.ts",
     "test:jupiter": "node --test services/jupiter/__tests__/*.test.ts",
     "test:xstocks": "node --test services/__tests__/demoLedger.test.ts services/__tests__/xstocks.test.ts",
