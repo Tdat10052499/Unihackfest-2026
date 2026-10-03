@@ -15,3 +15,4 @@ export * from './identity/format.ts';
 export * from './identity/transactionCost.ts';
 export * from './utils/amountInput.ts';
 export * from './actions.ts';
+export * from './avatar.ts';
