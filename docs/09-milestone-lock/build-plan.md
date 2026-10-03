@@ -261,6 +261,8 @@ In the Vietnam view the page shows the block message.
 
 ### C5 · Landing page (about 4 h, second team member)
 
+> **3 Oct 2026 (D21): superseded.** The landing page moves to a separate repository. `site/` stays in this repo for reference and is **not** deployed; the Vercel project of this repo serves only the Workspace (`ned-workspace`), whose `/sign-in` page is the entry point (login, then the Workspace). The other repo's landing links to `https://unihackfest-2026.vercel.app` and to the mobile build `https://tdat10052499.github.io/Unihackfest-2026/`.
+
 `site/` is static HTML/CSS, or Vite + React with Motion for React (`motion/react`) if the team prefers. It is Vercel project 1 (Root Directory `site`).
 
 **Content**

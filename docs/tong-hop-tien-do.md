@@ -217,6 +217,13 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
 
+**D21 (03/10/2026, PO): landing chuyển sang repo khác.**
+- Landing giới thiệu sẽ được xây ở **một repo riêng** và gắn link sau. Project Vercel của repo này **chỉ chạy Workspace** tại `https://unihackfest-2026.vercel.app`.
+- Luồng vào: chưa đăng nhập → `/sign-in` (hero WebSignIn + "Sign in with N.E.D Wallet" → Google) → Workspace (Overview). Luồng này đã có từ W1, **không cần thêm code**.
+- `site/` (C5) giữ lại để tham khảo, **không deploy**; đã ghi D21 trong decision log, đánh dấu C5 trong build-plan và `site/README.md` là superseded.
+- **Sự cố 03/10:** Root Directory của project Workspace bị đổi thành `site`, nên domain Workspace trả về landing: `/sign-in` báo 404, mất đăng nhập. Cách sửa: Root Directory trả lại `ned-workspace`, rồi tạo deployment mới từ `main`.
+- Link cần đưa cho repo landing: Workspace `https://unihackfest-2026.vercel.app`, bản mobile `https://tdat10052499.github.io/Unihackfest-2026/`.
+
 **C5 (03/10/2026): landing page tĩnh `site/`.**
 - **Cách làm:** HTML + CSS tĩnh, **không có JavaScript**, không đăng nhập, không có code ví, không analytics.
 - **Nội dung:**

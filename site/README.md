@@ -1,5 +1,7 @@
 # N.E.D landing page (`site/`)
 
+> **Superseded (3 Oct 2026, D21):** the landing page is built in a separate repository. This folder is kept for reference and is not deployed; do not point a Vercel project at it.
+
 Static HTML and CSS (build-plan C5), Vercel project 1. No JavaScript in the page, no login, no wallet code, no analytics.
 
 ```bash

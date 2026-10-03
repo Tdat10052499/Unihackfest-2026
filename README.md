@@ -204,7 +204,7 @@ npm run build                     # tsc --noEmit + vite build → dist/
 
 ## Landing page (site)
 
-`site/` is the static landing page (Vercel project 1, Root Directory `site`): product line, "Try the mobile demo" (QR to `/m`, redirected to the GitHub Pages build), "Open Workspace", how it works, the 2-minute judge path and the disclosures. See [`site/README.md`](site/README.md).
+The introduction landing page is built in a separate repository (decision D21). `site/` is an earlier static version kept for reference and is not deployed. Visitors of `https://unihackfest-2026.vercel.app` (the Workspace) start on `/sign-in`, sign in with Google and enter the Workspace.
 
 ---
 

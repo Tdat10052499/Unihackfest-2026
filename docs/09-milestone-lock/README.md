@@ -41,6 +41,7 @@ Adopted on 2 Oct 2026 to remove the contradictions below, so coding can start. T
 | D18 | The Vietnam view never offers "New contract" or client actions | A Vietnam resident locking USDC would hold a crypto asset (C10) | Remove the guard in `useRegion` checks |
 | D19 | The landing page is built by a second team member; cut order in `build-plan.md` section 6 applies from 7 Oct | About 65 hours of work for one developer | — |
 | D20 | The Workspace is its own app, `ned-workspace/` (Vite + React + Motion for React), deployed on Vercel; `ned-wallet/` is mobile only; shared TypeScript moves to `packages/ned-core` (3 Oct, PO). Replaces the "one Expo app" part of D16; the host rule of D16 stays | Clear separation of mobile and web code; a DOM app for the desktop Workspace | About 6 more hours than C1–C4 (`workspace-plan.md`) |
+| D21 | The introduction landing page is built in a **separate repository** and links to this project later (3 Oct, PO). This repo's Vercel project serves only the Workspace at `https://unihackfest-2026.vercel.app`: signed-out visitors land on `/sign-in` (WebSignIn hero + "Sign in with N.E.D Wallet"), then enter the Workspace. `site/` (C5) is kept for reference, not deployed. Replaces the landing part of D16 and the C5 hosting | One domain for login and work; the landing team works on its own | Links (Workspace URL, mobile demo URL/QR) go to the other repo's landing |
 
 ## Review fixes (3 Oct)
 
