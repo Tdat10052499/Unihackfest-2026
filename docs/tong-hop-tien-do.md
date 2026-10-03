@@ -167,6 +167,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B5 Records + thông báo hợp đồng | `feat/b5-records` | `3c0d378`, `a5ff2b3`, `911a590`, `6e2e743` + docs |
 | C1 đóng phần mobile (link mời đi qua router Workspace mặc định) | `feat/c1-hosting` | `1088e77` + docs |
 | W3 Workspace `/new`: soạn brief, tạo hợp đồng, xác nhận trong wallet panel | `feat/w3-brief-editor` | `af18ff9`, `e0e55ae`, `b588f08` + docs |
+| W4 Workspace: nộp bài (submit) và duyệt (review) | `feat/w4-submit-review` | `df00cf2`, `36a61ff`, `ef6492a` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -213,6 +214,38 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**W4 (03/10/2026): nộp và duyệt milestone trên Workspace (board WebSubmit, WebReview).**
+- **Xác nhận trong wallet panel:** đã làm ở W3 (các dòng tóm tắt, ghi chú, Cancel/Confirm, vị trí cố định, backdrop fade, trả về lựa chọn của người dùng); W4 dùng lại cho submit và release.
+  - **Dynamic có tự hiện xác nhận trên web không:** Workspace dùng SDK JS headless (`@dynamic-labs-sdk/client`), không có UI của Dynamic, nên panel của mình vẫn giữ nút Confirm. [Inference] Cần xác nhận lại trong lần chạy thật với Google.
+- **`/contract/:fund/submit?i=`** (freelancer):
+  - link có nhãn ("Figma · version 2214", "GitHub · commit 3f9a1c2"), chip "Fixed version", gợi ý khi link chưa cố định;
+  - file: kéo thả hoặc chọn; băm SHA-256 bằng `crypto.subtle` ngay trên máy, **không upload**; từ chối file > 200 MB; file > 20 MB có thanh tiến trình; tối đa 10 file, không trùng;
+  - note (đếm /500); tự kiểm "Done when" (chỉ trên máy); delivery fingerprint cập nhật trực tiếp (`deliveryEvidence` của core);
+  - hạn nộp theo giờ chain + "How on-time is decided"; cảnh báo khi chưa tick hết. Không nhắc dispute vì P1 đang tắt;
+  - Submit → xác nhận → `runSubmit` → màn "Submitted · in review" (giờ ghi nhận, On time, fingerprint, số tiền, Explorer);
+  - Vietnam view chỉ hiện ≈ VND. Chưa có key thì hiện ô dán link hợp đồng.
+- **`/contract/:fund/review?i=`** (client):
+  - delivery: note, link mở bằng `rel="noopener noreferrer"`, file kèm fingerprint;
+  - "On time / Late" so `submitted_at` với `submit_by`;
+  - khối integrity: "Same delivery that was submitted ✓" (kèm giải thích nó **không** chứng minh nội dung sau link không đổi) hoặc "Does not match what was submitted"; hiện cả hai fingerprint;
+  - **"Drop a file to compare":** cùng fingerprint → "Same file ✓"; cùng tên khác fingerprint → "Different file"; khác cả hai → "không có trong danh sách";
+  - tick "Done when" trên máy, timeline (giờ tạo và giờ nộp lấy từ chain; accept và lock không có giờ trên chain), đếm ngược auto-release;
+  - Release → xác nhận → `approve` → màn "Milestone N released" (số còn lock, milestone tiếp theo, Explorer);
+  - **không có nút Dispute** (P1 tắt trong Workspace); client ở Vietnam view bị chặn (D18).
+- **Core:** `milestone/links.ts` (`looksUnversioned`, `isFixedVersion`, `linkLabel`) dùng chung cho app và Workspace; app điện thoại bỏ bản copy trong `submit.tsx`.
+- Link "Open delivery form / Review delivery" trên trang hợp đồng giờ kèm `?i=<milestone>`.
+- **Test:** workspace **10** (+3: băm file, giới hạn, so file), core **96** (+2 links), wallet 25; `npm run build` OK; `tsc` app 0 lỗi.
+- **Devnet** (script tạm đã xoá, 2 ví test, VND path), hợp đồng `Ff9h…NGnc` có 2 milestone kèm "Done when":
+  - tạo, accept, lock bằng core;
+  - trang submit (preview chỉ đọc, ví freelancer, Vietnam view): thêm 1 link cố định + 1 link chưa cố định (hiện gợi ý), 1 file 2.9 MB + 1 file 24.8 MB (có thanh tiến trình), tick 1/2; panel xác nhận đúng; chỉ hiện VND;
+  - nộp 2 link + 1 file bằng core → trang review (ví client): **"Same delivery that was submitted ✓"**, On time, link có `noopener noreferrer`;
+  - thả đúng file → **"Same file ✓"**; cùng tên khác nội dung → **"Different file"**; file lạ → "không có trong danh sách";
+  - panel xác nhận release đúng; client ở Vietnam view bị chặn;
+  - release milestone 1 bằng core → app điện thoại (preview, Vietnam view của freelancer) hiện **"Released to payout partner"**, ≈ VND, không có USDC.
+  - Milestone 2 (1 USDC) vẫn đang lock, hạn nộp khoảng 19:57 ngày 3/10; sau hạn có thể refund rồi đóng hợp đồng.
+- **Chưa test tay (cần chủ dự án):** chạy thật với Google: Vinh mở link trên laptop, nộp 2 link + 1 file → Mia duyệt trên laptop → thử cùng file / file khác → release → iPhone của Vinh hiện Released ở Vietnam view (cần `npm run deploy` cho GitHub Pages trước).
+- **Ghi chú:** `pages/ComingSoon.tsx` không còn được dùng; chưa xoá (theo luật hỏi trước khi xoá file). Bản build local dùng RPC public nên hay gặp 429; bản Vercel dùng Helius.
 
 **W3 (03/10/2026): trình soạn brief `/new` trên Workspace (board WebContractNew).**
 - **Freelancer:**
