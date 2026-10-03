@@ -4,6 +4,7 @@ import { useLocation, useOutlet } from 'react-router';
 import { AnimatePresence, m } from 'motion/react';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { PhoneGate, useNarrowScreen } from './PhoneGate.tsx';
+import { RegionPrompt } from './RegionPrompt.tsx';
 import { TopBar } from './TopBar.tsx';
 
 export function Layout() {
@@ -16,6 +17,7 @@ export function Layout() {
         Skip to content
       </a>
       <TopBar />
+      <RegionPrompt />
       <AnimatePresence mode="wait" initial={false}>
         <m.div
           key={location.pathname}

@@ -9,7 +9,7 @@ import type { ActionKind, FundView, Region } from '@ned/core/milestone/view.ts';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { env } from '../config.ts';
 import { useFunds, useUsername } from '../hooks/queries.ts';
-import { useRegion } from '../hooks/region.ts';
+import { openRegionPrompt, useRegion } from '../hooks/region.ts';
 import { useWalletSummary } from '../hooks/summary.ts';
 import { mobileHref, shortAddress } from '../lib/format.ts';
 import { popover } from '../motion.ts';
@@ -239,6 +239,21 @@ function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
       <PanelHead wallet={wallet} onClose={onClose} />
       <div className={styles.home}>
         <Hero wallet={wallet} region={region} />
+        <div className={styles.viewRow}>
+          <span>
+            Money view · <strong>{region === 'vn' ? 'Vietnam · VND' : 'Outside Vietnam · USDC'}</strong>
+          </span>
+          <button
+            type="button"
+            className={styles.viewChange}
+            onClick={() => {
+              setOpen(false);
+              openRegionPrompt();
+            }}
+          >
+            Change
+          </button>
+        </div>
         <Needs wallet={wallet} region={region} />
         <QuickActions username={username} region={region} />
         <div className={styles.footer}>
