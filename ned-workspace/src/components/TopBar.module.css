@@ -1,0 +1,30 @@
+.header { position: relative; z-index: 30; background: var(--card); }
+.inner {
+  max-width: var(--content-max); margin: 0 auto; padding: 12px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+}
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.brand:hover { color: var(--ink); }
+.word { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.spacer { flex: 1; }
+.devnet {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: var(--r-pill);
+  background: var(--warning-bg); color: var(--warning-ink); font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.dot { width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--warning-dot); }
+.anchor { position: relative; }
+
+.signIn, .wallet {
+  height: 44px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: var(--r-pill);
+  cursor: pointer; font-family: inherit;
+}
+.signIn { padding: 0 18px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; }
+.signIn:hover { background: var(--accent-hover); }
+.wallet { padding: 0 12px 0 4px; background: var(--field); color: var(--ink); }
+.wallet:hover { background: var(--hover-ground); }
+.wallet[aria-expanded='true'] { background: var(--tint); }
+.who { text-align: left; line-height: 1.15; }
+.handle { display: block; font-size: 14px; font-weight: 600; }
+.sub { display: block; font-size: 11px; color: var(--caption); }
+.busy { width: 34px; height: 34px; border-radius: 50%; background: var(--ground); }
+

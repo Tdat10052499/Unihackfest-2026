@@ -1,0 +1,28 @@
+.main { max-width: var(--content-max); margin: 0 auto; padding: 72px 24px 64px; }
+.intro { max-width: 640px; }
+.chip {
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: var(--r-pill);
+  background: var(--tint); color: var(--purple-ink); font-size: 13px; font-weight: 600;
+}
+.h1 { margin: 18px 0 0; font-family: var(--font-display); font-size: 52px; font-weight: 700; letter-spacing: -1.4px; line-height: 1.04; }
+.lead { margin: 18px 0 0; font-size: 18px; line-height: 1.55; color: var(--ink-2); }
+.ctaRow { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.cta {
+  height: 52px; padding: 0 24px; border: none; border-radius: var(--r-pill); background: var(--accent); color: #fff;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.cta:hover { background: var(--accent-hover); }
+.hint { font-size: 14px; color: var(--caption); }
+.cards { margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { padding: 22px; border-radius: var(--r-20); background: var(--card); }
+.cardTop { display: flex; align-items: center; justify-content: space-between; }
+.badge { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--tint); display: flex; align-items: center; justify-content: center; }
+.role { font-size: 12px; font-weight: 600; color: var(--caption); }
+.h2 { margin: 16px 0 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.cardText { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.phone { margin-top: 16px; padding: 18px 22px; border-radius: var(--r-20); background: var(--card); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.phoneBadge { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--field); display: flex; align-items: center; justify-content: center; flex: none; color: var(--ink-2); }
+.phoneText { flex: 1 1 360px; min-width: 0; }
+.phoneTitle { font-size: 15px; font-weight: 600; margin: 0; }
+.phoneSub { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--caption); }
+.disclaimer { margin: 40px 0 0; font-size: 13px; line-height: 1.6; color: var(--caption); }
