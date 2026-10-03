@@ -1,6 +1,7 @@
 // Unsigned transaction builders, one per instruction. Each returns { tx, rent }: `rent` is the lamports the
 // transaction will lock in new accounts (fund + vault, or an ATA that does not exist yet). The fee payer and
 // blockhash are set later by services/chain/send.ts. Encoding and account order come from the IDL (N2).
+import { sha256 } from '@noble/hashes/sha2.js';
 import { PublicKey, Transaction, type Connection, type TransactionInstruction } from '@solana/web3.js';
 import idl from '../idl/ned_program.json' with { type: 'json' };
 import { DEMO_PAYOUT_PARTNER, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../constants.ts';
@@ -43,6 +44,14 @@ async function ensureAta(payer: PublicKey, owner: PublicKey, conn: RentConnectio
 }
 
 const tx = (...ixs: TransactionInstruction[]) => new Transaction().add(...ixs);
+const isZero = (bytes: Uint8Array) => bytes.every((b) => b === 0);
+
+/**
+ * TEMPORARY until B1 (canonical brief JSON): the brief hash is SHA-256 of the title, so v1.1 contracts can be
+ * created before the brief editor exists.
+ */
+export const temporaryBriefHash = (title: string) => sha256(new TextEncoder().encode(title));
+
 const u8index = (index: number) => {
   if (!Number.isInteger(index) || index < 0 || index > 255) throw new Error('Invalid milestone index');
   return index;
@@ -58,9 +67,13 @@ export async function buildCreateFund(
     milestones: MilestoneInputUnits[];
     payer?: PublicKey;
     fundId?: bigint;
+    /** SHA-256 of the canonical brief JSON; defaults to temporaryBriefHash(title) until B1 */
+    briefHash?: Uint8Array;
   },
   conn: RentConnection = getConnection()
 ): Promise<Built & { fund: PublicKey; fundId: bigint }> {
+  const briefHash = p.briefHash ?? temporaryBriefHash(p.title);
+  if (briefHash.length !== 32 || isZero(briefHash)) throw new Error('The brief fingerprint is missing.');
   const fundId = p.fundId ?? BigInt(Date.now());
   const fund = fundPda(p.client, fundId);
   const [fundRent, vaultRent] = await Promise.all([
@@ -75,6 +88,7 @@ export async function buildCreateFund(
       freelancer: p.freelancer,
       title: p.title,
       milestones: p.milestones.map((m) => ({ amount: toBN(m.amount), submit_by: toBN(m.submitBy), review_by: toBN(m.reviewBy) })),
+      brief_hash: Array.from(briefHash),
     }
   );
   return { tx: tx(create), rent: fundRent + vaultRent, fund, fundId };
@@ -83,13 +97,16 @@ export async function buildCreateFund(
 /**
  * ownWallet → destination = the freelancer, reference = 32 zero bytes.
  * payoutPartner → destination = DEMO_PAYOUT_PARTNER, reference = SHA-256("demo-<username>-001").
+ * `expectedBriefHash` = hash of the brief the freelancer read; the program refuses it if it differs (BriefMismatch).
  */
 export async function buildAccept(p: {
   fund: FundAccount;
   freelancer: PublicKey;
   choice: 'ownWallet' | 'payoutPartner';
   username: string;
+  expectedBriefHash: Uint8Array;
 }): Promise<Built> {
+  if (p.expectedBriefHash.length !== 32) throw new Error('The brief fingerprint is missing.');
   const own = p.choice === 'ownWallet';
   if (!own && !p.username) throw new Error('A username is needed for the payout reference');
   const reference = own ? new Uint8Array(32) : payoutReference(demoRecipientId(p.username));
@@ -100,6 +117,7 @@ export async function buildAccept(p: {
       payout_kind: own ? { OwnWallet: {} } : { PayoutPartner: {} },
       payout_destination: own ? p.freelancer : DEMO_PAYOUT_PARTNER,
       payout_reference: Array.from(reference),
+      expected_brief_hash: Array.from(p.expectedBriefHash),
     }
   );
   return { tx: tx(accept), rent: 0 };
@@ -113,6 +131,7 @@ export async function buildLock(p: { fund: FundAccount; client: PublicKey }, con
 
 export async function buildSubmit(p: { fund: FundAccount; freelancer: PublicKey; index: number; link: string }): Promise<Built & { evidence: Uint8Array }> {
   const evidence = evidenceHash(p.link);
+  if (isZero(evidence)) throw new Error('The delivery fingerprint is missing.');
   const submit = ix(
     'submit',
     { fund: p.fund.address, freelancer: p.freelancer },

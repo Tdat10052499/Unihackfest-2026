@@ -47,6 +47,8 @@ export interface FundAccount {
   bump: number;
   vaultBump: number;
   payoutReference: Uint8Array;
+  /** SHA-256 of the canonical brief JSON (v1.1), never all zero */
+  briefHash: Uint8Array;
 }
 
 type Raw = Record<string, any>;
@@ -91,5 +93,6 @@ export function decodeFund(address: PublicKey, data: Uint8Array): FundAccount {
     bump: f.bump,
     vaultBump: f.vault_bump,
     payoutReference: Uint8Array.from(f.payout_reference as number[]),
+    briefHash: Uint8Array.from(f.brief_hash as number[]),
   };
 }

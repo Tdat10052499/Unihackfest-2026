@@ -14,7 +14,7 @@ export type NedProgram = {
     {
       "name": "accept",
       "docs": [
-        "Freelancer accepts and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference"
+        "Freelancer accepts the brief (by its hash) and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference"
       ],
       "discriminator": [
         65,
@@ -77,6 +77,15 @@ export type NedProgram = {
         },
         {
           "name": "payoutReference",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "expectedBriefHash",
           "type": {
             "array": [
               "u8",
@@ -858,6 +867,15 @@ export type NedProgram = {
               }
             }
           }
+        },
+        {
+          "name": "briefHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -1228,6 +1246,80 @@ export type NedProgram = {
       "args": []
     },
     {
+      "name": "postNote",
+      "docs": [
+        "Posts one part of an encrypted brief (client, while Created) or delivery note (freelancer, Submitted milestone).",
+        "No state change; the app reads it back from the transaction (v1.1)"
+      ],
+      "discriminator": [
+        112,
+        125,
+        26,
+        8,
+        89,
+        113,
+        72,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "docs": [
+            "Read-only: listed so notes can be found with getSignaturesForAddress(fund)"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "sharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fundId",
+                "account": "sharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "milestone",
+          "type": "u8"
+        },
+        {
+          "name": "part",
+          "type": "u8"
+        },
+        {
+          "name": "parts",
+          "type": "u8"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "proposeCancel",
       "docs": [
         "Client or freelancer proposes a split of what is still locked"
@@ -1582,7 +1674,7 @@ export type NedProgram = {
     {
       "name": "submit",
       "docs": [
-        "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the delivery link or file"
+        "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the canonical delivery JSON (never all zero)"
       ],
       "discriminator": [
         88,
@@ -2034,6 +2126,19 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "notePosted",
+      "discriminator": [
+        60,
+        196,
+        200,
+        230,
+        85,
+        56,
+        50,
+        8
+      ]
+    },
+    {
       "name": "phoneLinked",
       "discriminator": [
         122,
@@ -2269,6 +2374,31 @@ export type NedProgram = {
       "code": 6033,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow."
+    },
+    {
+      "code": 6034,
+      "name": "invalidBriefHash",
+      "msg": "The brief fingerprint is missing."
+    },
+    {
+      "code": 6035,
+      "name": "briefMismatch",
+      "msg": "The brief changed. Read the brief again before accepting."
+    },
+    {
+      "code": 6036,
+      "name": "invalidEvidence",
+      "msg": "The delivery fingerprint is missing."
+    },
+    {
+      "code": 6037,
+      "name": "invalidNote",
+      "msg": "The note is empty, too long or has wrong part numbers."
+    },
+    {
+      "code": 6038,
+      "name": "noteNotAllowed",
+      "msg": "This note cannot be added now."
     }
   ],
   "types": [
@@ -2385,6 +2515,15 @@ export type NedProgram = {
           {
             "name": "milestoneCount",
             "type": "u8"
+          },
+          {
+            "name": "briefHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }
@@ -2466,7 +2605,7 @@ export type NedProgram = {
           {
             "name": "evidence",
             "docs": [
-              "SHA-256 of the delivery link or file, computed by the app"
+              "SHA-256 of the canonical delivery JSON (links, file fingerprints, note), computed by the app; never all zero"
             ],
             "type": {
               "array": [
@@ -2672,6 +2811,45 @@ export type NedProgram = {
       }
     },
     {
+      "name": "notePosted",
+      "docs": [
+        "An encrypted brief or delivery note was posted (v1.1); the ciphertext is in the instruction data only"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "milestone",
+            "type": "u8"
+          },
+          {
+            "name": "part",
+            "type": "u8"
+          },
+          {
+            "name": "parts",
+            "type": "u8"
+          },
+          {
+            "name": "len",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
       "name": "payoutKind",
       "type": {
         "kind": "enum",
@@ -2789,7 +2967,7 @@ export type NedProgram = {
     {
       "name": "sharedFund",
       "docs": [
-        "PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 708 bytes with the discriminator"
+        "PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 740 bytes with the discriminator"
       ],
       "type": {
         "kind": "struct",
@@ -2939,6 +3117,18 @@ export type NedProgram = {
             "name": "payoutReference",
             "docs": [
               "PayoutPartner only: hash of the partner's recipient ID; zero for OwnWallet"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "briefHash",
+            "docs": [
+              "SHA-256 of the canonical brief JSON (offset 676), computed by the app; never all zero (v1.1)"
             ],
             "type": {
               "array": [

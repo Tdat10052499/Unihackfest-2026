@@ -7,7 +7,7 @@ import { FUND_DISCRIMINATOR } from '../decode.ts';
 import { getChainNow, getFund, listFunds } from '../queries.ts';
 import { CLIENT, FREELANCER, fundBytes, FUND_ADDRESS, M, T0 } from './fixture.ts';
 
-test('listFunds filters by size 708, discriminator at 0 and the wallet at 12 (client) or 44 (freelancer)', async () => {
+test('listFunds filters by size 740, discriminator at 0 and the wallet at 12 (client) or 44 (freelancer)', async () => {
   const calls: any[] = [];
   const older = fundBytes({ milestones: [M()] });
   const conn = {
@@ -15,7 +15,7 @@ test('listFunds filters by size 708, discriminator at 0 and the wallet at 12 (cl
       calls.push([programId.toBase58(), config]);
       return [
         { pubkey: FUND_ADDRESS, account: { data: older } },
-        { pubkey: PublicKey.default, account: { data: new Uint8Array(708) } }, // not a SharedFund: skipped
+        { pubkey: PublicKey.default, account: { data: new Uint8Array(740) } }, // not a SharedFund: skipped
       ];
     },
   };
@@ -25,7 +25,7 @@ test('listFunds filters by size 708, discriminator at 0 and the wallet at 12 (cl
   assert.ok(asClient[0].address.equals(FUND_ADDRESS));
   assert.equal(calls[0][0], PROGRAM_ID.toBase58());
   assert.deepEqual(calls[0][1].filters, [
-    { dataSize: 708 },
+    { dataSize: 740 },
     { memcmp: { offset: 0, bytes: bs58.encode(FUND_DISCRIMINATOR) } },
     { memcmp: { offset: 12, bytes: CLIENT.toBase58() } },
   ]);

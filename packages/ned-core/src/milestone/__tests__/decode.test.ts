@@ -5,9 +5,10 @@ import { USDC_DEVNET_MINT } from '../../constants.ts';
 import { decodeFund } from '../decode.ts';
 import { CLIENT, FREELANCER, FUND_ADDRESS, fundBytes, STRANGER, T0, USDC } from './fixture.ts';
 
-test('a hand-built 708-byte SharedFund decodes field by field, only used slots', () => {
+test('a hand-built 740-byte SharedFund decodes field by field, only used slots', () => {
   const evidence = new Uint8Array(32).fill(7);
   const reference = new Uint8Array(32).fill(9);
+  const brief = new Uint8Array(32).fill(3);
   const bytes = fundBytes({
     state: 'Funded',
     payoutKind: 'PayoutPartner',
@@ -17,18 +18,20 @@ test('a hand-built 708-byte SharedFund decodes field by field, only used slots',
     cancelFreelancerAmount: 4n * USDC,
     title: 'Thiết kế',
     payoutReference: reference,
+    briefHash: brief,
     milestones: [
       { amount: 3n * USDC, submitBy: T0 + 600, reviewBy: T0 + 720, submittedAt: T0 + 10, evidence, status: 'Released' },
       { amount: 5n * USDC, submitBy: T0 + 700, reviewBy: T0 + 820, status: 'Disputed' },
     ],
   });
-  assert.equal(bytes.length, 708);
+  assert.equal(bytes.length, 740);
+  assert.deepEqual(bytes.subarray(676, 708), brief, 'brief_hash at offset 676');
   assert.deepEqual(bytes.subarray(12, 44), CLIENT.toBytes());
   assert.deepEqual(bytes.subarray(44, 76), FREELANCER.toBytes());
 
   const f = decodeFund(FUND_ADDRESS, bytes);
   assert.ok(f.address.equals(FUND_ADDRESS));
-  assert.equal(f.version, 1);
+  assert.equal(f.version, 2);
   assert.equal(f.state, 'Funded');
   assert.equal(f.payoutKind, 'PayoutPartner');
   assert.ok(f.client.equals(CLIENT));
@@ -58,6 +61,7 @@ test('a hand-built 708-byte SharedFund decodes field by field, only used slots',
   assert.equal(f.bump, 255);
   assert.equal(f.vaultBump, 254);
   assert.deepEqual(f.payoutReference, reference);
+  assert.deepEqual(f.briefHash, brief);
 });
 
 test('no cancel proposal decodes as null', () => {
@@ -67,7 +71,7 @@ test('no cancel proposal decodes as null', () => {
 
 test('wrong size or wrong discriminator is rejected', () => {
   const bytes = fundBytes({ milestones: [{ submitBy: T0 + 600, reviewBy: T0 + 720 }] });
-  assert.throws(() => decodeFund(FUND_ADDRESS, bytes.subarray(0, 707)), /708 bytes/);
+  assert.throws(() => decodeFund(FUND_ADDRESS, bytes.subarray(0, 708)), /740 bytes/);
   const bad = Uint8Array.from(bytes);
   bad[0] ^= 0xff;
   assert.throws(() => decodeFund(PublicKey.default, bad));

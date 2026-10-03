@@ -54,7 +54,8 @@ export async function buildMilestoneAction(
     case 'accept':
       // Same fee and rent for both choices; the own-wallet variant needs no username
       check(rules.canAccept(fund, me, now));
-      return client.buildAccept({ fund, freelancer: me, choice: 'ownWallet', username: '' });
+      // TODO(B1): the hash of the decrypted brief shown to the freelancer, never the fund's own value
+      return client.buildAccept({ fund, freelancer: me, choice: 'ownWallet', username: '', expectedBriefHash: fund.briefHash });
     case 'lock': {
       check(rules.canLock(fund, me, now));
       // The Token program would fail with a bare 0x1; say what is missing instead
@@ -161,7 +162,9 @@ export function runAccept(env: ActionEnv, address: string | undefined, choice: '
     if (choice === 'payoutPartner' && !username) {
       throw new UserFacingError('Create your N.E.D profile before choosing a VND payout.');
     }
-    return client.buildAccept({ fund, freelancer: me, choice, username });
+    // TEMPORARY (harness and smoke only): accepts whatever brief the fund holds.
+    // TODO(B1): pass the hash of the decrypted brief shown to the freelancer, never the fund's own value.
+    return client.buildAccept({ fund, freelancer: me, choice, username, expectedBriefHash: fund.briefHash });
   });
 }
 

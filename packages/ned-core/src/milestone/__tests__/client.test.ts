@@ -8,16 +8,17 @@ import { coder } from '../decode.ts';
 import { evidenceHash } from '../evidence.ts';
 import { fundPda, vaultPda } from '../pda.ts';
 import { payoutReference } from '../reference.ts';
-import { CLIENT, FREELANCER, fund, FUND_ADDRESS, M, STRANGER, T0, USDC } from './fixture.ts';
+import { BRIEF_HASH, CLIENT, FREELANCER, fund, FUND_ADDRESS, M, STRANGER, T0, USDC } from './fixture.ts';
 
 const RENT_165 = 2_039_280;
-const RENT_708 = 5_818_560;
+/** Rent of a 740-byte account (devnet getMinimumBalanceForRentExemption) */
+const RENT_740 = 4_409_440;
 /** Fake RPC: ATAs in `existing` are present; rent per size */
 function conn(existing: PublicKey[] = []) {
   const set = new Set(existing.map((k) => k.toBase58()));
   return {
     getAccountInfo: async (k: PublicKey) => (set.has(k.toBase58()) ? ({} as never) : null),
-    getMinimumBalanceForRentExemption: async (size: number) => (size === 165 ? RENT_165 : size === 708 ? RENT_708 : 0),
+    getMinimumBalanceForRentExemption: async (size: number) => (size === 165 ? RENT_165 : size === 740 ? RENT_740 : 0),
   };
 }
 const program = (ixs: TransactionInstruction[]) => ixs.find((i) => i.programId.equals(PROGRAM_ID))!;
@@ -34,7 +35,7 @@ test('create_fund: args, account order from the IDL, rent of fund + vault', asyn
   const fundKey = fundPda(CLIENT, 42n);
   assert.ok(built.fund.equals(fundKey));
   assert.equal(built.fundId, 42n);
-  assert.equal(built.rent, RENT_708 + RENT_165);
+  assert.equal(built.rent, RENT_740 + RENT_165);
   assert.equal(built.tx.instructions.length, 1);
   assert.deepEqual(keys(built.tx.instructions[0]), [
     [CLIENT.toBase58(), true, false],
@@ -52,6 +53,15 @@ test('create_fund: args, account order from the IDL, rent of fund + vault', asyn
   assert.ok(args.freelancer.equals(FREELANCER));
   assert.equal(args.title, 'Landing page design');
   assert.deepEqual(args.milestones.map((m: any) => [m.amount.toString(), m.submit_by.toNumber(), m.review_by.toNumber()]), [['10000000', T0 + 600, T0 + 720]]);
+  // TEMPORARY until B1: the brief hash defaults to SHA-256 of the title
+  assert.deepEqual(Uint8Array.from(args.brief_hash), client.temporaryBriefHash('Landing page design'));
+});
+
+test('create_fund passes an explicit brief hash and refuses an all-zero one', async () => {
+  const base = { client: CLIENT, freelancer: FREELANCER, title: 't', fundId: 1n, milestones: [{ amount: 1n, submitBy: 1, reviewBy: 61 }] };
+  const built = await client.buildCreateFund({ ...base, briefHash: BRIEF_HASH }, conn());
+  assert.deepEqual(Uint8Array.from((decoded(built.tx.instructions).data as any).brief_hash), BRIEF_HASH);
+  await assert.rejects(client.buildCreateFund({ ...base, briefHash: new Uint8Array(32) }, conn()), /brief fingerprint/);
 });
 
 test('create_fund with a separate payer; default fund id is the current time in ms', async () => {
@@ -63,22 +73,23 @@ test('create_fund with a separate payer; default fund id is the current time in 
 
 test('accept: ownWallet → freelancer + zero reference; payoutPartner → DEMO_PAYOUT_PARTNER + sha256(demo-<username>-001)', async () => {
   const f = fund({ state: 'Created', payoutKind: 'Unset', milestones: [M()] });
-  const own = decoded((await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'ownWallet', username: 'vinh' })).tx.instructions);
+  const own = decoded((await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'ownWallet', username: 'vinh', expectedBriefHash: BRIEF_HASH })).tx.instructions);
   assert.equal(own.name, 'accept');
   assert.deepEqual((own.data as any).payout_kind, { OwnWallet: {} });
   assert.ok((own.data as any).payout_destination.equals(FREELANCER));
   assert.deepEqual([...(own.data as any).payout_reference], new Array(32).fill(0));
+  assert.deepEqual(Uint8Array.from((own.data as any).expected_brief_hash), BRIEF_HASH);
 
-  const vn = await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'payoutPartner', username: 'vinh' });
+  const vn = await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'payoutPartner', username: 'vinh', expectedBriefHash: BRIEF_HASH });
   const d = decoded(vn.tx.instructions);
   assert.deepEqual((d.data as any).payout_kind, { PayoutPartner: {} });
   assert.ok((d.data as any).payout_destination.equals(DEMO_PAYOUT_PARTNER));
   assert.deepEqual(Uint8Array.from((d.data as any).payout_reference), payoutReference('demo-vinh-001'));
   assert.deepEqual(keys(vn.tx.instructions[0]), [[FUND_ADDRESS.toBase58(), false, true], [FREELANCER.toBase58(), true, false]]);
   assert.equal(vn.rent, 0);
-  await assert.rejects(client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'payoutPartner', username: '' }), /username/);
+  await assert.rejects(client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'payoutPartner', username: '', expectedBriefHash: BRIEF_HASH }), /username/);
   // own wallet needs no username
-  await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'ownWallet', username: '' });
+  await client.buildAccept({ fund: f, freelancer: FREELANCER, choice: 'ownWallet', username: '', expectedBriefHash: BRIEF_HASH });
 });
 
 test('ATA create-idempotent is added where program-spec 4.1 needs the ATA; rent only if it is missing', async () => {

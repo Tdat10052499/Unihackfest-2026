@@ -181,11 +181,15 @@ async function main() {
   // 1. create: 2 milestones × 1 USDC, review window 60 s
   const t0 = await getChainNow(connection);
   const submitBy = t0 + SUBMIT_AFTER;
+  const title = refund ? 'Smoke test (refund)' : 'Smoke test';
+  // TEMPORARY until B1 (canonical brief JSON): the brief hash is SHA-256 of the title
+  const briefHash = client.temporaryBriefHash(title);
   const created = await client.buildCreateFund(
     {
       client: c,
       freelancer: f,
-      title: refund ? 'Smoke test (refund)' : 'Smoke test',
+      title,
+      briefHash,
       milestones: [0, 1].map(() => ({ amount: AMOUNT, submitBy, reviewBy: submitBy + REVIEW_WINDOW })),
     },
     connection
@@ -198,11 +202,25 @@ async function main() {
     if (!fund) throw new Error('fund not found');
     return fund;
   };
+  const stored = await fresh();
+  if (stored.version !== 2 || Buffer.compare(Buffer.from(stored.briefHash), Buffer.from(briefHash)) !== 0) {
+    throw new Error('the fund does not hold the v1.1 brief hash');
+  }
+  console.log('   v1.1 fund: version 2, brief hash stored');
 
   // 2. accept (VND path by default)
   await send(
     connection,
-    (await client.buildAccept({ fund: await fresh(), freelancer: f, choice: ownWallet ? 'ownWallet' : 'payoutPartner', username: 'smoke' })).tx,
+    (
+      await client.buildAccept({
+        fund: await fresh(),
+        freelancer: f,
+        choice: ownWallet ? 'ownWallet' : 'payoutPartner',
+        username: 'smoke',
+        // TEMPORARY (smoke only): the freelancer "read" the brief = the title. B1 hashes the decrypted brief.
+        expectedBriefHash: client.temporaryBriefHash(title),
+      })
+    ).tx,
     [freelancerKp],
     `accept (${ownWallet ? 'OwnWallet' : 'PayoutPartner'})`
   );

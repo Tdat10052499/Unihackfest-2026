@@ -1,4 +1,4 @@
-// Hand-built 708-byte SharedFund accounts (program-spec 3.1), shared by the milestone tests.
+// Hand-built 740-byte SharedFund accounts (v1.1) (program-spec 3.1), shared by the milestone tests.
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { USDC_DEVNET_MINT } from '../../constants.ts';
 import { decodeFund, FUND_DISCRIMINATOR, type FundAccount } from '../decode.ts';
@@ -33,13 +33,17 @@ export interface FixtureFund {
   title?: string;
   fundId?: bigint;
   payoutReference?: Uint8Array;
+  briefHash?: Uint8Array;
 }
 
+/** Default brief hash of fixture funds (never all zero on-chain) */
+export const BRIEF_HASH = new Uint8Array(32).fill(5);
+
 export function fundBytes(f: FixtureFund): Uint8Array {
-  const b = Buffer.alloc(708);
+  const b = Buffer.alloc(740);
   const client = f.client ?? CLIENT;
   Buffer.from(FUND_DISCRIMINATOR).copy(b, 0);
-  b[8] = 1;
+  b[8] = 2;
   b[9] = 0;
   b[10] = FUND_STATES.indexOf(f.state ?? 'Funded');
   b[11] = PAYOUT_KINDS.indexOf(f.payoutKind ?? 'OwnWallet');
@@ -71,6 +75,7 @@ export function fundBytes(f: FixtureFund): Uint8Array {
   b[642] = 255;
   b[643] = 254;
   Buffer.from(f.payoutReference ?? new Uint8Array(32)).copy(b, 644);
+  Buffer.from(f.briefHash ?? BRIEF_HASH).copy(b, 676);
   return new Uint8Array(b);
 }
 

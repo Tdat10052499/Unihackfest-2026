@@ -10,7 +10,7 @@
     {
       "name": "accept",
       "docs": [
-        "Freelancer accepts and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference"
+        "Freelancer accepts the brief (by its hash) and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference"
       ],
       "discriminator": [
         65,
@@ -73,6 +73,15 @@
         },
         {
           "name": "payout_reference",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "expected_brief_hash",
           "type": {
             "array": [
               "u8",
@@ -854,6 +863,15 @@
               }
             }
           }
+        },
+        {
+          "name": "brief_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -1224,6 +1242,80 @@
       "args": []
     },
     {
+      "name": "post_note",
+      "docs": [
+        "Posts one part of an encrypted brief (client, while Created) or delivery note (freelancer, Submitted milestone).",
+        "No state change; the app reads it back from the transaction (v1.1)"
+      ],
+      "discriminator": [
+        112,
+        125,
+        26,
+        8,
+        89,
+        113,
+        72,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "fund",
+          "docs": [
+            "Read-only: listed so notes can be found with getSignaturesForAddress(fund)"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "SharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fund_id",
+                "account": "SharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "milestone",
+          "type": "u8"
+        },
+        {
+          "name": "part",
+          "type": "u8"
+        },
+        {
+          "name": "parts",
+          "type": "u8"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "propose_cancel",
       "docs": [
         "Client or freelancer proposes a split of what is still locked"
@@ -1578,7 +1670,7 @@
     {
       "name": "submit",
       "docs": [
-        "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the delivery link or file"
+        "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the canonical delivery JSON (never all zero)"
       ],
       "discriminator": [
         88,
@@ -2030,6 +2122,19 @@
       ]
     },
     {
+      "name": "NotePosted",
+      "discriminator": [
+        60,
+        196,
+        200,
+        230,
+        85,
+        56,
+        50,
+        8
+      ]
+    },
+    {
       "name": "PhoneLinked",
       "discriminator": [
         122,
@@ -2265,6 +2370,31 @@
       "code": 6033,
       "name": "MathOverflow",
       "msg": "Arithmetic overflow."
+    },
+    {
+      "code": 6034,
+      "name": "InvalidBriefHash",
+      "msg": "The brief fingerprint is missing."
+    },
+    {
+      "code": 6035,
+      "name": "BriefMismatch",
+      "msg": "The brief changed. Read the brief again before accepting."
+    },
+    {
+      "code": 6036,
+      "name": "InvalidEvidence",
+      "msg": "The delivery fingerprint is missing."
+    },
+    {
+      "code": 6037,
+      "name": "InvalidNote",
+      "msg": "The note is empty, too long or has wrong part numbers."
+    },
+    {
+      "code": 6038,
+      "name": "NoteNotAllowed",
+      "msg": "This note cannot be added now."
     }
   ],
   "types": [
@@ -2381,6 +2511,15 @@
           {
             "name": "milestone_count",
             "type": "u8"
+          },
+          {
+            "name": "brief_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }
@@ -2462,7 +2601,7 @@
           {
             "name": "evidence",
             "docs": [
-              "SHA-256 of the delivery link or file, computed by the app"
+              "SHA-256 of the canonical delivery JSON (links, file fingerprints, note), computed by the app; never all zero"
             ],
             "type": {
               "array": [
@@ -2668,6 +2807,45 @@
       }
     },
     {
+      "name": "NotePosted",
+      "docs": [
+        "An encrypted brief or delivery note was posted (v1.1); the ciphertext is in the instruction data only"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "milestone",
+            "type": "u8"
+          },
+          {
+            "name": "part",
+            "type": "u8"
+          },
+          {
+            "name": "parts",
+            "type": "u8"
+          },
+          {
+            "name": "len",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
       "name": "PayoutKind",
       "type": {
         "kind": "enum",
@@ -2785,7 +2963,7 @@
     {
       "name": "SharedFund",
       "docs": [
-        "PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 708 bytes with the discriminator"
+        "PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 740 bytes with the discriminator"
       ],
       "type": {
         "kind": "struct",
@@ -2935,6 +3113,18 @@
             "name": "payout_reference",
             "docs": [
               "PayoutPartner only: hash of the partner's recipient ID; zero for OwnWallet"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "brief_hash",
+            "docs": [
+              "SHA-256 of the canonical brief JSON (offset 676), computed by the app; never all zero (v1.1)"
             ],
             "type": {
               "array": [
