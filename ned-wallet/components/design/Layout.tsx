@@ -1,13 +1,17 @@
-import React, { type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { Children, isValidElement, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { colors, glass, gradients, orbs, radius, sizes, space, type Orb, type OrbPreset } from '@/constants/design';
+import { colors, palette, radius, sizes, space, type OrbPreset } from '@/constants/design';
+import { riseStyle, useMotion } from '@/constants/motion';
+import { PressableScale } from './PressableScale';
 import { DText } from './Text';
 
-/** Nền tối gradient 170deg + quầng tím (Ambient orb), nội dung tối đa 480px cho web desktop */
+/**
+ * Screen frame: flat ground (#F4F4F6), content max 480 px on web. The top-level children enter with a fade and a
+ * 10 px rise, 40 ms apart for the first five (constants/motion riseStyle; no animation with Reduce Motion).
+ */
 export function Screen({
   children,
   scroll = true,
@@ -18,22 +22,16 @@ export function Screen({
 }: {
   children: ReactNode;
   scroll?: boolean;
-  /** Preset quầng sáng của board, `false` để tắt */
+  /** @deprecated ambient glows belong to the dark theme; ignored in v2 */
   glow?: OrbPreset | false;
   /** Vùng cố định dưới màn (CTA) */
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
 }) {
+  void glow;
   return (
-    <LinearGradient
-      colors={gradients.screen}
-      locations={gradients.screenLocations}
-      start={{ x: 0.3, y: 0 }}
-      end={{ x: 0.7, y: 1 }}
-      style={styles.root}
-    >
-      {glow ? <AmbientGlow preset={glow} /> : null}
+    <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={edges}>
         {scroll ? (
           <ScrollView
@@ -41,48 +39,49 @@ export function Screen({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[styles.content, contentStyle]}
           >
-            {children}
+            <Staggered>{children}</Staggered>
           </ScrollView>
         ) : (
-          <View style={[styles.content, styles.fill, contentStyle]}>{children}</View>
+          <Rise index={0} style={[styles.content, styles.fill, contentStyle]}>
+            {children}
+          </Rise>
         )}
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </SafeAreaView>
-    </LinearGradient>
-  );
-}
-
-/** Quầng sáng nền (ambient orbs) theo preset của từng board — xem `orbs` trong constants/design.ts */
-export function AmbientGlow({ preset = 'brand', style }: { preset?: OrbPreset; style?: StyleProp<ViewStyle> }) {
-  return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
-      {(orbs[preset] as readonly Orb[]).map((o, i) => {
-        const id = `orb-${preset}-${i}`;
-        return (
-          <View
-            key={id}
-            style={{ position: 'absolute', top: o.y, left: '50%', marginLeft: o.x - o.w / 2, width: o.w, height: o.h }}
-          >
-            <Svg width="100%" height="100%" viewBox={`0 0 ${o.w} ${o.h}`}>
-              <Defs>
-                <RadialGradient id={id} cx="50%" cy="50%" rx="50%" ry="50%">
-                  {[
-                    <Stop key="c" offset="0" stopColor={`rgb(${o.color})`} stopOpacity={o.alpha} />,
-                    ...(o.mid ? [<Stop key="m" offset={o.mid[2]} stopColor={`rgb(${o.mid[0]})`} stopOpacity={o.mid[1]} />] : []),
-                    <Stop key="e" offset={o.stop} stopColor={`rgb(${o.mid?.[0] ?? o.color})`} stopOpacity={0} />,
-                  ]}
-                </RadialGradient>
-              </Defs>
-              <Rect x="0" y="0" width={o.w} height={o.h} fill={`url(#${id})`} />
-            </Svg>
-          </View>
-        );
-      })}
     </View>
   );
 }
 
-/** Nút vuông 44 bo 12 trên lớp kính (back, QR, đóng…) */
+/**
+ * Wraps each top-level child so it can enter on its own. A child that flexes (a spacer pushing content down) gives
+ * its wrapper the same grow, never shrink: `flex: n` on web would also shrink the content to the viewport.
+ */
+function Rise({ index, style, children }: { index: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const { reduce } = useMotion();
+  return <Animated.View style={[style, riseStyle(index, reduce)]}>{children}</Animated.View>;
+}
+
+function Staggered({ children }: { children: ReactNode }) {
+  return (
+    <>
+      {Children.toArray(children).map((child, i) => {
+        const flex = isValidElement<{ style?: StyleProp<ViewStyle> }>(child) ? StyleSheet.flatten(child.props.style)?.flex : undefined;
+        return (
+          <Rise key={isValidElement(child) && child.key != null ? child.key : i} index={i} style={flex ? { flexGrow: flex, flexShrink: 0 } : undefined}>
+            {child}
+          </Rise>
+        );
+      })}
+    </>
+  );
+}
+
+/** @deprecated ambient glows belong to the dark theme; renders nothing in v2 (kept so screens compile) */
+export function AmbientGlow(_props: { preset?: OrbPreset; style?: StyleProp<ViewStyle> }) {
+  return null;
+}
+
+/** Square 44 × 44 icon button, radius 12, tonal fill (back, QR, close…); scales on press */
 export function IconButton({
   icon,
   onPress,
@@ -97,14 +96,15 @@ export function IconButton({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed, style]}
+      style={[styles.iconButton, style]}
+      pressedStyle={styles.pressed}
     >
       <Feather name={icon} size={20} color={color} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -140,7 +140,7 @@ export function SectionLabel({ children, style }: { children: ReactNode; style?:
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  root: { flex: 1, overflow: 'hidden' },
+  root: { flex: 1, overflow: 'hidden', backgroundColor: palette.ground },
   safe: { flex: 1, width: '100%', maxWidth: sizes.maxContent, alignSelf: 'center' },
   content: { flexGrow: 1, paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[8] },
   footer: { paddingHorizontal: space[5], paddingTop: space[3], paddingBottom: space[3] },
@@ -148,13 +148,11 @@ const styles = StyleSheet.create({
     width: sizes.touch,
     height: sizes.touch,
     borderRadius: radius.md,
-    backgroundColor: glass.fill,
-    borderWidth: 1,
-    borderColor: glass.border,
+    backgroundColor: palette.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pressed: { opacity: 0.8 },
+  pressed: { backgroundColor: palette.hoverGround },
   header: { flexDirection: 'row', alignItems: 'center', gap: space[3], minHeight: sizes.touch, marginBottom: space[4] },
   side: { width: sizes.touch },
   right: { alignItems: 'flex-end' },

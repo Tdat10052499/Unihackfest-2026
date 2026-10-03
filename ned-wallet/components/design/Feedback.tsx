@@ -1,18 +1,21 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, glass, radius, shadows, space } from '@/constants/design';
+import { colors, fonts, palette, radius, shadows, space, status } from '@/constants/design';
+import { cssEasing, duration, useMotion } from '@/constants/motion';
 import { DText } from './Text';
 
 type Status = 'neutral' | 'accent' | 'success' | 'error' | 'warning' | 'info';
 
-const palette: Record<Status, { bg: string; border: string; fg: string }> = {
-  neutral: { bg: glass.fillStrong, border: glass.border, fg: colors.textSecondary },
-  accent: { bg: glass.accentFill, border: glass.accentBorder, fg: colors.purple[200] },
-  success: { bg: glass.successFill, border: glass.successBorder, fg: colors.successText },
-  error: { bg: glass.errorFill, border: glass.errorBorder, fg: colors.errorText },
-  warning: { bg: glass.warningFill, border: glass.warningBorder, fg: colors.warningText },
-  info: { bg: glass.infoFill, border: glass.infoBorder, fg: colors.infoText },
+/** Status tints (no outlines in v2): background + ink */
+const tints: Record<Status, { bg: string; fg: string }> = {
+  neutral: { bg: status.neutral.bg, fg: status.neutral.ink },
+  accent: { bg: status.accent.bg, fg: status.accent.ink },
+  success: { bg: status.success.bg, fg: status.success.ink },
+  error: { bg: status.error.bg, fg: status.error.ink },
+  warning: { bg: status.warning.bg, fg: status.warning.ink },
+  info: { bg: status.info.bg, fg: status.info.ink },
 };
 
 /** Nhãn viên thuốc nhỏ (DEVNET, Demo mode, RECOMMENDED, ▲ +1.2%…) */
@@ -27,9 +30,9 @@ export function Badge({
   icon?: React.ComponentProps<typeof Feather>['name'];
   style?: StyleProp<ViewStyle>;
 }) {
-  const p = palette[tone];
+  const p = tints[tone];
   return (
-    <View style={[styles.badge, { backgroundColor: p.bg, borderColor: p.border }, style]}>
+    <View style={[styles.badge, { backgroundColor: p.bg }, style]}>
       {icon ? <Feather name={icon} size={12} color={p.fg} /> : null}
       <DText variant="caption" style={[styles.badgeText, { color: p.fg }]}>
         {label}
@@ -48,10 +51,10 @@ export function Notice({
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  const p = palette[tone];
+  const p = tints[tone];
   const icon = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' } as const;
   return (
-    <View style={[styles.notice, { backgroundColor: p.bg, borderColor: p.border }, style]}>
+    <View style={[styles.notice, { backgroundColor: p.bg }, style]}>
       <Feather name={icon[tone]} size={16} color={p.fg} style={styles.noticeIcon} />
       <View style={styles.flex}>
         {typeof children === 'string' ? <DText variant="caption" tone="primary">{children}</DText> : children}
@@ -60,7 +63,7 @@ export function Notice({
   );
 }
 
-/** Công tắc bật/tắt (role=switch); bật = gradient NED Primary */
+/** Switch (role=switch): accent track when on; the knob slides with a transform transition (instant with Reduce Motion) */
 export function Toggle({
   value,
   onValueChange,
@@ -72,6 +75,7 @@ export function Toggle({
   accessibilityLabel: string;
   disabled?: boolean;
 }) {
+  const { ms } = useMotion();
   return (
     <Pressable
       accessibilityRole="switch"
@@ -82,7 +86,17 @@ export function Toggle({
       style={[styles.track, !value && styles.trackOff, disabled && styles.disabled]}
       hitSlop={6}
     >
-      <View style={[styles.knob, value && styles.knobOn]} />
+      <Animated.View
+        style={[
+          styles.knob,
+          {
+            transform: [{ translateX: value ? 20 : 0 }],
+            transitionProperty: 'transform',
+            transitionDuration: ms(duration.stateChange),
+            transitionTimingFunction: cssEasing.out,
+          },
+        ]}
+      />
     </Pressable>
   );
 }
@@ -101,9 +115,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: radius.pill,
-    backgroundColor: glass.successFill,
-    borderWidth: 1,
-    borderColor: glass.successBorder,
+    backgroundColor: status.success.bg,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -118,7 +130,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[2],
     paddingVertical: 3,
     borderRadius: radius.pill,
-    borderWidth: 1,
   },
   badgeText: { fontFamily: fonts.bodySemi, fontSize: 11, lineHeight: 14 },
   notice: {
@@ -127,7 +138,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: space[3],
     borderRadius: radius.lg,
-    borderWidth: 1,
   },
   noticeIcon: { marginTop: 1 },
   track: {
@@ -136,10 +146,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     justifyContent: 'center',
     padding: 3,
-    backgroundColor: colors.purple[400],
+    backgroundColor: palette.accent,
   },
-  trackOff: { backgroundColor: glass.toggleOff },
+  trackOff: { backgroundColor: palette.switchOff },
   disabled: { opacity: 0.45 },
   knob: { width: 24, height: 24, borderRadius: radius.pill, backgroundColor: colors.white, boxShadow: shadows.knob },
-  knobOn: { alignSelf: 'flex-end' },
 });

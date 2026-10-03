@@ -1,9 +1,9 @@
 // Dev harness for Milestone Lock (non-ui-plan N10, B1 content): unstyled buttons for every useMilestoneActions
 // action, the raw useFund(address) state and useContractContent (brief, deliveries, key import). Only in __DEV__ builds or with EXPO_PUBLIC_DEV_TOOLS=1; not linked from the UI.
 import React, { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import { Redirect } from 'expo-router';
-import { Button, DText, Screen } from '../../components/design';
+import { Button, DText, Field, Screen } from '../../components/design';
 import { FEATURES } from '../../constants/features';
 import { useAuth } from '../../services/auth';
 import { useChainTime } from '../../hooks/useChainTime';
@@ -14,7 +14,7 @@ import { useRegion } from '../../hooks/useRegion';
 import type { BriefDraft, DeliveryDraft } from '../../services/milestone/content';
 import type { ActionKind } from '../../services/milestone/view';
 
-const input = { borderWidth: 1, borderColor: '#888', padding: 8, marginBottom: 8, color: '#fff' } as const;
+const input = { marginBottom: 8 } as const;
 const json = (value: unknown) =>
   JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v?.constructor?.name === 'PublicKey' ? v.toBase58() : v instanceof Uint8Array ? `[${v.length} bytes]` : v), 2);
 
@@ -77,10 +77,10 @@ function Harness() {
       </View>
 
       <DText variant="h3">Create (client)</DText>
-      <TextInput style={input} placeholder="freelancer wallet address" placeholderTextColor="#888" value={freelancer} onChangeText={setFreelancer} autoCapitalize="none" />
-      <TextInput style={input} placeholder="USDC per milestone (2 milestones)" placeholderTextColor="#888" value={amount} onChangeText={setAmount} />
-      <TextInput style={input} placeholder="minutes until the submission deadline" placeholderTextColor="#888" value={minutes} onChangeText={setMinutes} />
-      <TextInput style={input} placeholder="brief scope" placeholderTextColor="#888" value={scope} onChangeText={setScope} multiline />
+      <Field on="ground" containerStyle={input} placeholder="freelancer wallet address" value={freelancer} onChangeText={setFreelancer} autoCapitalize="none" />
+      <Field on="ground" containerStyle={input} placeholder="USDC per milestone (2 milestones)" value={amount} onChangeText={setAmount} />
+      <Field on="ground" containerStyle={input} placeholder="minutes until the submission deadline" value={minutes} onChangeText={setMinutes} />
+      <Field on="ground" containerStyle={input} placeholder="brief scope" value={scope} onChangeText={setScope} multiline />
       {button('create 2 milestones', async () => {
         const submitBy = now + Math.round(Number(minutes) * 60);
         const result = await actions.create({
@@ -94,10 +94,10 @@ function Harness() {
       })}
 
       <DText variant="h3">Contract</DText>
-      <TextInput style={input} placeholder="fund address" placeholderTextColor="#888" value={address} onChangeText={setAddress} autoCapitalize="none" />
-      <TextInput style={input} placeholder="milestone index" placeholderTextColor="#888" value={index} onChangeText={setIndex} />
-      <TextInput style={input} placeholder="delivery links (space separated)" placeholderTextColor="#888" value={links} onChangeText={setLinks} autoCapitalize="none" />
-      <TextInput style={input} placeholder="paste the contract link or #k=… to read the brief here" placeholderTextColor="#888" value={invite} onChangeText={setInvite} autoCapitalize="none" />
+      <Field on="ground" containerStyle={input} placeholder="fund address" value={address} onChangeText={setAddress} autoCapitalize="none" />
+      <Field on="ground" containerStyle={input} placeholder="milestone index" value={index} onChangeText={setIndex} />
+      <Field on="ground" containerStyle={input} placeholder="delivery links (space separated)" value={links} onChangeText={setLinks} autoCapitalize="none" />
+      <Field on="ground" containerStyle={input} placeholder="paste the contract link or #k=… to read the brief here" value={invite} onChangeText={setInvite} autoCapitalize="none" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {button('accept own wallet', () => actions.accept('ownWallet'))}
         {button('accept VND (partner)', () => actions.accept('payoutPartner'))}
@@ -118,7 +118,7 @@ function Harness() {
         {preview('close')}
       </View>
       {actions.proposeSplit ? (
-        <TextInput style={input} placeholder="split: base units to the freelancer" placeholderTextColor="#888" value={split} onChangeText={setSplit} />
+        <Field on="ground" containerStyle={input} placeholder="split: base units to the freelancer" value={split} onChangeText={setSplit} />
       ) : null}
 
       <DText variant="h3">Log</DText>

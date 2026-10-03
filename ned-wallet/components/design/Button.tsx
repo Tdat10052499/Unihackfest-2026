@@ -1,13 +1,13 @@
 import React, { type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, diagonal, glass, gradients, radius, sizes, space, type } from '@/constants/design';
+import { colors, elevation, palette, radius, sizes, space, status, type } from '@/constants/design';
+import { PressableScale } from './PressableScale';
 
-// destructiveSoft: nút Sign out của Settings.dc.html (nền đỏ mờ, viền đỏ nhạt, chữ #FCA5A5)
+// v2 (Main + MotionSurfaces boards): flat fills, no outlines. `outline` is kept as an alias of `secondary`.
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'destructiveSoft';
 
-/** Button System (PDF trang 6): cao 52, bo 16, Space Grotesk 16/600 */
+/** Button System: height 52, radius 16, Space Grotesk 16/600; presses scale to 0.98 (PressableScale) */
 export function Button({
   title,
   onPress,
@@ -25,61 +25,53 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
   icon?: React.ComponentProps<typeof Feather>['name'];
-  /** Nút ngang theo nội dung thay vì kéo hết chiều rộng */
+  /** Width of the content instead of the full row */
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
   const inactive = !!disabled || !!loading;
-  const textColor = disabled
-    ? colors.textTertiary
-    : variant === 'outline' || variant === 'ghost'
-      ? colors.textAccent
-      : variant === 'destructiveSoft'
-        ? colors.errorSoftText
-        : colors.text;
+  const look = disabled ? looks.disabled : looks[variant];
   const content: ReactNode = loading ? (
-    <ActivityIndicator color={textColor} />
+    <ActivityIndicator color={look.fg} />
   ) : (
     <View style={styles.row}>
-      {icon ? <Feather name={icon} size={18} color={textColor} /> : null}
-      <Text style={[type.button, { color: textColor }]} numberOfLines={1}>
+      {icon ? <Feather name={icon} size={18} color={look.fg} /> : null}
+      <Text style={[type.button, { color: look.fg }]} numberOfLines={1}>
         {title}
       </Text>
     </View>
   );
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: inactive, busy: !!loading }}
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         compact ? styles.compact : styles.block,
-        !disabled && variantStyle[variant],
-        disabled && styles.disabled,
-        pressed && !inactive && styles.pressed,
+        { backgroundColor: look.bg },
+        variant === 'primary' && !disabled && elevation.sAccent,
         style,
       ]}
+      pressedStyle={{ backgroundColor: look.pressed }}
     >
-      {variant === 'primary' && !disabled ? (
-        <LinearGradient colors={gradients.primary} {...diagonal} style={StyleSheet.absoluteFill} />
-      ) : null}
       {content}
-    </Pressable>
+    </PressableScale>
   );
 }
 
-const variantStyle = StyleSheet.create({
-  primary: { backgroundColor: colors.brand },
-  secondary: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
-  outline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.brand },
-  ghost: { backgroundColor: 'transparent' },
-  destructive: { backgroundColor: colors.error },
-  destructiveSoft: { backgroundColor: glass.errorSoftFill, borderWidth: 1, borderColor: glass.errorSoftBorder },
-});
+const looks: Record<ButtonVariant | 'disabled', { bg: string; fg: string; pressed: string }> = {
+  primary: { bg: palette.accent, fg: palette.onAccent, pressed: palette.accentPressed },
+  secondary: { bg: palette.tint, fg: palette.link, pressed: '#ECE3F8' },
+  outline: { bg: palette.tint, fg: palette.link, pressed: '#ECE3F8' },
+  ghost: { bg: 'transparent', fg: palette.link, pressed: palette.hoverGround },
+  destructive: { bg: colors.error, fg: palette.onAccent, pressed: '#B42318' },
+  destructiveSoft: { bg: status.error.bg, fg: status.error.ink, pressed: '#FBDADA' },
+  disabled: { bg: palette.field, fg: palette.caption, pressed: palette.field },
+};
 
 const styles = StyleSheet.create({
   base: {
@@ -92,6 +84,4 @@ const styles = StyleSheet.create({
   block: { alignSelf: 'stretch', paddingHorizontal: space[6] },
   compact: { alignSelf: 'flex-start', paddingHorizontal: space[8] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
-  disabled: { backgroundColor: glass.fillStrong },
-  pressed: { opacity: 0.85 },
 });

@@ -1,18 +1,19 @@
 import React, { type ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, diagonal, glass, gradients, radius, space } from '@/constants/design';
-
-export type CardVariant = 'default' | 'bordered' | 'accent' | 'filled' | 'glass';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { elevation, palette, radius, space } from '@/constants/design';
+import { PressableScale } from './PressableScale';
 
 /**
- * Card & Radius System (PDF trang 6): bo 20.
- * default = Surface 2, padding 24 · bordered = viền #353540 · accent = nền tím mờ, viền purple/30%
- * · filled = gradient đầy (hero) · glass = lớp kính trên nền gradient của màn.
+ * v2 cards (MotionSurfaces): no outlines; depth from tone and a soft shadow.
+ * default = white + S1 · tonal = #F4F4F6 fill on a white surface · accent = white + S-accent (selected / primary)
+ * · filled = accent purple. `bordered` and `glass` are deprecated aliases of `default`.
  */
+export type CardVariant = 'default' | 'tonal' | 'accent' | 'filled' | 'bordered' | 'glass';
+
 export function Card({
-  variant = 'glass',
-  padding = variant === 'glass' ? space[4] : space[6],
+  variant: variantProp,
+  // Same padding as before v2 so screens keep their layout: 16 without a variant (was `glass`), 24 with one
+  padding = variantProp === undefined || variantProp === 'glass' || variantProp === 'tonal' ? space[4] : space[6],
   onPress,
   accessibilityLabel,
   style,
@@ -25,39 +26,26 @@ export function Card({
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
-  const body = (
-    <>
-      {variant === 'filled' ? (
-        <LinearGradient colors={gradients.primary} {...diagonal} style={StyleSheet.absoluteFill} />
-      ) : variant === 'accent' ? (
-        <LinearGradient colors={gradients.accentCard} {...diagonal} style={StyleSheet.absoluteFill} />
-      ) : null}
-      {children}
-    </>
-  );
+  const variant = variantProp ?? 'default';
   const cardStyle = [styles.base, variants[variant], { padding }, style];
-  if (!onPress) return <View style={cardStyle}>{body}</View>;
+  if (!onPress) return <View style={cardStyle}>{children}</View>;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => [cardStyle, pressed && styles.pressed]}
-    >
-      {body}
-    </Pressable>
+    <PressableScale accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={cardStyle}>
+      {children}
+    </PressableScale>
   );
 }
 
-const variants = StyleSheet.create({
-  default: { backgroundColor: colors.surface2 },
-  bordered: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
-  accent: { borderWidth: 1, borderColor: glass.accentBorder },
-  filled: { backgroundColor: colors.brand },
-  glass: { backgroundColor: glass.fill, borderWidth: 1, borderColor: glass.border },
-});
+const variants = {
+  default: [{ backgroundColor: palette.card }, elevation.s1],
+  bordered: [{ backgroundColor: palette.card }, elevation.s1],
+  glass: [{ backgroundColor: palette.card }, elevation.s1],
+  tonal: { backgroundColor: palette.field },
+  accent: [{ backgroundColor: palette.card }, elevation.sAccent],
+  filled: { backgroundColor: palette.accent },
+} as const;
 
 const styles = StyleSheet.create({
-  base: { borderRadius: radius.xl, overflow: 'hidden', alignSelf: 'stretch' },
-  pressed: { opacity: 0.85 },
+  // No overflow hidden: it would cut the soft shadow on iOS
+  base: { borderRadius: radius.xl, alignSelf: 'stretch' },
 });

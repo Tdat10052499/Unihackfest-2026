@@ -1,10 +1,11 @@
 import React, { Children, Fragment, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, glass, radius, space } from '@/constants/design';
+import { colors, elevation, fonts, palette, radius, space, status } from '@/constants/design';
+import { PressableScale } from './PressableScale';
 import { DText, type Tone } from './Text';
 
-/** Nhóm hàng dạng thẻ kính, có đường chia giữa các hàng (Settings, review…) */
+/** Grouped rows on a white card with S1; a #F0F0F3 divider only between rows (Settings, review…) */
 export function ListGroup({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const rows = Children.toArray(children).filter(Boolean);
   return (
@@ -70,14 +71,15 @@ export function ListRow({
   );
   if (!onPress) return <View style={styles.row}>{body}</View>;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={styles.row}
+      pressedStyle={styles.pressed}
     >
       {body}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -96,7 +98,8 @@ export function InfoRow({
   last?: boolean;
 }) {
   return (
-    <View style={[styles.info, !last && styles.infoBorder]}>
+    <>
+    <View style={styles.info}>
       <DText variant="body" style={styles.infoLabel}>
         {label}
       </DText>
@@ -108,24 +111,20 @@ export function InfoRow({
         {value}
       </DText>
     </View>
+    {last ? null : <View style={styles.infoDivider} />}
+    </>
   );
 }
 
 const iconTones = {
-  accent: { bg: glass.iconTint, fg: colors.purple[300] },
-  success: { bg: glass.successFill, fg: colors.successText },
-  error: { bg: glass.errorFill, fg: colors.errorText },
+  accent: { bg: status.accent.bg, fg: status.accent.ink },
+  success: { bg: status.success.bg, fg: status.success.ink },
+  error: { bg: status.error.bg, fg: status.error.ink },
 } as const;
 
 const styles = StyleSheet.create({
-  group: {
-    borderRadius: radius.xl,
-    backgroundColor: glass.fill,
-    borderWidth: 1,
-    borderColor: glass.border,
-    overflow: 'hidden',
-  },
-  divider: { height: 1, marginLeft: 60, backgroundColor: glass.divider },
+  group: { borderRadius: radius.xl, backgroundColor: palette.card, ...elevation.s1 },
+  divider: { height: 1, marginLeft: 60, backgroundColor: palette.divider },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,13 +133,13 @@ const styles = StyleSheet.create({
     paddingVertical: space[2],
     paddingHorizontal: space[4],
   },
-  pressed: { backgroundColor: colors.surface3 },
+  pressed: { backgroundColor: palette.row, borderRadius: radius.xl },
   icon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, minWidth: 0 },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21 },
   value: { maxWidth: '45%' },
   info: { flexDirection: 'row', justifyContent: 'space-between', gap: space[3], paddingVertical: space[3] },
-  infoBorder: { borderBottomWidth: 1, borderColor: glass.divider },
+  infoDivider: { height: 1, backgroundColor: palette.divider },
   infoLabel: { flexShrink: 1 },
   infoValue: { textAlign: 'right', maxWidth: '62%' },
   infoValueText: { fontFamily: fonts.bodyMedium },
