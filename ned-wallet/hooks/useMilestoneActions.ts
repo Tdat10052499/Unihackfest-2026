@@ -1,4 +1,4 @@
-// Every Milestone Lock action for the screens (non-ui-plan section 3). The pipeline (fresh fund read → rules.ts
+// Every Milestone Lock action for the screens (non-ui-plan section 3, amended in 3.1 by build-plan B1). The pipeline (fresh fund read → rules.ts
 // check → builder → sendAndConfirm) lives in @ned/core actions.ts; this hook adds busy / status / error state and
 // refreshes the fund after each action. Errors are English sentences from describeTxError(err, 'contract').
 // P1 actions exist only when FEATURES.dispute is on.
@@ -9,10 +9,14 @@ import {
   runAccept,
   runCreate,
   runFundAction,
+  runPostBrief,
   runSubmit,
   type ActionEnv,
   type ActionExtra,
 } from '@ned/core/actions.ts';
+import type { BriefDraft, DeliveryDraft } from '../services/milestone/content';
+import { contractKeyStorage } from '../services/milestone/keyStore';
+import { shownContent } from './useContractContent';
 import { FEATURES } from '../constants/features';
 import { useAuth } from '../services/auth';
 import type { ActionKind, ContractDraft } from '../services/milestone/view';
@@ -23,10 +27,15 @@ import { chainNowSeconds } from './useChainTime';
 type Sig = Promise<{ signature: string }>;
 
 export interface MilestoneActions {
-  create(draft: ContractDraft): Promise<{ signature: string; fund: string }>;
+  /** create_fund, then the encrypted brief note(s); the contract key stays on this device and in the invite link */
+  create(draft: ContractDraft & { brief: BriefDraft }): Promise<{ signature: string; fund: string; inviteLink: string }>;
+  /** Posts the brief again for a Created contract whose brief was not saved (same brief, same hash) */
+  postBrief(brief: BriefDraft): Promise<{ noteSignatures: string[] }>;
+  /** Sends the hash of the decrypted brief that useContractContent showed; refuses unless its status is 'ok' */
   accept(choice: 'ownWallet' | 'payoutPartner'): Sig;
   lock(): Sig;
-  submit(index: number, link: string): Promise<{ signature: string; evidence: string }>;
+  /** submit + the encrypted delivery note (in the same transaction when it fits) */
+  submit(index: number, delivery: DeliveryDraft): Promise<{ signature: string; evidence: string }>;
   approve(index: number): Sig;
   releaseNow(index: number): Sig;
   refundNow(index: number): Sig;
@@ -53,7 +62,7 @@ export function useMilestoneActions(address?: string): MilestoneActions {
 
   /** Signer, chain clock and status callback for the core pipeline (@ned/core actions.ts) */
   const env = useMemo<ActionEnv>(
-    () => ({ signer: { walletAddress, signTransaction }, now: chainNowSeconds, onStatus: (s) => setStatus(s) }),
+    () => ({ signer: { walletAddress, signTransaction }, now: chainNowSeconds, onStatus: (s) => setStatus(s), keys: contractKeyStorage }),
     [walletAddress, signTransaction]
   );
 
@@ -83,19 +92,35 @@ export function useMilestoneActions(address?: string): MilestoneActions {
     [run, env, address]
   );
 
-  const create = useCallback((draft: ContractDraft) => run(() => runCreate(env, draft)), [run, env]);
+  const create = useCallback(
+    (draft: ContractDraft & { brief: BriefDraft }) =>
+      run(async () => {
+        const { signature, fund, inviteLink } = await runCreate(env, draft);
+        return { signature, fund, inviteLink };
+      }),
+    [run, env]
+  );
+
+  const postBrief = useCallback((brief: BriefDraft) => run(() => runPostBrief(env, address, brief), address), [run, env, address]);
 
   const accept = useCallback(
     (choice: 'ownWallet' | 'payoutPartner') =>
-      run(() => runAccept(env, address, choice, useUserStore.getState().username ?? ''), address),
-    [run, env, address]
+      run(async () => {
+        const content = shownContent(walletAddress, address);
+        if (content?.contentStatus !== 'ok' || !content.shownBriefHash) {
+          throw new Error('Read the brief before accepting. Open the contract link on this device if the brief is not shown.');
+        }
+        return runAccept(env, address, choice, useUserStore.getState().username ?? '', content.shownBriefHash);
+      }, address),
+    [run, env, address, walletAddress]
   );
 
   const submit = useCallback(
-    async (index: number, link: string) => {
-      if (!link.trim()) throw new Error('Add a link to your delivery first.');
-      return run(() => runSubmit(env, address, index, link), address);
-    },
+    (index: number, delivery: DeliveryDraft) =>
+      run(async () => {
+        const { signature, evidence } = await runSubmit(env, address, index, delivery);
+        return { signature, evidence };
+      }, address),
     [run, env, address]
   );
 
@@ -104,6 +129,7 @@ export function useMilestoneActions(address?: string): MilestoneActions {
   return useMemo(() => {
     const base: MilestoneActions = {
       create,
+      postBrief,
       accept,
       lock: () => fundAction('lock'),
       submit,
@@ -124,5 +150,5 @@ export function useMilestoneActions(address?: string): MilestoneActions {
       proposeSplit: (units: bigint) => fundAction('proposeSplit', undefined, { units }),
       acceptSplit: () => fundAction('acceptSplit'),
     };
-  }, [create, accept, fundAction, submit, busy, status, error, preview]);
+  }, [create, postBrief, accept, fundAction, submit, busy, status, error, preview]);
 }

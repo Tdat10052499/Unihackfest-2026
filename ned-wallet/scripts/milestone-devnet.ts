@@ -32,6 +32,9 @@ import { ata, createAtaIdempotentIx } from '../services/chain/ata';
 import { fetchUsdcUnits } from '../services/chain/balance';
 import { PROGRAM_ERRORS } from '../services/chain/errors';
 import * as client from '../services/milestone/client';
+import { briefHash as hashBrief, canonicalBrief, canonicalDelivery, contentBytes, deliveryEvidence, type BriefDraft, type DeliveryDraft } from '../services/milestone/content';
+import { generateContentKey } from '../services/milestone/keys';
+import { encryptNoteParts, fetchNotes, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, readContractContent } from '../services/milestone/notes';
 import { formatUsdc } from '../services/milestone/format';
 import { getChainNow, getFund } from '../services/milestone/queries';
 
@@ -93,6 +96,9 @@ const sol = (lamports: number) => (lamports / LAMPORTS_PER_SOL).toFixed(6);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const rows: { step: string; cu: number | null; sig: string }[] = [];
+/** Serialized transaction sizes (bytes) and wallet signatures per action, for the B1 report */
+const sizes: [string, number][] = [];
+const signatures: Record<string, number> = {};
 
 async function send(connection: Connection, tx: Transaction, signers: Keypair[], step: string) {
   try {
@@ -182,8 +188,18 @@ async function main() {
   const t0 = await getChainNow(connection);
   const submitBy = t0 + SUBMIT_AFTER;
   const title = refund ? 'Smoke test (refund)' : 'Smoke test';
-  // TEMPORARY until B1 (canonical brief JSON): the brief hash is SHA-256 of the title
-  const briefHash = client.temporaryBriefHash(title);
+  // B1: the brief is canonical JSON; only its hash goes into the account, the JSON goes encrypted in post_note
+  const brief: BriefDraft = {
+    scope: 'Smoke test of the content layer: brief and delivery notes, hashes and the content key.',
+    references: ['https://example.com/brief-reference'],
+    milestones: [
+      { name: 'First part', criteria: ['Two links delivered', 'Note explains the versions'] },
+      { name: 'Second part', criteria: ['One link delivered'] },
+    ],
+  };
+  const briefHash = hashBrief(title, brief);
+  // The contract key K stays in this process (never printed); the client's app would put it in the invite link
+  const key = generateContentKey();
   const created = await client.buildCreateFund(
     {
       client: c,
@@ -194,9 +210,18 @@ async function main() {
     },
     connection
   );
+  sizes.push(['create_fund', client.txSize(created.tx, c)]);
   await send(connection, created.tx, [clientKp], 'create_fund');
   const fundKey = created.fund;
   console.log(`   fund ${explorerAddress(fundKey)}`);
+  // Brief notes: one transaction per part, signed by the client while the fund is Created
+  const briefNote = encryptNoteParts(key, fundKey, NOTE_KIND_BRIEF, 0, contentBytes(canonicalBrief(title, brief)));
+  const briefTxs = client.buildBriefNotes({ fund: fundKey, client: c, note: briefNote });
+  for (const [n, t] of briefTxs.entries()) {
+    sizes.push([`brief note ${n + 1}/${briefTxs.length}`, client.txSize(t, c)]);
+    await send(connection, t, [clientKp], `post_note brief ${n + 1}/${briefTxs.length}`);
+  }
+  signatures.create = 1 + briefTxs.length;
   const fresh = async () => {
     const fund = await getFund(fundKey, connection);
     if (!fund) throw new Error('fund not found');
@@ -208,31 +233,57 @@ async function main() {
   }
   console.log('   v1.1 fund: version 2, brief hash stored');
 
-  // 2. accept (VND path by default)
-  await send(
-    connection,
-    (
-      await client.buildAccept({
-        fund: await fresh(),
-        freelancer: f,
-        choice: ownWallet ? 'ownWallet' : 'payoutPartner',
-        username: 'smoke',
-        // TEMPORARY (smoke only): the freelancer "read" the brief = the title. B1 hashes the decrypted brief.
-        expectedBriefHash: client.temporaryBriefHash(title),
-      })
-    ).tx,
-    [freelancerKp],
-    `accept (${ownWallet ? 'OwnWallet' : 'PayoutPartner'})`
-  );
+  // 2. The freelancer reads the brief from the chain with K, then accepts with the hash of what was shown
+  const seen = readContractContent(await fresh(), await fetchNotes(fundKey, connection), key);
+  if (seen.contentStatus !== 'ok' || !seen.shownBriefHash) throw new Error(`brief not readable: ${seen.contentStatus}`);
+  console.log(`   brief read back: ${seen.contentStatus}, "${seen.brief?.milestones[0].name}", hash matches brief_hash`);
+  // A stranger without K sees only the hashes
+  if (readContractContent(await fresh(), await fetchNotes(fundKey, connection), null).contentStatus !== 'noKey') throw new Error('noKey expected');
+  const accept = await client.buildAccept({
+    fund: await fresh(),
+    freelancer: f,
+    choice: ownWallet ? 'ownWallet' : 'payoutPartner',
+    username: 'smoke',
+    expectedBriefHash: seen.shownBriefHash,
+  });
+  sizes.push(['accept', client.txSize(accept.tx, f)]);
+  await send(connection, accept.tx, [freelancerKp], `accept (${ownWallet ? 'OwnWallet' : 'PayoutPartner'})`);
+  signatures.accept = 1;
   // 3. lock
   await send(connection, (await client.buildLock({ fund: await fresh(), client: c }, connection)).tx, [clientKp], 'lock');
 
   if (!refund) {
-    // 4. submit 0, approve 0
-    await send(connection, (await client.buildSubmit({ fund: await fresh(), freelancer: f, index: 0, link: 'https://example.com/delivery-1' })).tx, [freelancerKp], 'submit 0');
+    // 4. submit 0 with a 2-link delivery + its encrypted note, then the client checks it before approving
+    const delivery: DeliveryDraft = {
+      links: ['https://example.com/delivery-1?version=3', 'https://github.com/example/repo/tree/0123abcd'],
+      files: [],
+      note: 'Version 3 of the design and the code at commit 0123abcd.',
+    };
+    const submitted = await client.buildSubmit({
+      fund: await fresh(),
+      freelancer: f,
+      index: 0,
+      evidence: deliveryEvidence(delivery),
+      note: encryptNoteParts(key, fundKey, NOTE_KIND_DELIVERY, 0, contentBytes(canonicalDelivery(delivery))),
+    });
+    sizes.push([`submit 0${submitted.noteInSubmit ? ' + delivery note' : ''}`, client.txSize(submitted.tx, f)]);
+    await send(connection, submitted.tx, [freelancerKp], submitted.noteInSubmit ? 'submit 0 + note' : 'submit 0');
+    for (const [n, t] of submitted.extra.entries()) await send(connection, t, [freelancerKp], `post_note delivery ${n + 1}`);
+    signatures.submit = 1 + submitted.extra.length;
+    const check = readContractContent(await fresh(), await fetchNotes(fundKey, connection), key);
+    if (!check.deliveries[0]?.matches) throw new Error('delivery does not match the on-chain evidence');
+    console.log(`   client sees delivery 0: matches (${check.deliveries[0].content?.links.length} links)`);
     await send(connection, (await client.buildApprove({ fund: await fresh(), client: c, index: 0 }, connection)).tx, [clientKp], 'approve 0');
     // 5. submit 1, wait past review_by, release_after_review 1 (signed by the client here; anyone may sign)
-    await send(connection, (await client.buildSubmit({ fund: await fresh(), freelancer: f, index: 1, link: 'https://example.com/delivery-2' })).tx, [freelancerKp], 'submit 1');
+    const delivery1: DeliveryDraft = { links: ['https://example.com/delivery-2'], files: [], note: '' };
+    const submitted1 = await client.buildSubmit({
+      fund: await fresh(),
+      freelancer: f,
+      index: 1,
+      evidence: deliveryEvidence(delivery1),
+      note: encryptNoteParts(key, fundKey, NOTE_KIND_DELIVERY, 1, contentBytes(canonicalDelivery(delivery1))),
+    });
+    await send(connection, submitted1.tx, [freelancerKp], 'submit 1 + note');
     await waitPast(connection, submitBy + REVIEW_WINDOW, 'the review deadline');
     await send(connection, (await client.buildReleaseAfterReview({ fund: await fresh(), caller: c, index: 1 }, connection)).tx, [clientKp], 'release_after_review 1');
   } else {
@@ -265,6 +316,9 @@ async function main() {
 
   console.log('\n| Step | Compute units | Signature |\n| --- | ---: | --- |');
   for (const r of rows) console.log(`| ${r.step} | ${r.cu ?? '?'} | ${r.sig} |`);
+  console.log('\n| Transaction | Bytes (max 1,232) |\n| --- | ---: |');
+  for (const [label, bytes] of sizes) console.log(`| ${label} | ${bytes} |`);
+  console.log(`\nWallet signatures per action: ${Object.entries(signatures).map(([k, v]) => `${k} ${v}`).join(', ')}`);
   console.log('\n🎉 milestone devnet smoke run passed');
 }
 

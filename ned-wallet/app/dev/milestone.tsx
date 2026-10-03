@@ -1,5 +1,5 @@
-// Dev harness for Milestone Lock (non-ui-plan N10): unstyled buttons for every useMilestoneActions action and
-// the raw useFund(address) state. Only in __DEV__ builds or with EXPO_PUBLIC_DEV_TOOLS=1; not linked from the UI.
+// Dev harness for Milestone Lock (non-ui-plan N10, B1 content): unstyled buttons for every useMilestoneActions
+// action, the raw useFund(address) state and useContractContent (brief, deliveries, key import). Only in __DEV__ builds or with EXPO_PUBLIC_DEV_TOOLS=1; not linked from the UI.
 import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { Redirect } from 'expo-router';
@@ -7,9 +7,11 @@ import { Button, DText, Screen } from '../../components/design';
 import { FEATURES } from '../../constants/features';
 import { useAuth } from '../../services/auth';
 import { useChainTime } from '../../hooks/useChainTime';
+import { useContractContent } from '../../hooks/useContractContent';
 import { useFund } from '../../hooks/useFund';
 import { useMilestoneActions } from '../../hooks/useMilestoneActions';
 import { useRegion } from '../../hooks/useRegion';
+import type { BriefDraft, DeliveryDraft } from '../../services/milestone/content';
 import type { ActionKind } from '../../services/milestone/view';
 
 const input = { borderWidth: 1, borderColor: '#888', padding: 8, marginBottom: 8, color: '#fff' } as const;
@@ -27,13 +29,16 @@ function Harness() {
   const { region, setRegion } = useRegion();
   const [address, setAddress] = useState('');
   const [index, setIndex] = useState('0');
-  const [link, setLink] = useState('https://example.com/delivery');
+  const [links, setLinks] = useState('https://example.com/delivery-v1 https://github.com/example/repo/tree/0123abcd');
+  const [scope, setScope] = useState('Landing page for a coffee shop: hero, menu, contact.');
+  const [invite, setInvite] = useState('');
   const [freelancer, setFreelancer] = useState('');
   const [amount, setAmount] = useState('1');
   const [minutes, setMinutes] = useState('5');
   const [split, setSplit] = useState('0');
   const [log, setLog] = useState<string[]>([]);
   const { fund, raw, loading } = useFund(address.trim());
+  const content = useContractContent(address.trim());
   const actions = useMilestoneActions(address.trim() || undefined);
   const i = Number(index) || 0;
 
@@ -50,6 +55,15 @@ function Harness() {
     <Button key={title} title={title} compact variant="outline" disabled={actions.busy} onPress={run(title, action)} />
   );
   const preview = (kind: ActionKind) => button(`preview ${kind}`, () => actions.preview(kind, i));
+  const brief = (): BriefDraft => ({
+    scope,
+    references: ['https://example.com/style-guide'],
+    milestones: [
+      { name: 'Wireframes', criteria: ['Mobile and desktop', 'Three sections'] },
+      { name: 'Visual design', criteria: ['Uses the style guide'] },
+    ],
+  });
+  const delivery = (): DeliveryDraft => ({ links: links.split(/\s+/).filter(Boolean), files: [], note: `Harness delivery for milestone ${i + 1}` });
 
   return (
     <Screen>
@@ -66,12 +80,14 @@ function Harness() {
       <TextInput style={input} placeholder="freelancer wallet address" placeholderTextColor="#888" value={freelancer} onChangeText={setFreelancer} autoCapitalize="none" />
       <TextInput style={input} placeholder="USDC per milestone (2 milestones)" placeholderTextColor="#888" value={amount} onChangeText={setAmount} />
       <TextInput style={input} placeholder="minutes until the submission deadline" placeholderTextColor="#888" value={minutes} onChangeText={setMinutes} />
+      <TextInput style={input} placeholder="brief scope" placeholderTextColor="#888" value={scope} onChangeText={setScope} multiline />
       {button('create 2 milestones', async () => {
         const submitBy = now + Math.round(Number(minutes) * 60);
         const result = await actions.create({
           freelancer: freelancer.trim(),
           title: 'Harness test',
           milestones: [0, 1].map(() => ({ amountUsdc: amount, submitBy, reviewSeconds: 60 })),
+          brief: brief(),
         });
         setAddress(result.fund);
         return result;
@@ -80,12 +96,15 @@ function Harness() {
       <DText variant="h3">Contract</DText>
       <TextInput style={input} placeholder="fund address" placeholderTextColor="#888" value={address} onChangeText={setAddress} autoCapitalize="none" />
       <TextInput style={input} placeholder="milestone index" placeholderTextColor="#888" value={index} onChangeText={setIndex} />
-      <TextInput style={input} placeholder="delivery link" placeholderTextColor="#888" value={link} onChangeText={setLink} autoCapitalize="none" />
+      <TextInput style={input} placeholder="delivery links (space separated)" placeholderTextColor="#888" value={links} onChangeText={setLinks} autoCapitalize="none" />
+      <TextInput style={input} placeholder="paste the contract link or #k=… to read the brief here" placeholderTextColor="#888" value={invite} onChangeText={setInvite} autoCapitalize="none" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {button('accept own wallet', () => actions.accept('ownWallet'))}
         {button('accept VND (partner)', () => actions.accept('payoutPartner'))}
         {button('lock', () => actions.lock())}
-        {button(`submit ${i}`, () => actions.submit(i, link))}
+        {button('import contract link', async () => ({ imported: await content.importKey(invite) }))}
+        {button('post brief again', () => actions.postBrief(brief()))}
+        {button(`submit ${i}`, () => actions.submit(i, delivery()))}
         {button(`approve ${i}`, () => actions.approve(i))}
         {button(`release ${i}`, () => actions.releaseNow(i))}
         {button(`refund ${i}`, () => actions.refundNow(i))}
@@ -108,6 +127,10 @@ function Harness() {
           {line}
         </DText>
       ))}
+
+      <DText variant="h3">useContractContent · {content.contentStatus} · key on this device: {String(content.hasKey)}</DText>
+      {content.inviteLink ? <DText selectable>invite link: {content.inviteLink}</DText> : null}
+      <DText selectable>{json({ brief: content.brief ?? null, deliveries: content.deliveries })}</DText>
 
       <DText variant="h3">useFund(address) {loading ? '(loading)' : ''}</DText>
       <DText selectable>{json(fund ?? null)}</DText>
