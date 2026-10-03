@@ -90,7 +90,8 @@ export default function ContractDetail() {
     const next = fund.nextAction;
     // Release now / Refund now (below) replaces the other steps, as on the board's "review passed" state
     if ((next?.kind === 'submit' || next?.kind === 'approve') && !anyMs) {
-      bar.push({ label: next.label, primary: true, onPress: () => undefined, disabled: true, note: 'Submitting and reviewing from the app arrive in the next build.' });
+      const page = next.kind === 'submit' ? 'submit' : 'review';
+      bar.push({ label: next.label, primary: true, onPress: () => router.push(`/contracts/${fund.address}/${page}?i=${next.milestone ?? 0}` as Href) });
     }
     if (fund.actions.includes('close')) bar.push({ label: 'Close contract', primary: bar.length === 0, onPress: () => router.push(`/contracts/${fund.address}/close` as Href) });
     if (fund.state === 'settled' && fl) bar.push({ label: 'See records', primary: false, onPress: () => router.push('/records') });
