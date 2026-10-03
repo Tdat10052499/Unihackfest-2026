@@ -1,7 +1,6 @@
 // Unsigned transaction builders, one per instruction. Each returns { tx, rent }: `rent` is the lamports the
 // transaction will lock in new accounts (fund + vault, or an ATA that does not exist yet). The fee payer and
 // blockhash are set later by services/chain/send.ts. Encoding and account order come from the IDL (N2).
-import { sha256 } from '@noble/hashes/sha2.js';
 import { PublicKey, Transaction, type Connection, type TransactionInstruction } from '@solana/web3.js';
 import idl from '../idl/ned_program.json' with { type: 'json' };
 import { DEMO_PAYOUT_PARTNER, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../constants.ts';
@@ -9,7 +8,7 @@ import { ata, createAtaIdempotentIx } from '../chain/ata.ts';
 import { buildIx, encodeIx, toBN } from '../chain/idl.ts';
 import { getConnection, getProgramId } from '../config.ts';
 import { coder, type FundAccount } from './decode.ts';
-import { evidenceHash } from './evidence.ts';
+import { buildPostNote, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, type EncryptedNote } from './notes.ts';
 import { FUND_SIZE, TOKEN_ACCOUNT_SIZE } from './layout.ts';
 import { fundPda, vaultPda } from './pda.ts';
 import { demoRecipientId, payoutReference } from './reference.ts';
@@ -46,11 +45,24 @@ async function ensureAta(payer: PublicKey, owner: PublicKey, conn: RentConnectio
 const tx = (...ixs: TransactionInstruction[]) => new Transaction().add(...ixs);
 const isZero = (bytes: Uint8Array) => bytes.every((b) => b === 0);
 
-/**
- * TEMPORARY until B1 (canonical brief JSON): the brief hash is SHA-256 of the title, so v1.1 contracts can be
- * created before the brief editor exists.
- */
-export const temporaryBriefHash = (title: string) => sha256(new TextEncoder().encode(title));
+/** Largest serialized transaction Solana accepts */
+export const TX_MAX_BYTES = 1232;
+const DUMMY_BLOCKHASH = '11111111111111111111111111111111';
+
+/** Serialized size of `tx` with `feePayer` and one signature per signer (the blockhash does not change the size) */
+export function txSize(tx: Transaction, feePayer: PublicKey): number {
+  const copy = new Transaction({ feePayer, recentBlockhash: DUMMY_BLOCKHASH }).add(...tx.instructions);
+  const message = copy.serializeMessage();
+  const signers = message[0];
+  return 1 + 64 * signers + message.length;
+}
+
+/** One transaction per post_note part */
+function noteTxs(fund: PublicKey, author: PublicKey, note: EncryptedNote): Transaction[] {
+  return note.parts.map((data, part) =>
+    tx(buildPostNote({ fund, author, kind: note.kind as 0 | 1, milestone: note.milestone, part, parts: note.parts.length, data }))
+  );
+}
 
 const u8index = (index: number) => {
   if (!Number.isInteger(index) || index < 0 || index > 255) throw new Error('Invalid milestone index');
@@ -67,12 +79,12 @@ export async function buildCreateFund(
     milestones: MilestoneInputUnits[];
     payer?: PublicKey;
     fundId?: bigint;
-    /** SHA-256 of the canonical brief JSON; defaults to temporaryBriefHash(title) until B1 */
-    briefHash?: Uint8Array;
+    /** SHA-256 of the canonical brief JSON (content.ts briefHash) */
+    briefHash: Uint8Array;
   },
   conn: RentConnection = getConnection()
 ): Promise<Built & { fund: PublicKey; fundId: bigint }> {
-  const briefHash = p.briefHash ?? temporaryBriefHash(p.title);
+  const { briefHash } = p;
   if (briefHash.length !== 32 || isZero(briefHash)) throw new Error('The brief fingerprint is missing.');
   const fundId = p.fundId ?? BigInt(Date.now());
   const fund = fundPda(p.client, fundId);
@@ -129,15 +141,42 @@ export async function buildLock(p: { fund: FundAccount; client: PublicKey }, con
   return { tx: tx(clientAta.ix, lock), rent: clientAta.rent };
 }
 
-export async function buildSubmit(p: { fund: FundAccount; freelancer: PublicKey; index: number; link: string }): Promise<Built & { evidence: Uint8Array }> {
-  const evidence = evidenceHash(p.link);
-  if (isZero(evidence)) throw new Error('The delivery fingerprint is missing.');
+/**
+ * Brief note transactions for a new fund (post_note kind 0, signed by the client), one per part. They can only run
+ * after create_fund, while the fund is Created.
+ */
+export function buildBriefNotes(p: { fund: PublicKey; client: PublicKey; note: EncryptedNote }): Transaction[] {
+  if (p.note.kind !== NOTE_KIND_BRIEF) throw new Error('Not a brief note');
+  return noteTxs(p.fund, p.client, p.note);
+}
+
+/**
+ * submit(index, evidence) plus the delivery note. The first note part rides in the submit transaction when the
+ * serialized transaction stays within TX_MAX_BYTES; otherwise every part gets its own transaction (`extra`).
+ */
+export async function buildSubmit(p: {
+  fund: FundAccount;
+  freelancer: PublicKey;
+  index: number;
+  /** SHA-256 of the canonical delivery JSON (content.ts deliveryEvidence) */
+  evidence: Uint8Array;
+  note?: EncryptedNote;
+}): Promise<Built & { evidence: Uint8Array; extra: Transaction[]; noteInSubmit: boolean }> {
+  if (p.evidence.length !== 32 || isZero(p.evidence)) throw new Error('The delivery fingerprint is missing.');
+  if (p.note && (p.note.kind !== NOTE_KIND_DELIVERY || p.note.milestone !== p.index)) throw new Error('Delivery note for another milestone');
   const submit = ix(
     'submit',
     { fund: p.fund.address, freelancer: p.freelancer },
-    { index: u8index(p.index), evidence: Array.from(evidence) }
+    { index: u8index(p.index), evidence: Array.from(p.evidence) }
   );
-  return { tx: tx(submit), rent: 0, evidence };
+  const notes = p.note ? noteTxs(p.fund.address, p.freelancer, p.note) : [];
+  if (notes.length) {
+    const combined = tx(submit, ...notes[0].instructions);
+    if (txSize(combined, p.freelancer) <= TX_MAX_BYTES) {
+      return { tx: combined, rent: 0, evidence: p.evidence, extra: notes.slice(1), noteInSubmit: true };
+    }
+  }
+  return { tx: tx(submit), rent: 0, evidence: p.evidence, extra: notes, noteInSubmit: false };
 }
 
 export async function buildApprove(p: { fund: FundAccount; client: PublicKey; index: number }, conn: RentConnection = getConnection()): Promise<Built> {

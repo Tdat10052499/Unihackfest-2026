@@ -1,4 +1,5 @@
-// Delivery evidence: the app stores only SHA-256 of the delivery link, never the link (product-spec 3.4).
+// v1 delivery evidence (SHA-256 of one link). B1 replaced it by content.ts deliveryEvidence (canonical delivery JSON);
+// evidenceHash stays only for showing funds submitted before B1. shortHash is shared.
 import { sha256 } from '@noble/hashes/sha2.js';
 
 const encoder = new TextEncoder();

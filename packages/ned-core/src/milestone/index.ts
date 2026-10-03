@@ -11,3 +11,6 @@ export type { Role, Region, ChipTone, ActionKind, MilestoneView, FundView, ViewO
 export * from './format.ts';
 export * from './evidence.ts';
 export * from './reference.ts';
+export * from './content.ts';
+export * from './keys.ts';
+export * from './notes.ts';

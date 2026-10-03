@@ -1,7 +1,9 @@
 // FundAccount → FundView for the screens (non-ui-plan section 3). Pure: no RPC, no React.
 import { shortAddress } from '../identity/resolveCore.ts';
 import type { FundAccount, MilestoneAccount } from './decode.ts';
+import type { DeliveryDraft } from './content.ts';
 import { shortHash } from './evidence.ts';
+import type { ContentStatus, ContractContent } from './notes.ts';
 import { formatCountdown, formatDeadline, formatUsdc, vndEstimate } from './format.ts';
 import { vaultPda } from './pda.ts';
 import * as rules from './rules.ts';
@@ -33,6 +35,10 @@ export interface MilestoneView {
   actions: ActionKind[];
   /** short hash */
   evidence?: string;
+  // ---- B1 (non-ui-plan 3.1): from the decrypted brief and delivery notes ----
+  name?: string;
+  criteria?: string[];
+  delivery?: { content?: DeliveryDraft; matches?: boolean; submittedAt: number; onTime: boolean };
 }
 
 export interface FundView {
@@ -59,9 +65,18 @@ export interface FundView {
   actions: ActionKind[];
   /** Pending split proposal (P1), when FEATURES.dispute is on */
   split?: { proposedByMe: boolean; toFreelancerUnits: bigint; toFreelancerLabel: string; toClientLabel: string };
+  // ---- B1 (non-ui-plan 3.1) ----
+  /** Short brief fingerprint (on-chain brief_hash) */
+  briefHash: string;
+  contentStatus: ContentStatus;
+  inviteLink?: string;
 }
 
 export interface ViewOptions {
+  /** Decrypted content (useContractContent); without it contentStatus is 'loading' */
+  content?: ContractContent;
+  /** Invite link, when this device holds the contract key */
+  inviteLink?: string;
   /** wallet → display name ("@vinh" or a short address), from identity displayNamesFor */
   names?: Record<string, string>;
   /** Show P1 actions (dispute, concede, split). Default false; ned-wallet passes FEATURES.dispute */
@@ -141,6 +156,8 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
     if (p1 && rules.canDispute(fund, me, m.index, now)) actions.push('dispute');
     if (p1 && rules.canConcede(fund, me, m.index)) actions.push('concede');
     const evidence = shortHash(m.evidence);
+    const briefMilestone = opts.content?.brief?.milestones[m.index];
+    const delivered = opts.content?.deliveries[m.index];
     return {
       index: m.index,
       amountUnits: m.amount,
@@ -153,6 +170,17 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
       ...(countdown ? { countdown } : {}),
       actions,
       ...(evidence ? { evidence } : {}),
+      ...(briefMilestone ? { name: briefMilestone.name, criteria: briefMilestone.criteria } : {}),
+      ...(m.submittedAt > 0
+        ? {
+            delivery: {
+              ...(delivered?.content ? { content: delivered.content } : {}),
+              ...(delivered ? { matches: delivered.matches } : {}),
+              submittedAt: m.submittedAt,
+              onTime: m.submittedAt <= m.submitBy,
+            },
+          }
+        : {}),
     };
   };
   const milestones = fund.milestones.map(milestoneView);
@@ -240,5 +268,8 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
     vaultExplorerUrl: explorer(vaultPda(fund.address).toBase58()),
     actions,
     ...(split ? { split } : {}),
+    briefHash: shortHash(fund.briefHash),
+    contentStatus: opts.content?.contentStatus ?? 'loading',
+    ...(opts.inviteLink ? { inviteLink: opts.inviteLink } : {}),
   };
 }

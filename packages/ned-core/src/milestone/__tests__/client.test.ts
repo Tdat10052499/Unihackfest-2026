@@ -29,7 +29,7 @@ const isAtaCreate = (i: TransactionInstruction, owner: PublicKey) =>
 
 test('create_fund: args, account order from the IDL, rent of fund + vault', async () => {
   const built = await client.buildCreateFund(
-    { client: CLIENT, freelancer: FREELANCER, title: 'Landing page design', fundId: 42n, milestones: [{ amount: 10n * USDC, submitBy: T0 + 600, reviewBy: T0 + 720 }] },
+    { client: CLIENT, freelancer: FREELANCER, title: 'Landing page design', fundId: 42n, briefHash: BRIEF_HASH, milestones: [{ amount: 10n * USDC, submitBy: T0 + 600, reviewBy: T0 + 720 }] },
     conn()
   );
   const fundKey = fundPda(CLIENT, 42n);
@@ -53,8 +53,7 @@ test('create_fund: args, account order from the IDL, rent of fund + vault', asyn
   assert.ok(args.freelancer.equals(FREELANCER));
   assert.equal(args.title, 'Landing page design');
   assert.deepEqual(args.milestones.map((m: any) => [m.amount.toString(), m.submit_by.toNumber(), m.review_by.toNumber()]), [['10000000', T0 + 600, T0 + 720]]);
-  // TEMPORARY until B1: the brief hash defaults to SHA-256 of the title
-  assert.deepEqual(Uint8Array.from(args.brief_hash), client.temporaryBriefHash('Landing page design'));
+  assert.deepEqual(Uint8Array.from(args.brief_hash), BRIEF_HASH);
 });
 
 test('create_fund passes an explicit brief hash and refuses an all-zero one', async () => {
@@ -66,7 +65,7 @@ test('create_fund passes an explicit brief hash and refuses an all-zero one', as
 
 test('create_fund with a separate payer; default fund id is the current time in ms', async () => {
   const before = BigInt(Date.now());
-  const built = await client.buildCreateFund({ client: CLIENT, payer: STRANGER, freelancer: FREELANCER, title: 't', milestones: [{ amount: 1n, submitBy: 1, reviewBy: 61 }] }, conn());
+  const built = await client.buildCreateFund({ client: CLIENT, payer: STRANGER, freelancer: FREELANCER, title: 't', briefHash: BRIEF_HASH, milestones: [{ amount: 1n, submitBy: 1, reviewBy: 61 }] }, conn());
   assert.ok(built.fundId >= before && built.fundId <= BigInt(Date.now()));
   assert.deepEqual(keys(built.tx.instructions[0]).slice(0, 2), [[CLIENT.toBase58(), true, false], [STRANGER.toBase58(), true, true]]);
 });
@@ -138,13 +137,17 @@ test('approve / release go to the fixed destination; refund / close / concede to
   ]);
 });
 
-test('submit stores the SHA-256 of the trimmed link', async () => {
-  const built = await client.buildSubmit({ fund: fund({ milestones: [M(), M()] }), freelancer: FREELANCER, index: 1, link: ' https://figma.com/x ' });
-  assert.deepEqual(built.evidence, evidenceHash('https://figma.com/x'));
+test('submit stores the given evidence and refuses an all-zero one', async () => {
+  const evidence = evidenceHash('https://figma.com/x');
+  const built = await client.buildSubmit({ fund: fund({ milestones: [M(), M()] }), freelancer: FREELANCER, index: 1, evidence });
+  assert.deepEqual(built.evidence, evidence);
+  assert.equal(built.tx.instructions.length, 1);
+  assert.deepEqual(built.extra, []);
   const d = decoded(built.tx.instructions);
   assert.equal((d.data as any).index, 1);
-  assert.deepEqual(Uint8Array.from((d.data as any).evidence), evidenceHash('https://figma.com/x'));
-  await assert.rejects(client.buildSubmit({ fund: fund({ milestones: [M()] }), freelancer: FREELANCER, index: 256, link: 'x' }), /index/);
+  assert.deepEqual(Uint8Array.from((d.data as any).evidence), evidence);
+  await assert.rejects(client.buildSubmit({ fund: fund({ milestones: [M()] }), freelancer: FREELANCER, index: 256, evidence }), /index/);
+  await assert.rejects(client.buildSubmit({ fund: fund({ milestones: [M()] }), freelancer: FREELANCER, index: 0, evidence: new Uint8Array(32) }), /fingerprint/);
 });
 
 test('P1 builders: dispute, propose split, accept split with the expected values from the fund', async () => {
