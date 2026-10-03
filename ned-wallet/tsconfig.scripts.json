@@ -1,0 +1,18 @@
+{
+  "//": "ts-node settings for scripts/*.ts (identity:devnet, identity:check, milestone:devnet, recycle:demo-usdc, xstocks:diagnose). The scripts run as CommonJS; moduleTypes makes ts-node compile @ned/core's TypeScript (a \"type\": \"module\" package) as CommonJS too, instead of failing with ERR_REQUIRE_ESM.",
+  "extends": "./tsconfig.json",
+  "ts-node": {
+    "transpileOnly": true,
+    "moduleTypes": {
+      "../packages/ned-core/**/*": "cjs"
+    }
+  },
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "customConditions": null,
+    "allowImportingTsExtensions": false,
+    "rootDir": "..",
+    "ignoreDeprecations": "6.0"
+  }
+}

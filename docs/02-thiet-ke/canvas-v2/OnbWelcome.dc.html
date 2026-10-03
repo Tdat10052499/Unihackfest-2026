@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Welcome</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#6A22B0}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#D4D4DC"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#22C55E"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 0 24px; position: relative; z-index: 1">
+    <div style="display: flex; justify-content: center; padding-top: 12px">
+      <div style="width: 100%; height: 220px; border-radius: 28px; background: #EDE3FB; display: flex; align-items: flex-end; justify-content: center; overflow: hidden"><img src="/_blob/5bb51609a7ff36b0643dc0cc23146ac6" alt="Teddy, the N.E.D bear, waving hello" style="width: 230px; height: 180px; object-fit: contain; margin-bottom: 8px"></div>
+    </div>
+    <h1 style="margin: 26px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; line-height: 1.12; letter-spacing: -1px">Get your earnings locked before you start.</h1>
+    <p style="margin: 12px 0 0; font-size: 15px; line-height: 1.5; color: #5E5E6A">Milestone contracts for freelancers and their clients abroad.</p>
+    <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="width: 34px; height: 34px; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+        <div style="font-size: 14px; font-weight: 500; color: #111116">Clients lock the money for each milestone</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="width: 34px; height: 34px; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div>
+        <div style="font-size: 14px; font-weight: 500; color: #111116">Receive VND in Vietnam, or USDC abroad</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="width: 34px; height: 34px; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg></div>
+        <div style="font-size: 14px; font-weight: 500; color: #111116">Refund or release by deadline, written in code</div>
+      </div>
+    </div>
+    <div style="flex: 1"></div>
+    <a href="OnbSetup.dc.html" style="height: 52px; display: flex; align-items: center; justify-content: center; gap: 12px; border-radius: 9999px; background: #111116; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none;">
+      <div aria-hidden="true" style="width: 24px; height: 24px; border-radius: 9999px; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700">G</div>
+      Continue with Google
+    </a>
+    <p style="margin: 14px 0 28px; font-size: 11px; line-height: 1.5; text-align: center; color: #5E5E6A">By continuing you agree to our <a href="#terms" style="color: #6A22B0">Terms</a> and <a href="#privacy" style="color: #6A22B0">Privacy Policy</a>.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

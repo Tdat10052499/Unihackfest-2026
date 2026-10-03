@@ -340,6 +340,37 @@ interface ContractDraft {
 
 After every action the hooks refresh the affected fund. Errors are English sentences from `describeTxError(err, 'contract')`.
 
+### 3.1 Amendment (3 Oct 2026, `build-plan.md` B1)
+
+Additions only; nothing above is removed. B1 implements them and adjusts the types if the code needs it (announce any change).
+
+```ts
+interface BriefDraft {
+  scope: string;                                  // ≤ 1,500 characters
+  references: string[];                           // ≤ 5 URLs
+  milestones: { name: string; criteria: string[] }[]; // same length as ContractDraft.milestones; ≤ 6 criteria each
+}
+interface DeliveryDraft {
+  links: string[];                                // ≤ 5
+  files: { name: string; size: number; sha256: string }[]; // ≤ 10; hashed on the device, never uploaded
+  note: string;                                   // ≤ 500 characters
+}
+// ContractDraft gains: brief: BriefDraft
+// MilestoneView gains: name?: string; criteria?: string[]; delivery?: { content?: DeliveryDraft; matches?: boolean; submittedAt: number; onTime: boolean }
+// FundView gains: briefHash: string (short); contentStatus: 'ok' | 'mismatch' | 'noKey' | 'missing' | 'loading'; inviteLink?: string
+
+useMilestoneActions(address?) changes:
+  create(draft): Promise<{ signature: string; fund: string; inviteLink: string }>;   // posts the brief note(s)
+  accept(choice): Promise<{ signature: string }>;          // passes SHA-256 of the decrypted brief shown (never fund.brief_hash); refuses unless contentStatus === 'ok'
+  submit(index, delivery: DeliveryDraft): Promise<{ signature: string; evidence: string }>; // submit + delivery note
+
+useContractContent(address: string): {
+  brief?: Brief; contentStatus: 'ok' | 'mismatch' | 'noKey' | 'missing' | 'loading';
+  deliveries: Record<number, { content?: DeliveryDraft; matches: boolean }>;
+  hasKey: boolean; inviteLink?: string; importKey(fragmentOrLink: string): boolean; refresh(): Promise<void>; // accepts '#k=…' or a pasted contract link
+}
+```
+
 ## 4. Checks before the screens start
 
 - [ ] `anchor build && cargo test`: all P0 tests and the 10 identity tests pass

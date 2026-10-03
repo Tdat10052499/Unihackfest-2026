@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Review milestone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Inter', system-ui, sans-serif">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#C9C9D2"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#111116"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+  <div style="padding: 2px 16px 0; display: flex; align-items: center; gap: 6px; position: relative; z-index: 3">
+    <a href="HomeIntl.dc.html" aria-label="Back" style="width: 44px; height: 44px; margin-left: -8px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111116" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Review milestone 1</h1>
+    <span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 9999px; background: #FFF5E1; font-size: 11px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+  </div>
+
+  <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="padding: 14px; border-radius: 20px; background: #FFFFFF">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px">
+        <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">Landing page design · Milestone 1</div><div style="margin-top: 3px; font-size: 12px; color: #5E5E6A">by @vinh · submitted 3 Oct, 00:31</div></div>
+        <div style="text-align: right"><div style="font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">10.00 USDC</div><div style="font-size: 11px; color: #5E5E6A">to VND via payout partner</div></div>
+      </div>
+    </div>
+    <div role="timer" style="{{cdBox}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg><span>Auto-release in <strong style="font-family: 'Space Mono', monospace">{{cd}}</strong> unless you dispute</span></div>
+    <div style="padding: 14px; border-radius: 20px; background: #FFFFFF">
+      <label for="rv-link" style="font-size: 14px; font-weight: 600">Check a link</label>
+      <div style="margin-top: 4px; font-size: 12px; line-height: 1.45; color: #5E5E6A">Paste the link @vinh sent you. We compare its fingerprint with the one saved on-chain.</div>
+      <input id="rv-link" type="url" value="{{link}}" onChange="{{onLink}}" placeholder="https://" autocomplete="off" spellcheck="false" style="margin-top: 10px; width: 100%; box-sizing: border-box; height: 50px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: 'Space Mono', monospace; font-size: 13px; outline: none; border: none">
+      <div role="status" style="{{matchStyle}}">{{matchText}}</div>
+      <div style="margin-top: 6px; font-size: 11px; color: #5E5E6A">On-chain fingerprint {{onchain}}</div>
+    </div>
+    <div role="group" aria-label="Fees" style="padding: 4px 16px; border-radius: 20px; background: #FFFFFF">
+      <div style="padding: 12px 0 8px; font-size: 15px; font-weight: 600">Fees</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">N.E.D fee</span><div style="text-align: right"><div style="font-size: 14px; font-weight: 600">None during the pilot</div></div></div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">Network fee</span><div style="text-align: right"><div style="font-size: 14px; font-weight: 600">~0.000005 SOL</div><div style="font-size: 12px; color: #5E5E6A">devnet test SOL</div></div></div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">Payout partner fee</span><div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end"><span style="font-size: 14px; font-weight: 600">Set by the partner</span><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; background: #EEEEF2; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; color: #3F3F49; white-space: nowrap">SIMULATED</span></div></div>
+    </div>
+  </div>
+  <div style="padding: 10px 16px 26px; display: flex; flex-direction: column; gap: 8px">
+    <a href="MilestoneReleased.dc.html" aria-label="Slide to release" style="height: 58px; padding: 4px; box-sizing: border-box; display: flex; align-items: center; border-radius: 9999px; background: #F2EAFB; text-decoration: none">
+        <div style="width: 50px; height: 50px; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </div>
+        <div style="flex: 1; text-align: center; margin-left: -50px; font-size: 16px; font-weight: 600; color: #6A22B0">Slide to release</div>
+      </a>
+    <a href="DisputeSheet.dc.html" style="height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #F2EAFB; border: none; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #6A22B0; text-decoration: none; cursor: pointer; width: 100%">Dispute <span style="font-size: 11px; font-weight: 600; color: #3730A3">(P1 · if shipped)</span></a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"review": {"editor": "enum", "options": ["3 days", "1 min"], "default": "3 days"}, "link": {"editor": "enum", "options": ["matches", "differs"], "default": "matches"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { t: 0, link: (props.link ?? 'matches') === 'matches' ? 'https://example.com/vinh/landing-v1' : 'https://example.com/vinh/landing-v2' }; }
+  componentDidMount() { var self = this; this.timer = setInterval(function () { self.setState({ t: self.state.t + 1 }); }, 1000); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    var self = this;
+    function fp(l) { var h = 5381; for (var i = 0; i < l.length; i++) { h = ((h * 33) ^ l.charCodeAt(i)) >>> 0; } var x = ('00000000' + h.toString(16)).slice(-8); return '0x' + x.slice(0, 4) + '…' + x.slice(4); }
+    var onchain = fp('https://example.com/vinh/landing-v1');
+    var l = this.state.link || '';
+    var ok = l && fp(l) === onchain;
+    var fast = (this.props.review ?? '3 days') === '1 min';
+    var win = fast ? 60 : 259200, left = Math.max(0, (fast ? 42 : 236000) - this.state.t);
+    var cd;
+    if (left < 3600) { var m = Math.floor(left / 60), s2 = left % 60; cd = (m < 10 ? '0' : '') + m + ':' + (s2 < 10 ? '0' : '') + s2; }
+    else cd = Math.floor(left / 86400) + ' days ' + Math.floor((left % 86400) / 3600) + ' h';
+    var warn = left < win * 0.1;
+    return {
+      cd: cd, link: l, onchain: onchain, onLink: function (e) { self.setState({ link: e.target.value }); },
+      cdBox: 'display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; font-size: 13px; background: ' + (warn ? '#FFF5E1' : '#FFFFFF') + '; color: ' + (warn ? '#8A5300' : '#3F3F49'),
+      matchText: !l ? 'Paste a link to check it' : (ok ? 'Matches what was submitted ✓' : "Doesn't match what was submitted"),
+      matchStyle: 'margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; background: ' + (!l ? '#E6E6EB' : (ok ? '#E7F6EC' : '#FDECEC')) + '; color: ' + (!l ? '#5E5E6A' : (ok ? '#127A3A' : '#B42318'))
+    };
+  }
+}
+</script>
+</body>
+</html>

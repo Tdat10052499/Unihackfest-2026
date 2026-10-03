@@ -154,6 +154,16 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | N11 cờ tính năng, gate onboarding, store region/consent, xoá code chết | `chore/n11-app-plumbing` | `23f04a2`, `d174e8b`, `575de43`, `9fc01be`, `9f2a2b9` |
 | N12 key partner thật, script recycle, deploy lại | `chore/n12-demo-ops` | `692c78c`, `8523571`, `b90a462` |
 | N13 bảo mật + README; sửa theo review | `chore/n13-security-readme` | `8dacce1`, `bf752d4`, `7b866ee`, `55a6954`, `e1e77d5` |
+| W0 `packages/ned-core` + pnpm workspace ở gốc | `feat/w0-ned-core` | `5e55049`, `111c970`, `c3d70a1`, `ad83f13` |
+
+**W0 (03/10/2026):**
+- **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
+- **Test:** core 72/72 + `ned-wallet` 19/19 = 91 (bằng trước); `npx tsc --noEmit` 0 lỗi; `npx expo export --platform web` OK. Bước devnet của `identity:check` PASS qua core.
+- **Script ts-node** chạy bằng `tsconfig.scripts.json`.
+- **Vấn đề mới:**
+  - chưa thử build EAS (Android) từ monorepo;
+  - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
+  - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
 
 ### Test (lần chạy cuối, 03/10/2026)
 

@@ -1,0 +1,10 @@
+{
+  "name": "unihackfest-2026",
+  "private": true,
+  "description": "Monorepo root: ned-wallet (Expo app), packages/ned-core (shared core). Install with pnpm from this folder.",
+  "scripts": {
+    "test": "npm run test:core && npm run test:wallet",
+    "test:core": "cd packages/ned-core && node --test \"src/**/*.test.ts\"",
+    "test:wallet": "cd ned-wallet && npm test"
+  }
+}

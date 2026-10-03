@@ -1,9 +1,3 @@
-// Payout reference for the Vietnam path (decision D13): SHA-256 of the partner's recipient ID.
-// Demo: a made-up ID `demo-<username>-001`; at launch, the ID the partner issues after KYC.
-import { sha256 } from '@noble/hashes/sha2.js';
-
-export function payoutReference(recipientId: string): Uint8Array {
-  return sha256(new TextEncoder().encode(recipientId));
-}
-
-export const demoRecipientId = (username: string) => `demo-${username}-001`;
+// Re-export shim (workspace-plan W0): the code lives in packages/ned-core. Keeps old import paths working.
+import '../../services/coreInit.ts';
+export * from '@ned/core/milestone/reference.ts';

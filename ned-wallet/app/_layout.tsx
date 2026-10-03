@@ -1,4 +1,5 @@
 import '../polyfill';
+import '../services/coreInit';
 import '../services/i18n';
 import '../services/webAlert';
 import React, { useEffect, useRef } from 'react';

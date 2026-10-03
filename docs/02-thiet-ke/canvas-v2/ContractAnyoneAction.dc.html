@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Anyone action</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Inter', system-ui, sans-serif">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#C9C9D2"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#111116"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+  <div style="padding: 2px 16px 0; display: flex; align-items: center; gap: 6px; position: relative; z-index: 3">
+    <a href="{{cancelHref}}" aria-label="Back" style="width: 44px; height: 44px; margin-left: -8px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111116" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{bgHead}}</h1>
+    <span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 9999px; background: #FFF5E1; font-size: 11px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+  </div>
+
+  <div aria-hidden="true" style="flex: 1; padding: 14px 16px; opacity: 0.35; filter: blur(1px)"><div style="padding: 14px; border-radius: 20px; background: #FFFFFF">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px">
+        <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">{{bgTitle}}</div><div style="margin-top: 3px; font-size: 12px; color: #5E5E6A">client @mia · freelancer @vinh</div></div>
+        <div style="text-align: right"><div style="font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">10.00 USDC</div><div style="font-size: 11px; color: #5E5E6A">{{bgStatus}}</div></div>
+      </div>
+    </div></div>
+  <div class="ned-backdrop" style="position: absolute; inset: 0; z-index: 10; background: rgba(17,17,22,0.36)"></div>
+  <div class="ned-sheet" role="dialog" aria-label="Anyone action" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 690px; overflow-y: auto; padding: 10px 20px 28px; border-radius: 28px 28px 0 0; background: #FFFFFF; border-top: 1px solid #F0F0F3">
+    <div style="width: 40px; height: 5px; margin: 0 auto 14px; border-radius: 9999px; background: #E6E6EB"></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700">{{title}}</span><span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 9999px; background: #FFF5E1; font-size: 11px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span></div>
+    <div style="margin-top: 8px; font-size: 14px; line-height: 1.55; color: #3F3F49">{{text}}</div>
+    <div style="margin-top: 14px; padding: 4px 14px; border-radius: 20px; background: #FFFFFF">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: {{r.sep}}"><span style="font-size: 13px; color: #5E5E6A">{{r.k}}</span><span style="font-size: 13px; font-weight: 600; text-align: right">{{r.v}}</span></div>
+      </sc-for>
+    </div>
+    <div style="margin-top: 10px"><div role="group" aria-label="Fees" style="padding: 4px 16px; border-radius: 20px; background: #FFFFFF">
+      <div style="padding: 12px 0 8px; font-size: 15px; font-weight: 600">Fees</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">N.E.D fee</span><div style="text-align: right"><div style="font-size: 14px; font-weight: 600">None during the pilot</div></div></div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">Network fee</span><div style="text-align: right"><div style="font-size: 14px; font-weight: 600">~0.000005 SOL</div><div style="font-size: 12px; color: #5E5E6A">devnet test SOL</div></div></div>
+      <sc-if value="{{isRel}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid #F0F0F3"><span style="font-size: 14px; color: #5E5E6A">Payout partner fee</span><div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end"><span style="font-size: 14px; font-weight: 600">Set by the partner</span><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; background: #EEEEF2; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; color: #3F3F49; white-space: nowrap">SIMULATED</span></div></div>
+      </sc-if>
+    </div></div>
+    <div style="margin-top: 14px">
+      <a href="{{href}}" aria-label="{{slideLabel}}" style="height: 60px; padding: 5px; box-sizing: border-box; display: flex; align-items: center; border-radius: 9999px; background: #F2EAFB; text-decoration: none; border: none">
+        <div style="width: 50px; height: 50px; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+        <div style="flex: 1; text-align: center; margin-left: -50px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: #111116">{{slideLabel}}</div>
+      </a>
+      <a href="{{cancelHref}}" style="margin-top: 8px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #F2EAFB; border: none; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #6A22B0; text-decoration: none; cursor: pointer; width: 100%">Cancel</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind": {"editor": "enum", "options": ["release", "refund"], "default": "release"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var rel = (this.props.kind ?? 'release') === 'release';
+    var rows = rel ? [['Milestone', 'Logo refresh · 10.00 USDC'], ['Review time ended', '3 Oct, 00:41'], ['Goes to', 'VND via payout partner for @vinh (simulated)']]
+                   : [['Milestone', 'Landing page design · Milestone 1'], ['Submission deadline', '12 Oct, 18:00 (passed)'], ['Goes to', '@mia (client)']];
+    return {
+      isRel: rel,
+      bgHead: rel ? 'Logo refresh' : 'Landing page design',
+      bgTitle: rel ? 'Logo refresh' : 'Landing page design · Milestone 1', bgStatus: rel ? 'Submitted · review time passed' : 'Not submitted · deadline passed',
+      title: rel ? 'Release now' : 'Refund now',
+      text: rel ? "The review time has passed. Anyone can release this milestone to the freelancer's destination." : 'The submission deadline passed. Anyone can refund this milestone to the client.',
+      rows: rows.map(function (r, i) { return { k: r[0], v: r[1], sep: i ? '1px solid #E6E6EB' : 'none' }; }),
+      href: rel ? 'MilestoneReleasedB.dc.html' : 'MilestoneRefunded.dc.html', slideLabel: rel ? 'Slide to release' : 'Slide to refund',
+      cancelHref: rel ? 'ContractDetailLogo.dc.html' : 'ContractDetailMiaLocked.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

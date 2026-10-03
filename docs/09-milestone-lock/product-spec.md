@@ -20,10 +20,10 @@ Pitch line: *"Freelancers receive their earnings, locked by code."*
 
 ## 3. Flow
 
-1. **Create (client).** The client enters the freelancer's @username, a title (≤ 32 bytes, no personal data), 1–5 milestones with a USDC amount, a submission deadline and a review deadline each. Freelancer-created proposals are on the roadmap.
-2. **Accept and choose where earnings go (freelancer).** "USDC to my N.E.D wallet" (international) or "VND to my Vietnamese bank account through a payout partner" (Vietnam). The freelancer never types an address: the app fills in their own wallet, or the allowlisted partner address plus a recipient reference (demo: SHA-256 of a made-up recipient ID such as `demo-vinh-001`; at launch, the ID the partner issues after KYC). The destination is written on-chain and cannot change afterwards.
+1. **Create (client).** The client enters the freelancer's @username, a title (≤ 32 bytes, no personal data), 1–5 milestones with a USDC amount, a submission deadline and a review deadline each, and a **brief**: what is needed, references, and "Done when" criteria per milestone. The brief's SHA-256 is stored on-chain (`brief_hash`); the brief itself travels encrypted (section 5.1). The client sends the freelancer an **invite link** that carries the key. Freelancer-created proposals are on the roadmap.
+2. **Accept and choose where earnings go (freelancer).** "USDC to my N.E.D wallet" (international) or "VND to my Vietnamese bank account through a payout partner" (Vietnam). The freelancer never types an address: the app fills in their own wallet, or the allowlisted partner address plus a recipient reference (demo: SHA-256 of a made-up recipient ID such as `demo-vinh-001`; at launch, the ID the partner issues after KYC). The destination is written on-chain and cannot change afterwards. The freelancer reads the brief first; `accept` carries the brief hash they saw, so it fails if the brief differs.
 3. **Lock (client).** The client sees the destination type and locks the full amount. The freelancer sees "Locked" before starting work.
-4. **Submit (freelancer).** Marks a milestone delivered. The app stores the SHA-256 of the delivery link as evidence, never the link itself.
+4. **Submit (freelancer).** Marks a milestone delivered, before its deadline (the program checks chain time). The delivery is links (prefer fixed versions: a Figma version, a Git commit), file fingerprints (files stay on the freelancer's computer and are shared through the links) and a note. The SHA-256 of the delivery is the on-chain evidence; the delivery itself goes to the client as an encrypted note. The client sees "On time", the delivery, and whether it still matches the evidence.
 5. **Approve (client), or auto-release.** Approval releases that milestone. If the client does nothing by the review deadline, anyone can release it, unless the client opened a dispute in time.
 
 | Situation | Rule | Status |
@@ -62,6 +62,8 @@ Disclosure line: *"Demo on devnet: network fees use test SOL. Before launch, Vie
 | `app/contracts/[fund].tsx` | both | Role-aware detail: amounts, destination type, per-milestone status and chain-time countdown, action buttons (accept, lock, submit, approve, release, refund, close; dispute and cancel if P1 is done), explorer links | P0 |
 | `app/contracts/accept.tsx` (or a sheet on the detail screen) | freelancer | Choose "USDC to my wallet" or "VND to my bank (payout partner, simulated)"; the app passes the freelancer's own address or `DEMO_PAYOUT_PARTNER`; Vietnam view pre-selects VND | P0 |
 | Home entry point | both | "Contracts" card on Home; hide Swap, xStocks, Earn, dApps from the demo path | P1 |
+| `app/c/[fund].tsx` | both | Invite link: imports the content key from `#k=…`, then opens the contract (mobile) or the Workspace (computer) | P0 |
+| `app/workspace/*` | both, computer | Web Workspace (`build-plan.md` phase C): wallet panel, brief editor, submit with file fingerprints, review | P0 |
 
 Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor builders from the IDL), `queries.ts` (memcmp lists, decoding), `format.ts` (USDC base units ↔ display, VND estimate), `evidence.ts` (SHA-256). Screens use `useAuth()` only (rule in `ned-wallet/AGENTS.md`). Keep the demo payout-partner address in `constants/` as `DEMO_PAYOUT_PARTNER`, equal to the program's `PAYOUT_PARTNERS` entry, with a comment saying it is a team-controlled devnet wallet. Open a contract by deep link `app/contracts/[fund]` (used for the prepared demo contract).
 
@@ -69,6 +71,14 @@ Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor bu
 
 - `services/solana.ts` `getUsdcTokenBalance` (around lines 246–262) adds every SPL token into the "USDC" balance when the USDC account is empty. Read only the USDC ATA.
 - `services/jupiter/core.ts:1` has a mainnet USDC address missing a `q`. Keep one USDC constant module and import it everywhere.
+
+### 5.1 Brief and delivery content (decision D15)
+
+- No backend (D4): content is stored as `post_note` ciphertext in transactions that reference the fund; only hashes are in the account.
+- Each contract has a random content key made by the client's app. It travels only in the invite-link fragment (`#k=`), which browsers do not send to servers. Anyone holding the link can read the brief and the delivery, never move money. Say so in Disclosures.
+- A device without the key shows the money state and the hashes, and asks the user to open the invite link on that device.
+- To move to another device, a party uses "Copy contract link" on the contract screen, or pastes the link in the Workspace. "Same delivery that was submitted ✓" proves only that the delivery note equals the on-chain evidence, not that the content behind a link is unchanged; ask freelancers for fixed-version links.
+- The Vietnam view never shows "New contract" or client actions (decision D18).
 
 ## 6. Words
 
