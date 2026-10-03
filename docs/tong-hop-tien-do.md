@@ -156,7 +156,8 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | N13 bảo mật + README; sửa theo review | `chore/n13-security-readme` | `8dacce1`, `bf752d4`, `7b866ee`, `55a6954`, `e1e77d5` |
 | W0 `packages/ned-core` + pnpm workspace ở gốc | `feat/w0-ned-core` | `5e55049`, `111c970`, `c3d70a1`, `ad83f13` |
 | W1 khung `ned-workspace` (Vite + React), đăng nhập, wallet panel, `vercel.json` | `feat/w1-workspace-scaffold` | `1a8fb24`, `5b0ac9a`, `fb3648f`, `17ab376`, `df97ef1`, `6e3fc52` |
-| A1 program v1.1 (`brief_hash`, evidence ≠ 0, `post_note`), chưa deploy | `feat/a1-program-v1-1` (chưa merge, chờ A2) | xem block A1 |
+| A1 program v1.1 (`brief_hash`, evidence ≠ 0, `post_note`) | `feat/a1-program-v1-1` | `47ab23f` |
+| A2 upgrade devnet v1.1 + IDL + core layout, smoke ×3 | `feat/a1-program-v1-1` | `b114ac9` + commit docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -171,7 +172,33 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
 
-**A1 (03/10/2026, chưa deploy):**
+**A2 (03/10/2026): program v1.1 đã lên devnet.**
+- **G4:** trên devnet không còn fund 708 byte nào (program có 17 account, đều là identity), nên không phải đóng gì.
+- **Extend:** +13 184 byte, data length 475 280 → **488 464 byte**, tốn 0,0670 SOL. Chữ ký `2S2HEbJazRZyMU9GjjQrwcWaokFfPuBEsY6sFpez8662yrTaf9KYYjddU6u3R848zAmH7W28PfK4jzeygNhC32rC` (slot 507005135).
+- **Upgrade:** chữ ký `5k1jLkf6PCb7XegoNCdbJzzvBqhcsTVfBqF5w7uSXrJa7tWe5EAUMZk3qTLsyvSHUvd8tbk9Fmb18sw78cXgcgWH` (slot 507005500). SHA-256 của bản dump on-chain trùng file build (`d9c4d508…3a3017`). Không còn buffer sót lại.
+- **IDL:**
+  - dùng `program-metadata` (create-buffer → so buffer với file local → simulate → update `--close-buffer`), không dùng `anchor idl upgrade` vì lệnh này từng lỗi;
+  - chữ ký `3oACniePnuo6nBUTtN5NEQh54huPQ8VgjEc3qKijZg5KzhRyRbpNKGJvLdByCeQko5aKHz1otR94RhzZuAAbr2vv`;
+  - metadata `AMX7B6…` 6 329 → 6 900 byte, 18 instruction, trùng `target/idl/ned_program.json`.
+- **Ví deploy:** 7,197 → 7,124 SOL.
+- **Core (`packages/ned-core`, W0 đã chuyển từ `ned-wallet/services/milestone/`):**
+  - IDL v1.1 (json + ts);
+  - `FUND_SIZE 740`, `OFFSET_BRIEF_HASH 676`, `NOTE_MAX_LEN 900`, `NOTE_MAX_PARTS 8`; `decodeFund` đọc `briefHash`;
+  - `buildCreateFund({ briefHash })`: **tạm thời** mặc định SHA-256 của tiêu đề (`temporaryBriefHash`) cho tới B1;
+  - `buildAccept({ expectedBriefHash })`: **tạm thời** `actions.ts` truyền giá trị của chính fund, smoke script truyền hash của tiêu đề; B1 phải đổi thành hash của brief đã giải mã mà freelancer đọc;
+  - `buildSubmit` từ chối evidence toàn số 0.
+- **Test:**
+  - core 75/75 (74 cũ + 1 test brief hash), `ned-wallet` 19/19; `npx tsc --noEmit` (app và scripts) 0 lỗi; `npx expo export --platform web` OK; `ned-workspace` tsc OK;
+  - `cargo test` 42/42;
+  - test IDL coder `chain/__tests__/idl.test.ts` vẫn dùng IDL nháp N2 (bản v1, cố ý giữ nguyên).
+- **Smoke devnet (`npm run milestone:devnet`), cả 3 lần PASS, fund version 2, brief hash đã lưu:**
+  - VND #1: fund `CX8q8wTrTf1E1ExjreGFzsZamRrbLmKouNJteCYMUrBi`, partner nhận 2 USDC;
+  - VND #2: fund `FeRjiRymT8nqqigg2hjE5nkMa8zoWDWMSYEnp4hXRQUs`, partner nhận 2 USDC;
+  - `--refund`: fund `8zEWdLvEWVmxGue5hLd8QxR6io7f4Ep5Vr3a2eEGvNv3`, client nhận lại 2 USDC;
+  - các fund đều đã đóng. Client test còn 14 USDC, partner giữ 4 USDC (có thể dùng `recycle:demo-usdc`).
+- **Lưu ý:** bản web đang chạy (GitHub Pages, Vercel) được build với IDL v1, nên tạo hoặc nhận hợp đồng trên đó sẽ lỗi cho tới khi build lại từ `main`.
+
+**A1 (03/10/2026):**
 - **Program v1.1 theo program-spec:**
   - `SharedFund` thêm `brief_hash` ở offset 676, nên account dài **740 byte**; `ACCOUNT_VERSION = 2`; `NOTE_MAX_LEN = 900`, `NOTE_MAX_PARTS = 8`;
   - `create_fund(…, brief_hash)`: hash toàn số 0 thì lỗi `InvalidBriefHash`; event `FundCreated` có thêm `brief_hash`;
@@ -183,7 +210,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - `anchor build && cargo test`: milestone 27/27 (24 cũ + 16, 17, 18), identity 10/10, helpers 4/4, `test_id` 1/1; 0 warning;
   - `program_autofixer`: 0 issue;
   - CU: `post_note` 900 byte ≈ 4 630 (brief) / 4 641 (delivery).
-- **Kích thước `.so`:** 488 464 byte, lớn hơn 475 280 byte đang cấp phát nên A2 **phải `solana program extend`** thêm ≥ 13 184 byte. Tiền rent ước tính ≈ 0,092 SOL [Inference: 6 960 lamport/byte]; A2 sẽ tính chính xác.
+- **Kích thước `.so`:** 488 464 byte, lớn hơn 475 280 byte đang cấp phát nên A2 **phải `solana program extend`** thêm ≥ 13 184 byte. A2 đã extend: thực tế tốn 0,0670 SOL (ước tính 0,092 SOL ở A1 bị sai).
 - **Chưa làm (A2):** đóng các fund 708 byte cũ (G4), extend, upgrade, `anchor idl upgrade`, copy IDL vào `packages/ned-core/src/idl/`, sửa `layout.ts`/`decode.ts`/`client.ts` trong core (W0 đã chuyển các file này từ `ned-wallet/services/milestone/` sang core), smoke run. Cho tới lúc đó app vẫn dùng IDL v1, khớp với program đang chạy trên devnet.
 
 **W1 (03/10/2026):**
@@ -227,16 +254,16 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 
 | Mục | Giá trị |
 | --- | --- |
-| Program | `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, data length **475 280 byte**, authority `FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ` |
+| Program | `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, v1.1 (A2), data length **488 464 byte**, authority `FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ` |
 | Deploy N6 (P0) | `2bDxqhioVtTekVmMiHa4GQtLyCmV3GDttkT2WwQc3uLW69DPyXYBYAu3ifihbSLigi1xRBkkLZyfuRDkapk5QxUq` (extend 231 360 → 420 000) |
 | Deploy N7 (P1) | `eokWJZ1oius7q234LLWXNoR1sqSHFWnVK8TfuJkWqYyER3MZNCC2M3YYJkJ1Ax3iY8m7z7unCstrzW36nLFLLpy` (extend → 475 280) |
 | Deploy N12 (partner thật) | `2PvXW7PwD1jCgy14zTjjhCN1zZ2edC6kUJQZgrrbrXRcdSNjU4NcL4vUFKmxqRxnNt4N6Zi1G9uY9anKn6BqJu1L` (slot 506891469) |
-| IDL on-chain | Metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, 17 instruction, khớp `ned-wallet/idl/` |
+| IDL on-chain | Metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, 18 instruction (v1.1), khớp `packages/ned-core/src/idl/` |
 | Payout partner demo | `FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp` (keypair `~/.config/solana/ned-demo-partner.json`), USDC ATA `Abey9woydP9w8voHfGsoBzM6tKnAcDugUVWmeQdiD96i` |
-| Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (18 USDC), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
-| Ví deploy | 8,546 SOL (02/10) → 7,197 SOL |
+| Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (14 USDC; partner giữ 4), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
+| Ví deploy | 8,546 SOL (02/10) → 7,197 → 7,124 SOL (A2) |
 | Workspace (Vercel) | https://unihackfest-2026.vercel.app (Root Directory `ned-workspace`, CSP đang Report-Only) |
-| Kích thước | `SharedFund` 708 byte (client @12, freelancer @44); `.so` 475 280 byte |
+| Kích thước | `SharedFund` **740 byte** (client @12, freelancer @44, brief_hash @676); `.so` 488 464 byte |
 
 ### Vấn đề còn mở
 

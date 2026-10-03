@@ -205,6 +205,6 @@ Keep the existing 10 identity tests green.
 ## 9. Deploy
 
 0. **v1.1 upgrade only:** list program accounts of 708 bytes (v1 funds) and settle/close them first; v1 accounts cannot be read by the v1.1 program (`build-plan.md` G4).
-1. `anchor build`, then copy the regenerated IDL to `ned-wallet/idl/` (never edit it by hand); update `ned-wallet/services/milestone/layout.ts` (`FUND_SIZE = 740`, `OFFSET_BRIEF_HASH = 676`) in the same PR.
+1. `anchor build`, then copy the regenerated IDL to `packages/ned-core/src/idl/` (json + ts; never edit it by hand; `ned-wallet/idl/` is a re-export shim since W0); update `packages/ned-core/src/milestone/layout.ts` (`FUND_SIZE = 740`, `OFFSET_BRIEF_HASH = 676`) in the same PR. Upload the IDL with `@solana-program/program-metadata` (create-buffer → fetch-buffer and compare → `update idl --buffer … --close-buffer`, simulated first); `anchor idl upgrade` failed at its last step on 2 Oct (see `docs/tong-hop-tien-do.md`).
 2. Upgrade the existing devnet program ID. If the program grows past its allocated size, first run `solana program extend 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh <bytes>`.
 3. Record the deploy signature and program size in `docs/tong-hop-tien-do.md`.
