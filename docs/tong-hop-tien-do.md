@@ -168,6 +168,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | C1 đóng phần mobile (link mời đi qua router Workspace mặc định) | `feat/c1-hosting` | `1088e77` + docs |
 | W3 Workspace `/new`: soạn brief, tạo hợp đồng, xác nhận trong wallet panel | `feat/w3-brief-editor` | `af18ff9`, `e0e55ae`, `b588f08` + docs |
 | W4 Workspace: nộp bài (submit) và duyệt (review) | `feat/w4-submit-review` | `df00cf2`, `36a61ff`, `ef6492a` + docs |
+| W5 Workspace: dọn dẹp, a11y, Reduce Motion, tách bundle, CSP chặn thật, README (**chờ PO đồng ý deploy production**) | `chore/w5-workspace-polish` | `64a64d9`, `20dd075`, `2fdd484`, `1d027fb`, `9d8d7f0` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -214,6 +215,42 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**W5 (03/10/2026): hoàn thiện Workspace (chưa deploy production; chờ PO đồng ý).**
+- **Dọn dẹp:**
+  - xoá `pages/ComingSoon.tsx` (không còn dùng);
+  - xoá 42 branch local đã merge vào `main` (`git branch -d`, chỉ xoá được khi commit đã có trong `main`); giữ 3 branch chưa merge (`docs/build-plan`, `feat/c1-hosting-early`, `feat/t1-dynamic-auth`);
+  - xoá thư mục tạm của các task trước và hai script devnet tạm.
+- **Bundle:** `/new`, submit và review tải khi mở lần đầu (`React.lazy`), mỗi trang 7–21 KB.
+  - Bundle đầu vẫn ~1.89 MB (494 KB gzip) vì gần hết là thư viện: Dynamic SDK là phần lớn nhất, sau đó react-dom, motion, react-router, web3.js, Anchor. Không bỏ được vì đăng nhập và đọc chain cần ngay từ đầu.
+- **Bàn phím:**
+  - thứ tự Tab hợp lý (skip link → logo → ví → breadcrumb → form), mọi điểm dừng đều có vòng focus;
+  - bảng hợp đồng: dòng là `div role="row"`, tên hợp đồng là link phủ cả dòng (trước là `<a role="row">`, sai ARIA), mỗi hợp đồng một điểm Tab;
+  - Escape hoặc bấm ra ngoài đóng panel; **sau khi xác nhận hoặc huỷ, focus quay lại đúng nút đã mở** (ví dụ "Release 0.50 USDC");
+  - breadcrumb có gạch chân (link trong đoạn chữ không chỉ khác nhau bằng màu).
+- **Reduce Motion:** khi bật, mọi phần tử hiện ngay (opacity 1, transform none) sau 40 ms điều hướng; CSS cũng tắt transition.
+- **Layout shift:** trang submit và review đợi đọc xong key và note rồi mới vẽ (trước đây khối "Open the contract link" và "Does not match" chớp lên rồi mất, CLS 0.25 → 0.002).
+- **CSP:** chuyển từ Report-Only sang **chặn thật**; thêm `Permissions-Policy` (tắt camera, mic, vị trí, payment).
+  - Kiểm tra trên bản live (chế độ Report-Only) với `/`, `/sign-in`, `/c/…` và khi mở panel đăng nhập: chỉ có 1 vi phạm là `Function('')` của Zod (trong Dynamic SDK) để thử xem eval có được phép không. Nó tự bắt lỗi và chạy tiếp, nên chặn không ảnh hưởng.
+  - Kiểm tra local với đúng header của `vercel.json` trên mọi trang: chỉ có vi phạm đó.
+  - **Chưa kiểm được luồng đăng nhập Google + ký** dưới CSP chặn thật, vì Dynamic chỉ cho đăng nhập trên domain production. Nếu sau deploy đăng nhập hoặc ký lỗi, đổi lại `Content-Security-Policy-Report-Only` trong `vercel.json` (1 dòng) và gửi lỗi console để thêm host.
+- **Lighthouse desktop** (build có header như Vercel + gzip, ví preview, Helius):
+
+  | Trang | Performance | Accessibility | Best Practices |
+  | --- | --- | --- | --- |
+  | `/` | 100 | 100 | 96 |
+  | `/new` | 100 | 100 | 96 |
+  | `/contract/:fund/review` | 98 | 100 | 96 |
+
+  - Best Practices 96 chỉ vì log vi phạm CSP của Zod ở trên.
+  - Lần đầu review chỉ 87 (CLS 0.25), accessibility 96–99 (role sai trên dòng bảng, link breadcrumb, độ tương phản). Đã sửa hết.
+- **README:** thêm mục "Workspace (ned-workspace): run, env, deploy" (lệnh chạy, tên biến môi trường, deploy Vercel, header, lưu ý domain của Dynamic).
+- **Test:** workspace 10, core 96, wallet 25; `npm run build` OK; `tsc` app 0 lỗi.
+- **Devnet:** một hợp đồng tạm `3LF5…` (0.5 USDC, own wallet) để đo trang review; đã release và đóng. Hợp đồng W4 `Ff9h…` còn milestone 2 (1 USDC) chờ hết hạn nộp, sau đó ai cũng refund được rồi đóng.
+- **Còn lại (cần PO):**
+  1. đồng ý deploy production (merge vào `main` thì Vercel tự deploy);
+  2. sau deploy: chạy D1 end-to-end trên URL production (đăng nhập, tạo, accept, lock, submit, review, release) và xem console có lỗi CSP không;
+  3. ghi kết quả vào đây.
 
 **W4 (03/10/2026): nộp và duyệt milestone trên Workspace (board WebSubmit, WebReview).**
 - **Xác nhận trong wallet panel:** đã làm ở W3 (các dòng tóm tắt, ghi chú, Cancel/Confirm, vị trí cố định, backdrop fade, trả về lựa chọn của người dùng); W4 dùng lại cho submit và release.
