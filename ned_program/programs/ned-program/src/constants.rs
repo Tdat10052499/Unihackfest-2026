@@ -22,10 +22,10 @@ pub const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDn
 pub const USDC_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 /// Payout-partner allowlist for the Vietnam path (decision D13). Devnet: one team-controlled wallet that
-/// simulates the partner. TODO(N12): replace with the public key of ~/.config/solana/ned-demo-partner.json;
-/// this placeholder has no saved private key. Mainnet stays empty until a partner signs up.
+/// simulates the partner (keypair ~/.config/solana/ned-demo-partner.json, outside the repo; equals
+/// DEMO_PAYOUT_PARTNER in ned-wallet/constants/chain.ts). Mainnet stays empty until a partner signs up.
 #[cfg(not(feature = "mainnet"))]
-pub const PAYOUT_PARTNERS: &[Pubkey] = &[pubkey!("DwjFswK4mFycQgV2pckFWYj8T2jTWc4RWgBNgDcbZYjt")];
+pub const PAYOUT_PARTNERS: &[Pubkey] = &[pubkey!("FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp")];
 #[cfg(feature = "mainnet")]
 pub const PAYOUT_PARTNERS: &[Pubkey] = &[];
 
