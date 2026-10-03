@@ -158,3 +158,25 @@ test('amounts, destination, counterparty, countdown, evidence and links', () => 
   assert.equal(toFundView(fund({ state: 'Created', payoutKind: 'Unset', milestones: [M()] }), c, 'intl', NOW).destination, null);
   assert.equal(toFundView(fund({ state: 'Accepted', milestones: [M()] }), c, 'intl', NOW).lockedLabel, '0.00 USDC');
 });
+
+test('open issue 3: a submitted milestone past its review time reads "anyone can release" / "Ready to release"', () => {
+  const f = fund({ milestones: [M('Submitted', { submittedAt: T0 + 10 })] });
+  const after = T0 + 721; // reviewBy = T0 + 720
+  const client = toFundView(f, CLIENT.toBase58(), 'intl', after).milestones[0];
+  const freelancer = toFundView(f, FREELANCER.toBase58(), 'vn', after).milestones[0];
+  assert.equal(client.statusLabel, 'Review time is over · anyone can release');
+  assert.equal(freelancer.statusLabel, 'Ready to release');
+  assert.equal(client.tone, 'success');
+  assert.equal(client.countdown, undefined, 'no "auto-release in 0:00" countdown');
+  assert.ok(client.actions.includes('releaseNow'));
+  // Before the review deadline the label is unchanged
+  assert.equal(toFundView(f, FREELANCER.toBase58(), 'vn', T0 + 700).milestones[0].statusLabel, 'Submitted · in review');
+});
+
+test('a pending milestone past its submission deadline reads "Submission deadline passed"', () => {
+  const f = fund({ milestones: [M('Pending')] });
+  const ms = toFundView(f, CLIENT.toBase58(), 'intl', T0 + 601).milestones[0];
+  assert.equal(ms.statusLabel, 'Submission deadline passed');
+  assert.equal(ms.tone, 'warning');
+  assert.ok(ms.actions.includes('refundNow'));
+});

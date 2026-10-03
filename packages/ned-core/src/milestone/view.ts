@@ -120,9 +120,19 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
         tone = preLock?.tone ?? 'accent';
         if (fund.state === 'Funded' && now <= m.submitBy) {
           countdown = { to: m.submitBy, label: `submit within ${formatCountdown(m.submitBy - now)}` };
+        } else if (fund.state === 'Funded') {
+          // ContractDetail board "submitMissed": anyone can refund now
+          statusLabel = 'Submission deadline passed';
+          tone = 'warning';
         }
         break;
       case 'Submitted': {
+        if (now > m.reviewBy) {
+          // Open issue 3 (owner wording, B4a): the review time is over and anyone can release
+          statusLabel = role === 'client' ? 'Review time is over · anyone can release' : 'Ready to release';
+          tone = 'success';
+          break;
+        }
         const left = formatCountdown(m.reviewBy + 1 - now);
         statusLabel = role === 'client'
           ? `Submitted · review by ${formatDeadline(m.reviewBy)} · auto-release in ${left}`
