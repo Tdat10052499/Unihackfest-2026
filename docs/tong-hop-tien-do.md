@@ -222,6 +222,37 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
 - Ví deploy: 7,2428 → 7,2013 SOL. 2 USDC gửi tới partner tạm không lấy lại được cho tới N12.
 - Harness `/dev/milestone`: chỉ hiện khi `__DEV__` hoặc build với `EXPO_PUBLIC_DEV_TOOLS=1`, không có link trong app.
 
+### Partner demo thật và deploy lần 3 — N12 (03/10/2026)
+
+- **Ví partner demo:** `FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp`. Keypair ở `~/.config/solana/ned-demo-partner.json` (ngoài repo, quyền 600); chủ dự án tự tạo bằng `solana-keygen new`. Đã đặt vào `PAYOUT_PARTNERS` (program) và `DEMO_PAYOUT_PARTNER` (app).
+- **Deploy:** chữ ký `2PvXW7PwD1jCgy14zTjjhCN1zZ2edC6kUJQZgrrbrXRcdSNjU4NcL4vUFKmxqRxnNt4N6Zi1G9uY9anKn6BqJu1L` (slot 506891469). Data length vẫn 475 280 byte, nên không cần extend. IDL không đổi (17 instruction, khớp on-chain). Authority `FSyU…QuQ`. Ví deploy 7,2013 → 7,1988 SOL.
+- **`npm run identity:check`:**
+  - Mọi kiểm tra identity trên devnet đều pass (hai username, SĐT + cảnh báo, địa chỉ, batch reverse).
+  - Bước cuối, tra `sns.sol` trên **mainnet**, lỗi "Unable to resolve this .sol name on Mainnet". Code SNS không đổi so với `main`.
+  - Có thể do key `EXPO_PUBLIC_HELIUS_MAINNET_URL` hoặc SNS tạm dừng; kiểm tra key mainnet khi đổi key (N13).
+- 2 USDC từ smoke run N10 nằm ở partner tạm cũ `DwjFsw…`, không lấy lại được.
+
+### Checklist ngày demo (product-spec mục 7)
+
+| Khi nào | Việc | Ai |
+| --- | --- | --- |
+| Trước 7/10 | **Tài khoản Google thứ hai cho Mia (client).** Đăng nhập app, tạo hồ sơ `@mia…`, chọn Crypto (region `intl`). Ghi lại địa chỉ ví | PO |
+| Trước 7/10 | **Vinh (freelancer):** tài khoản Google hiện tại, có hồ sơ, chọn Simple (region `vn`) | PO |
+| 7/10 và 8/10 | **USDC cho Mia:** https://faucet.circle.com → USDC → Solana Devnet → địa chỉ ví Mia (20 USDC mỗi lần, cách nhau ít nhất 2 giờ). Ngày demo cần **30 USDC** (10 cho hợp đồng B, 20 cho hợp đồng A); số dư có thể bù bằng lệnh recycle | PO |
+| 7/10 | **SOL devnet cho cả hai ví:** https://faucet.solana.com (đăng nhập GitHub). Mỗi ví ≥ 0,05 SOL. Vinh cần SOL để ký `accept` và `submit` | PO |
+| 8/10 | Tập demo đủ một lần: hợp đồng A (2 × 10 USDC, VND path) và hợp đồng B (1 × 10 USDC, submit_by = lúc tạo + 5 phút, review 60 s) | Team |
+| Sau mỗi lần tập | **Recycle USDC partner về Mia** (lệnh dưới); kiểm tra số dư Mia ≥ 30 USDC | Dev |
+| 15 phút trước pitch | Chuẩn bị hợp đồng B **trong app** bằng chính login của Mia và Vinh (create → accept VND → lock → submit). Để review deadline qua lúc trình bày | Team |
+| Ngày demo | Mở hợp đồng B bằng deep link, bấm Release; mở explorer xem vault thuộc program | Presenter |
+
+Lệnh recycle (chạy trong `ned-wallet/`; phí do `~/.config/solana/id.json` trả, partner không cần SOL):
+
+```bash
+npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia> --dry-run   # xem trước
+npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia>             # gửi toàn bộ
+npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia> --amount 10 # gửi 10 USDC
+```
+
 ## 4. Lệnh hay dùng
 
 ### Bổ sung sửa `tokens.filter is not a function` — `fix/p3-xstocks-rework`
