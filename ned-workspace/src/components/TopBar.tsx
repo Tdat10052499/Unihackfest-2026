@@ -2,8 +2,8 @@
 import { Link } from 'react-router';
 import { AnimatePresence } from 'motion/react';
 import { useAuth } from '../auth/AuthProvider.tsx';
-import { useRegion } from '../data/region.ts';
-import { useUsername } from '../data/queries.ts';
+import { useRegion } from '../hooks/region.ts';
+import { useUsername } from '../hooks/queries.ts';
 import { shortAddress } from '../lib/format.ts';
 import { Avatar } from './Avatar.tsx';
 import { DevnetBadge } from './DevnetBadge.tsx';

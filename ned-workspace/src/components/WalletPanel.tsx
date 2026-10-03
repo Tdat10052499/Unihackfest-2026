@@ -7,9 +7,9 @@ import { usdcFromUnits, vndFromUnits, formatUsdc } from '@ned/core/milestone/for
 import type { ActionKind, FundView, Region } from '@ned/core/milestone/view.ts';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { env } from '../config.ts';
-import { useFunds, useUsername } from '../data/queries.ts';
-import { useRegion } from '../data/region.ts';
-import { useWalletSummary } from '../data/summary.ts';
+import { useFunds, useUsername } from '../hooks/queries.ts';
+import { useRegion } from '../hooks/region.ts';
+import { useWalletSummary } from '../hooks/summary.ts';
 import { mobileHref, shortAddress } from '../lib/format.ts';
 import { popover } from '../motion.ts';
 import { Avatar } from './Avatar.tsx';
