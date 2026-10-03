@@ -231,6 +231,11 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
   - Bước cuối, tra `sns.sol` trên **mainnet**, lỗi "Unable to resolve this .sol name on Mainnet". Code SNS không đổi so với `main`.
   - Có thể do key `EXPO_PUBLIC_HELIUS_MAINNET_URL` hoặc SNS tạm dừng; kiểm tra key mainnet khi đổi key (N13).
 - 2 USDC từ smoke run N10 nằm ở partner tạm cũ `DwjFsw…`, không lấy lại được.
+- **Kiểm chứng sau deploy (03/10/2026):**
+  - Tạo USDC ATA cho partner: `Abey9woydP9w8voHfGsoBzM6tKnAcDugUVWmeQdiD96i`.
+  - `npm run milestone:devnet` (VND path) PASS: partner mới nhận 2 USDC (fund `BaCKQhnoMwwuPUAEcb7GPiWn5fKC8H33GEVuqy8v7keY`, Settled và đã đóng).
+  - `npm run recycle:demo-usdc` gửi 2 USDC về client test (16 → 18 USDC). Vậy allowlist mới chạy trên devnet, và USDC partner nhận được có thể lấy lại.
+  - Ví deploy còn 7,1973 SOL.
 
 ### Checklist ngày demo (product-spec mục 7)
 
