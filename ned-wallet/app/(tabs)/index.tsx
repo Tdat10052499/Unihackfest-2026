@@ -228,7 +228,7 @@ export default function HomeScreen() {
             </Text>
             <View style={styles.card}>
               {needs.length ? (
-                needs.map((f, i) => <NeedRow key={f.address} fund={f} first={i === 0} onPress={openContracts} />)
+                needs.map((f, i) => <NeedRow key={f.address} fund={f} first={i === 0} onPress={() => go(`/contracts/${f.address}`)} />)
               ) : (
                 <Text style={styles.noNeeds}>Nothing needs you right now.</Text>
               )}
@@ -245,7 +245,7 @@ export default function HomeScreen() {
             </View>
             <View style={styles.card}>
               {rows.map((f, i) => (
-                <ContractRow key={f.address} fund={f} first={i === 0} vn={vn} onPress={openContracts} />
+                <ContractRow key={f.address} fund={f} first={i === 0} vn={vn} onPress={() => go(`/contracts/${f.address}`)} />
               ))}
             </View>
           </>
