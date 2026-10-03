@@ -32,9 +32,12 @@ export function ContractsTable({ funds, vn }: { funds: FundView[]; vn: boolean }
           <span role="columnheader">Status</span>
         </div>
         {funds.map((f) => (
-          <Link key={f.address} role="row" to={`/contract/${f.address}`} className={styles.row}>
+          // A div row with a stretched link on the title: valid table roles, one Tab stop per contract, whole row clickable
+          <div key={f.address} role="row" className={`${styles.row} ${styles.linkRow}`}>
             <span role="cell" className={styles.cellTitle} title={f.title}>
-              {f.title}
+              <Link to={`/contract/${f.address}`} className={styles.rowLink}>
+                {f.title}
+              </Link>
             </span>
             <span role="cell" className={styles.party}>
               <Avatar seed={f.counterparty.wallet} size={28} decorative />
@@ -61,7 +64,7 @@ export function ContractsTable({ funds, vn }: { funds: FundView[]; vn: boolean }
             <span role="cell">
               <StatusChip tone={f.tone}>{f.statusLabel}</StatusChip>
             </span>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

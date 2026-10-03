@@ -15,6 +15,8 @@ export interface ContractContentState {
   content?: ContractContent;
   contentStatus: ContentStatus;
   hasKey: boolean;
+  /** The key lookup and the notes read have finished (or failed): render the content states only after this */
+  ready: boolean;
   inviteLink?: string;
   /** '#k=…', a bare key or a pasted link of this contract; false when it holds no valid key or is another contract's */
   importKey(input: string): Promise<boolean>;
@@ -61,6 +63,7 @@ export function useContractContent(fund: FundAccount | null | undefined, wallet:
     ...(content ? { content } : {}),
     contentStatus: content?.contentStatus ?? 'loading',
     hasKey: Boolean(key.data),
+    ready: key.isFetched && (notes.isFetched || notes.isError),
     ...(key.data && address ? { inviteLink: makeInviteLink(address, key.data) } : {}),
     importKey,
   };

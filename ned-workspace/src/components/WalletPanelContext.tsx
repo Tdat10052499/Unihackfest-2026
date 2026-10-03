@@ -38,6 +38,8 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
   const [open, setOpenState] = useState(false);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const pending = useRef<((ok: boolean) => void) | null>(null);
+  /** The control that asked for the confirm ("Create contract", "Release…"): focus goes back there afterwards */
+  const opener = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const answer = useCallback((ok: boolean) => {
@@ -46,6 +48,10 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
     setRequest(null);
     setOpenState(false);
     resolve?.(ok);
+    const back = opener.current?.isConnected ? opener.current : triggerRef.current;
+    opener.current = null;
+    // after the panel has left the DOM
+    setTimeout(() => back?.focus(), 0);
   }, []);
 
   const setOpen = useCallback(
@@ -60,6 +66,7 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
 
   const confirm = useCallback((next: ConfirmRequest) => {
     pending.current?.(false); // one request at a time
+    opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     return new Promise<boolean>((resolve) => {
       pending.current = resolve;
       setRequest(next);

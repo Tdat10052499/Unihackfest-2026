@@ -31,7 +31,13 @@
   padding: 14px 18px; color: var(--ink); text-decoration: none;
 }
 .row + .row { border-top: 1px solid var(--divider); }
-a.row:hover { background: var(--hover-row); color: var(--ink); }
+.linkRow { position: relative; }
+.linkRow:hover { background: var(--hover-row); }
+.rowLink { color: var(--ink); text-decoration: none; }
+.rowLink::after { content: ''; position: absolute; inset: 0; }
+.rowLink:hover { color: var(--ink); }
+.rowLink:focus-visible { outline: none; }
+.linkRow:has(.rowLink:focus-visible) { box-shadow: inset 0 0 0 2px var(--accent); }
 .headRow { padding-top: 12px; padding-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--caption); }
 .cellTitle { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .party { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; }

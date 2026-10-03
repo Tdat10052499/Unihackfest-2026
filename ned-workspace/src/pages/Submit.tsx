@@ -47,7 +47,8 @@ export function Submit() {
   const { fund, ms, msRaw, raw, wallet, now } = page;
 
   if (page.missing) return <Message title="Contract not found" text="This contract does not exist on devnet, or it was closed." />;
-  if (!fund || !ms || !msRaw || !raw || !wallet) {
+  // Wait for the key and notes too, so the key and integrity blocks never flash and shift the page
+  if (!fund || !ms || !msRaw || !raw || !wallet || !page.content.ready) {
     return (
       <main id="main" className={flow.page} aria-busy="true">
         <p className={flow.caption}>{page.error ? 'Could not read this contract. We try again every few seconds.' : 'Reading the contract from the chain…'}</p>

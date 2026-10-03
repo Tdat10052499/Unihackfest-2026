@@ -1,7 +1,7 @@
 /* Shared by the flow pages (/new, /contract/:fund/submit, /review): WebContractNew / WebSubmit / WebReview boards. Two columns (form + aside), no outlines, tone and soft shadow only */
 .page { max-width: var(--content-max); margin: 0 auto; padding: 24px 24px 64px; box-sizing: border-box; }
 .crumb { font-size: 13px; color: var(--caption); }
-.crumb a { text-decoration: none; }
+.crumb a { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 
 .head { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .h1 { margin: 0; font-family: var(--font-display); font-size: 34px; font-weight: 700; letter-spacing: -0.8px; }
