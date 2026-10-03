@@ -160,6 +160,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | A2 upgrade devnet v1.1 + IDL + core layout, smoke ×3 | `feat/a1-program-v1-1` | `b114ac9` + commit docs |
 | B1 content layer (brief/delivery JSON, note mã hoá, key trong invite link) | `feat/b1-content-layer` | `f6156f3`, `b8544ca` + docs |
 | B2 giao diện sáng Modern Minimal v2, bỏ viền, motion | `feat/b2-theme-motion` | `4a762c7`, `d0e8ead` + docs |
+| B3 điều hướng, onboarding, Home hai chế độ xem, Settings, Disclosures | `feat/b3-nav-onboarding` | `285bcf9`, `83a0f43`, `ccc9ecd`, `42c0330`, `3c54d48` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -173,6 +174,41 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**B3 (03/10/2026): điều hướng, onboarding, Home, Settings.**
+- **Điều hướng:** thanh dưới màu trắng Home · Contracts · Records · Settings (theo board).
+  - `/contracts`: danh sách đơn giản, B4 làm lại;
+  - `/records`: tạm dùng màn History, B5 làm lại;
+  - `/contracts/new`: màn tạm "Coming in the next build", vì tạo hợp đồng là việc của B4;
+  - `/swap`, `/xstocks` chuyển về Home; `/mode` chuyển sang `/residence`.
+- **Onboarding:** welcome → setup → (fund) → **consent** → profile (có avatar) → **residence** → home.
+  - Consent không tick sẵn, lưu log theo ví (`@ned_consent_v1`).
+  - Đã bỏ cầu nối N11.
+  - Chữ Welcome theo board, bỏ "invest" và "Send money with a phone number".
+- **Avatar:** thuật toán ở `@ned/core/avatar`, app gọi qua `services/avatar`. Test `services/avatar/__tests__` so với **kết quả chạy chính code của board Avatar** trên 5 seed (3 ví demo + 2 tên). Component `components/Avatar` vẽ bằng react-native-svg; seed là địa chỉ ví.
+- **Home** (board HomeVN / HomeIntl):
+  - lời chào theo giờ + tên, badge Devnet, avatar dẫn tới Settings;
+  - **Vietnam view:** cờ VN, "Locked for you ≈ VND", "Released to you", ô Share @user / Records, **không bao giờ đọc hay hiện số dư USDC**;
+  - **international view:** cờ US, số dư USDC, ô New contract / Receive / Send, "Locked in your contracts" / "Locked for you";
+  - Needs your action, Your contracts, Suggested for you, sheet chia sẻ @username.
+- **Settings:** công tắc "I live in Vietnam" (đổi chế độ xem, có thông báo), Display currency, Consent (xem / rút lại; rút lại thì đăng xuất), Disclosures, phiên bản + badge Devnet, Sign out.
+  - Hộp xác nhận đăng xuất là `Sheet`: `Alert` có nút không chạy trên web, nên trước đây Sign out trên web không làm gì.
+- **Disclosures:** theo board, thêm dòng D15 về invite link.
+- **Sửa chữ** (refactor-plan PR4): `receive.tsx` (không dùng "pay"), `fund.tsx` (không dùng "free"), `SendFlow.tsx` (không dùng "You pay", bỏ chữ "Cash"), lỗi "Not enough devnet SOL to cover setup".
+- **Primitive:** `Button` sửa theo board Main: pill, Inter 600, phẳng, disabled `#E6E6EB`. `useFunds` trả thêm `raw`.
+- **Preview cho dev:** `/dev/home-preview?wallet=…&view=vn|intl` chỉ đọc, chỉ khi `devTools`, để chụp Home với dữ liệu thật mà không cần đăng nhập.
+- **Test:**
+  - core 84/84, wallet **21/21** (thêm 2 test avatar); `tsc` app + workspace 0 lỗi; `expo export --platform web` OK.
+  - Chromium 390×844: welcome, consent, profile, residence, settings, disclosures, contracts, new contract, records không có chữ bị cắt và không lỗi; `/swap` → `/`, `/xstocks` → `/`, `/mode` → `/residence`.
+  - Ảnh **hai chế độ Home** chụp với một hợp đồng thật trên devnet: chạy `milestone:devnet --refund`, chụp lúc hợp đồng đang Locked. Client ở international view: số dư 10,00 USDC, khoá 2,00 USDC. Freelancer ở Vietnam view: ≈ 52 000 VND, "Submit milestone 1". Smoke run PASS ×2, fund đã refund và đóng; client vẫn 12 USDC.
+- **Lệch so với board / prompt:**
+  - "Received this month" thành "Released to you", vì chain không lưu ngày release (giống W1).
+  - Display currency đi theo chế độ xem (chỉ hiển thị), không có radio riêng.
+  - Bỏ công tắc Notifications cho tới B5, vì chưa có cài đặt thông báo thật.
+  - Link chia sẻ "ned.app/@user" thành sao chép `@username`, vì chưa có domain đó.
+  - Dòng "Public on-chain" ở Disclosures đổi thành "the brief and the delivery are stored encrypted on Solana", vì từ B1 điều đó là sự thật. **Cần compliance lead duyệt.**
+  - Consent: app không có tên Google (Dynamic chỉ trả email), nên dòng "Google account name" hiện "From Google".
+- **Chưa test tay (cần chủ dự án):** checklist N11 với đăng nhập Google thật (đăng nhập, người cũ, người mới tới Home, Send). Phần không cần đăng nhập đã kiểm tra trong Chromium như trên.
 
 **B2 (03/10/2026): giao diện sáng, bỏ viền, motion.**
 - **`constants/design.ts`:**
@@ -341,13 +377,9 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
    - harness hai trình duyệt (N10);
    - checklist web N11 (đăng nhập, người cũ, người mới đến Home, Send, `/swap` và `/xstocks` chuyển về Home);
    - Send 1 USDC sau khi đổi sang tính tiền bằng BigInt (`55a6954`).
-5. **Phần cầu nối tạm (TODO(N11 bridge))**:
-   - `CONSENT_SCREEN_READY = false` (bỏ qua màn consent);
-   - bước region mở màn `mode`.
-
-   Gỡ khi có màn thiết kế mới.
+5. ~~**Phần cầu nối tạm (TODO(N11 bridge))**~~ — **đã đóng ở B3 (03/10)**: có màn consent và màn residence, `CONSENT_SCREEN_READY = true`, `/mode` chuyển sang `/residence`.
 6. **Mất 2 USDC devnet** ở partner tạm cũ `DwjFsw…`; không lấy lại được (không ảnh hưởng demo).
-7. **Mục nhìn thấy nhưng đã bị ẩn**: ô SWAP / XSTOCKS ở Home và tab xStocks ở `WalletNav` vẫn hiện (bấm thì về Home). Gỡ cùng thanh điều hướng mới (PR4/PR5).
+7. ~~**Mục nhìn thấy nhưng đã bị ẩn**~~ — **đã đóng ở B3 (03/10)**: thanh điều hướng mới Home · Contracts · Records · Settings; Home không còn ô SWAP / XSTOCKS; `/swap` và `/xstocks` vẫn chuyển về Home.
 8. **Kiểm tra trước khi làm màn hình** (non-ui-plan mục 4): còn mục "harness chạy đủ vòng với hai trình duyệt". Các mục khác đã đạt.
 
 ### Prompt tiếp theo (chạy nguyên văn)

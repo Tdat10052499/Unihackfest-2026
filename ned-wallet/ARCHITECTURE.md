@@ -31,8 +31,9 @@ ned-wallet/
 │   ├── _layout.tsx           AuthProvider (Dynamic) → Stack + AuthGate (chưa đăng nhập → /welcome)
 │   │                         + OnboardingGate (đã đăng nhập nhưng chưa xong onboarding → /setup)
 │   ├── index.tsx             Splash → welcome hoặc setup
-│   ├── (onboarding)/         welcome → setup → fund (thiếu SOL) → profile → mode (tạm thay màn region)
-│   ├── (tabs)/               Home (index) với thanh WalletNav
+│   ├── (onboarding)/         welcome → setup → fund (thiếu SOL) → consent → profile → residence (mode → residence)
+│   ├── (tabs)/               Home (index, Vietnam view / international view) với thanh WalletNav
+│   ├── contracts/            index (danh sách, B4 làm lại), new (tạm); records.tsx (= history tới B5); disclosures.tsx
 │   ├── send.tsx, receive.tsx, history.tsx, notification-detail.tsx, scan-qr.tsx, settings.tsx
 │   ├── swap.tsx, xstocks/    Ẩn bằng FEATURES (route chuyển về Home), code giữ lại
 │   └── dev/milestone.tsx     Harness Milestone Lock, chỉ khi __DEV__ hoặc EXPO_PUBLIC_DEV_TOOLS=1
@@ -83,9 +84,9 @@ ned-wallet/
 ```
 
 - **Đăng nhập** (`useAuth().login()`): web = redirect Google → SDK tạo ví Solana nếu chưa có → chuyển ví sang devnet. `setup` gọi `resolveOnboarding`, rồi chuyển sang bước tiếp theo bằng `onboardingRoute`.
-- **Onboarding** (non-ui-plan N11): `fund` (thiếu SOL) → `consent` → `profile` → `region` → `home`.
-  - Màn consent và region đi cùng bản thiết kế mới. Tạm thời `CONSENT_SCREEN_READY = false` bỏ qua consent, và bước region mở màn `mode` (Simple → `vn`, Crypto → `intl`).
-  - Ví đã chọn mode trước đây được tự gán region, không bị hỏi lại.
+- **Onboarding** (B3): `fund` (thiếu SOL) → `consent` → `profile` → `residence` → `home`.
+  - Consent lưu theo ví (`@ned_consent_v1`); residence ghi region (`@ned_region_v1`) quyết định chế độ xem Vietnam / international.
+  - Ví đã chọn mode trước đây được tự gán region, không bị hỏi lại; `/mode` chuyển sang `/residence`.
 - **Ký và gửi giao dịch**: `services/chain/send.ts` `sendAndConfirm` làm lần lượt:
   1. tính phí + rent thật;
   2. kiểm tra SOL;
