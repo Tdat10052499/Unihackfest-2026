@@ -9,7 +9,9 @@ overrides:
 
 importers:
 
-  .:
+  .: {}
+
+  ned-wallet:
     dependencies:
       '@bonfida/spl-name-service':
         specifier: ^4.0.1
@@ -38,6 +40,9 @@ importers:
       '@expo/vector-icons':
         specifier: ^15.0.3
         version: 15.1.1(expo-font@57.0.4)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.2.18)(bufferutil@4.1.0)(react@19.2.3)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.2.3)
+      '@ned/core':
+        specifier: workspace:*
+        version: link:../packages/ned-core
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0
@@ -275,6 +280,24 @@ importers:
         version: 10.9.2(@types/node@26.4.1)(typescript@6.0.3)
       typescript:
         specifier: ~6.0.3
+        version: 6.0.3
+
+  packages/ned-core:
+    dependencies:
+      '@coral-xyz/anchor':
+        specifier: ^0.32.1
+        version: 0.32.1(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
+      '@noble/hashes':
+        specifier: ^2.4.0
+        version: 2.4.0
+      '@solana/web3.js':
+        specifier: 1.98.4
+        version: 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
+      bs58:
+        specifier: ^6.0.0
+        version: 6.0.0
+      buffer:
+        specifier: ^6.0.3
         version: 6.0.3
 
 packages:
@@ -6495,7 +6518,7 @@ snapshots:
   '@coral-xyz/anchor@0.32.1(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@coral-xyz/anchor-errors': 0.31.1
-      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))
+      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3))
       '@noble/hashes': 1.8.0
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
@@ -6513,7 +6536,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))':
+  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3))':
     dependencies:
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
@@ -10861,7 +10884,7 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
+  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)):
     dependencies:
       ws: 7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
@@ -10887,7 +10910,7 @@ snapshots:
       delay: 5.0.0
       es6-promisify: 5.0.0
       eyes: 0.1.8
-      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0))
       json-stringify-safe: 5.0.1
       stream-json: 1.9.1
       uuid: 8.3.2

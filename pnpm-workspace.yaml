@@ -1,3 +1,7 @@
+packages:
+  - ned-wallet
+  - packages/*
+
 allowBuilds:
   bigint-buffer: false
   bufferutil: true

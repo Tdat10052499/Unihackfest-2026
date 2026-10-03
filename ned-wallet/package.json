@@ -22,6 +22,7 @@
     "xstocks:diagnose": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/xstocks-diagnose.ts"
   },
   "dependencies": {
+    "@ned/core": "workspace:*",
     "@bonfida/spl-name-service": "^4.0.1",
     "@coral-xyz/anchor": "^0.32.1",
     "@dynamic-labs-sdk/client": "^1.34.2",
