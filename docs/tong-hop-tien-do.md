@@ -169,6 +169,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | W3 Workspace `/new`: soạn brief, tạo hợp đồng, xác nhận trong wallet panel | `feat/w3-brief-editor` | `af18ff9`, `e0e55ae`, `b588f08` + docs |
 | W4 Workspace: nộp bài (submit) và duyệt (review) | `feat/w4-submit-review` | `df00cf2`, `36a61ff`, `ef6492a` + docs |
 | W5 Workspace: dọn dẹp, a11y, Reduce Motion, tách bundle, CSP chặn thật, README; **đã deploy production** | `chore/w5-workspace-polish` | `64a64d9`, `20dd075`, `2fdd484`, `1d027fb`, `9d8d7f0` + docs |
+| C5 landing page tĩnh `site/` (Vercel project 1) | `feat/c5-landing` | `c75ed87` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -215,6 +216,37 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**C5 (03/10/2026): landing page tĩnh `site/`.**
+- **Cách làm:** HTML + CSS tĩnh, **không có JavaScript**, không đăng nhập, không có code ví, không analytics.
+- **Nội dung:**
+  - hero với câu "Freelancers receive their earnings, locked by code." và mô tả sản phẩm (product-spec 1);
+  - **"Try the mobile demo"**: mã QR + link thường tới `/m`;
+  - **"Open Workspace"** (`WORKSPACE_URL`, mặc định `https://unihackfest-2026.vercel.app`);
+  - "How it works" 3 bước; "The 2-minute judge path" (theo product-spec 7);
+  - Disclosures (devnet/test money, payout partner giả lập với Due, Nium là ứng viên, N.E.D không giữ tiền, không đổi tiền, không thu phí trong pilot, chưa KYC, chưa audit, Circle có thể freeze, không phải tư vấn pháp lý/thuế/tài chính).
+  - Kiểm tra từ cấm (pay/payment/escrow/safe/guaranteed/invest/free/zero fees): không có.
+- **QR tạo lúc build** (PO chọn): `site/build.mjs` dùng `qrcode@1.5.4` (devDependency duy nhất, có `package-lock.json` riêng). QR trỏ tới `<LANDING_ORIGIN>/m`, mặc định là domain production của chính project Vercel (`VERCEL_PROJECT_PRODUCTION_URL`), nên QR in ra vẫn đúng dù đổi host mobile.
+  - `site/` **không** nằm trong pnpm workspace: thử thêm vào thì pnpm tính lại peer dependency của app điện thoại (~1.000 dòng lockfile đổi), nên đã hoàn tác.
+- **`site/vercel.json`:**
+  - `/m` → `https://tdat10052499.github.io/Unihackfest-2026/` (302);
+  - CSP chặt (`script-src 'none'`, chỉ cùng origin), `X-Frame-Options: DENY`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`; font cache 1 năm.
+- **Giao diện:** theme sáng, không viền, một hiệu ứng rise (opacity + transform, 360 ms, lệch 40 ms); tắt hẳn khi Reduce Motion (đã kiểm: `animation none`, opacity 1).
+  - Font tự host (Inter, Space Grotesk, Space Mono; bộ latin; SIL OFL), vì Google Fonts làm chậm mobile (Performance 87 → 100).
+- **Lighthouse** (bản build + header như `vercel.json` + gzip):
+
+  | | Performance | Accessibility | Best Practices | SEO |
+  | --- | --- | --- | --- | --- |
+  | Mobile | 100 | 100 | 100 | 100 |
+  | Desktop | 100 | 100 | 100 | 100 |
+
+  - Mobile: FCP 1.4 s, LCP 1.5 s, CLS 0.
+- **Local:** 390 px và 1440 px không bị tràn ngang, không lỗi console; `/m` trả 302 tới GitHub Pages; link "Open the mobile demo" mở đúng bản mobile.
+- **Chưa làm (cần PO), không đổi dashboard:**
+  - tạo **Vercel project 1**: Import repo → Root Directory `site` → Framework Preset "Other" (build/install/output đã nằm trong `site/vercel.json`); không cần biến môi trường (tuỳ chọn `LANDING_ORIGIN`, `WORKSPACE_URL`);
+  - mở bản preview, quét QR bằng iPhone → phải mở bản mobile;
+  - nếu dùng domain riêng: thêm vào project rồi đặt `LANDING_ORIGIN` và build lại để QR dùng domain đó.
+  - Lưu ý: bản GitHub Pages vẫn là bản trước B4b, cần `npm run deploy`.
 
 **W5 (03/10/2026): hoàn thiện Workspace; đã deploy production (PO đồng ý).**
 - **Dọn dẹp:**
