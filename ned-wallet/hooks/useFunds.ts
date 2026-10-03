@@ -22,7 +22,14 @@ export async function counterpartyNames(funds: FundAccount[], me: string): Promi
   }
 }
 
-export function useFunds(role?: Role): { funds: FundView[]; loading: boolean; error?: string; refresh(): Promise<void> } {
+export function useFunds(role?: Role): {
+  funds: FundView[];
+  /** Decoded accounts, same order (B3: Home sums amounts from them) */
+  raw: FundAccount[];
+  loading: boolean;
+  error?: string;
+  refresh(): Promise<void>;
+} {
   const { walletAddress } = useAuth();
   const { region } = useRegion();
   const now = useChainTime();
@@ -74,5 +81,5 @@ export function useFunds(role?: Role): { funds: FundView[]; loading: boolean; er
     () => (walletAddress ? raw.map((f) => toFundView(f, walletAddress, region ?? 'vn', now, { names })) : []),
     [raw, walletAddress, region, now, names]
   );
-  return { funds, loading, ...(error ? { error } : {}), refresh };
+  return { funds, raw, loading, ...(error ? { error } : {}), refresh };
 }

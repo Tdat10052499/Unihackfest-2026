@@ -1,37 +1,44 @@
+// Main navigation (HomeVN / HomeIntl boards): white bottom bar, Home · Contracts · Records · Settings, icon + label;
+// the open item is accent purple. Swap and xStocks are not in the demo path (FEATURES flags; their routes redirect).
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, glass, radius, shadows, space } from '@/constants/design';
+import { fonts, palette, sizes } from '@/constants/design';
 
-// History thay vị trí dApps của thiết kế (mini-app platform đã bị cắt)
-const items = [
+export type NavItem = 'Home' | 'Contracts' | 'Records' | 'Settings';
+
+const items: { title: NavItem; icon: React.ComponentProps<typeof Feather>['name']; route: string }[] = [
   { title: 'Home', icon: 'home', route: '/(tabs)' },
-  { title: 'History', icon: 'clock', route: '/history' },
-  { title: 'xStocks', icon: 'bar-chart-2', route: '/xstocks' },
-  { title: 'Settings', icon: 'more-horizontal', route: '/settings' },
-] as const;
+  { title: 'Contracts', icon: 'file-text', route: '/contracts' },
+  { title: 'Records', icon: 'bar-chart-2', route: '/records' },
+  { title: 'Settings', icon: 'settings', route: '/settings' },
+];
 
-/** Thanh điều hướng viên thuốc nổi (HomeV4 / Settings): 256×56, chỉ icon, mục đang mở có nền tím */
-export function WalletNav({ active = 'Home' }: { active?: string }) {
+/** Height of the bar above the safe area; screens keep at least this much bottom padding */
+export const NAV_HEIGHT = 62;
+
+export function WalletNav({ active = 'Home' }: { active?: NavItem }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom, space[6]) }]}>
-      <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 6) }]} accessibilityRole="tablist" accessibilityLabel="Main">
+      <View style={styles.row}>
         {items.map((item) => {
           const selected = active === item.title;
+          const color = selected ? palette.accent : palette.caption;
           return (
             <Pressable
-              accessibilityRole="button"
+              key={item.title}
+              accessibilityRole="tab"
               accessibilityLabel={item.title}
               accessibilityState={{ selected }}
-              key={item.title}
-              onPress={() => router.navigate(item.route as Href)}
-              style={[styles.item, selected && styles.active]}
+              onPress={() => (selected ? undefined : router.navigate(item.route as Href))}
+              style={({ pressed }) => [styles.item, pressed && styles.pressed]}
             >
-              <Feather name={item.icon} color={selected ? colors.text : colors.textSecondary} size={21} />
+              <Feather name={item.icon} size={22} color={color} />
+              <Text style={[styles.label, { color }, selected && styles.labelActive]}>{item.title}</Text>
             </Pressable>
           );
         })}
@@ -41,20 +48,18 @@ export function WalletNav({ active = 'Home' }: { active?: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
-    width: 256,
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space[2],
-    backgroundColor: glass.nav,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: glass.border,
-    boxShadow: shadows.nav,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: 4,
+    backgroundColor: palette.card,
+    boxShadow: '0 -10px 30px -12px rgba(17,17,22,0.10)',
   },
-  item: { width: 52, height: 42, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  active: { backgroundColor: glass.navActive },
+  row: { flexDirection: 'row', width: '100%', maxWidth: sizes.maxContent, alignSelf: 'center', paddingHorizontal: 8 },
+  item: { flex: 1, height: 56, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  pressed: { opacity: 0.7 },
+  label: { fontFamily: fonts.bodyMedium, fontSize: 11, lineHeight: 14 },
+  labelActive: { fontFamily: fonts.bodySemi, fontWeight: '700' },
 });

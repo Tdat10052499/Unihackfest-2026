@@ -280,7 +280,7 @@ export default function HistoryScreen() {
           )}
         </ScrollView>
       </Screen>
-      <WalletNav active="History" />
+      <WalletNav active="Records" />
     </View>
   );
 }

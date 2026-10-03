@@ -1,13 +1,13 @@
 import React, { type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, elevation, palette, radius, sizes, space, status, type } from '@/constants/design';
+import { colors, fonts, palette, radius, sizes, space, status } from '@/constants/design';
 import { PressableScale } from './PressableScale';
 
 // v2 (Main + MotionSurfaces boards): flat fills, no outlines. `outline` is kept as an alias of `secondary`.
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'destructiveSoft';
 
-/** Button System: height 52, radius 16, Space Grotesk 16/600; presses scale to 0.98 (PressableScale) */
+/** Buttons & pills (Main board): pill, height 52, Inter 16/600, flat fill, no shadow; presses scale to 0.98 */
 export function Button({
   title,
   onPress,
@@ -37,7 +37,7 @@ export function Button({
   ) : (
     <View style={styles.row}>
       {icon ? <Feather name={icon} size={18} color={look.fg} /> : null}
-      <Text style={[type.button, { color: look.fg }]} numberOfLines={1}>
+      <Text style={[styles.label, { color: look.fg }]} numberOfLines={1}>
         {title}
       </Text>
     </View>
@@ -53,7 +53,6 @@ export function Button({
         styles.base,
         compact ? styles.compact : styles.block,
         { backgroundColor: look.bg },
-        variant === 'primary' && !disabled && elevation.sAccent,
         style,
       ]}
       pressedStyle={{ backgroundColor: look.pressed }}
@@ -70,13 +69,13 @@ const looks: Record<ButtonVariant | 'disabled', { bg: string; fg: string; presse
   ghost: { bg: 'transparent', fg: palette.link, pressed: palette.hoverGround },
   destructive: { bg: colors.error, fg: palette.onAccent, pressed: '#B42318' },
   destructiveSoft: { bg: status.error.bg, fg: status.error.ink, pressed: '#FBDADA' },
-  disabled: { bg: palette.field, fg: palette.caption, pressed: palette.field },
+  disabled: { bg: '#E6E6EB', fg: palette.muted, pressed: '#E6E6EB' },
 };
 
 const styles = StyleSheet.create({
   base: {
     height: sizes.button,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -84,4 +83,5 @@ const styles = StyleSheet.create({
   block: { alignSelf: 'stretch', paddingHorizontal: space[6] },
   compact: { alignSelf: 'flex-start', paddingHorizontal: space[8] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  label: { fontFamily: fonts.bodySemi, fontSize: 16, lineHeight: 22 },
 });

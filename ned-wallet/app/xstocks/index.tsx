@@ -199,7 +199,7 @@ export default function XStocksListScreen() {
             ))
           : null}
       </Screen>
-      <WalletNav active="xStocks" />
+      <WalletNav active="Home" />
     </View>
   );
 }
