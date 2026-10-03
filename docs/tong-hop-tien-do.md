@@ -134,6 +134,84 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Đã kiểm tra ảnh Chromium 390×844 bằng fixture cho bảy màn, không tràn ngang; sửa khoảng cách dấu `$` và cố định CTA chi tiết. Chưa test ví thật hay Safari iPhone cho giao diện mới; không thực hiện giao dịch on-chain trong phiên này.
 - Báo cáo, các khác biệt có chủ ý với PDF và checklist test tay: [ui-pdf-alignment.md](02-thiet-ke/ui-pdf-alignment.md). Ưu tiên Safari: Home refresh/navigation; Swap `0,1`, keypad, slippage, Accept giá, slide; xStocks AAPLx bốn khung, mua $50, bán 50%, receipt, quay Home; Network không có `/execute`.
 
+## Milestone Lock — progress
+
+*Bàn giao ngày 03/10/2026. `main` = `e1e77d5`. Chi tiết từng task ở mục "Milestone Lock" ngay bên dưới.*
+
+### Task đã xong (non-ui-plan N0–N13)
+
+Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi được push và fast-forward `main`.
+
+| Task | Nhánh | Commit chính |
+| --- | --- | --- |
+| N0 cấu hình chain + sửa B1, B2, B4, B7 · N1 send/errors/ATA | `chore/n0-chain-config` | `7cb4187`, `32831ec`, `8d6e781`, `b7ca01a` |
+| N2 spike IDL coder (BorshCoder dùng được) | `spike/n2-idl-coder` (PR #31) | `2b98f91` |
+| N3 tách module program + helper test | `refactor/n3-program-modules` | `3b63204`, `951e111` |
+| N4–N6 `SharedFund` + 8 instruction P0, test, deploy | `feat/n4-milestone-p0` | `3768be7`, `3a8337e`, `ea2cd2c` |
+| N7 nhóm P1 (dispute, concede, propose/accept cancel) + deploy | `feat/n7-milestone-p1` | `6e162fd`, `b96135a`, `d723064` |
+| N8 `services/milestone` · N9 hook cho màn hình | `feat/n8-milestone-services` | `102a595`, `374bba9`, `e561795` |
+| N10 smoke script devnet + harness `/dev/milestone`; sửa theo review | `feat/n10-devnet-harness` | `2c52ec8`, `2e5c663`, `7cbd282`, `c4de3fc`, `6499dc0` |
+| N11 cờ tính năng, gate onboarding, store region/consent, xoá code chết | `chore/n11-app-plumbing` | `23f04a2`, `d174e8b`, `575de43`, `9fc01be`, `9f2a2b9` |
+| N12 key partner thật, script recycle, deploy lại | `chore/n12-demo-ops` | `692c78c`, `8523571`, `b90a462` |
+| N13 bảo mật + README; sửa theo review | `chore/n13-security-readme` | `8dacce1`, `bf752d4`, `7b866ee`, `55a6954`, `e1e77d5` |
+
+### Test (lần chạy cuối, 03/10/2026)
+
+- `anchor build && cargo test`: identity 10/10, milestone 24/24, helpers 4/4, `test_id` 1/1; 0 warning. `program_autofixer`: 0 issue.
+- `npm test`: 91/91. `npx tsc --noEmit`: 0 lỗi. `npx expo export --platform web`: OK.
+- Devnet: `npm run milestone:devnet` PASS (VND path ×2, `--refund` ×1), lần cuối với partner thật. `recycle:demo-usdc` PASS (16 → 18 USDC).
+- `npm run identity:check`: các bước devnet PASS; bước `sns.sol` trên **mainnet** lỗi (xem vấn đề mở 1).
+
+### Thông tin devnet
+
+| Mục | Giá trị |
+| --- | --- |
+| Program | `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, data length **475 280 byte**, authority `FSyUz7Kfy58vDosLPMqtVYzbcsCfCyrPiDWc65kY6QuQ` |
+| Deploy N6 (P0) | `2bDxqhioVtTekVmMiHa4GQtLyCmV3GDttkT2WwQc3uLW69DPyXYBYAu3ifihbSLigi1xRBkkLZyfuRDkapk5QxUq` (extend 231 360 → 420 000) |
+| Deploy N7 (P1) | `eokWJZ1oius7q234LLWXNoR1sqSHFWnVK8TfuJkWqYyER3MZNCC2M3YYJkJ1Ax3iY8m7z7unCstrzW36nLFLLpy` (extend → 475 280) |
+| Deploy N12 (partner thật) | `2PvXW7PwD1jCgy14zTjjhCN1zZ2edC6kUJQZgrrbrXRcdSNjU4NcL4vUFKmxqRxnNt4N6Zi1G9uY9anKn6BqJu1L` (slot 506891469) |
+| IDL on-chain | Metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, 17 instruction, khớp `ned-wallet/idl/` |
+| Payout partner demo | `FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp` (keypair `~/.config/solana/ned-demo-partner.json`), USDC ATA `Abey9woydP9w8voHfGsoBzM6tKnAcDugUVWmeQdiD96i` |
+| Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (18 USDC), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
+| Ví deploy | 8,546 SOL (02/10) → 7,197 SOL |
+| Kích thước | `SharedFund` 708 byte (client @12, freelancer @44); `.so` 475 280 byte |
+
+### Vấn đề còn mở
+
+1. **Đổi khoá** (chỉ chủ dự án làm được): xem checklist ở mục T0.2 bên dưới (relayer, Helius + giới hạn domain, Supabase, Jupiter, deploy lại Pages). Key Helius mainnet hiện làm `identity:check` lỗi ở bước `sns.sol`.
+2. **LICENSE**: README ghi MIT nhưng chưa có file LICENSE. Cần quyết định: thêm file MIT hay bỏ dòng này.
+3. **Nhãn còn thiếu (review N10 #3)**: milestone đã Submitted và quá review deadline vẫn hiện "auto-release in 0:00". Cần chủ dự án chốt câu chữ. Đề xuất: client "Submitted · review time over · anyone can release", freelancer "Submitted · ready to release".
+4. **Chưa test tay**:
+   - harness hai trình duyệt (N10);
+   - checklist web N11 (đăng nhập, người cũ, người mới đến Home, Send, `/swap` và `/xstocks` chuyển về Home);
+   - Send 1 USDC sau khi đổi sang tính tiền bằng BigInt (`55a6954`).
+5. **Phần cầu nối tạm (TODO(N11 bridge))**:
+   - `CONSENT_SCREEN_READY = false` (bỏ qua màn consent);
+   - bước region mở màn `mode`.
+
+   Gỡ khi có màn thiết kế mới.
+6. **Mất 2 USDC devnet** ở partner tạm cũ `DwjFsw…`; không lấy lại được (không ảnh hưởng demo).
+7. **Mục nhìn thấy nhưng đã bị ẩn**: ô SWAP / XSTOCKS ở Home và tab xStocks ở `WalletNav` vẫn hiện (bấm thì về Home). Gỡ cùng thanh điều hướng mới (PR4/PR5).
+8. **Kiểm tra trước khi làm màn hình** (non-ui-plan mục 4): còn mục "harness chạy đủ vòng với hai trình duyệt". Các mục khác đã đạt.
+
+### Prompt tiếp theo (chạy nguyên văn)
+
+```text
+Task: refactor-plan.md PR5 — contract screens (list, new, detail with action sheets), built on the redesigned boards.
+Branch: feat/pr5-contract-screens (from up-to-date main).
+Before coding, read: CLAUDE.md, docs/09-milestone-lock/product-spec.md (sections 3–6), non-ui-plan.md section 3 (frozen hook interface, incl. the N8 additions FundView.actions and FundView.split), refactor-plan.md PR5, docs/tong-hop-tien-do.md "Milestone Lock — progress" (open issues), and the design boards I attach.
+Rules:
+- Screens use only the hooks (useFunds, useFund, useMilestoneActions, useChainTime, useRegion) and components/design; never import @solana/web3.js, services/milestone/client or services/chain in a screen.
+- Routes: app/contracts/index.tsx, app/contracts/new.tsx, app/contracts/[fund].tsx (+ accept sheet); register them in app/_layout.tsx; deep link /contracts/<fund> must work for the prepared demo contract B.
+- Copy: product-spec section 6 word table; labels come from FundView (do not re-derive). Ask me for the wording of the "Submitted after the review deadline" label (open issue 3) before building that state.
+- P1 actions (dispute, concede, split) only when FEATURES.dispute is true; keep it false.
+- No program changes, no deploys, no SOL spending without asking.
+Acceptance: npm test, npx tsc --noEmit, npx expo export --platform web; then give me the exact two-browser manual test (Mia desktop Chrome, Vinh iPhone Safari) for create → accept (VND) → lock → submit → approve → release_after_review → close.
+After each change: commit, push the branch and fast-forward main (stop if main is not a fast-forward).
+```
+
+Nếu bản thiết kế chưa có, chạy trước: *"Run the non-ui-plan section 4 checks: the two-browser harness cycle on /dev/milestone and the N11 web checklist; report each step's result and fix only what fails."*
+
 ## Milestone Lock
 
 Đặc tả: [`09-milestone-lock/program-spec.md`](09-milestone-lock/program-spec.md). Kế hoạch: [`09-milestone-lock/non-ui-plan.md`](09-milestone-lock/non-ui-plan.md).
