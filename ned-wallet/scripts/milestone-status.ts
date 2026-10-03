@@ -57,6 +57,12 @@ async function main() {
   console.log(`chain time ${when(now)}`);
   const fund = await getFund(key, connection);
   if (fund) return showFund(fund, now);
+  // Not a wallet key (a PDA, e.g. a closed contract): say so instead of failing on the USDC account lookup
+  if (!PublicKey.isOnCurve(key.toBytes())) {
+    const sigs = await connection.getSignaturesForAddress(key, { limit: 1 }, 'confirmed');
+    console.log(sigs.length ? `Contract ${arg} is closed (account gone; last transaction ${sigs[0].signature.slice(0, 12)}…).` : `No account and no history at ${arg}.`);
+    return;
+  }
   const [lamports, usdc] = await Promise.all([connection.getBalance(key, 'confirmed'), fetchUsdcUnits(connection, key)]);
   console.log(`Wallet ${arg}: ${(lamports / LAMPORTS_PER_SOL).toFixed(4)} SOL · ${formatUsdc(usdc)}`);
   const funds = [...(await listFunds(key, 'client', connection)), ...(await listFunds(key, 'freelancer', connection))];
