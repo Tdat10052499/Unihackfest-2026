@@ -5,13 +5,15 @@ import { createConnection, PUBLIC_DEVNET_RPC } from './chain/connection.ts';
 import { IDL_PROGRAM_ID } from './constants.ts';
 
 export const DEFAULT_MOBILE_ORIGIN = 'https://tdat10052499.github.io/Unihackfest-2026';
+/** Production Workspace (Vercel, W1); its /c/:fund router sends phones on to the mobile origin (W2) */
+export const DEFAULT_WORKSPACE_ORIGIN = 'https://unihackfest-2026.vercel.app';
 
 export interface CoreConfig {
   /** Devnet RPC URL (Helius or public) */
   rpcUrl: string;
   /** Override of the IDL program address (base58); an invalid value falls back to the IDL address */
   programId?: string | PublicKey;
-  /** Origin of the Workspace web app (Vercel); empty until it exists */
+  /** Origin of the Workspace web app (Vercel); '' turns the Workspace hop off (links use the mobile origin) */
   workspaceOrigin?: string;
   /** Origin of the mobile web build (GitHub Pages) */
   mobileOrigin?: string;

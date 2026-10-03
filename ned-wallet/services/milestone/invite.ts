@@ -1,4 +1,4 @@
-// Invite link on the phone app (build-plan B4b, C1 router rule): …/c/<fund>#k=<key>.
+// Invite link on the phone app (build-plan B4b; C1 router rule lives in ned-workspace, W2): …/c/<fund>#k=<key>.
 // routeInvite() decides the destination FIRST; only on the final host is the key imported and the fragment cleared.
 // The key never goes into logs, notifications or error messages.
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,9 +6,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type InviteRoute = { kind: 'here' } | { kind: 'redirect'; url: string };
 
 /**
- * Where an invite opened in this build belongs. This is the mobile build (GitHub Pages / the app), so it is always
- * handled here. TODO(C1): when this code also runs on the Workspace host, narrow screens redirect to
- * MOBILE_ORIGIN + '/c/' + fund + hash (keeping #k=) and wide screens go to the Workspace's own /c/:fund route.
+ * Where an invite opened in this build belongs: always here. The device split (D16) happens before this, on the
+ * Workspace host: ned-workspace's /c/:fund sends narrow screens to MOBILE_ORIGIN/c/<fund>#k=… and keeps wide ones
+ * (workspace-plan W2, C1 closed by D20). This build is the mobile one and is never served on the Workspace host.
+ * Kept as a function so the order stays explicit: decide first, then import the key and clear the fragment.
  */
 export function routeInvite(_p: { fund: string; hash: string; width: number; host: string }): InviteRoute {
   return { kind: 'here' };

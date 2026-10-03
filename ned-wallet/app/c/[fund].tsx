@@ -1,5 +1,5 @@
 // /c/[fund] — the invite link in the phone app (build-plan B4b). Order matters:
-//   1. routeInvite() decides the destination (always this build for now; C1 adds the Workspace rule);
+//   1. routeInvite() decides the destination (always this build: the Workspace router already split by device);
 //   2. only here: signed in → import the key for this wallet, clear the fragment (history.replaceState on web),
 //      open the contract; signed out → keep the invite on this device, clear the fragment, sign in first.
 // Public route (app/_layout PUBLIC_SEGMENTS), so the auth gate never drops the fragment.
