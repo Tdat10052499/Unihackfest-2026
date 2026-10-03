@@ -159,6 +159,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | A1 program v1.1 (`brief_hash`, evidence ≠ 0, `post_note`) | `feat/a1-program-v1-1` | `47ab23f` |
 | A2 upgrade devnet v1.1 + IDL + core layout, smoke ×3 | `feat/a1-program-v1-1` | `b114ac9` + commit docs |
 | B1 content layer (brief/delivery JSON, note mã hoá, key trong invite link) | `feat/b1-content-layer` | `f6156f3`, `b8544ca` + docs |
+| B2 giao diện sáng Modern Minimal v2, bỏ viền, motion | `feat/b2-theme-motion` | `4a762c7`, `d0e8ead` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -172,6 +173,34 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**B2 (03/10/2026): giao diện sáng, bỏ viền, motion.**
+- **`constants/design.ts`:**
+  - `palette`: ground `#F4F4F6`, card `#FFFFFF`, ink `#111116`, caption `#5E5E6A`, accent `#7B2FBE`, link `#6A22B0`, tint `#F2EAFB`, divider `#F0F0F3`;
+  - `status` (tint nền / chữ / chấm); `shadows.s1`, `sAccent`, `pop`, `focusHalo`;
+  - `elevation` theo nền tảng: web `boxShadow`, iOS shadow props, Android `elevation`.
+  - Các tên cũ của theme tối (`surface1–3`, `glass.*`, `light.*`, `home.*`, `gradients.screen`, `orbs`) vẫn giữ làm alias **deprecated** với giá trị sáng, nên các màn hình tự đổi sang nền sáng mà không phải vẽ lại.
+  - `textTertiary` dùng màu caption (không dùng muted) để giữ độ tương phản 4.5:1.
+- **`constants/motion.ts`:**
+  - bảng token MotionSurfaces: press 160, hover 200, enter 200 + 360, stagger 40 ms tối đa 5, state 320, popover 200, sheet 360, backdrop 220, focus 180;
+  - đường cong (0.2,0,0,1) và (0.16,1,0.3,1); `useMotion()` cho Reduce Motion.
+- **`components/design`:**
+  - Card, ListGroup/ListRow, Badge, Notice, IconButton bỏ viền, chỉ dùng tông màu + S1; divider chỉ nằm giữa các hàng;
+  - Button, hàng bấm được, card, icon button thu nhỏ 0.98 trong 160 ms (`PressableScale`, CSS transition của Reanimated 4);
+  - nội dung `Screen` hiện dần + nâng 10 px, cách nhau 40 ms;
+  - primitive mới: `Field` (nền đặc, halo khi focus chỉ đổi opacity, lỗi tô nền đỏ, `on="ground"` khi đặt thẳng trên nền màn), `Sheet` (SlideInDown + backdrop fade), `Popover`.
+  - `grep borderWidth|border:` trong `components/design`: không còn dòng nào, kể cả switch.
+- **Khác prompt:** hiệu ứng vào màn của `Screen` dùng **keyframe CSS của Reanimated 4**, không dùng layout animation `FadeInDown`. Trên web, `entering` để lại `position: absolute` cho nội dung, khiến ScrollView mất chiều cao (Settings không cuộn được). Sheet, backdrop và popover vẫn dùng `SlideInDown` / `FadeIn`.
+- **Test:**
+  - core 84/84, wallet 19/19; `tsc` app và workspace 0 lỗi; `expo export --platform web` OK.
+  - Bundle JS web (có `EXPO_PUBLIC_DEV_TOOLS=1`): 10 666 839 → 10 677 081 byte (+10 KB); gzip 1 995 593 → 1 999 009 (+3,4 KB).
+  - Ảnh Chromium 390×844 (Home, Settings, `/dev/milestone`, Welcome): không có chữ bị cắt. Đã kiểm tra Settings cuộn tới cuối, nút Sign out không bị thanh tab che.
+  - Kiểm tra trong trình duyệt: enter 360 ms với delay 0/40/80/120/160; press scale 0,98 trong 160 ms; Reduce Motion thì không có animation và press tức thì.
+- **Còn mở (màn hình, B3/B4):**
+  - Home vẫn là bố cục cũ, chỉ đổi sang nền sáng;
+  - chữ cũ còn từ cấm: Welcome "invest", Settings "Your wallet stays safe";
+  - `NotificationInAppBanner` còn màu riêng (B5);
+  - ảnh chụp không đăng nhập vì Google login cần người thật.
 
 **B1 (03/10/2026): content layer.**
 - **Core (`packages/ned-core/src/milestone/`):**
