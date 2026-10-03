@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — User avatar (generated)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="img" aria-label="{{label}}" style="{{box}}">
+  <svg width="100%" height="100%" viewBox="0 0 40 40" aria-hidden="true" style="display: block">
+    <rect width="40" height="40" fill="{{bg}}"></rect>
+    <g transform="rotate({{rot}} 20 20)">
+      <path d="{{p1}}" fill="{{f1}}" stroke="{{s1}}" stroke-width="{{w1}}"></path>
+      <path d="{{p2}}" fill="{{f2}}" stroke="{{s2}}" stroke-width="{{w2}}"></path>
+      <path d="{{p3}}" fill="{{f3}}" fill-opacity="{{o3}}"></path>
+    </g>
+  </svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"seed": {"editor": "text", "default": "vinh"}, "size": {"editor": "int", "default": 88, "min": 16, "max": 160}, "$preview": {"width": 88, "height": 88}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Seed = the wallet address in the app (never the username, so the avatar never changes).
+    // FNV-1a 32-bit hash + murmur3 finaliser -> palette, pattern, rotation, accent. Same seed = same avatar on every device.
+    var seed = String(this.props.seed ?? 'vinh').trim().toLowerCase();
+    var size = Number(this.props.size ?? 88) || 88;
+    var h = 0x811c9dc5;
+    for (var i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b) >>> 0; h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35) >>> 0; h ^= h >>> 16; h = h >>> 0;
+    var P = [
+      ['#F2EAFB', '#7B2FBE'], ['#E3EDFC', '#1D4ED8'], ['#E7F6EC', '#127A3A'], ['#FFF5E1', '#B45309'],
+      ['#FDECEC', '#C2410C'], ['#E0F5F3', '#0F766E'], ['#EEEFFE', '#4F46E5'], ['#FCE7F3', '#BE185D']
+    ];
+    var ci = h % 8, pi = (h >>> 3) % 6, rot = ((h >>> 6) % 4) * 90, ai = (h >>> 8) % 7;
+    if (ai >= ci) ai += 1;
+    var bg = P[ci][0], fg = P[ci][1], ac = P[ai][1];
+    function c(cx, cy, r) { return 'M' + (cx - r) + ' ' + cy + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0Z'; }
+    var N = 'M0 0Z';
+    var S = [
+      // sun and moon
+      { p1: c(26, 15, 10), f1: fg, p2: c(12, 29, 5.5), f2: ac, p3: c(31, 31, 2.5), f3: '#FFFFFF', o3: 0.9 },
+      // hill and sun
+      { p1: 'M-2 42L-2 27Q20 11 42 27L42 42Z', f1: fg, p2: c(28, 12, 5), f2: ac, p3: 'M-2 42L-2 34Q20 24 42 34L42 42Z', f3: '#FFFFFF', o3: 0.35 },
+      // two quarters
+      { p1: 'M0 0H22A22 22 0 0 1 0 22Z', f1: fg, p2: 'M40 40H18A22 22 0 0 1 40 18Z', f2: ac, p3: c(20, 20, 3.5), f3: '#FFFFFF', o3: 0.95 },
+      // ring and dot
+      { p1: c(20, 20, 12), f1: 'none', s1: fg, w1: 5, p2: c(20, 20, 4.5), f2: ac, p3: c(33, 8, 3), f3: fg, o3: 0.6 },
+      // half and bead
+      { p1: 'M0 22H40V40H0Z', f1: fg, p2: c(20, 22, 8), f2: ac, p3: c(20, 22, 3), f3: '#FFFFFF', o3: 0.9 },
+      // blocks
+      { p1: 'M9 9h11v11h-11z', f1: fg, p2: 'M20 20h11v11h-11z', f2: ac, p3: c(25.5, 14.5, 4.5), f3: fg, o3: 0.45 }
+    ];
+    var s = S[pi];
+    return {
+      label: 'Avatar for @' + seed,
+      box: 'width: ' + size + 'px; height: ' + size + 'px; border-radius: 9999px; overflow: hidden; flex-shrink: 0; background: ' + bg,
+      bg: bg, rot: rot,
+      p1: s.p1 || N, f1: s.f1 || 'none', s1: s.s1 || 'none', w1: s.w1 || 0,
+      p2: s.p2 || N, f2: s.f2 || 'none', s2: s.s2 || 'none', w2: s.w2 || 0,
+      p3: s.p3 || N, f3: s.f3 || 'none', o3: s.o3 ?? 1
+    };
+  }
+}
+</script>
+</body>
+</html>

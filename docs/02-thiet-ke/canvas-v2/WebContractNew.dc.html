@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — New contract (brief)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+input::placeholder,textarea::placeholder{color:#8A8A96}
+.ned-ghost{transition:background-color .15s ease}
+.ned-ghost:hover{background:#ECE3F8}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-ghost:focus-visible,.ned-wallet-btn:focus-visible,button:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{panelOn}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{isSign}}" hint-placeholder-val="{{ false }}"><div class="ned-backdrop" aria-hidden="true" style="position: fixed; inset: 0; z-index: 35; background: rgba(17,17,22,0.32)"></div></sc-if>
+          <div style="{{panelPos}}">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="{{panelMode}}" action="create" fingerprint="{{fp}}" on-confirm="{{confirm}}" on-cancel="{{close}}" on-close="{{close}}" hint-size="380px,600px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 24px 24px 64px; box-sizing: border-box">
+    <nav aria-label="Breadcrumb" style="font-size: 13px; color: #5E5E6A"><a href="WebWorkspace.dc.html" style="text-decoration: none">Workspace</a> <span aria-hidden="true">/</span> New contract</nav>
+
+    <!-- Vietnam view: clients only -->
+    <sc-if value="{{blocked}}" hint-placeholder-val="{{ false }}">
+      <div class="ned-swap" style="margin-top: 24px; max-width: 640px; padding: 28px; border-radius: 20px; background: #FFFFFF">
+        <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">New contracts come from your clients</h1>
+        <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #3F3F49">You live in Vietnam, so N.E.D shows you the freelancer side only: you accept contracts from clients abroad and your earnings arrive in VND. Share your @username and your client creates the contract.</p>
+        <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px">
+          <a href="HomeVN.dc.html" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none">Share @vinh</a>
+          <a href="WebWorkspace.dc.html" class="ned-ghost" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 15px; font-weight: 600; text-decoration: none">Back to Workspace</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Created -->
+    <sc-if value="{{created}}" hint-placeholder-val="{{ false }}">
+      <div class="ned-swap" style="margin-top: 24px; max-width: 720px; padding: 28px; border-radius: 20px; background: #FFFFFF">
+        <div style="width: 56px; height: 56px; border-radius: 9999px; background: #E7F6EC; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div>
+        <h1 style="margin: 16px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Contract created</h1>
+        <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #3F3F49">Send this invite link to @vinh. The brief travels inside it, encrypted: the part after # is the key, and browsers never send that part to a server.</p>
+        <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <div style="flex: 1 1 320px; min-width: 0; height: 52px; padding: 0 14px; display: flex; align-items: center; border-radius: 14px; background: #F4F4F6; font-family: 'Space Mono', monospace; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: none">ned.app/c/7XqP2mWc#k=Qm4tY8vR2LkN9sQe</div>
+          <button onClick="{{copy}}" style="height: 52px; padding: 0 22px; border-radius: 9999px; border: none; background: #7B2FBE; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{copyLabel}}</button>
+        </div>
+        <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px">
+          <div style="padding: 14px; border-radius: 14px; background: #F4F4F6"><div style="font-size: 12px; color: #5E5E6A">Brief fingerprint · on-chain</div><div style="margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">{{fp}}</div></div>
+          <div style="padding: 14px; border-radius: 14px; background: #F4F4F6"><div style="font-size: 12px; color: #5E5E6A">Next</div><div style="margin-top: 4px; font-size: 15px; font-weight: 600">@vinh accepts, then you lock {{totalText}}</div></div>
+        </div>
+        <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px">
+          <a href="ContractDetailMiaCreated.dc.html" class="ned-ghost" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 15px; font-weight: 600; text-decoration: none">View contract</a>
+          <a href="WebWorkspace.dc.html" style="height: 48px; padding: 0 12px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none">Back to Workspace</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Form -->
+    <sc-if value="{{editing}}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px">New contract</h1>
+        <ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; font-weight: 600">
+          <li style="height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF">1 · Brief</li>
+          <li style="height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #FFFFFF; color: #5E5E6A">2 · @vinh accepts</li>
+          <li style="height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #FFFFFF; color: #5E5E6A">3 · You lock</li>
+          <li style="height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #FFFFFF; color: #5E5E6A">4 · Work starts</li>
+        </ol>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <div class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+          <section aria-labelledby="cn-fl" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <h2 id="cn-fl" style="margin: 0; font-size: 16px; font-weight: 600">Freelancer</h2>
+            <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: #F4F4F6">
+              <dc-import name="Avatar" seed="vinh" size="44" hint-size="44px,44px"></dc-import>
+              <div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Vinh Nguyen <span style="font-weight: 500; color: #5E5E6A">@vinh</span></div><div style="margin-top: 2px; font-size: 13px; color: #5E5E6A">Chooses where earnings go when accepting</div></div>
+              <a href="ContractNew1Freelancer.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">Change</a>
+            </div>
+          </section>
+
+          <section aria-labelledby="cn-job" style="padding: 20px; border-radius: 20px; background: #FFFFFF; display: flex; flex-direction: column; gap: 14px">
+            <h2 id="cn-job" style="margin: 0; font-size: 16px; font-weight: 600">The job</h2>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline"><label for="cn-title" style="font-size: 13px; font-weight: 600; color: #3F3F49">Title</label><span style="{{countStyle}}">{{count}}/32</span></div>
+              <input id="cn-title" class="ned-in" value="{{title}}" onChange="{{onTitle}}" maxlength="32" style="margin-top: 6px; width: 100%; box-sizing: border-box; height: 48px; padding: 0 14px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; border: none">
+            </div>
+            <div>
+              <label for="cn-scope" style="font-size: 13px; font-weight: 600; color: #3F3F49">What you need</label>
+              <textarea id="cn-scope" class="ned-in" value="{{scope}}" onChange="{{onScope}}" rows="5" placeholder="Describe the work, who it is for and anything the freelancer must use." style="margin-top: 6px; width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; line-height: 1.55; resize: vertical; border: none"></textarea>
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #3F3F49">References</div>
+              <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px">
+                <sc-for list="{{refs}}" as="r" hint-placeholder-count="2">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 12px; background: #F4F4F6">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+                    <span style="flex: 1; min-width: 0; font-family: 'Space Mono', monospace; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.url}}</span>
+                    <button onClick="{{r.remove}}" aria-label="Remove {{r.url}}" style="width: 32px; height: 32px; border-radius: 9999px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+                  </div>
+                </sc-for>
+                <div style="display: flex; gap: 8px">
+                  <label for="cn-ref" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Add a reference link</label>
+                  <input id="cn-ref" class="ned-in" type="url" value="{{refDraft}}" onChange="{{onRefDraft}}" placeholder="Paste a link to a brand guide, copy or example" style="flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 14px; border: none">
+                  <button onClick="{{addRef}}" class="ned-ghost" style="height: 44px; padding: 0 16px; border-radius: 9999px; border: none; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Add</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="cn-ms" style="display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px"><h2 id="cn-ms" style="margin: 0; font-size: 16px; font-weight: 600">Milestones</h2><span style="font-size: 13px; color: #5E5E6A">Up to 5 · each one is locked, submitted and released on its own</span></div>
+            <sc-for list="{{ms}}" as="m" hint-placeholder-count="2">
+              <div role="group" aria-label="{{m.aria}}" style="padding: 20px; border-radius: 20px; background: #FFFFFF; display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span style="width: 28px; height: 28px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0">{{m.n}}</span>
+                  <label for="{{m.nameId}}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Milestone {{m.n}} name</label>
+                  <input id="{{m.nameId}}" class="ned-in" value="{{m.name}}" onChange="{{m.onName}}" placeholder="Name this milestone" style="flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; font-weight: 600; border: none">
+                  <sc-if value="{{m.canRemove}}" hint-placeholder-val="{{ true }}"><button onClick="{{m.remove}}" aria-label="Remove milestone {{m.n}}" style="width: 40px; height: 40px; border-radius: 9999px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg></button></sc-if>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+                  <div>
+                    <label for="{{m.amtId}}" style="font-size: 12px; font-weight: 600; color: #3F3F49">Amount (USDC)</label>
+                    <input id="{{m.amtId}}" class="ned-in" inputmode="decimal" value="{{m.amt}}" onChange="{{m.onAmt}}" style="margin-top: 6px; width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; border: none">
+                  </div>
+                  <div>
+                    <label for="{{m.dateId}}" style="font-size: 12px; font-weight: 600; color: #3F3F49">Submit by</label>
+                    <input id="{{m.dateId}}" class="ned-in" type="datetime-local" value="{{m.date}}" onChange="{{m.onDate}}" style="margin-top: 6px; width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 14px; border: none">
+                  </div>
+                  <div>
+                    <label for="{{m.revId}}" style="font-size: 12px; font-weight: 600; color: #3F3F49">Review time after submit</label>
+                    <select id="{{m.revId}}" class="ned-in" value="{{m.review}}" onChange="{{m.onReview}}" style="margin-top: 6px; width: 100%; box-sizing: border-box; height: 44px; padding: 0 10px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 14px; border: none">
+                      <option value="1m">1 min (devnet demo)</option>
+                      <option value="3d">3 days</option>
+                      <option value="7d">7 days</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><span style="font-size: 13px; font-weight: 600; color: #3F3F49">Done when…</span><span style="font-size: 12px; color: #5E5E6A">The freelancer checks these before submitting; you check them before releasing.</span></div>
+                  <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+                    <sc-for list="{{m.crit}}" as="c" hint-placeholder-count="3">
+                      <li style="display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: 12px; background: #F4F4F6">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><path d="m8 12.5 2.5 2.5L16 9.5"></path></svg>
+                        <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.4">{{c.text}}</span>
+                        <button onClick="{{c.remove}}" aria-label="Remove: {{c.text}}" style="width: 32px; height: 32px; border-radius: 9999px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+                      </li>
+                    </sc-for>
+                  </ul>
+                  <div style="margin-top: 8px; display: flex; gap: 8px">
+                    <label for="{{m.critId}}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Add a criterion to milestone {{m.n}}</label>
+                    <input id="{{m.critId}}" class="ned-in" value="{{m.draft}}" onChange="{{m.onDraft}}" placeholder="Add something you can check, e.g. “Works on mobile”" style="flex: 1; min-width: 0; height: 42px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 14px; border: none">
+                    <button onClick="{{m.addCrit}}" class="ned-ghost" style="height: 42px; padding: 0 16px; border-radius: 9999px; border: none; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Add</button>
+                  </div>
+                  <sc-if value="{{m.hasErr}}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: #B42318">{{m.err}}</div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{canAdd}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{addMs}}" class="ned-ghost" style="height: 52px; border-radius: 20px; background: #EBEBF0; color: #6A22B0; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; border: none">+ Add milestone</button>
+            </sc-if>
+          </section>
+        </div>
+
+        <aside class="ned-stagger" aria-label="Summary" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <div style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="font-size: 13px; color: #5E5E6A">Total to lock</div>
+            <div style="margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.6px">{{totalWhole}}<span style="font-size: 18px"> USDC</span></div>
+            <div style="margin-top: 4px; font-size: 13px; color: #5E5E6A">{{msCount}} · locked after @vinh accepts</div>
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #F0F0F3; display: flex; flex-direction: column; gap: 10px">
+              <sc-for list="{{sum}}" as="s" hint-placeholder-count="2">
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: #3F3F49; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{s.label}}</span><span style="font-family: 'Space Mono', monospace; font-weight: 700; flex-shrink: 0">{{s.amt}}</span></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding: 18px; border-radius: 20px; background: #F2EAFB; border: none">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><span style="font-size: 13px; font-weight: 600; color: #3F3F49">Brief fingerprint</span><span style="font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{fp}}</span></div>
+            <div style="margin-top: 8px; font-size: 12px; line-height: 1.55; color: #3F3F49">Changes as you type. When you create, it is saved on-chain and cannot change. @vinh confirms the same fingerprint when accepting, so you both agree on one brief.</div>
+          </div>
+          <div style="padding: 16px 18px; border-radius: 20px; background: #FFFFFF; font-size: 12px; line-height: 1.6; color: #5E5E6A">
+            <div style="font-size: 13px; font-weight: 600; color: #111116">Checked before you sign</div>
+            At least 24 h to work before the first deadline (60 s on devnet) · review time of at least 60 s · up to 5 milestones · title up to 32 characters · at least one “done when” item per milestone.
+          </div>
+          <button onClick="{{startSign}}" disabled="{{cantCreate}}" style="{{createStyle}}">Create contract</button>
+          <div style="font-size: 12px; line-height: 1.5; color: #5E5E6A; text-align: center">Opens your wallet to confirm. No money moves at this step.</div>
+        </aside>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["mia", "vinh"], "default": "mia"}, "created": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 1900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      panel: 'closed', created: props.created === true || props.created === 'true', copied: false,
+      title: 'Landing page design',
+      scope: 'A one-page landing site for our new budgeting app, desktop and mobile. Use the copy and the brand guide linked below. Milestone 1 is design only; milestone 2 is the build.',
+      refs: ['https://drive.example.com/brand-guide-v3.pdf', 'https://docs.example.com/landing-copy-v2'], refDraft: '',
+      ms: [
+        { name: 'Wireframes and visual design', amt: '10', date: '2026-10-12T18:00', review: '3d', crit: ['Desktop and mobile layouts', 'Colours and fonts from the brand guide', 'Figma file with named components', 'Copy from the brief, no placeholder text'], draft: '' },
+        { name: 'Build and launch', amt: '10', date: '2026-10-19T18:00', review: '3d', crit: ['Page live on a test link', 'Matches the approved design', 'Source code in a Git repository'], draft: '' }
+      ]
+    };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var who = this.props.who ?? 'mia';
+    var vn = who === 'vinh';
+    function copyMs() { return st.ms.map(function (m) { return Object.assign({}, m, { crit: m.crit.slice() }); }); }
+    function upd(i, k, v) { var c = copyMs(); c[i][k] = v; self.setState({ ms: c }); }
+    function fp(s) { var h = 5381; for (var i = 0; i < s.length; i++) { h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; } var x = ('00000000' + h.toString(16)).slice(-8); return '0x' + x.slice(0, 4) + '…' + x.slice(4); }
+    var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var total = 0, anyErr = false;
+    var ms = st.ms.map(function (m, i) {
+      var a = parseFloat(m.amt) || 0; total += a;
+      var err = '';
+      if (a <= 0) err = 'Enter an amount above 0.';
+      else if (!m.crit.length) err = 'Add at least one “done when” item.';
+      else if (!m.name.trim()) err = 'Give this milestone a name.';
+      if (err) anyErr = true;
+      return {
+        n: i + 1, aria: 'Milestone ' + (i + 1), name: m.name, amt: m.amt, date: m.date, review: m.review, draft: m.draft,
+        nameId: 'cn-ms-name-' + i, amtId: 'cn-ms-amt-' + i, dateId: 'cn-ms-date-' + i, revId: 'cn-ms-rev-' + i, critId: 'cn-ms-crit-' + i,
+        onName: function (e) { upd(i, 'name', e.target.value); },
+        onAmt: function (e) { upd(i, 'amt', e.target.value.replace(',', '.')); },
+        onDate: function (e) { upd(i, 'date', e.target.value); },
+        onReview: function (e) { upd(i, 'review', e.target.value); },
+        onDraft: function (e) { upd(i, 'draft', e.target.value); },
+        addCrit: function () { var c = copyMs(); var t = (c[i].draft || '').trim(); if (!t) return; c[i].crit.push(t); c[i].draft = ''; self.setState({ ms: c }); },
+        crit: m.crit.map(function (t, j) { return { text: t, remove: function () { var c = copyMs(); c[i].crit.splice(j, 1); self.setState({ ms: c }); } }; }),
+        canRemove: st.ms.length > 1,
+        remove: function () { var c = copyMs(); c.splice(i, 1); self.setState({ ms: c }); },
+        hasErr: !!err, err: err
+      };
+    });
+    var brief = JSON.stringify({ t: st.title, s: st.scope, r: st.refs, m: st.ms.map(function (m) { return [m.name, m.amt, m.date, m.review, m.crit]; }) });
+    var f = fp(brief);
+    var titleBad = !st.title.trim();
+    var cant = anyErr || titleBad;
+    var totalWhole = total.toFixed(2);
+    return {
+      who: who, handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
+      blocked: vn, created: !vn && st.created, editing: !vn && !st.created,
+      isSign: st.panel === 'sign',
+      panelPos: st.panel === 'sign' ? 'position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px)); z-index: 40; width: 380px; max-width: calc(100vw - 32px)' : 'position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 380px; max-width: calc(100vw - 32px)',
+      panelOn: st.panel !== 'closed', panelMode: st.panel === 'sign' ? 'sign' : 'home', openStr: st.panel !== 'closed' ? 'true' : 'false',
+      toggle: function () { self.setState({ panel: st.panel === 'closed' ? 'home' : 'closed' }); },
+      close: function () { self.setState({ panel: 'closed' }); },
+      startSign: function () { if (!cant) self.setState({ panel: 'sign' }); },
+      confirm: function () { self.setState({ panel: 'closed', created: true }); },
+      title: st.title, count: st.title.length,
+      countStyle: "font-family: 'Space Mono', monospace; font-size: 12px; color: " + (st.title.length >= 32 ? '#8A5300' : '#5E5E6A'),
+      onTitle: function (e) { self.setState({ title: e.target.value.slice(0, 32) }); },
+      scope: st.scope, onScope: function (e) { self.setState({ scope: e.target.value }); },
+      refs: st.refs.map(function (u, j) { return { url: u, remove: function () { var r = st.refs.slice(); r.splice(j, 1); self.setState({ refs: r }); } }; }),
+      refDraft: st.refDraft, onRefDraft: function (e) { self.setState({ refDraft: e.target.value }); },
+      addRef: function () { var t = (st.refDraft || '').trim(); if (!t) return; self.setState({ refs: st.refs.concat([t]), refDraft: '' }); },
+      ms: ms, canAdd: st.ms.length < 5,
+      addMs: function () { var c = copyMs(); c.push({ name: '', amt: '10', date: '2026-10-26T18:00', review: '3d', crit: [], draft: '' }); self.setState({ ms: c }); },
+      sum: st.ms.map(function (m, i) { var d = m.date ? new Date(m.date) : null; var ds = d && !isNaN(d) ? d.getDate() + ' ' + MON[d.getMonth()] : '—'; return { label: (i + 1) + '. ' + (m.name || 'Untitled') + ' · by ' + ds, amt: (parseFloat(m.amt) || 0).toFixed(2) }; }),
+      totalWhole: totalWhole, totalText: totalWhole + ' USDC', msCount: st.ms.length + (st.ms.length === 1 ? ' milestone' : ' milestones'),
+      fp: f, cantCreate: cant,
+      createStyle: 'height: 56px; border-radius: 9999px; border: none; font-family: inherit; font-size: 16px; font-weight: 600; cursor: ' + (cant ? 'not-allowed' : 'pointer') + '; background: ' + (cant ? '#E6E6EB' : '#7B2FBE') + '; color: ' + (cant ? '#5E5E6A' : '#FFFFFF'),
+      copyLabel: st.copied ? 'Copied' : 'Copy link',
+      copy: function () { self.setState({ copied: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

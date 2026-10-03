@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Home (international)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+.ned-qa{transition:background-color .15s,border-color .15s,transform .1s}
+.ned-qa:hover{background:#EEEEF2!important}
+.ned-qa:active{transform:scale(.97)}
+.ned-qa:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+@keyframes nedspin{to{transform:rotate(360deg)}}
+@keyframes nedbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Inter', system-ui, sans-serif">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#C9C9D2"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#111116"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 6px 20px 0; display: flex; align-items: center; gap: 10px">
+    <h1 style="flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #5E5E6A">{{greeting}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{name}}</span></h1>
+    <span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 9999px; background: #FFF5E1; font-size: 11px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+    <a href="{{navSettings}}" aria-label="Your profile, {{name}}" style="width: 44px; height: 44px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0"><dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import></a>
+  </div>
+
+  <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 16px 16px 110px">
+
+    <sc-if value="{{full}}" hint-placeholder-val="{{ true }}">
+      <!-- Main card -->
+      <div style="padding: 18px 16px 6px; border-radius: 20px; background: #FFFFFF">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start">
+          <div>
+            <div style="font-size: 14px; color: #5E5E6A">{{heroLabel}}</div>
+            <div style="margin-top: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.05">{{heroWhole}}<span style="font-size: 20px">{{heroUnit}}</span></div>
+            <div style="margin-top: 6px; font-size: 13px; color: #5E5E6A">{{heroSub}}</div>
+          </div>
+          <sc-if value="{{isVn}}" hint-placeholder-val="{{ true }}"><div title="Vietnamese đồng (VND)" style="width: 40px; height: 40px; border-radius: 9999px; overflow: hidden; flex-shrink: 0"><svg width="40" height="40" viewBox="0 0 20 20" role="img" aria-label="Flag of Vietnam" style="display: block"><rect width="20" height="20" fill="#DA251D"></rect><polygon points="10.00,4.00 11.35,8.15 15.71,8.15 12.18,10.71 13.53,14.85 10.00,12.29 6.47,14.85 7.82,10.71 4.29,8.15 8.65,8.15" fill="#FFCD00"></polygon></svg></div></sc-if><sc-if value="{{isIntl}}" hint-placeholder-val="{{ false }}"><div title="US dollar · USDC is a dollar stablecoin" style="width: 40px; height: 40px; border-radius: 9999px; overflow: hidden; flex-shrink: 0"><svg width="40" height="40" viewBox="0 0 20 20" role="img" aria-label="Flag of the United States" style="display: block"><rect y="0.000" width="20" height="1.538" fill="#B22234"></rect><rect y="1.538" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="3.077" width="20" height="1.538" fill="#B22234"></rect><rect y="4.615" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="6.154" width="20" height="1.538" fill="#B22234"></rect><rect y="7.692" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="9.231" width="20" height="1.538" fill="#B22234"></rect><rect y="10.769" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="12.308" width="20" height="1.538" fill="#B22234"></rect><rect y="13.846" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="15.385" width="20" height="1.538" fill="#B22234"></rect><rect y="16.923" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="18.462" width="20" height="1.538" fill="#B22234"></rect><rect width="10" height="10.769" fill="#3C3B6E"></rect><circle cx="0.90" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="2.55" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="4.20" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="5.85" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="7.50" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="9.15" cy="0.90" r="0.42" fill="#FFFFFF"></circle><circle cx="1.72" cy="2.75" r="0.42" fill="#FFFFFF"></circle><circle cx="3.37" cy="2.75" r="0.42" fill="#FFFFFF"></circle><circle cx="5.02" cy="2.75" r="0.42" fill="#FFFFFF"></circle><circle cx="6.67" cy="2.75" r="0.42" fill="#FFFFFF"></circle><circle cx="8.32" cy="2.75" r="0.42" fill="#FFFFFF"></circle><circle cx="0.90" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="2.55" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="4.20" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="5.85" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="7.50" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="9.15" cy="4.60" r="0.42" fill="#FFFFFF"></circle><circle cx="1.72" cy="6.45" r="0.42" fill="#FFFFFF"></circle><circle cx="3.37" cy="6.45" r="0.42" fill="#FFFFFF"></circle><circle cx="5.02" cy="6.45" r="0.42" fill="#FFFFFF"></circle><circle cx="6.67" cy="6.45" r="0.42" fill="#FFFFFF"></circle><circle cx="8.32" cy="6.45" r="0.42" fill="#FFFFFF"></circle><circle cx="0.90" cy="8.30" r="0.42" fill="#FFFFFF"></circle><circle cx="2.55" cy="8.30" r="0.42" fill="#FFFFFF"></circle><circle cx="4.20" cy="8.30" r="0.42" fill="#FFFFFF"></circle><circle cx="5.85" cy="8.30" r="0.42" fill="#FFFFFF"></circle><circle cx="7.50" cy="8.30" r="0.42" fill="#FFFFFF"></circle><circle cx="9.15" cy="8.30" r="0.42" fill="#FFFFFF"></circle></svg></div></sc-if>
+        </div>
+        <div style="margin-top: 16px">
+          <sc-if value="{{isVn}}" hint-placeholder-val="{{ true }}">
+            <div role="group" aria-label="Quick actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+              <button onClick="{{openShare}}" aria-label="{{shareLabel}}: send your username to a client" class="ned-qa" style="display: flex; align-items: center; gap: 8px; min-width: 0; height: 64px; padding: 0 10px; box-sizing: border-box; border-radius: 16px; background: #F4F4F6; color: #111116; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer; border: none"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"></path></svg></span><span style="min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{shareLabel}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #5E5E6A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">To a client</span></span></button>
+              <a href="Records.dc.html" aria-label="Records: what you received" class="ned-qa" style="display: flex; align-items: center; gap: 8px; min-width: 0; height: 64px; padding: 0 10px; box-sizing: border-box; border-radius: 16px; background: #F4F4F6; color: #111116; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer; border: none"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"></path></svg></span><span style="min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Records</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #5E5E6A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Your earnings</span></span></a>
+            </div>
+          </sc-if>
+          <sc-if value="{{isIntl}}" hint-placeholder-val="{{ false }}">
+            <div role="group" aria-label="Quick actions" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+              <a href="ContractNew1Freelancer.dc.html" aria-label="New contract: lock USDC per milestone for a freelancer" class="ned-qa" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; height: 84px; padding: 0 6px; box-sizing: border-box; border-radius: 16px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; cursor: pointer; border: none"><span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span><span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">New contract</span></a>
+              <a href="Receive.dc.html" aria-label="Receive USDC" class="ned-qa" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; height: 84px; padding: 0 6px; box-sizing: border-box; border-radius: 16px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; cursor: pointer; border: none"><span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v13M6 11l6 6 6-6M5 20h14"></path></svg></span><span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Receive</span></a>
+              <a href="SendRecipient.dc.html" aria-label="Send USDC" class="ned-qa" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; height: 84px; padding: 0 6px; box-sizing: border-box; border-radius: 16px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; cursor: pointer; border: none"><span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V7M6 13l6-6 6 6M5 4h14"></path></svg></span><span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Send</span></a>
+            </div>
+          </sc-if>
+        </div>
+        <div style="margin: 16px -16px 0; border-top: 1px solid #F0F0F3"></div>
+        <div style="padding: 12px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><div style="font-size: 12px; color: #5E5E6A">{{statALabel}}</div><div style="margin-top: 3px; font-size: 15px; font-weight: 600">{{statA}}</div></div>
+          <div><div style="font-size: 12px; color: #5E5E6A">{{statBLabel}}</div><div style="margin-top: 3px; font-size: 15px; font-weight: 600">{{statB}}</div></div>
+        </div>
+        <div style="height: 12px"></div>
+      </div>
+
+      <div style="margin: 22px 4px 10px; display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5E6A">Needs your action</h2></div>
+      <div style="overflow: hidden; border-radius: 20px; background: #FFFFFF">
+        <sc-for list="{{needs}}" as="n" hint-placeholder-count="2">
+          <a href="{{n.href}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; text-decoration: none; color: #111116">
+            <div style="{{n.iconBox}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{n.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"></path></svg></div>
+            <div style="flex: 1; min-width: 0">
+              <div style="font-size: 15px; font-weight: 600">{{n.title}}</div>
+              <div style="margin-top: 2px; font-size: 13px; color: #5E5E6A">{{n.sub}}</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A96" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          </a>
+        </sc-for>
+        <sc-if value="{{noNeeds}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 16px; font-size: 14px; line-height: 1.5; color: #5E5E6A">{{noNeedsText}}</div>
+        </sc-if>
+      </div>
+
+      <div style="margin: 22px 4px 10px; display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5E6A">Your contracts</h2><a href="{{navContracts}}" style="font-size: 14px; font-weight: 600; text-decoration: none">See all</a></div>
+      <div style="overflow: hidden; border-radius: 20px; background: #FFFFFF">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="2">
+          <a href="{{r.href}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; text-decoration: none; color: #111116">
+            <dc-import name="Avatar" seed="{{r.seed}}" size="40" hint-size="40px,40px"></dc-import>
+            <div style="flex: 1; min-width: 0">
+              <div style="font-size: 15px; font-weight: 600; line-height: 1.35">{{r.title}}</div>
+              <div style="margin-top: 2px; font-size: 13px; line-height: 1.4; color: #5E5E6A">{{r.party}} · {{r.deadline}}</div>
+              <div style="margin-top: 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px">
+                <span style="{{r.chip}}"><span style="{{r.dot}}"></span>{{r.status}}</span>
+                <span style="text-align: right; flex-shrink: 0"><span style="display: block; font-size: 15px; font-weight: 700; white-space: nowrap">{{r.total}}</span><span style="display: block; margin-top: 1px; font-size: 11px; color: #5E5E6A; white-space: nowrap">{{r.totalSub}}</span></span>
+              </div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+
+      <div style="margin: 22px 4px 10px; display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5E6A">Suggested for you</h2></div>
+      <div class="ned-scroll" style="margin: 0 -16px; padding: 0 16px; display: flex; gap: 10px; overflow-x: auto">
+        <sc-if value="{{isVn}}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{openShare}}" style="flex-shrink: 0; width: 168px; height: 196px; padding: 0; border: none; border-radius: 20px; overflow: hidden; position: relative; background: #EDE3FB; cursor: pointer; text-align: left; font-family: inherit">
+            <img src="/_blob/5bb51609a7ff36b0643dc0cc23146ac6" alt="" style="position: absolute; left: 50%; top: 18px; width: 140px; height: 110px; margin-left: -70px; object-fit: contain">
+            <span style="position: absolute; left: 14px; right: 14px; bottom: 14px; font-size: 15px; font-weight: 600; line-height: 1.3; color: #111116">Share your @username with a client</span>
+          </button>
+        </sc-if>
+        <sc-if value="{{isIntl}}" hint-placeholder-val="{{ false }}">
+          <a href="ContractNew1Freelancer.dc.html" style="flex-shrink: 0; width: 168px; height: 196px; border-radius: 20px; overflow: hidden; position: relative; background: #EDE3FB; text-decoration: none">
+            <img src="/_blob/22f5490f03888bc46a04dbf909a17ab4" alt="" style="position: absolute; left: 50%; top: 18px; width: 140px; height: 110px; margin-left: -70px; object-fit: contain">
+            <span style="position: absolute; left: 14px; right: 14px; bottom: 14px; font-size: 15px; font-weight: 600; line-height: 1.3; color: #111116">Lock a milestone for a freelancer</span>
+          </a>
+        </sc-if>
+        <a href="Disclosures.dc.html" style="flex-shrink: 0; width: 168px; height: 196px; border-radius: 20px; position: relative; background: #E3EDFC; text-decoration: none">
+          <div style="position: absolute; left: 14px; top: 14px; width: 44px; height: 44px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8v.5"></path></svg></div>
+          <span style="position: absolute; left: 14px; right: 14px; bottom: 14px; font-size: 15px; font-weight: 600; line-height: 1.3; color: #111116">What devnet and "simulated" mean</span>
+        </a>
+        <a href="{{navRecords}}" style="flex-shrink: 0; width: 168px; height: 196px; border-radius: 20px; position: relative; background: #E3F5EE; text-decoration: none">
+          <div style="position: absolute; left: 14px; top: 14px; width: 44px; height: 44px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></div>
+          <span style="position: absolute; left: 14px; right: 14px; bottom: 14px; font-size: 15px; font-weight: 600; line-height: 1.3; color: #111116">Keep a record of what you receive</span>
+        </a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 28px 20px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: 20px; background: #FFFFFF">
+        <div style="width: 168px; height: 132px; border-radius: 24px; background: #EDE3FB; display: flex; align-items: center; justify-content: center"><img src="/_blob/6b5178b3c2e1fe17910ea565b9a1f09f" alt="" style="width: 140px; height: 112px; object-fit: contain"></div>
+        <div style="margin-top: 18px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{emptyTitle}}</div>
+        <div style="margin-top: 6px; font-size: 14px; line-height: 1.5; color: #5E5E6A">{{emptyBody}}</div>
+        <sc-if value="{{isVn}}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{openShare}}" style="margin-top: 20px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #7B2FBE; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none; border: none; cursor: pointer; width: 100%">Share my @username</button>
+        </sc-if>
+        <sc-if value="{{isIntl}}" hint-placeholder-val="{{ false }}">
+          <a href="ContractNew1Freelancer.dc.html" style="margin-top: 20px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #7B2FBE; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none; border: none; cursor: pointer; width: 100%">Create a contract</a>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{share}}" hint-placeholder-val="{{ false }}">
+    <div class="ned-backdrop" style="position: absolute; inset: 0; z-index: 20; background: rgba(17,17,22,0.36); display: flex; flex-direction: column; justify-content: flex-end">
+      <button onClick="{{closeShare}}" aria-label="Close" style="flex: 1; background: transparent; border: none; cursor: pointer"></button>
+      <div class="ned-sheet" role="dialog" aria-label="Share my username" style="padding: 10px 20px 32px; border-radius: 28px 28px 0 0; background: #FFFFFF">
+        <div style="width: 40px; height: 5px; margin: 0 auto 16px; border-radius: 9999px; background: #E6E6EB"></div>
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Share my @username</div>
+        <div style="margin-top: 6px; font-size: 14px; line-height: 1.5; color: #5E5E6A">A client searches <strong style="color: #111116">{{atHandle}}</strong> in N.E.D to send you a contract.</div>
+        <div style="margin-top: 16px; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 16px; height: 56px; border-radius: 16px; background: #F4F4F6">
+          <span style="flex: 1; font-family: 'Space Mono', monospace; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{shareLink}}</span>
+          <button onClick="{{copy}}" style="height: 44px; padding: 0 16px; border-radius: 9999px; border: none; background: #7B2FBE; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">{{copyLabel}}</button>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: #5E5E6A">Your @username and wallet address are public on Solana.</div>
+      </div>
+    </div>
+  </sc-if>
+  <nav aria-label="Main" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; box-sizing: border-box; padding: 4px 8px 22px; display: flex; align-items: center; background: #FFFFFF; z-index: 8; box-shadow: 0 -10px 30px -12px rgba(17,17,22,0.10)">
+    <div aria-current="page" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 700; color: #7B2FBE">Home</span></div>
+    <a href="{{navContracts}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Contracts</span></a>
+    <a href="{{navRecords}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Records</span></a>
+    <a href="{{navSettings}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Settings</span></a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view": {"editor": "enum", "options": ["vn", "intl"], "default": "intl"}, "empty": {"editor": "boolean", "default": false}, "stage": {"editor": "enum", "options": ["new", "locked", "submitted", "released"], "default": "locked"}, "clientStage": {"editor": "enum", "options": ["start", "accepted", "locked", "submitted", "released"], "default": "start"}, "timeOfDay": {"editor": "enum", "options": ["auto", "morning", "afternoon", "evening"], "default": "auto"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { share: false, copied: false }; }
+  renderVals() {
+    var self = this;
+    var TONE = { info: ['#EEEFFE', '#EEEFFE', '#3730A3', '#4F46E5'], purple: ['#F2EAFB', '#F2EAFB', '#6A22B0', '#7B2FBE'], warning: ['#FFF5E1', '#FFF5E1', '#8A5300', '#F59E0B'], success: ['#E7F6EC', '#E7F6EC', '#127A3A', '#16A34A'], neutral: ['#EFEFF3', '#EFEFF3', '#4B4B57', '#8A8A96'], error: ['#FDECEC', '#FDECEC', '#B42318', '#DC2626'] };
+    function chip(t) { var c = TONE[t] || TONE.neutral; return 'display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 3px 10px; box-sizing: border-box; border-radius: 9999px; font-size: 12px; font-weight: 600; line-height: 1.3; background: ' + c[0] + '; color: ' + c[2]; }
+    function dot(t) { var c = TONE[t] || TONE.neutral; return 'width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; background: ' + c[3]; }
+    var RATE = 26019.5;
+    function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
+    function usdc(n) { return n.toFixed(2) + ' USDC'; }
+    function usd(n) { return '$' + n.toFixed(2); }
+
+    var vn = (this.props.view ?? 'vn') === 'vn';
+    var empty = this.props.empty === true || this.props.empty === 'true';
+    var st = this.props.stage ?? 'locked';
+    var cs = this.props.clientStage ?? 'start';
+    var hr = new Date().getHours();
+    var tod = this.props.timeOfDay ?? 'auto';
+    if (tod === 'auto') tod = hr < 12 ? 'morning' : hr < 18 ? 'afternoon' : 'evening';
+    var greeting = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening' }[tod] + ',';
+    var P = { accept: 'M5 12.5l4.5 4.5L19 7.5', submit: 'M12 19V5M5 12l7-7 7 7', lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', review: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', release: 'M12 3v12M7 10l5 5 5-5M5 21h14' };
+    function need(t, sub, href, icon, tone) {
+      var c = TONE[tone];
+      return { title: t, sub: sub, href: href, icon: P[icon], ink: c[2], iconBox: 'width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + c[0] };
+    }
+    function row(o) {
+      var ini = o.p.replace(/^.*@/, '').charAt(0).toUpperCase();
+      return { seed: o.p.replace(/^.*@/, ''), title: o.t, party: o.p, deadline: o.d, status: o.s, chip: chip(o.tone), dot: dot(o.tone), total: vn ? vnd(o.amt) : usdc(o.amt), totalSub: vn ? usd(o.amt) + ' · estimate' : 'total', href: o.href, initial: ini,
+        av: 'width: 40px; height: 40px; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: ' + ({ M: '#FBF0DC', V: '#E3EDFC', L: '#E3F5EE' }[ini] || '#EEEEF2') + '; color: ' + ({ M: '#8A5300', V: '#1D4ED8', L: '#127A3A' }[ini] || '#3F3F49') };
+    }
+    var needs = [], rows = [], noNeedsText = '';
+    var lockedVN = 0, received = 0;
+    if (vn) {
+      var A = {
+        new: { s: 'New contract · review and accept', tone: 'info', d: 'Accept by 5 Oct, 18:00', href: 'ContractDetailVinhNew.dc.html' },
+        locked: { s: 'Locked · work in progress', tone: 'purple', d: 'Milestone 1 due 12 Oct', href: 'ContractDetailVinhLocked.dc.html' },
+        submitted: { s: 'Submitted · in review', tone: 'warning', d: 'Review by 15 Oct', href: 'ContractDetailVinhLocked.dc.html' },
+        released: { s: 'Locked · work in progress', tone: 'purple', d: 'Milestone 2 due 19 Oct', href: 'ContractDetailVinhLocked.dc.html' }
+      }[st];
+      rows.push(row({ t: 'Landing page design', p: 'from @mia', d: A.d, s: A.s, tone: A.tone, amt: 20, href: A.href }));
+      rows.push(row({ t: 'Logo refresh', p: 'from @mia', d: 'Review time passed', s: 'Submitted · review time passed', tone: 'warning', amt: 10, href: 'ContractDetailLogo.dc.html' }));
+      if (st === 'new') needs.push(need('Accept: Landing page design', 'From @mia · 2 milestones · ' + vnd(20), 'ContractDetailVinhNew.dc.html', 'accept', 'info'));
+      if (st === 'locked') needs.push(need('Submit milestone 1 · due in 9 days', 'Landing page design · ' + vnd(10), 'MilestoneSubmit.dc.html', 'submit', 'purple'));
+      if (st === 'released') needs.push(need('Submit milestone 2 · due in 16 days', 'Landing page design · ' + vnd(10), 'MilestoneSubmit.dc.html', 'submit', 'purple'));
+      needs.push(need('Release now: Logo refresh', 'Review time passed · you can release it yourself · ' + vnd(10), 'ContractDetailLogo.dc.html', 'release', 'success'));
+      if (st === 'submitted') noNeedsText = 'Nothing needs you right now. @mia reviews milestone 1 by 15 Oct, or it is released automatically.';
+      lockedVN = (st === 'new' ? 0 : (st === 'released' ? 10 : 20)) + 10; // + Contract B (Logo refresh), submitted
+      received = st === 'released' ? 10 : 0;
+    } else {
+      var Ai = {
+        accepted: { s: 'Ready to lock', tone: 'info', d: '@vinh accepted', href: 'ContractDetailMiaAccepted.dc.html' },
+        locked: { s: 'Locked · work in progress', tone: 'purple', d: 'Milestone 1 due 12 Oct', href: 'ContractDetailMiaLocked.dc.html' },
+        submitted: { s: 'Submitted · review by 15 Oct', tone: 'warning', d: 'Auto-release in 2 days', href: 'MilestoneReview.dc.html' },
+        released: { s: 'Locked · work in progress', tone: 'purple', d: 'Milestone 2 due 19 Oct', href: 'ContractDetailMiaLocked.dc.html' }
+      }[cs];
+      if (Ai) rows.push(row({ t: 'Landing page design', p: 'to @vinh', d: Ai.d, s: Ai.s, tone: Ai.tone, amt: 20, href: Ai.href }));
+      rows.push(row({ t: 'Logo refresh', p: 'to @vinh', d: 'Review time passed', s: 'Submitted · review time passed', tone: 'warning', amt: 10, href: 'ContractDetailLogo.dc.html' }));
+      if (cs === 'accepted') needs.push(need('Lock: Landing page design', '@vinh accepted · lock 20.00 USDC', 'ContractDetailMiaAccepted.dc.html', 'lock', 'info'));
+      if (cs === 'submitted') needs.push(need('Review milestone 1: Landing page design', 'Auto-release in 2 days unless you dispute', 'MilestoneReview.dc.html', 'review', 'warning'));
+      needs.push(need('Release now: Logo refresh', 'Review time passed · anyone can release', 'ContractDetailLogo.dc.html', 'release', 'success'));
+    }
+    var aLocked = (cs === 'locked' || cs === 'submitted') ? 20 : (cs === 'released' ? 10 : 0);
+    var bal = (cs === 'start' || cs === 'accepted') ? 20 : 0;
+    needs = needs.map(function (n, i) { return n; });
+    rows = rows.map(function (r, i) { return r; });
+    var c = this.state.copied;
+    return {
+      isVn: vn, isIntl: !vn,
+      heroLabel: vn ? 'Locked for you' : 'USDC balance',
+      heroWhole: vn ? vnd(lockedVN).replace(' VND', '') : bal.toFixed(2), heroUnit: vn ? ' VND' : ' USDC',
+      heroSub: vn ? (lockedVN ? 'Estimate · ' + usd(lockedVN) + ' · ' + (st === 'new' ? '1 contract' : '2 contracts') + ' · rate of 2 Oct' : 'Nothing locked yet · accept a contract to start') : 'Devnet test money',
+      heroIcon: vn ? 'VND' : 'USDC', heroIconBg: vn ? '#FDECEC' : '#E3EDFC', heroIconInk: vn ? '#B42318' : '#1D4ED8',
+      statALabel: vn ? 'Received this month' : 'Locked in your contracts', statA: vn ? vnd(received) : usdc(10 + aLocked),
+      statBLabel: vn ? 'Active contracts' : 'Locked for you', statB: vn ? String(rows.length) : usdc(0),
+      greeting: greeting, initial: vn ? 'V' : 'M', name: vn ? 'Vinh' : 'Mia', handle: vn ? 'vinh' : 'mia', shareLabel: 'Share @' + (vn ? 'vinh' : 'mia'), shareLink: 'ned.app/@' + (vn ? 'vinh' : 'mia'), atHandle: '@' + (vn ? 'vinh' : 'mia'),
+      vnFull: vn && !empty, intlFull: !vn && !empty, full: !empty, isEmpty: empty, vnEmpty: vn, intlEmpty: !vn,
+      vnLocked: vnd(lockedVN), vnLockedUsd: usd(lockedVN), vnAcross: lockedVN ? 'across ' + rows.length + ' contracts' : 'Nothing locked yet · accept a contract to start',
+      vnReceived: vnd(received), vnReceivedUsd: usd(received),
+      balWhole: vn ? '' : bal.toFixed(2), asClient: vn ? '' : usdc(10 + aLocked), asFreelancer: vn ? '' : usdc(0),
+      needs: needs, noNeeds: needs.length === 0, noNeedsText: noNeedsText, rows: rows,
+      emptyTitle: vn ? 'No contracts yet' : 'No contracts yet',
+      emptyBody: vn ? 'Share your @username with a client. Their contract shows up here.' : 'Lock USDC per milestone for a freelancer. It is released when you approve.',
+      share: this.state.share,
+      openShare: function () { self.setState({ share: true, copied: false }); },
+      closeShare: function () { self.setState({ share: false }); },
+      copy: function () { try { navigator.clipboard && navigator.clipboard.writeText('ned.app/@' + (vn ? 'vinh' : 'mia')); } catch (e) {} self.setState({ copied: true }); },
+      copyLabel: c ? 'Copied' : 'Copy',
+      navHome: vn ? 'HomeVN.dc.html' : 'HomeIntl.dc.html', navContracts: vn ? 'ContractsList.dc.html' : 'ContractsListMia.dc.html',
+      navRecords: vn ? 'Records.dc.html' : 'RecordsIntl.dc.html', navSettings: vn ? 'Settings.dc.html' : 'SettingsIntl.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

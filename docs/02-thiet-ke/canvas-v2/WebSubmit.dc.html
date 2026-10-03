@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Submit milestone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+input::placeholder,textarea::placeholder{color:#8A8A96}
+.ned-ghost{transition:background-color .15s ease}
+.ned-ghost:hover{background:#ECE3F8}
+.ned-drop:hover{background:#F2EAFB}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+button:focus-visible,a:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @vinh" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="vinh" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@vinh</span><span style="display: block; font-size: 11px; color: #5E5E6A">Vietnam view · VND</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{panelOn}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{isSign}}" hint-placeholder-val="{{ false }}"><div class="ned-backdrop" aria-hidden="true" style="position: fixed; inset: 0; z-index: 35; background: rgba(17,17,22,0.32)"></div></sc-if>
+          <div style="{{panelPos}}">
+            <dc-import name="WebWalletPanel" who="vinh" mode="{{panelMode}}" action="submit" fingerprint="{{fp}}" on-confirm="{{confirm}}" on-cancel="{{close}}" on-close="{{close}}" hint-size="380px,600px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 24px 24px 64px; box-sizing: border-box">
+    <nav aria-label="Breadcrumb" style="font-size: 13px; color: #5E5E6A"><a href="WebWorkspace.dc.html" style="text-decoration: none">Workspace</a> <span aria-hidden="true">/</span> Landing page design <span aria-hidden="true">/</span> Milestone 1</nav>
+
+    <!-- Done -->
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div class="ned-swap" style="margin-top: 24px; max-width: 720px; padding: 28px; border-radius: 20px; background: #FFFFFF">
+        <div style="width: 56px; height: 56px; border-radius: 9999px; background: #FFF5E1; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></div>
+        <h1 style="margin: 16px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Submitted · in review</h1>
+        <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #3F3F49">@mia sees your delivery in her Workspace and on her phone. If she does nothing by 15 Oct, 18:00, it is released to your bank in VND.</p>
+        <div style="margin-top: 16px; border-radius: 14px; padding: 4px 14px; border: none; background: #F7F7F9">
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14px"><span style="color: #5E5E6A">Recorded at</span><span style="font-weight: 600">3 Oct 2026, 00:31 · chain clock</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F0F3; font-size: 14px"><span style="color: #5E5E6A">Deadline</span><span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600">12 Oct 2026, 18:00 <span style="height: 22px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 12px">On time</span></span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F0F3; font-size: 14px"><span style="color: #5E5E6A">Delivery fingerprint</span><span style="font-family: 'Space Mono', monospace; font-weight: 700">{{fp}}</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F0F3; font-size: 14px"><span style="color: #5E5E6A">Comes to you</span><span style="text-align: right"><span style="display: block; font-weight: 600">≈ 260,000 VND</span><span style="display: block; font-size: 12px; color: #5E5E6A">$10.00 · estimate · rate of 2 Oct</span></span></div>
+        </div>
+        <div style="margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <a href="https://explorer.solana.com/tx/5h3KpQ9vXy2mWc7RtLd8NfB4sJ6aZe1Gu3HkTr9qPw2YxV8nCm4LbD7sF2gK9jQ1?cluster=devnet" target="_blank" rel="noopener" class="ned-ghost" style="height: 46px; padding: 0 18px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 15px; font-weight: 600; text-decoration: none">View on Explorer</a>
+          <a href="WebWorkspace.dc.html" style="height: 46px; padding: 0 12px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none">Back to Workspace</a>
+          <a href="WebReview.dc.html" style="margin-left: auto; height: 34px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 9999px; font-size: 12px; font-weight: 600; color: #3F3F49; text-decoration: none; border: none; background: #F4F4F6">DEMO · switch to @mia's computer →</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Form -->
+    <sc-if value="{{form}}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <div>
+          <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px">Submit milestone 1</h1>
+          <div style="margin-top: 4px; font-size: 14px; color: #5E5E6A">Landing page design · Wireframes and visual design · for @mia</div>
+        </div>
+        <span role="timer" style="display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 9999px; background: #FFF5E1; color: #8A5300; font-size: 14px; font-weight: 600"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg>Submit by 12 Oct, 18:00 · 9 days left</span>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <div class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+          <section aria-labelledby="sb-links" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <h2 id="sb-links" style="margin: 0; font-size: 16px; font-weight: 600">Links to your work</h2>
+            <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #5E5E6A">Use links that point at one fixed version (a Figma version, a Git commit, a shared file), so what @mia opens is what you delivered.</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{links}}" as="l" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 12px; background: #F4F4F6">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{l.label}}</span><span style="display: block; font-family: 'Space Mono', monospace; font-size: 12px; color: #5E5E6A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{l.url}}</span></span>
+                  <sc-if value="{{l.pinned}}" hint-placeholder-val="{{ true }}"><span style="height: 22px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 11px; font-weight: 600; white-space: nowrap">Fixed version</span></sc-if>
+                  <button onClick="{{l.remove}}" aria-label="Remove {{l.label}}" style="width: 32px; height: 32px; border-radius: 9999px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+                </div>
+              </sc-for>
+              <div style="display: flex; gap: 8px">
+                <label for="sb-link" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Add a link</label>
+                <input id="sb-link" class="ned-in" type="url" value="{{linkDraft}}" onChange="{{onLinkDraft}}" placeholder="https://" style="flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: 'Space Mono', monospace; font-size: 13px; border: none">
+                <button onClick="{{addLink}}" class="ned-ghost" style="height: 44px; padding: 0 16px; border-radius: 9999px; border: none; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Add</button>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="sb-files" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <h2 id="sb-files" style="margin: 0; font-size: 16px; font-weight: 600">Files</h2>
+            <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #5E5E6A">Files stay on your computer. We read each one here and keep only its fingerprint, so @mia can check the file you share with her is the same one.</p>
+            <button onClick="{{addFile}}" class="ned-drop" style="margin-top: 12px; width: 100%; height: 96px; border-radius: 16px; background: #F8F4FD; color: #3F3F49; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: none">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg>
+              <span style="font-size: 14px; font-weight: 600">Drop files here or choose files</span>
+            </button>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{files}}" as="f" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 12px; background: #F4F4F6">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6"></path></svg>
+                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.name}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{f.size}} · fingerprint <span style="font-family: 'Space Mono', monospace">{{f.sha}}</span></span></span>
+                  <button onClick="{{f.remove}}" aria-label="Remove {{f.name}}" style="width: 32px; height: 32px; border-radius: 9999px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section aria-labelledby="sb-note-h" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <h2 id="sb-note-h" style="margin: 0; font-size: 16px; font-weight: 600"><label for="sb-note">Note to @mia</label></h2>
+            <textarea id="sb-note" class="ned-in" value="{{note}}" onChange="{{onNote}}" rows="3" placeholder="What is in this delivery and where to look first." style="margin-top: 10px; width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; line-height: 1.55; resize: vertical; border: none"></textarea>
+          </section>
+
+          <section aria-labelledby="sb-check" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><h2 id="sb-check" style="margin: 0; font-size: 16px; font-weight: 600">Check against the brief</h2><span style="{{checkCountStyle}}">{{checkCount}}</span></div>
+            <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #5E5E6A">What @mia wrote under “Done when”. Only for you: ticks are not saved on-chain.</p>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+                <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-radius: 12px; background: #F4F4F6; cursor: pointer">
+                  <input type="checkbox" checked="{{c.on}}" onChange="{{c.flip}}" style="width: 18px; height: 18px; accent-color: #7B2FBE; margin: 0">
+                  <span style="font-size: 14px; line-height: 1.4">{{c.text}}</span>
+                </label>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <aside class="ned-stagger" aria-label="Before you submit" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <div style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="font-size: 13px; color: #5E5E6A">Comes to you after release</div>
+            <div style="margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.6px">≈ 260,000<span style="font-size: 17px"> VND</span></div>
+            <div style="margin-top: 4px; font-size: 13px; color: #5E5E6A">$10.00 · estimate · rate of 2 Oct · to your bank via the payout partner</div>
+          </div>
+          <div style="padding: 18px; border-radius: 20px; background: #FFFFFF">
+            <div style="font-size: 14px; font-weight: 600">What @mia asked for</div>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #3F3F49">A one-page landing site for our new budgeting app, desktop and mobile. Use the copy and the brand guide linked below. Milestone 1 is design only…</p>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px"><span style="color: #5E5E6A">Brief fingerprint</span><span style="display: inline-flex; align-items: center; gap: 6px"><span style="font-family: 'Space Mono', monospace; font-weight: 700">{{briefFp}}</span><span style="height: 20px; padding: 0 7px; display: inline-flex; align-items: center; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-weight: 600">You accepted</span></span></div>
+            <a href="ContractDetailVinhLocked.dc.html" style="margin-top: 8px; display: inline-block; font-size: 13px; font-weight: 600; text-decoration: none">Read the full brief</a>
+          </div>
+          <div style="padding: 18px; border-radius: 20px; background: #F2EAFB; border: none">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><span style="font-size: 13px; font-weight: 600; color: #3F3F49">Delivery fingerprint</span><span style="font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{fp}}</span></div>
+            <div style="margin-top: 8px; font-size: 12px; line-height: 1.55; color: #3F3F49">Made from your links, file fingerprints and note. Only this goes on-chain; the delivery itself is encrypted with the contract key, so only you and @mia can read it.</div>
+          </div>
+          <div style="padding: 16px 18px; border-radius: 20px; background: #FFFFFF; font-size: 12px; line-height: 1.6; color: #5E5E6A">
+            <div style="font-size: 13px; font-weight: 600; color: #111116">How on-time is decided</div>
+            The program accepts a submit only up to 12 Oct, 18:00 and records the time from the chain clock, not from your computer. After that, the milestone can be refunded to @mia.
+          </div>
+          <sc-if value="{{notAllChecked}}" hint-placeholder-val="{{ false }}"><div role="status" style="padding: 10px 12px; border-radius: 12px; background: #FFF5E1; color: #8A5300; font-size: 13px; line-height: 1.45">Some “Done when” items are not ticked. You can still submit; @mia may dispute.</div></sc-if>
+          <button onClick="{{startSign}}" disabled="{{cantSubmit}}" style="{{submitStyle}}">Submit milestone 1</button>
+          <div style="font-size: 12px; line-height: 1.5; color: #5E5E6A; text-align: center">Opens your wallet to confirm. You cannot edit a delivery after submitting.</div>
+        </aside>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"done": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      panel: 'closed', done: props.done === true || props.done === 'true', linkDraft: '',
+      links: [
+        { label: 'Figma · version 2214', url: 'https://www.figma.com/design/Lp7Qx/landing?version-id=2214', pinned: true },
+        { label: 'GitHub · commit 3f9a1c2', url: 'https://github.com/vinh-ng/landing/tree/3f9a1c2', pinned: true }
+      ],
+      files: [
+        { name: 'landing-v1.fig', size: '4.2 MB', sha: '3f9a…c21e' },
+        { name: 'export-desktop.png', size: '1.1 MB', sha: 'b81d…07f4' }
+      ],
+      note: 'Both layouts are on the page “Final” in Figma. Components are named as in the brand guide.',
+      checks: [true, true, true, false]
+    };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    function fp(s) { var h = 5381; for (var i = 0; i < s.length; i++) { h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; } var x = ('00000000' + h.toString(16)).slice(-8); return '0x' + x.slice(0, 4) + '…' + x.slice(4); }
+    var CRIT = ['Desktop and mobile layouts', 'Colours and fonts from the brand guide', 'Figma file with named components', 'Copy from the brief, no placeholder text'];
+    var delivery = JSON.stringify({ l: st.links.map(function (l) { return l.url; }), f: st.files.map(function (f) { return f.name + ':' + f.sha; }), n: st.note });
+    var nOn = st.checks.filter(function (c) { return c; }).length;
+    var empty = !st.links.length && !st.files.length;
+    return {
+      done: st.done, form: !st.done,
+      panelOn: st.panel !== 'closed', isSign: st.panel === 'sign', panelMode: st.panel === 'sign' ? 'sign' : 'home', openStr: st.panel !== 'closed' ? 'true' : 'false',
+      panelPos: st.panel === 'sign' ? 'position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px)); z-index: 40; width: 380px; max-width: calc(100vw - 32px)' : 'position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 380px; max-width: calc(100vw - 32px)',
+      toggle: function () { self.setState({ panel: st.panel === 'closed' ? 'home' : 'closed' }); },
+      close: function () { self.setState({ panel: 'closed' }); },
+      startSign: function () { if (!empty) self.setState({ panel: 'sign' }); },
+      confirm: function () { self.setState({ panel: 'closed', done: true }); },
+      links: st.links.map(function (l, j) { return { label: l.label, url: l.url, pinned: !!l.pinned, remove: function () { var a = st.links.slice(); a.splice(j, 1); self.setState({ links: a }); } }; }),
+      linkDraft: st.linkDraft, onLinkDraft: function (e) { self.setState({ linkDraft: e.target.value }); },
+      addLink: function () { var t = (st.linkDraft || '').trim(); if (!t) return; var pinned = /version|commit|tree\/[0-9a-f]{7}|\/blob\/[0-9a-f]{7}/i.test(t); self.setState({ links: st.links.concat([{ label: 'Link', url: t, pinned: pinned }]), linkDraft: '' }); },
+      files: st.files.map(function (f, j) { return { name: f.name, size: f.size, sha: f.sha, remove: function () { var a = st.files.slice(); a.splice(j, 1); self.setState({ files: a }); } }; }),
+      addFile: function () { if (st.files.some(function (f) { return f.name === 'export-mobile.png'; })) return; self.setState({ files: st.files.concat([{ name: 'export-mobile.png', size: '0.8 MB', sha: '5c07…e93a' }]) }); },
+      note: st.note, onNote: function (e) { self.setState({ note: e.target.value }); },
+      checks: CRIT.map(function (t, j) { return { text: t, on: !!st.checks[j], flip: function () { var a = st.checks.slice(); a[j] = !a[j]; self.setState({ checks: a }); } }; }),
+      checkCount: nOn + ' of ' + CRIT.length + ' ticked',
+      checkCountStyle: 'font-size: 13px; font-weight: 600; color: ' + (nOn === CRIT.length ? '#127A3A' : '#8A5300'),
+      notAllChecked: nOn < CRIT.length,
+      fp: empty ? '—' : fp(delivery), briefFp: '0x2831…3b17',
+      cantSubmit: empty,
+      submitStyle: 'height: 56px; border-radius: 9999px; border: none; font-family: inherit; font-size: 16px; font-weight: 600; cursor: ' + (empty ? 'not-allowed' : 'pointer') + '; background: ' + (empty ? '#E6E6EB' : '#7B2FBE') + '; color: ' + (empty ? '#5E5E6A' : '#FFFFFF')
+    };
+  }
+}
+</script>
+</body>
+</html>

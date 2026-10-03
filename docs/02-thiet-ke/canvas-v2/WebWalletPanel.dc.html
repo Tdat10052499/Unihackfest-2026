@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Wallet panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-wp-btn{transition:background-color .15s ease,border-color .15s ease}
+.ned-wp-btn:hover{background:#ECE3F8}
+.ned-wp-btn:focus-visible,.ned-wp-pri:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+.ned-wp-pri{transition:background-color .15s ease}
+.ned-wp-pri:hover{background:#6A22B0}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-pop" role="dialog" aria-label="{{dialogLabel}}" style="width: 380px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; color: #111116; border-radius: 20px; box-shadow: 0 18px 48px rgba(17,17,22,0.16), 0 2px 6px rgba(17,17,22,0.06); font-family: 'Inter', system-ui, sans-serif; overflow: hidden; border: none">
+
+  <!-- Signed out -->
+  <sc-if value="{{isOut}}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 24px 22px 22px; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div aria-hidden="true" style="width: 40px; height: 40px; border-radius: 12px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px">N.E.D</div>
+        <div>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Sign in with N.E.D Wallet</div>
+          <div style="margin-top: 2px; font-size: 13px; color: #5E5E6A">The same wallet as on your phone</div>
+        </div>
+      </div>
+      <a href="{{nextHref}}" class="ned-wp-pri" style="height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>
+        Continue with Google
+      </a>
+      <div style="padding: 14px; border-radius: 16px; background: #F4F4F6; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #3F3F49"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Pick the Google account you use in the N.E.D app. Your wallet, profile and contracts come with it.</span></div>
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #3F3F49"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Nothing to install. This panel works like a wallet extension, inside the page.</span></div>
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #3F3F49"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>N.E.D never holds your money. Every step that moves it asks you to confirm here.</span></div>
+      </div>
+      <div style="font-size: 12px; line-height: 1.5; color: #5E5E6A">New to N.E.D? Sign in the same way. We set up your wallet and ask where you live, so you see the right money view.</div>
+    </div>
+  </sc-if>
+
+  <!-- Signed in: header -->
+  <sc-if value="{{isIn}}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 16px 16px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #F0F0F3">
+      <dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{displayName}} <span style="font-weight: 500; color: #5E5E6A">@{{handle}}</span></div>
+        <div style="margin-top: 2px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5E5E6A">
+          <span style="font-family: 'Space Mono', monospace">{{shortAddr}}</span>
+          <span aria-hidden="true">·</span>
+          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Google · {{email}}</span>
+        </div>
+      </div>
+      <sc-if value="{{hasClose}}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{onClose}}" aria-label="Close wallet panel" class="ned-wp-btn" style="width: 36px; height: 36px; border-radius: 9999px; border: none; background: #F4F4F6; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- Signed in: wallet home -->
+  <sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="padding: 14px; border-radius: 16px; background: #F4F4F6">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px">
+          <div style="min-width: 0">
+            <div style="font-size: 13px; color: #5E5E6A">{{heroLabel}}</div>
+            <div style="margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.05">{{heroWhole}}<span style="font-size: 16px">{{heroUnit}}</span></div>
+            <div style="margin-top: 4px; font-size: 12px; color: #5E5E6A">{{heroSub}}</div>
+          </div>
+          <sc-if value="{{isVn}}" hint-placeholder-val="{{ false }}"><div title="Vietnamese đồng (VND)" style="width: 32px; height: 32px; border-radius: 9999px; overflow: hidden; flex-shrink: 0"><svg width="32" height="32" viewBox="0 0 20 20" role="img" aria-label="Flag of Vietnam" style="display: block"><rect width="20" height="20" fill="#DA251D"></rect><polygon points="10.00,4.00 11.35,8.15 15.71,8.15 12.18,10.71 13.53,14.85 10.00,12.29 6.47,14.85 7.82,10.71 4.29,8.15 8.65,8.15" fill="#FFCD00"></polygon></svg></div></sc-if>
+          <sc-if value="{{isIntl}}" hint-placeholder-val="{{ true }}"><div title="US dollar · USDC is a dollar stablecoin" style="width: 32px; height: 32px; border-radius: 9999px; overflow: hidden; flex-shrink: 0"><svg width="32" height="32" viewBox="0 0 20 20" role="img" aria-label="Flag of the United States" style="display: block"><rect y="0.000" width="20" height="1.538" fill="#B22234"></rect><rect y="1.538" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="3.077" width="20" height="1.538" fill="#B22234"></rect><rect y="4.615" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="6.154" width="20" height="1.538" fill="#B22234"></rect><rect y="7.692" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="9.231" width="20" height="1.538" fill="#B22234"></rect><rect y="10.769" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="12.308" width="20" height="1.538" fill="#B22234"></rect><rect y="13.846" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="15.385" width="20" height="1.538" fill="#B22234"></rect><rect y="16.923" width="20" height="1.538" fill="#FFFFFF"></rect><rect y="18.462" width="20" height="1.538" fill="#B22234"></rect><rect width="10" height="10.769" fill="#3C3B6E"></rect><circle cx="2.55" cy="2.20" r="0.6" fill="#FFFFFF"></circle><circle cx="5.85" cy="2.20" r="0.6" fill="#FFFFFF"></circle><circle cx="4.20" cy="5.40" r="0.6" fill="#FFFFFF"></circle><circle cx="7.50" cy="5.40" r="0.6" fill="#FFFFFF"></circle><circle cx="2.55" cy="8.60" r="0.6" fill="#FFFFFF"></circle><circle cx="5.85" cy="8.60" r="0.6" fill="#FFFFFF"></circle></svg></div></sc-if>
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div><div style="font-size: 11px; color: #5E5E6A">{{statALabel}}</div><div style="margin-top: 2px; font-size: 14px; font-weight: 600">{{statA}}</div></div>
+          <div><div style="font-size: 11px; color: #5E5E6A">{{statBLabel}}</div><div style="margin-top: 2px; font-size: 14px; font-weight: 600">{{statB}}</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="margin: 2px 2px 6px; font-size: 13px; font-weight: 600; color: #5E5E6A">Needs your action</div>
+        <div style="border-radius: 14px; overflow: hidden; border: none; background: #F7F7F9">
+          <sc-for list="{{needs}}" as="n" hint-placeholder-count="2">
+            <a href="{{n.href}}" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-decoration: none; color: #111116; border-bottom: 1px solid #F0F0F3">
+              <span aria-hidden="true" style="{{n.iconBox}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{n.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{n.title}}</span><span style="display: block; margin-top: 1px; font-size: 12px; color: #5E5E6A">{{n.sub}}</span></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8A96" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+
+      <div role="group" aria-label="Quick actions" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{quick}}" as="q" hint-placeholder-count="2">
+          <a href="{{q.href}}" class="ned-wp-btn" style="display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 10px; border-radius: 14px; background: #F4F4F6; color: #111116; text-decoration: none; min-width: 0">
+            <span aria-hidden="true" style="{{q.dotStyle}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{q.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{q.icon}}"></path></svg></span>
+            <span style="min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.2">{{q.label}}</span>
+          </a>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px">
+        <a href="{{phoneHref}}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; text-decoration: none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>Open the full wallet</a>
+        <a href="WebSignIn.dc.html" style="font-size: 13px; font-weight: 600; color: #5E5E6A; text-decoration: none">Sign out</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Signed in: confirm request (like an extension's approve window) -->
+  <sc-if value="{{isSign}}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: #F4F4F6; font-size: 12px; color: #3F3F49"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg><span>Request from <strong>N.E.D Workspace</strong> · ned.app</span></div>
+      <div>
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #6A22B0">Confirm to sign</div>
+        <div style="margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; line-height: 1.15">{{signTitle}}</div>
+      </div>
+      <div style="border-radius: 14px; padding: 2px 12px; border: none; background: #F7F7F9">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+          <div style="{{r.rowStyle}}">
+            <span style="font-size: 13px; color: #5E5E6A; flex-shrink: 0">{{r.k}}</span>
+            <span style="text-align: right; min-width: 0"><span style="{{r.vStyle}}">{{r.v}}</span><sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="display: block; margin-top: 1px; font-size: 11px; color: #5E5E6A">{{r.sub}}</span></sc-if></span>
+          </div>
+        </sc-for>
+      </div>
+      <div role="note" style="{{noteStyle}}">{{note}}</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <button onClick="{{onCancel}}" class="ned-wp-btn" style="height: 50px; border-radius: 9999px; border: none; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Cancel</button>
+        <button onClick="{{onConfirm}}" class="ned-wp-pri" style="height: 50px; border-radius: 9999px; border: none; background: #7B2FBE; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{confirmLabel}}</button>
+      </div>
+      <div style="font-size: 11px; line-height: 1.5; color: #5E5E6A; text-align: center">Signed with the wallet linked to your Google account. N.E.D never holds your money.</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["mia", "vinh"], "default": "mia"}, "mode": {"editor": "enum", "options": ["home", "sign", "signedOut"], "default": "home"}, "action": {"editor": "enum", "options": ["create", "submit", "approve"], "default": "create"}, "fingerprint": {"editor": null, "default": "0x2831…3b17"}, "nextHref": {"editor": null, "default": "WebWorkspace.dc.html"}, "onConfirm": {"editor": null}, "onCancel": {"editor": null}, "onClose": {"editor": null}, "$preview": {"width": 380, "height": 640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var who = this.props.who ?? 'mia';
+    var mode = this.props.mode ?? 'home';
+    var action = this.props.action ?? 'create';
+    var fp = this.props.fingerprint ?? '0x2831…3b17';
+    var vn = who === 'vinh';
+    var noop = function () {};
+
+    var TONE = { purple: ['#F2EAFB', '#6A22B0'], warning: ['#FFF5E1', '#8A5300'], success: ['#E7F6EC', '#127A3A'], info: ['#EEEFFE', '#3730A3'] };
+    var P = { submit: 'M12 19V5M5 12l7-7 7 7', review: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', release: 'M12 3v12M7 10l5 5 5-5M5 21h14', share: 'M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13', records: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01', receive: 'M12 5v14M5 12l7 7 7-7', send: 'M12 19V5M5 12l7-7 7 7', plus: 'M12 5v14M5 12h14' };
+    function need(t, sub, href, icon, tone) {
+      var c = TONE[tone];
+      return { title: t, sub: sub, href: href, icon: P[icon], ink: c[1], iconBox: 'width: 30px; height: 30px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + c[0] };
+    }
+    function quick(label, href, icon, filled) {
+      return { label: label, href: href, icon: P[icon], ink: filled ? '#FFFFFF' : '#111116', dotStyle: 'width: 30px; height: 30px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + (filled ? '#7B2FBE' : '#FFFFFF') };
+    }
+
+    var rows = [], title = '', note = '', noteTone = 'purple', confirm = 'Confirm';
+    function row(k, v, sub, mono) { rows.push({ k: k, v: v, sub: sub || '', hasSub: !!sub, vStyle: 'display: block; font-size: 13px; font-weight: 600; ' + (mono ? "font-family: 'Space Mono', monospace;" : '') }); }
+    if (action === 'create') {
+      title = 'Create contract';
+      row('Contract', 'Landing page design');
+      row('Freelancer', '@vinh');
+      row('Milestones', '2 · 20.00 USDC total', 'Locked later, after @vinh accepts');
+      row('Brief fingerprint', fp, 'Saved on-chain, cannot change', true);
+      row('Network fee', '~0.000005 SOL', 'devnet test SOL');
+      row('N.E.D fee', 'None during the pilot');
+      note = 'No money moves yet. @vinh reads the brief from your invite link and confirms the same fingerprint when accepting.';
+      confirm = 'Create';
+    } else if (action === 'submit') {
+      title = 'Submit milestone 1';
+      row('Contract', 'Landing page design');
+      row('For', '@mia');
+      row('Amount', '≈ 260,000 VND', '$10.00 · estimate · rate of 2 Oct');
+      row('Delivery fingerprint', fp, 'Saved on-chain with the chain clock', true);
+      row('Deadline', '12 Oct 2026, 18:00', 'On time · 9 days left');
+      row('Network fee', '~0.000005 SOL', 'devnet test SOL');
+      note = 'After you submit, @mia has until 15 Oct, 18:00 to review. If she does nothing by then, it is released to your bank in VND.';
+      confirm = 'Submit';
+    } else {
+      title = 'Release milestone 1';
+      row('Contract', 'Landing page design');
+      row('Amount', '10.00 USDC');
+      row('To', 'Payout partner for @vinh', 'Paid out in VND · simulated in the demo');
+      row('Delivery fingerprint', fp, 'Matches what @vinh submitted', true);
+      row('Network fee', '~0.000005 SOL', 'devnet test SOL');
+      row('N.E.D fee', 'None during the pilot');
+      note = 'Release cannot be undone. Check the delivery first.';
+      noteTone = 'warning';
+      confirm = 'Release';
+    }
+    rows = rows.map(function (r, i) { r.rowStyle = 'display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 9px 0;' + (i ? ' border-top: 1px solid #F0F0F3' : ''); return r; });
+    var nt = TONE[noteTone];
+
+    var signedIn = mode !== 'signedOut';
+    return {
+      isOut: !signedIn, isIn: signedIn, isHome: mode === 'home', isSign: mode === 'sign',
+      dialogLabel: !signedIn ? 'Sign in with N.E.D Wallet' : (mode === 'sign' ? 'Confirm: ' + title : 'Your N.E.D Wallet'),
+      nextHref: this.props.nextHref ?? 'WebWorkspace.dc.html',
+      handle: vn ? 'vinh' : 'mia', displayName: vn ? 'Vinh Nguyen' : 'Mia Chen', email: vn ? 'vinh@example.com' : 'mia@example.com',
+      shortAddr: vn ? '4Fq8…Lw2c' : '9PZw…rhkW',
+      hasClose: typeof this.props.onClose === 'function', onClose: this.props.onClose || noop,
+      isVn: vn, isIntl: !vn,
+      heroLabel: vn ? 'Locked for you' : 'USDC balance',
+      heroWhole: vn ? '780,000' : '0.00', heroUnit: vn ? ' VND' : ' USDC',
+      heroSub: vn ? 'Estimate · $30.00 · 2 contracts · rate of 2 Oct' : 'Devnet test money',
+      statALabel: vn ? 'Received this month' : 'Locked in your contracts', statA: vn ? '≈ 0 VND' : '30.00 USDC',
+      statBLabel: 'Active contracts', statB: '2',
+      needs: vn
+        ? [need('Submit milestone 1', 'Landing page design · due 12 Oct', 'WebSubmit.dc.html', 'submit', 'purple')]
+        : [need('Review milestone 1', 'Landing page design · by @vinh', 'WebReview.dc.html', 'review', 'info'), need('Release now: Logo refresh', 'Review time is over', 'ContractAnyoneAction.dc.html', 'release', 'success')],
+      quick: vn
+        ? [quick('Share @vinh', 'HomeVN.dc.html', 'share', true), quick('Records', 'Records.dc.html', 'records', false)]
+        : [quick('New contract', 'WebContractNew.dc.html', 'plus', true), quick('Receive', 'Receive.dc.html', 'receive', false)],
+      phoneHref: vn ? 'HomeVN.dc.html' : 'HomeIntl.dc.html',
+      signTitle: title, rows: rows, note: note, confirmLabel: confirm,
+      noteStyle: 'padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; background: ' + nt[0] + '; color: ' + nt[1],
+      onConfirm: this.props.onConfirm || noop, onCancel: this.props.onCancel || noop
+    };
+  }
+}
+</script>
+</body>
+</html>
