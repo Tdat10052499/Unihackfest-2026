@@ -12,14 +12,14 @@
     "test": "node --test \"services/**/*.test.ts\" \"utils/**/*.test.ts\"",
     "predeploy": "npx expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll && node scripts/gh-pages-gitignore.js",
     "deploy": "gh-pages -d dist -t --nojekyll",
-    "identity:devnet": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/identity-devnet.ts",
+    "identity:devnet": "ts-node -P tsconfig.scripts.json scripts/identity-devnet.ts",
     "test:identity": "node --test services/identity/__tests__/*.test.ts",
-    "milestone:devnet": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/milestone-devnet.ts",
-    "recycle:demo-usdc": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/recycle-demo-usdc.ts",
-    "identity:check": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/identity-readonly.ts",
+    "milestone:devnet": "ts-node -P tsconfig.scripts.json scripts/milestone-devnet.ts",
+    "recycle:demo-usdc": "ts-node -P tsconfig.scripts.json scripts/recycle-demo-usdc.ts",
+    "identity:check": "ts-node -P tsconfig.scripts.json scripts/identity-readonly.ts",
     "test:jupiter": "node --test services/jupiter/__tests__/*.test.ts",
     "test:xstocks": "node --test services/__tests__/demoLedger.test.ts services/__tests__/xstocks.test.ts",
-    "xstocks:diagnose": "ts-node -T -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node10\",\"customConditions\":null,\"allowImportingTsExtensions\":false,\"rootDir\":\".\",\"ignoreDeprecations\":\"6.0\"}' scripts/xstocks-diagnose.ts"
+    "xstocks:diagnose": "ts-node -P tsconfig.scripts.json scripts/xstocks-diagnose.ts"
   },
   "dependencies": {
     "@ned/core": "workspace:*",
