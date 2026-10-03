@@ -1,7 +1,8 @@
-// Onboarding — Choose mode (OnbMode, bước 2/2): Simple (Recommended) / Crypto → useWalletModeStore (theo ví) → Home.
+// Hidden (refactor-plan PR4, B3): the mode choice is replaced by the residence screen. /mode redirects there; the
+// old screen stays below as LegacyModeScreen (not routed).
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
@@ -37,7 +38,11 @@ const MODES: {
   },
 ];
 
-export default function ModeScreen() {
+export default function ModeRoute() {
+  return <Redirect href="/residence" />;
+}
+
+export function LegacyModeScreen() {
   const { isReady, isAuthenticated, walletAddress } = useAuth();
   const setMode = useWalletModeStore((s) => s.setMode);
   const setRegion = useRegionStore((s) => s.setRegion);
@@ -50,7 +55,6 @@ export default function ModeScreen() {
   const confirm = () => {
     if (!walletAddress) return;
     setMode(walletAddress, selected);
-    // TODO(N11 bridge): until the region screen exists, the mode choice also sets the region
     setRegion(walletAddress, regionFromMode(selected));
     router.replace('/home');
   };

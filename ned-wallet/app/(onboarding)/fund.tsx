@@ -101,8 +101,8 @@ export default function FundScreen() {
           Add test SOL to get started
         </Text>
         <Text style={[onbText.lead, styles.lead]}>
-          Your profile lives on Solana. Creating it stores a little data on-chain, paid with devnet SOL (free test
-          money). This is a one-time step.
+          Your profile lives on Solana. Creating it stores a little data on-chain, covered by devnet SOL (test money
+          with no value). This is a one-time step.
         </Text>
 
         <Card style={styles.amounts}>

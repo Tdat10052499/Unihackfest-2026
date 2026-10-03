@@ -1,6 +1,6 @@
-// Onboarding — Create profile (OnbProfile, bước 1/2). Phương án C:
+// Onboarding — Create profile (OnbProfile board, step 2 of 3; generated avatar from the wallet address). Phương án C:
 // - Username công khai [a-z0-9_] 3–20, kiểm tra trùng khi gõ (NameRecord), gợi ý 3 tên còn trống.
-// - SĐT TUỲ CHỌN (mặc định tắt): chỉ phone_key = scrypt(E.164) lên chain; số dạng rõ chỉ lưu trên máy.
+// - SĐT TUỲ CHỌN (để trống = không liên kết): chỉ phone_key = scrypt(E.164) lên chain; số dạng rõ chỉ lưu trên máy.
 // - create_profile (+ link_phone) trong MỘT giao dịch, ký bằng ví người dùng (tự trả phí + rent).
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -39,8 +39,8 @@ import {
   type SetupCost,
 } from '../../services/onboarding';
 import { NoticeCard, OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
-import { Toggle } from '../../components/design';
-import { colors, fonts, glass, radius, space, type } from '../../constants/design';
+import { Avatar } from '../../components/Avatar';
+import { colors, elevation, fonts, palette, radius, space, status, type } from '../../constants/design';
 
 const DEBOUNCE_MS = 400;
 
@@ -66,8 +66,9 @@ export default function ProfileScreen() {
   const [usernameState, setUsernameState] = useState<UsernameState>('empty');
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  const [phoneOn, setPhoneOn] = useState(false);
+  // The phone field is optional (OnbProfile board): empty = no phone link
   const [phone, setPhone] = useState('');
+  const phoneOn = phone.trim().length > 0;
   const [phoneState, setPhoneState] = useState<PhoneState>('empty');
   const phoneRef = useRef<{ e164: string; phoneKey: Uint8Array } | null>(null);
 
@@ -83,7 +84,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!walletAddress) return;
     fetchReverseRecord(connection, new PublicKey(walletAddress))
-      .then((reverse) => reverse && router.replace('/mode'))
+      .then((reverse) => reverse && router.replace('/residence'))
       .catch(() => {});
   }, [walletAddress, connection]);
 
@@ -163,7 +164,7 @@ export default function ProfileScreen() {
       console.log(`✅ [onboarding] create_profile @${username}${phoneKey ? ' + link_phone' : ''}: ${signature}`);
       if (phoneKey) await saveOwnPhone(phoneKey.e164);
       syncProfileToUserStore(walletAddress, username);
-      router.replace('/mode');
+      router.replace('/residence');
     } catch (err) {
       console.warn('[onboarding] create_profile failed:', err);
       setSubmitError(describeTxError(err, 'profile'));
@@ -185,10 +186,10 @@ export default function ProfileScreen() {
   }[usernameState];
 
   const phoneHint = {
-    empty: { text: "We never text you. It's only used so friends can find you.", color: colors.textTertiary },
-    invalid: { text: 'Enter a Vietnamese mobile number, e.g. 90 123 4567', color: colors.warningText },
+    empty: { text: "Optional. Shown as an unverified number: we don't send a code to check it.", color: colors.textTertiary },
+    invalid: { text: 'Enter a 9–10 digit Vietnamese number', color: colors.warningText },
     checking: { text: 'Checking this number…', color: colors.textTertiary },
-    ok: { text: 'Looks good', color: colors.successText },
+    ok: { text: "Unverified number · we don't send a code to check it", color: colors.successText },
     taken: {
       text: "This number is already linked to another N.E.D account. If it's yours, use your @username.",
       color: colors.errorText,
@@ -201,12 +202,24 @@ export default function ProfileScreen() {
   return (
     <OnbScreen glow={false}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <StepHeader step={1} total={2} onBack={() => router.replace('/setup')} />
+        <StepHeader step={2} total={3} onBack={() => router.replace('/consent')} />
         <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={onbText.h1} accessibilityRole="header">
             Create your profile
           </Text>
-          <Text style={[onbText.lead, styles.lead]}>Friends can send you money with your username or phone number.</Text>
+          <Text style={[onbText.lead, styles.lead]}>Clients find you by your @username to send you a contract.</Text>
+
+          {walletAddress ? (
+            <View style={styles.avatarCard}>
+              <Avatar seed={walletAddress} size={64} decorative />
+              <View style={styles.flex}>
+                <Text style={styles.avatarTitle}>Your avatar</Text>
+                <Text style={[onbText.small, styles.avatarSub]}>
+                  Made from your wallet address. It stays the same on every device. No photo needed.
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
           <Text style={[onbText.label, styles.label]} nativeID="onb-user-label">
             Username
@@ -241,20 +254,14 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
-          <View style={styles.toggleRow}>
-            <View style={styles.flex}>
-              <Text style={onbText.label}>Let friends find me by phone</Text>
-              <Text style={[onbText.small, styles.toggleSub]}>Optional. You can add it later.</Text>
-            </View>
-            <Toggle accessibilityLabel="Let friends find me by phone" value={phoneOn} onValueChange={setPhoneOn} />
-          </View>
-
-          {phoneOn ? (
-            <>
+          <Text style={[onbText.label, styles.label]} nativeID="onb-phone-label">
+            Phone number <Text style={styles.optional}>(optional)</Text>
+          </Text>
+          <>
               <View style={[styles.field, fieldBorder(phoneState === 'ok', phoneState === 'taken')]}>
                 <Text style={styles.country}>VN +84</Text>
                 <TextInput
-                  accessibilityLabel="Phone number"
+                  accessibilityLabelledBy="onb-phone-label"
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="90 123 4567"
@@ -269,19 +276,11 @@ export default function ProfileScreen() {
               <Text style={[styles.hint, { color: phoneHint.color }]} accessibilityLiveRegion="polite">
                 {phoneHint.text}
               </Text>
-              <NoticeCard tone="warning" style={styles.notice}>
-                <Text style={onbText.small}>
-                  • Your number is never stored in plain text — only a one-way code goes on Solana.{'\n'}• It is not
-                  verified with an SMS code yet, so senders will see “Unverified number”.{'\n'}• Anyone who knows your
-                  number can find your @username.
-                </Text>
-              </NoticeCard>
-            </>
-          ) : null}
+          </>
 
           <NoticeCard tone="info" style={styles.notice}>
             <Text style={onbText.small}>
-              Your username is saved on Solana, so anyone who knows it can find your wallet.
+              Your @username and wallet address are public on Solana. Your phone number is never stored as plain text.
             </Text>
           </NoticeCard>
 
@@ -310,34 +309,37 @@ export default function ProfileScreen() {
   );
 }
 
+/** OnbProfile field: white with S1; a green halo when valid, a red fill when taken (no outlines) */
 function fieldBorder(ok: boolean, bad: boolean) {
-  return { borderColor: bad ? glass.errorBorder : ok ? glass.successBorder : glass.borderStrong };
+  if (bad) return { backgroundColor: status.error.bg };
+  if (ok) return { backgroundColor: palette.card, boxShadow: '0 0 0 3px rgba(22,163,74,0.16)' };
+  return { backgroundColor: palette.card, ...elevation.s1 };
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingHorizontal: space[6], paddingTop: space[6], paddingBottom: space[4] },
   lead: { marginTop: space[2] },
-  label: { marginTop: space[6] },
+  label: { marginTop: space[5], fontFamily: fonts.bodySemi, fontSize: 13, color: palette.ink2 },
   field: {
     marginTop: space[2],
     height: 54,
-    paddingHorizontal: space[4],
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space[2],
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    backgroundColor: glass.fill,
+    borderRadius: 14,
   },
+  avatarCard: { marginTop: space[5], flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.xl, backgroundColor: palette.card },
+  avatarTitle: { fontFamily: fonts.display, fontSize: 16, color: palette.ink },
+  avatarSub: { marginTop: 2 },
+  optional: { fontFamily: fonts.bodyMedium, color: palette.caption },
   prefix: { ...type.mono, fontSize: 16, color: colors.textTertiary },
   country: {
     ...type.body,
     fontSize: 15,
     color: colors.text,
-    paddingRight: space[3],
-    borderRightWidth: 1,
-    borderRightColor: glass.borderStrong,
+    paddingRight: space[2],
   },
   input: { flex: 1, minWidth: 0, height: 50, color: colors.text, fontFamily: fonts.mono, fontSize: 16 },
   hint: { ...type.caption, marginTop: space[2] },
@@ -347,15 +349,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     justifyContent: 'center',
     borderRadius: radius.pill,
-    backgroundColor: glass.iconTint,
-    borderWidth: 1,
-    borderColor: glass.accentBorder,
+    backgroundColor: palette.tint,
   },
-  chipText: { ...type.mono, fontSize: 12, color: colors.purple[100] },
-  toggleRow: { marginTop: space[6], flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  toggleSub: { marginTop: 2, color: colors.textTertiary },
+  chipText: { ...type.mono, fontSize: 12, color: palette.link },
   notice: { marginTop: space[4] },
-  link: { ...type.caption, marginTop: space[2], fontFamily: fonts.bodySemi, color: colors.purple[200], textDecorationLine: 'underline' },
+  link: { ...type.caption, marginTop: space[2], fontFamily: fonts.bodySemi, color: palette.link, textDecorationLine: 'underline' },
   footer: { paddingHorizontal: space[6], paddingTop: space[3], paddingBottom: space[8] },
   cost: { marginTop: space[3] },
 });

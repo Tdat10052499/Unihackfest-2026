@@ -1,4 +1,4 @@
-// Onboarding — Welcome (OnbWelcome): Teddy vẫy tay, 3 lợi ích, chỉ "Continue with Google".
+// Onboarding — Welcome (OnbWelcome board): illustration, title, three points, only "Continue with Google".
 // Web: login() chuyển sang trang Google rồi quay về đây; khi đã đăng nhập → Setting up.
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
@@ -7,13 +7,13 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 import { GoogleButton, NoticeCard, OnbScreen, onbText } from '../../components/onboarding/ui';
-import { colors, fonts, glass, radius, space, type } from '../../constants/design';
+import { fonts, palette, space } from '../../constants/design';
 
-// "No network fees, ever" trong thiết kế đã bỏ: không có gas sponsorship (docs/04-ke-hoach-code.md, Cập nhật sau Phase 0)
+// OnbWelcome copy (product-spec section 6 words: lock, release, refund; never pay / escrow / safe)
 const BENEFITS: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
-  { icon: 'phone', text: 'Send money with a phone number' },
-  { icon: 'trending-up', text: 'Own US stocks from just $1' },
-  { icon: 'lock', text: 'Your own wallet — no seed phrase' },
+  { icon: 'lock', text: 'Clients lock the money for each milestone' },
+  { icon: 'globe', text: 'Receive VND in Vietnam, or USDC abroad' },
+  { icon: 'clock', text: 'Refund or release by deadline, written in code' },
 ];
 
 export default function WelcomeScreen() {
@@ -41,7 +41,7 @@ export default function WelcomeScreen() {
   const shownError = loginError || (status === 'error' || status === 'unconfigured' ? error : '');
 
   return (
-    <OnbScreen>
+    <OnbScreen glow={false}>
       <View style={styles.body}>
         <View style={styles.mascotWrap}>
           <Image
@@ -52,15 +52,15 @@ export default function WelcomeScreen() {
           />
         </View>
         <Text style={styles.title} accessibilityRole="header">
-          Your money,{'\n'}made simple.
+          Get your earnings locked before you start.
         </Text>
-        <Text style={[onbText.lead, styles.subtitle]}>Send, save and invest in US stocks. No crypto jargon.</Text>
+        <Text style={styles.subtitle}>Milestone contracts for freelancers and their clients abroad.</Text>
 
         <View style={styles.benefits}>
           {BENEFITS.map((b) => (
             <View key={b.text} style={styles.benefit}>
               <View style={styles.benefitIcon}>
-                <Feather name={b.icon} size={17} color={colors.purple[200]} />
+                <Feather name={b.icon} size={17} color={palette.link} />
               </View>
               <Text style={styles.benefitText}>{b.text}</Text>
             </View>
@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
           </NoticeCard>
         ) : null}
         <GoogleButton onPress={handleLogin} loading={starting || status === 'initializing'} />
-        <Text style={[onbText.caption, styles.terms]}>By continuing you agree to our Terms and Privacy Policy.</Text>
+        <Text style={styles.terms}>By continuing you agree to our Terms and Privacy Policy.</Text>
       </View>
     </OnbScreen>
   );
@@ -83,24 +83,22 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: space[6] },
-  mascotWrap: { alignItems: 'center', paddingTop: space[8] },
-  mascot: { width: 210, height: 160 },
-  title: { ...type.h1, marginTop: space[6], fontFamily: fonts.display },
-  subtitle: { ...type.bodyLarge, marginTop: space[3], color: colors.textSecondary },
+  mascotWrap: { height: 220, borderRadius: 28, backgroundColor: '#EDE3FB', alignItems: 'center', justifyContent: 'center', marginTop: space[4] },
+  mascot: { width: 230, height: 180 },
+  title: { fontFamily: fonts.display, fontSize: 32, lineHeight: 37, letterSpacing: -0.6, color: palette.ink, marginTop: space[6] },
+  subtitle: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, marginTop: space[3], color: palette.caption },
   benefits: { marginTop: space[6], gap: space[3] },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   benefitIcon: {
     width: 34,
     height: 34,
-    borderRadius: radius.md,
-    backgroundColor: glass.iconTint,
-    borderWidth: 1,
-    borderColor: glass.accentBorder,
+    borderRadius: 10,
+    backgroundColor: palette.tint,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  benefitText: { ...type.body, fontFamily: fonts.bodyMedium, color: colors.text },
+  benefitText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: palette.ink, flex: 1 },
   spacer: { flex: 1, minHeight: space[6] },
   error: { marginBottom: space[3] },
-  terms: { marginTop: space[4], marginBottom: space[8] },
+  terms: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: palette.caption, textAlign: 'center', marginTop: space[3], marginBottom: space[6] },
 });

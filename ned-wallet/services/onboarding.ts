@@ -60,11 +60,8 @@ export interface OnboardingState {
   reverse: ReverseRecord | null;
 }
 
-/**
- * TODO(N11 bridge): the consent screen comes with the redesigned screens. Until it exists, onboarding skips the
- * 'consent' step; set this to true when app/(onboarding)/consent.tsx records consent with useConsentStore.
- */
-export const CONSENT_SCREEN_READY = false;
+/** The consent screen (app/(onboarding)/consent.tsx, OnbConsent board) records consent with useConsentStore (B3) */
+export const CONSENT_SCREEN_READY = true;
 
 /**
  * Bước tiếp theo sau khi đăng nhập + có ví (non-ui-plan N11):
@@ -98,16 +95,13 @@ function migrateRegionFromMode(wallet: string) {
   if (mode) useRegionStore.getState().setRegion(wallet, regionFromMode(mode));
 }
 
-/**
- * Route for each step. TODO(N11 bridge): there is no region screen yet, so 'region' opens the existing mode screen,
- * which also writes the region; 'consent' is not reached while CONSENT_SCREEN_READY is false.
- */
-export function onboardingRoute(step: OnboardingStep): '/home' | '/fund' | '/consent' | '/profile' | '/mode' {
+/** Route for each step: welcome → setup → (fund) → consent → profile → residence → home */
+export function onboardingRoute(step: OnboardingStep): '/home' | '/fund' | '/consent' | '/profile' | '/residence' {
   switch (step) {
     case 'home':
       return '/home';
     case 'region':
-      return '/mode';
+      return '/residence';
     default:
       return `/${step}`;
   }

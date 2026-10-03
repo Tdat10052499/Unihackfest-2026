@@ -1,11 +1,10 @@
-// Component onboarding (OnbWelcome / OnbSetup / OnbProfile / OnbMode), dựng trên DesignKit (components/design).
+// Onboarding pieces (OnbWelcome / OnbSetup / OnbConsent / OnbProfile / OnbResidence boards) on the v2 DesignKit.
 import React, { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Button, IconButton, Notice, Screen } from '@/components/design';
-import { colors, fonts, glass, radius, shadows, sizes, space, type, type OrbPreset } from '@/constants/design';
-import { onbColors } from './theme';
+import { colors, fonts, palette, radius, sizes, space, type, type OrbPreset } from '@/constants/design';
 
-/** Nền gradient tối + quầng sáng tím; các màn onboarding tự bố cục bên trong */
+/** Onboarding frame: ground background, the screen lays out its own content */
 export function OnbScreen({ children, glow = 'brand' }: { children: ReactNode; glow?: OrbPreset | false }) {
   return (
     <Screen scroll={false} glow={glow} contentStyle={styles.bare}>
@@ -14,7 +13,7 @@ export function OnbScreen({ children, glow = 'brand' }: { children: ReactNode; g
   );
 }
 
-/** Nút chính (Button System · Primary). Tắt → nền kính, chữ Tertiary */
+/** Primary pill (Main board) */
 export function PrimaryButton({
   title,
   onPress,
@@ -31,7 +30,7 @@ export function PrimaryButton({
   return <Button title={title} onPress={onPress} disabled={disabled} loading={loading} style={style} />;
 }
 
-/** Nút trắng "Continue with Google" của OnbWelcome (cao và chữ theo Button System) */
+/** "Continue with Google" of OnbWelcome: ink pill, white G mark */
 export function GoogleButton({ onPress, loading }: { onPress: () => void; loading?: boolean }) {
   return (
     <Pressable
@@ -42,20 +41,20 @@ export function GoogleButton({ onPress, loading }: { onPress: () => void; loadin
       style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}
     >
       {loading ? (
-        <ActivityIndicator color={onbColors.dark} />
+        <ActivityIndicator color={palette.onAccent} />
       ) : (
         <>
           <View style={styles.googleMark}>
             <Text style={styles.googleMarkText}>G</Text>
           </View>
-          <Text style={[type.button, styles.googleText]}>Continue with Google</Text>
+          <Text style={styles.googleText}>Continue with Google</Text>
         </>
       )}
     </Pressable>
   );
 }
 
-/** Hàng đầu màn: nút back 44px + thanh tiến trình n/total */
+/** Top row: 44 px back button (white, S1) + n/total progress segments */
 export function StepHeader({ step, total, onBack }: { step: number; total: number; onBack?: () => void }) {
   return (
     <View style={styles.header}>
@@ -93,7 +92,8 @@ export function NoticeCard({
 
 /** Cỡ chữ onboarding theo Typography System */
 export const onbText = StyleSheet.create({
-  h1: type.h1,
+  /** Board H1: Space Grotesk 28/700 */
+  h1: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.4, color: palette.ink },
   h1Center: { ...type.h2, textAlign: 'center' },
   lead: type.body,
   label: { ...type.body, fontFamily: fonts.bodyMedium, color: colors.text },
@@ -107,27 +107,25 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   googleButton: {
     height: sizes.button,
-    borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    borderRadius: radius.pill,
+    backgroundColor: palette.ink,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: space[3],
-    boxShadow: shadows.google,
   },
   googleMark: {
     width: 24,
     height: 24,
     borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: onbColors.dark,
+    backgroundColor: palette.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleMarkText: { fontFamily: fonts.bodySemi, fontSize: 13, color: onbColors.dark },
-  googleText: { color: onbColors.dark },
+  googleMarkText: { fontFamily: fonts.bodySemi, fontWeight: '700', fontSize: 13, color: palette.ink },
+  googleText: { fontFamily: fonts.bodySemi, fontSize: 16, color: palette.onAccent },
   header: { flexDirection: 'row', alignItems: 'center', gap: space[4], paddingHorizontal: space[5], paddingTop: space[1] },
   progress: { flex: 1, flexDirection: 'row', gap: 6 },
-  progressSeg: { flex: 1, height: 4, borderRadius: radius.pill, backgroundColor: glass.borderStrong },
-  progressSegOn: { backgroundColor: colors.purple[400] },
+  progressSeg: { flex: 1, height: 4, borderRadius: radius.pill, backgroundColor: palette.hoverGround },
+  progressSegOn: { backgroundColor: palette.accent },
 });
