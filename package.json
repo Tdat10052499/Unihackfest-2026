@@ -3,8 +3,9 @@
   "private": true,
   "description": "Monorepo root: ned-wallet (Expo app), packages/ned-core (shared core). Install with pnpm from this folder.",
   "scripts": {
-    "test": "npm run test:core && npm run test:wallet",
+    "test": "npm run test:core && npm run test:wallet && npm run test:workspace",
     "test:core": "cd packages/ned-core && node --test \"src/**/*.test.ts\"",
-    "test:wallet": "cd ned-wallet && npm test"
+    "test:wallet": "cd ned-wallet && npm test",
+    "test:workspace": "cd ned-workspace && node --test \"src/**/*.test.ts\""
   }
 }
