@@ -285,3 +285,30 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within <AuthProvider>');
   return ctx;
 }
+
+/**
+ * Read-only signed-in context for the dev preview (app/dev/home-preview.tsx, FEATURES.devTools only): renders the real
+ * screens for a public wallet address without a login. Every signing call throws; nothing can be sent.
+ */
+export function AuthPreviewProvider({ walletAddress, children }: { walletAddress: string; children: ReactNode }) {
+  const value = useMemo<AuthContextValue>(() => {
+    const fail = async (): Promise<never> => {
+      throw new Error('Preview only: nothing can be signed here.');
+    };
+    return {
+      status: 'ready',
+      isReady: true,
+      isAuthenticated: true,
+      user: { id: 'preview', email: 'preview@example.com' },
+      walletAddress,
+      connection: fallbackConnection,
+      error: null,
+      login: fail,
+      logout: async () => {},
+      signTransaction: fail,
+      signAndSendTransaction: fail,
+      signMessage: fail,
+    };
+  }, [walletAddress]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

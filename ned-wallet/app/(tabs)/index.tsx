@@ -1,515 +1,469 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// Home (HomeVN / HomeIntl boards, build-plan B3). Two money views per wallet (decision D18):
+// - Vietnam view: what is locked for you in ≈ VND, released to you, Share @user / Records; never a USDC balance;
+// - international view: USDC balance, locked amounts, New contract / Receive / Send.
+// Both: greeting by time of day + name, Devnet badge, avatar → Settings, needs your action, your contracts, suggestions.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import { Feather } from '@expo/vector-icons';
-import { useAuth } from '@/services/auth';
-import { useUserStore } from '@/stores/useUserStore';
-import { getSolanaBalance, getUsdcTokenBalance } from '@/services/solana';
-import { getDemoLedger, type DemoLedger } from '@/services/demoLedger';
-import { getXStocks, type XStock } from '@/services/xstocks';
-import { NotificationModal } from '@/components/NotificationModal';
-import { AmbientGlow } from '@/components/design';
+import { Avatar } from '@/components/Avatar';
+import { Badge, PressableScale, Sheet } from '@/components/design';
+import { FlagUS, FlagVN } from '@/components/home/Flags';
+import { NAV_HEIGHT } from '@/components/wallet/WalletNav';
+import { USD_VND_RATE_DATE } from '@/constants/chain';
+import { fonts, palette, radius, space, status } from '@/constants/design';
 import { MASCOT_IMAGES } from '@/constants/mascot';
-import { blur, colors, dataColors, diagonal, fonts, glass, gradients, home, light, radius, shadows, sizes, space, type } from '@/constants/design';
+import { useFunds } from '@/hooks/useFunds';
+import { useRegion } from '@/hooks/useRegion';
+import { useAuth } from '@/services/auth';
+import { formatUsdc, usdcFromUnits, vndFromUnits } from '@/services/milestone/format';
+import { unsettled } from '@/services/milestone/rules';
+import type { ActionKind, ChipTone, FundAccount, FundView } from '@/services/milestone/view';
+import { getUsdcTokenBalance } from '@/services/solana';
+import { useUserStore } from '@/stores/useUserStore';
 
-const walletCards = [
-  { label: 'CASH', colors: home.walletCards.cash },
-  { label: 'CRYPTO', colors: home.walletCards.crypto },
-  { label: 'STOCKS', colors: home.walletCards.stocks },
-] as const;
+type Icon = React.ComponentProps<typeof Feather>['name'];
 
-const money = (value: number) =>
-  value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const TONE: Record<ChipTone, { bg: string; ink: string; dot: string }> = {
+  info: status.info,
+  accent: status.accent,
+  warning: status.warning,
+  success: status.success,
+  neutral: status.neutral,
+};
+const NEED_LOOK: Partial<Record<ActionKind, { icon: Icon; tone: ChipTone }>> = {
+  accept: { icon: 'check', tone: 'info' },
+  lock: { icon: 'lock', tone: 'info' },
+  submit: { icon: 'arrow-up', tone: 'accent' },
+  approve: { icon: 'eye', tone: 'warning' },
+  releaseNow: { icon: 'download', tone: 'success' },
+  refundNow: { icon: 'rotate-ccw', tone: 'warning' },
+  close: { icon: 'x-circle', tone: 'neutral' },
+};
+
+const vnd = (units: bigint) => vndFromUnits(units).toLocaleString('en-US');
+const rateDay = new Date(`${USD_VND_RATE_DATE}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
+const isMine = (key: { toBase58(): string }, wallet: string) => key.toBase58() === wallet;
+
+function greetingNow(date = new Date()) {
+  const h = date.getHours();
+  return h < 12 ? 'Good morning,' : h < 18 ? 'Good afternoon,' : 'Good evening,';
+}
+
+/** Amounts for the hero and the stats, from the decoded contracts */
+function totals(raw: FundAccount[], wallet: string) {
+  let lockedForMe = 0n;
+  let lockedByMe = 0n;
+  let releasedToMe = 0n;
+  let lockedForMeContracts = 0;
+  let active = 0;
+  for (const f of raw) {
+    if (f.state !== 'Settled') active += 1;
+    const open = f.state === 'Funded' ? unsettled(f) : 0n;
+    if (isMine(f.freelancer, wallet)) {
+      lockedForMe += open;
+      if (open > 0n) lockedForMeContracts += 1;
+      releasedToMe += f.released;
+    }
+    if (isMine(f.client, wallet)) lockedByMe += open;
+  }
+  return { lockedForMe, lockedByMe, releasedToMe, lockedForMeContracts, active };
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isReady, user, walletAddress } = useAuth();
-  const { username, avatarUrl } = useUserStore();
-  useEffect(() => {
-    if (walletAddress)
-      void useUserStore.getState().fetchUserProfile(walletAddress);
-  }, [walletAddress]);
-  const [balance, setBalance] = useState({ sol: 0, usdc: 0 });
-  const [ledger, setLedger] = useState<DemoLedger>({
-    cashUsdc: 0,
-    holdings: [],
-    trades: [],
-  });
-  const [stocks, setStocks] = useState<XStock[]>([]);
+  const username = useUserStore((s) => s.username);
+  const { region } = useRegion();
+  const vn = (region ?? 'vn') === 'vn';
+  const { funds, raw, loading, error, refresh } = useFunds();
+  const [usdc, setUsdc] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [hideBalance, setHideBalance] = useState(false);
+  const [share, setShare] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const refresh = useCallback(async () => {
-    if (!walletAddress) return;
-    setRefreshing(true);
-    setError('');
-    try {
-      const [sol, usdc, demo] = await Promise.all([
-        getSolanaBalance(walletAddress, true),
-        getUsdcTokenBalance(walletAddress, true),
-        getDemoLedger(walletAddress),
-      ]);
-      setBalance({ sol, usdc });
-      setLedger(demo);
-      if (demo.holdings.length) {
-        try {
-          setStocks(await getXStocks());
-        } catch {
-          setError('Investment prices unavailable. Pull down to retry.');
-        }
-      }
-    } catch {
-      setError('Unable to refresh balances. Pull down to retry.');
-    } finally {
-      setRefreshing(false);
-    }
+  useEffect(() => {
+    if (walletAddress) void useUserStore.getState().fetchUserProfile(walletAddress);
   }, [walletAddress]);
+
+  // The Vietnam view never reads or shows a USDC balance (product-spec 4.2)
+  const loadBalance = useCallback(async () => {
+    if (!walletAddress || vn) return;
+    try {
+      setUsdc(await getUsdcTokenBalance(walletAddress, true));
+    } catch {
+      setUsdc(null);
+    }
+  }, [walletAddress, vn]);
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-      const timer = setInterval(() => void refresh(), 30000);
+      void loadBalance();
+      const timer = setInterval(() => void loadBalance(), 30_000);
       return () => clearInterval(timer);
-    }, [refresh]),
+    }, [loadBalance])
   );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refresh(), loadBalance()]);
+    setRefreshing(false);
+  };
+
+  const sums = useMemo(() => totals(raw, walletAddress ?? ''), [raw, walletAddress]);
+  const needs = funds.filter((f) => f.needsMyAction && f.nextAction).slice(0, 3);
+  const rows = funds.slice(0, 3);
 
   if (!isReady)
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.purple[300]} />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   if (!user) return <Redirect href="/welcome" />;
 
-  const cash = balance.usdc + ledger.cashUsdc;
-  const investments = ledger.holdings.reduce(
-    (sum, item) =>
-      sum +
-      item.quantity *
-        (stocks.find((stock) => stock.id === item.mint)?.usdPrice ?? 0),
-    0,
-  );
-  const pricesReady = ledger.holdings.every((item) =>
-    stocks.some((stock) => stock.id === item.mint),
-  );
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? 'Good morning,'
-      : hour < 18
-        ? 'Good afternoon,'
-        : 'Good evening,';
-  const actions = [
-    {
-      title: 'RECEIVE',
-      icon: 'arrow-down',
-      onPress: () => router.push('/receive' as Href),
-    },
-    { title: 'SEND', icon: 'arrow-up', onPress: () => router.push('/send') },
-    { title: 'SWAP', icon: 'repeat', onPress: () => router.push('/swap') },
-    {
-      title: 'XSTOCKS',
-      icon: 'trending-up',
-      onPress: () => router.push('/xstocks'),
-    },
-  ] as const;
+  const wallet = walletAddress ?? '';
+  const name = username ? `@${username}` : wallet ? short(wallet) : '';
+  const atHandle = username ? `@${username}` : '';
+  const go = (href: string) => router.push(href as Href);
+  const openContracts = () => go('/contracts');
+
+  const copyHandle = async () => {
+    if (!atHandle) return;
+    await Clipboard.setStringAsync(atHandle);
+    setCopied(true);
+  };
 
   return (
     <View style={styles.page}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void refresh()}
-            tintColor={colors.purple[300]}
-          />
-        }
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + space[2], paddingBottom: NAV_HEIGHT + insets.bottom + space[8] }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={palette.accent} />}
       >
-        <LinearGradient
-          colors={home.heroColors}
-          locations={home.heroLocations}
-          style={[styles.hero, { paddingTop: Math.max(insets.top, space[4]) }]}
-        >
-          <AmbientGlow preset="homeHero" />
-          <View style={styles.topRow}>
-            <Pressable
-              onPress={() => router.push('/settings')}
-              style={styles.profile}
-              accessibilityLabel="Your profile"
-            >
-              <LinearGradient colors={gradients.purpleIndigo} {...diagonal} style={styles.avatar}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-                ) : (
-                  <Image source={MASCOT_IMAGES.lineArt} style={styles.avatarArt} resizeMode="contain" />
-                )}
-              </LinearGradient>
-              <View style={styles.nameWrap}>
-                <Text style={styles.greeting}>{greeting}</Text>
-                <Text numberOfLines={1} style={styles.name}>
-                  {username || 'N.E.D User'}
-                </Text>
-              </View>
-            </Pressable>
-            <View style={styles.topActions}>
-              <Pressable
-                accessibilityLabel="Scan QR code"
-                style={styles.iconButton}
-                onPress={() => router.push('/scan-qr')}
-              >
-                <Feather name="maximize" size={20} color={colors.text} />
-              </Pressable>
-              <View style={styles.separator} />
-              <Pressable
-                accessibilityLabel="Notifications"
-                style={styles.iconButton}
-                onPress={() => setShowNotifications(true)}
-              >
-                <Feather name="bell" size={20} color={colors.text} />
-              </Pressable>
-            </View>
-          </View>
-          <View style={styles.balanceBlock}>
-            <View style={styles.balanceLabelRow}>
-              <Text style={styles.kicker}>CASH + INVESTMENTS</Text>
-              <Pressable
-                accessibilityLabel={
-                  hideBalance ? 'Show balances' : 'Hide balances'
-                }
-                style={styles.eye}
-                onPress={() => setHideBalance(!hideBalance)}
-              >
-                <Feather
-                  name={hideBalance ? 'eye-off' : 'eye'}
-                  color={colors.textSecondary}
-                  size={17}
-                />
-              </Pressable>
-            </View>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balance}>
-              {hideBalance ? (
-                '••••••'
-              ) : pricesReady ? (
-                <>
-                  {money(cash + investments).slice(0, -3)}
-                  <Text style={styles.cents}>{money(cash + investments).slice(-3)}</Text>
-                </>
-              ) : (
-                '—'
-              )}
+        {/* Header: greeting + name, Devnet badge, avatar → Settings */}
+        <View style={styles.header}>
+          <View style={styles.flex} accessibilityRole="header">
+            <Text style={styles.greeting}>{greetingNow()}</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
             </Text>
-            <Text style={styles.demo}>Demo balance · SOL shown separately</Text>
-            <View style={styles.wallets}>
-              {walletCards.map((card) => (
-                <LinearGradient
-                  key={card.label}
-                  colors={card.colors}
-                  locations={home.walletLocations}
-                  {...diagonal}
-                  style={styles.wallet}
-                >
-                  <Image source={MASCOT_IMAGES.lineArt} style={styles.walletArt} resizeMode="contain" />
-                  <Text style={styles.walletLabel}>{card.label}</Text>
-                </LinearGradient>
-              ))}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add money"
-                onPress={() => router.push('/receive' as Href)}
-                style={styles.addWallet}
-              >
-                <Feather name="plus" size={18} color={colors.text} />
-              </Pressable>
-            </View>
           </View>
-          <View style={styles.actions}>
-            {actions.map((action) => (
-              <Pressable
-                key={action.title}
-                style={styles.action}
-                onPress={action.onPress}
-              >
-                <View style={styles.actionIcon}>
-                  <Feather name={action.icon} size={18} color={colors.text} />
-                </View>
-                <Text style={styles.actionText}>{action.title}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </LinearGradient>
-        <View style={styles.assets}>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Assets</Text>
-            <Pressable
-              style={styles.historyLink}
-              onPress={() => router.push('/history')}
-            >
-              <Text style={styles.historyText}>History</Text>
-              <Feather name="arrow-up-right" size={14} color={light.textSecondary} />
-            </Pressable>
-          </View>
-          <AssetRow
-            symbol="$"
-            name="USDC"
-            detail={`${balance.usdc.toFixed(2)} USDC on Devnet`}
-            value={hideBalance ? '••••' : money(cash)}
-            caption="Demo balance"
-            color={dataColors.usdc}
-          />
-          <AssetRow
-            symbol="◎"
-            name="Solana"
-            detail="Devnet · network fees"
-            value={hideBalance ? '••••' : `${balance.sol.toFixed(4)} SOL`}
-            caption="On-chain balance"
-            color={dataColors.sol}
-          />
-          {ledger.holdings.map((holding) => (
-            <Pressable
-              key={holding.mint}
-              onPress={() => router.push('/xstocks')}
-            >
-              <AssetRow
-                symbol={holding.symbol[0]}
-                name={holding.symbol}
-                detail={`${holding.quantity.toFixed(5)} shares`}
-                value={
-                  hideBalance
-                    ? '••••'
-                    : stocks.find((s) => s.id === holding.mint)?.usdPrice
-                      ? money(
-                          holding.quantity *
-                            stocks.find((s) => s.id === holding.mint)!
-                              .usdPrice!,
-                        )
-                      : '—'
-                }
-                caption="Demo balance"
-                color={dataColors.other}
-              />
-            </Pressable>
-          ))}
-          {!ledger.holdings.length ? (
-            <Pressable
-              onPress={() => router.push('/xstocks')}
-              style={styles.investPrompt}
-            >
-              <Feather name="trending-up" color={light.accent} size={22} />
-              <View style={styles.nameWrap}>
-                <Text style={styles.promptTitle}>Discover xStocks</Text>
-                <Text style={styles.subtle}>
-                  Explore companies with live market prices.
-                </Text>
-              </View>
-              <Feather name="chevron-right" color={light.accent} size={18} />
-            </Pressable>
+          <Badge label="Devnet · test money" tone="warning" />
+          {wallet ? (
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Your profile, ${name}`} onPress={() => go('/settings')} style={styles.avatarButton}>
+              <Avatar seed={wallet} size={40} decorative />
+            </PressableScale>
           ) : null}
         </View>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        {loading && !funds.length ? (
+          <ActivityIndicator color={palette.accent} style={styles.spinner} />
+        ) : funds.length === 0 ? (
+          <EmptyState vn={vn} onShare={() => setShare(true)} onNew={() => go('/contracts/new')} />
+        ) : (
+          <>
+            {/* Hero */}
+            <View style={styles.hero}>
+              <View style={styles.heroTop}>
+                <View style={styles.flex}>
+                  <Text style={styles.heroLabel}>{vn ? 'Locked for you' : 'USDC balance'}</Text>
+                  <Text style={styles.heroValue} accessibilityLiveRegion="polite">
+                    {vn ? vnd(sums.lockedForMe) : usdc === null ? '—' : usdc.toFixed(2)}
+                    <Text style={styles.heroUnit}>{vn ? ' VND' : ' USDC'}</Text>
+                  </Text>
+                  <Text style={styles.heroSub}>
+                    {vn
+                      ? sums.lockedForMe > 0n
+                        ? `Estimate · $${usdcFromUnits(sums.lockedForMe)} · ${sums.lockedForMeContracts} contract${sums.lockedForMeContracts === 1 ? '' : 's'} · rate of ${rateDay}`
+                        : 'Nothing locked yet · accept a contract to start'
+                      : 'Devnet test money'}
+                  </Text>
+                </View>
+                {vn ? <FlagVN /> : <FlagUS />}
+              </View>
+
+              {vn ? (
+                <View style={styles.quickRow} accessibilityRole="toolbar" accessibilityLabel="Quick actions">
+                  <QuickWide
+                    icon="share-2"
+                    filled
+                    title={atHandle ? `Share ${atHandle}` : 'Share profile'}
+                    sub="To a client"
+                    label={`${atHandle ? `Share ${atHandle}` : 'Share my @username'}: send your username to a client`}
+                    onPress={() => setShare(true)}
+                  />
+                  <QuickWide icon="bar-chart-2" title="Records" sub="Your earnings" label="Records: what you received" onPress={() => go('/records')} />
+                </View>
+              ) : (
+                <View style={styles.quickRow} accessibilityRole="toolbar" accessibilityLabel="Quick actions">
+                  <QuickTall icon="plus" filled title="New contract" label="New contract: lock USDC per milestone for a freelancer" onPress={() => go('/contracts/new')} />
+                  <QuickTall icon="arrow-down" title="Receive" label="Receive USDC" onPress={() => go('/receive')} />
+                  <QuickTall icon="arrow-up" title="Send" label="Send USDC" onPress={() => go('/send')} />
+                </View>
+              )}
+
+              <View style={styles.stats}>
+                <View style={styles.flex}>
+                  {/* The chain keeps no release date, so the Vietnam view shows everything released to you so far */}
+                  <Text style={styles.statLabel}>{vn ? 'Released to you' : 'Locked in your contracts'}</Text>
+                  <Text style={styles.statValue}>{vn ? `≈ ${vnd(sums.releasedToMe)} VND` : formatUsdc(sums.lockedByMe)}</Text>
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.statLabel}>{vn ? 'Active contracts' : 'Locked for you'}</Text>
+                  <Text style={styles.statValue}>{vn ? String(sums.active) : formatUsdc(sums.lockedForMe)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Needs your action */}
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Needs your action
+            </Text>
+            <View style={styles.card}>
+              {needs.length ? (
+                needs.map((f, i) => <NeedRow key={f.address} fund={f} first={i === 0} onPress={openContracts} />)
+              ) : (
+                <Text style={styles.noNeeds}>Nothing needs you right now.</Text>
+              )}
+            </View>
+
+            {/* Your contracts */}
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle} accessibilityRole="header">
+                Your contracts
+              </Text>
+              <Text style={styles.seeAll} accessibilityRole="link" onPress={openContracts}>
+                See all
+              </Text>
+            </View>
+            <View style={styles.card}>
+              {rows.map((f, i) => (
+                <ContractRow key={f.address} fund={f} first={i === 0} vn={vn} onPress={openContracts} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Suggested for you */}
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Suggested for you
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggest}>
+          {vn ? (
+            <Suggestion bg="#EDE3FB" image="happy" title="Share your @username with a client" onPress={() => setShare(true)} />
+          ) : (
+            <Suggestion bg="#EDE3FB" image="proud" title="Lock a milestone for a freelancer" onPress={() => go('/contracts/new')} />
+          )}
+          <Suggestion bg="#E3EDFC" icon="info" title='What devnet and "simulated" mean' onPress={() => go('/disclosures')} />
+          <Suggestion bg="#E3F5EE" icon="bar-chart-2" title="Keep a record of what you receive" onPress={() => go('/records')} />
+        </ScrollView>
       </ScrollView>
-      <NotificationModal
-        visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
+
+      <Sheet visible={share} onClose={() => { setShare(false); setCopied(false); }} title="Share my @username">
+        <Text style={styles.sheetText}>
+          A client searches <Text style={styles.sheetStrong}>{atHandle || 'your @username'}</Text> in N.E.D to send you a contract.
+        </Text>
+        <View style={styles.shareBox}>
+          <Text style={styles.shareHandle} numberOfLines={1} selectable>
+            {atHandle || 'Create your profile first'}
+          </Text>
+          <PressableScale accessibilityRole="button" accessibilityLabel={copied ? 'Copied' : 'Copy your username'} disabled={!atHandle} onPress={() => void copyHandle()} style={styles.copy}>
+            <Text style={styles.copyText}>{copied ? 'Copied' : 'Copy'}</Text>
+          </PressableScale>
+        </View>
+        <Text style={styles.sheetNote}>Your @username and wallet address are public on Solana.</Text>
+      </Sheet>
     </View>
   );
 }
 
-function AssetRow({
-  symbol,
-  name,
-  detail,
-  value,
-  caption,
-  color,
-}: {
-  symbol: string;
-  name: string;
-  detail: string;
-  value: string;
-  caption: string;
-  color: string;
-}) {
+function QuickWide({ icon, title, sub, label, filled, onPress }: { icon: Icon; title: string; sub: string; label: string; filled?: boolean; onPress(): void }) {
   return (
-    <View style={styles.assetRow}>
-      <View style={[styles.assetIcon, { backgroundColor: color }]}>
-        <Text style={styles.assetSymbol}>{symbol}</Text>
+    <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.quickWide}>
+      <View style={[styles.quickDot, filled && styles.quickDotFilled]}>
+        <Feather name={icon} size={16} color={filled ? palette.onAccent : palette.ink} />
       </View>
-      <View style={styles.nameWrap}>
-        <Text style={styles.assetName}>{name}</Text>
-        <Text style={styles.subtle}>{detail}</Text>
+      <View style={styles.flex}>
+        <Text style={styles.quickTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.quickSub} numberOfLines={1}>
+          {sub}
+        </Text>
       </View>
-      <View style={styles.assetRight}>
-        <Text style={styles.assetValue}>{value}</Text>
-        <Text style={styles.assetCaption}>{caption}</Text>
+    </PressableScale>
+  );
+}
+
+function QuickTall({ icon, title, label, filled, onPress }: { icon: Icon; title: string; label: string; filled?: boolean; onPress(): void }) {
+  return (
+    <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.quickTall}>
+      <View style={[styles.quickDotLarge, filled && styles.quickDotFilled]}>
+        <Feather name={icon} size={18} color={filled ? palette.onAccent : palette.ink} />
       </View>
+      <Text style={styles.quickTallTitle} numberOfLines={1}>
+        {title}
+      </Text>
+    </PressableScale>
+  );
+}
+
+function NeedRow({ fund: f, first, onPress }: { fund: FundView; first: boolean; onPress(): void }) {
+  const look = NEED_LOOK[f.nextAction!.kind] ?? { icon: 'circle' as Icon, tone: 'accent' as ChipTone };
+  const tone = TONE[look.tone];
+  return (
+    <PressableScale accessibilityRole="button" onPress={onPress} style={[styles.needRow, !first && styles.divider]}>
+      <View style={[styles.needIcon, { backgroundColor: tone.bg }]}>
+        <Feather name={look.icon} size={18} color={tone.ink} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={styles.rowTitle} numberOfLines={2}>
+          {f.nextAction!.label}
+        </Text>
+        <Text style={styles.rowSub} numberOfLines={1}>
+          {f.title} · {f.totalLabel.replace(' (estimate)', '')}
+        </Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={palette.muted} />
+    </PressableScale>
+  );
+}
+
+function ContractRow({ fund: f, first, vn, onPress }: { fund: FundView; first: boolean; vn: boolean; onPress(): void }) {
+  const tone = TONE[f.tone];
+  const other = f.counterparty.username ? `@${f.counterparty.username}` : short(f.counterparty.wallet);
+  return (
+    <PressableScale accessibilityRole="button" accessibilityLabel={`${f.title}, ${f.statusLabel}`} onPress={onPress} style={[styles.contractRow, !first && styles.divider]}>
+      <Avatar seed={f.counterparty.wallet} size={40} decorative />
+      <View style={styles.flex}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {f.title}
+        </Text>
+        <Text style={styles.rowSub} numberOfLines={1}>
+          {f.role === 'client' ? `to ${other}` : `from ${other}`}
+        </Text>
+        <View style={styles.rowMeta}>
+          <View style={[styles.chip, { backgroundColor: tone.bg }]}>
+            <View style={[styles.chipDot, { backgroundColor: tone.dot }]} />
+            <Text style={[styles.chipText, { color: tone.ink }]} numberOfLines={2}>
+              {f.statusLabel}
+            </Text>
+          </View>
+          <View style={styles.amount}>
+            <Text style={styles.amountValue} numberOfLines={1}>
+              {f.totalLabel.replace(' (estimate)', '')}
+            </Text>
+            <Text style={styles.amountSub}>{vn ? 'estimate' : 'total'}</Text>
+          </View>
+        </View>
+      </View>
+    </PressableScale>
+  );
+}
+
+function Suggestion({ bg, title, image, icon, onPress }: { bg: string; title: string; image?: keyof typeof MASCOT_IMAGES; icon?: Icon; onPress(): void }) {
+  return (
+    <PressableScale accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={[styles.suggestion, { backgroundColor: bg }]}>
+      {image ? (
+        <Image source={MASCOT_IMAGES[image]} style={styles.suggestImage} resizeMode="contain" accessibilityIgnoresInvertColors />
+      ) : (
+        <View style={styles.suggestIcon}>
+          <Feather name={icon ?? 'info'} size={20} color={palette.ink} />
+        </View>
+      )}
+      <Text style={styles.suggestTitle}>{title}</Text>
+    </PressableScale>
+  );
+}
+
+function EmptyState({ vn, onShare, onNew }: { vn: boolean; onShare(): void; onNew(): void }) {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyArt}>
+        <Image source={MASCOT_IMAGES.waving} style={styles.emptyImage} resizeMode="contain" accessibilityIgnoresInvertColors />
+      </View>
+      <Text style={styles.emptyTitle}>No contracts yet</Text>
+      <Text style={styles.emptyBody}>
+        {vn ? 'Share your @username with a client. Their contract shows up here.' : 'Lock USDC per milestone for a freelancer. It is released when you approve.'}
+      </Text>
+      <PressableScale accessibilityRole="button" onPress={vn ? onShare : onNew} style={styles.emptyButton}>
+        <Text style={styles.emptyButtonText}>{vn ? 'Share my @username' : 'Create a contract'}</Text>
+      </PressableScale>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: home.heroTop },
-  content: {
-    flexGrow: 1,
-    backgroundColor: light.background,
-    paddingBottom: 104,
-    maxWidth: sizes.maxContent,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  loading: { flex: 1, justifyContent: 'center', backgroundColor: home.heroTop },
-  hero: { paddingHorizontal: space[5], paddingBottom: space[16], overflow: 'hidden' },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space[3] },
-  profile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[3],
-    height: 52,
-    paddingLeft: 5,
-    paddingRight: space[4],
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: glass.borderStrong,
-    backgroundColor: glass.fillStrong,
-    boxShadow: shadows.glassPill,
-    ...blur.glass,
-    maxWidth: '65%',
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  avatarArt: { width: 42, height: 43, marginBottom: -4 },
-  nameWrap: { flex: 1, minWidth: 0 },
-  greeting: { ...type.caption, color: colors.textSecondary },
-  name: { ...type.bodyLarge, fontFamily: fonts.display, lineHeight: 20 },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: glass.borderStrong,
-    backgroundColor: glass.fillStrong,
-    boxShadow: shadows.glassPill,
-    ...blur.glass,
-    paddingHorizontal: space[1],
-  },
-  iconButton: {
-    width: sizes.touch,
-    height: sizes.touch,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  separator: { height: 20, width: 1, backgroundColor: glass.borderStrong },
-  balanceBlock: { marginTop: space[8] },
-  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
-  kicker: { ...type.label, letterSpacing: 1.4 },
-  eye: { minWidth: sizes.touch, minHeight: 32, justifyContent: 'center' },
-  balance: { ...type.hero, letterSpacing: -1.8, lineHeight: 52, marginTop: space[2] },
-  cents: { color: home.cents },
-  demo: { ...type.caption, color: colors.textSecondary, marginTop: space[2] },
-  wallets: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
-  wallet: {
-    width: 64,
-    height: 40,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-    boxShadow: shadows.miniCard,
-  },
-  walletArt: { position: 'absolute', right: -6, bottom: -8, width: 34, height: 35, opacity: 0.55 },
-  walletLabel: { position: 'absolute', left: 7, top: 6, fontFamily: fonts.mono, fontSize: 8, lineHeight: 10, color: glass.cardLabel },
-  addWallet: {
-    width: 64,
-    height: 40,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: home.addCardBorder,
-    backgroundColor: glass.fill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actions: { flexDirection: 'row', gap: space[2], marginTop: space[6] },
-  action: {
-    flex: 1,
-    backgroundColor: home.tile,
-    borderRadius: radius.lg,
-    padding: space[3],
-    height: 104,
-    justifyContent: 'space-between',
-    boxShadow: shadows.tile,
-  },
-  actionIcon: {
-    width: 30,
-    height: 30,
-    backgroundColor: light.text,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionText: { fontFamily: fonts.displaySemi, fontSize: 12, letterSpacing: 0.8, color: light.text },
-  assets: { paddingHorizontal: space[5] },
-  section: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: space[2],
-  },
-  sectionTitle: { ...type.h3, fontFamily: fonts.display, color: light.text },
-  historyLink: { flexDirection: 'row', alignItems: 'center', gap: space[1], minHeight: sizes.touch },
-  historyText: { ...type.body, fontFamily: fonts.bodyMedium, color: light.textSecondary },
-  subtle: { ...type.caption, color: light.textSecondary, marginTop: 2 },
-  assetRow: {
-    flexDirection: 'row',
-    gap: space[3],
-    alignItems: 'center',
-    paddingVertical: space[4],
-    borderBottomWidth: 1,
-    borderColor: light.divider,
-  },
-  assetIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  assetSymbol: { ...type.h3, fontFamily: fonts.display, color: colors.text },
-  assetName: { ...type.bodyLarge, fontFamily: fonts.bodySemi, fontSize: 15, color: light.text },
-  assetRight: { alignItems: 'flex-end' },
-  assetValue: { ...type.mono, fontFamily: fonts.monoBold, color: light.text },
-  assetCaption: { ...type.caption, color: light.textSecondary, marginTop: 2 },
-  investPrompt: {
-    flexDirection: 'row',
-    gap: space[3],
-    alignItems: 'center',
-    backgroundColor: light.surface,
-    padding: space[4],
-    borderRadius: radius.lg,
-    marginTop: space[5],
-  },
-  promptTitle: { ...type.bodyLarge, fontFamily: fonts.display, fontSize: 15, color: light.text },
-  error: { ...type.caption, color: light.errorText, marginBottom: space[3] },
+  page: { flex: 1, backgroundColor: palette.ground },
+  loading: { flex: 1, justifyContent: 'center', backgroundColor: palette.ground },
+  content: { paddingHorizontal: space[4], gap: space[3], width: '100%', maxWidth: 480, alignSelf: 'center' },
+  flex: { flex: 1, minWidth: 0 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space[1], marginBottom: space[1] },
+  greeting: { fontFamily: fonts.bodyMedium, fontSize: 14, color: palette.caption },
+  name: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: palette.ink },
+  avatarButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
+  error: { fontFamily: fonts.body, fontSize: 13, color: status.error.ink },
+  spinner: { marginVertical: space[8] },
+  hero: { paddingTop: 18, paddingHorizontal: space[4], paddingBottom: space[4], borderRadius: radius.xl, backgroundColor: palette.card, gap: space[4] },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
+  heroLabel: { fontFamily: fonts.body, fontSize: 14, color: palette.caption },
+  heroValue: { marginTop: 2, fontFamily: fonts.display, fontSize: 34, lineHeight: 40, letterSpacing: -0.8, color: palette.ink },
+  heroUnit: { fontSize: 20 },
+  heroSub: { marginTop: 2, fontFamily: fonts.body, fontSize: 13, color: palette.caption },
+  quickRow: { flexDirection: 'row', gap: space[2] },
+  quickWide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[2], height: 64, paddingHorizontal: 10, borderRadius: radius.lg, backgroundColor: palette.field },
+  quickTall: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[2], height: 84, paddingHorizontal: 6, borderRadius: radius.lg, backgroundColor: palette.field },
+  quickDot: { width: 32, height: 32, borderRadius: radius.pill, backgroundColor: palette.card, alignItems: 'center', justifyContent: 'center' },
+  quickDotLarge: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: palette.card, alignItems: 'center', justifyContent: 'center' },
+  quickDotFilled: { backgroundColor: palette.accent },
+  quickTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: palette.ink },
+  quickSub: { fontFamily: fonts.body, fontSize: 12, color: palette.caption },
+  quickTallTitle: { fontFamily: fonts.bodySemi, fontSize: 13, color: palette.ink },
+  stats: { flexDirection: 'row', gap: space[3], paddingTop: space[3], borderTopWidth: 1, borderTopColor: palette.divider },
+  statLabel: { fontFamily: fonts.body, fontSize: 12, color: palette.caption },
+  statValue: { marginTop: 2, fontFamily: fonts.bodySemi, fontSize: 15, color: palette.ink },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  sectionTitle: { marginTop: space[3], paddingHorizontal: space[1], fontFamily: fonts.bodySemi, fontSize: 15, color: palette.caption },
+  seeAll: { marginTop: space[3], fontFamily: fonts.bodySemi, fontSize: 14, color: palette.link },
+  card: { borderRadius: radius.xl, backgroundColor: palette.card },
+  divider: { borderTopWidth: 1, borderTopColor: palette.divider },
+  needRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], paddingHorizontal: space[4] },
+  needIcon: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  noNeeds: { padding: space[4], fontFamily: fonts.body, fontSize: 14, color: palette.caption },
+  contractRow: { flexDirection: 'row', gap: space[3], paddingVertical: 14, paddingHorizontal: space[4] },
+  rowTitle: { fontFamily: fonts.bodySemi, fontSize: 15, color: palette.ink },
+  rowSub: { marginTop: 1, fontFamily: fonts.body, fontSize: 13, color: palette.caption },
+  rowMeta: { marginTop: space[2], flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 24, paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill, flexShrink: 1 },
+  chipDot: { width: 6, height: 6, borderRadius: radius.pill },
+  chipText: { fontFamily: fonts.bodySemi, fontSize: 12, flexShrink: 1 },
+  amount: { alignItems: 'flex-end', flexShrink: 0 },
+  amountValue: { fontFamily: fonts.bodySemi, fontWeight: '700', fontSize: 15, color: palette.ink },
+  amountSub: { fontFamily: fonts.body, fontSize: 11, color: palette.caption },
+  suggest: { gap: 10, paddingHorizontal: space[1], paddingBottom: space[2] },
+  suggestion: { width: 168, height: 196, borderRadius: radius.xl, padding: space[4], justifyContent: 'space-between' },
+  suggestImage: { width: 136, height: 104, alignSelf: 'center' },
+  suggestIcon: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: palette.card, alignItems: 'center', justifyContent: 'center' },
+  suggestTitle: { fontFamily: fonts.bodySemi, fontSize: 15, lineHeight: 20, color: palette.ink },
+  empty: { paddingTop: 28, paddingHorizontal: 20, paddingBottom: space[6], borderRadius: radius.xl, backgroundColor: palette.card, alignItems: 'center', gap: space[3] },
+  emptyArt: { width: 168, height: 132, borderRadius: 24, backgroundColor: '#EDE3FB', alignItems: 'center', justifyContent: 'center' },
+  emptyImage: { width: 140, height: 112 },
+  emptyTitle: { fontFamily: fonts.display, fontSize: 20, color: palette.ink },
+  emptyBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: palette.caption, textAlign: 'center' },
+  emptyButton: { alignSelf: 'stretch', height: 52, borderRadius: radius.pill, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center', marginTop: space[2] },
+  emptyButtonText: { fontFamily: fonts.bodySemi, fontSize: 16, color: palette.onAccent },
+  sheetText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: palette.caption },
+  sheetStrong: { fontFamily: fonts.bodySemi, color: palette.ink },
+  shareBox: { marginTop: space[4], flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, paddingLeft: space[4], paddingRight: 6, borderRadius: radius.lg, backgroundColor: palette.field },
+  shareHandle: { flex: 1, fontFamily: fonts.mono, fontSize: 14, color: palette.ink },
+  copy: { height: 44, paddingHorizontal: space[4], borderRadius: radius.pill, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
+  copyText: { fontFamily: fonts.bodySemi, fontSize: 14, color: palette.onAccent },
+  sheetNote: { marginTop: space[3], fontFamily: fonts.body, fontSize: 12, color: palette.caption },
 });
