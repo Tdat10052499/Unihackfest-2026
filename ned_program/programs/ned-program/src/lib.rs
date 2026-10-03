@@ -65,18 +65,20 @@ pub mod ned_program {
         freelancer: Pubkey,
         title: String,
         milestones: Vec<MilestoneInput>,
+        brief_hash: [u8; 32],
     ) -> Result<()> {
-        create_fund_handler(ctx, fund_id, freelancer, title, milestones)
+        create_fund_handler(ctx, fund_id, freelancer, title, milestones, brief_hash)
     }
 
-    /// Freelancer accepts and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference
+    /// Freelancer accepts the brief (by its hash) and fixes where the earnings go: own wallet, or an allowlisted payout partner + reference
     pub fn accept(
         ctx: Context<Accept>,
         payout_kind: PayoutKind,
         payout_destination: Pubkey,
         payout_reference: [u8; 32],
+        expected_brief_hash: [u8; 32],
     ) -> Result<()> {
-        accept_handler(ctx, payout_kind, payout_destination, payout_reference)
+        accept_handler(ctx, payout_kind, payout_destination, payout_reference, expected_brief_hash)
     }
 
     /// Client locks the full contract amount in the vault
@@ -84,7 +86,7 @@ pub mod ned_program {
         lock_handler(ctx)
     }
 
-    /// Freelancer marks a milestone delivered; `evidence` = SHA-256 of the delivery link or file
+    /// Freelancer marks a milestone delivered; `evidence` = SHA-256 of the canonical delivery JSON (never all zero)
     pub fn submit(ctx: Context<Submit>, index: u8, evidence: [u8; 32]) -> Result<()> {
         submit_handler(ctx, index, evidence)
     }
@@ -107,6 +109,12 @@ pub mod ned_program {
     /// Creator closes a never-funded or settled contract; leftover → client, rent → rent_payer
     pub fn close(ctx: Context<Close>) -> Result<()> {
         close_handler(ctx)
+    }
+
+    /// Posts one part of an encrypted brief (client, while Created) or delivery note (freelancer, Submitted milestone).
+    /// No state change; the app reads it back from the transaction (v1.1)
+    pub fn post_note(ctx: Context<PostNote>, kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>) -> Result<()> {
+        post_note_handler(ctx, kind, milestone, part, parts, data)
     }
 
     // P1 group (ships together or not at all): dispute, concede, propose_cancel, accept_cancel

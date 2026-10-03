@@ -75,4 +75,15 @@ pub enum NedError {
     FundNotClosable,
     #[msg("Arithmetic overflow.")]
     MathOverflow,
+    // ---- v1.1 (program-spec section 6); append only, never reorder ----
+    #[msg("The brief fingerprint is missing.")]
+    InvalidBriefHash,
+    #[msg("The brief changed. Read the brief again before accepting.")]
+    BriefMismatch,
+    #[msg("The delivery fingerprint is missing.")]
+    InvalidEvidence,
+    #[msg("The note is empty, too long or has wrong part numbers.")]
+    InvalidNote,
+    #[msg("This note cannot be added now.")]
+    NoteNotAllowed,
 }

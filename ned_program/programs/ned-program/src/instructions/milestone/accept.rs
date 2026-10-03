@@ -11,12 +11,15 @@ pub fn accept_handler(
     payout_kind: PayoutKind,
     payout_destination: Pubkey,
     payout_reference: [u8; 32],
+    expected_brief_hash: [u8; 32],
 ) -> Result<()> {
     let fund = &mut ctx.accounts.fund;
     let now = Clock::get()?.unix_timestamp;
 
     // Validate
     require_state(fund, FundState::Created)?;
+    // The freelancer agrees to the brief they read (v1.1)
+    require!(expected_brief_hash == fund.brief_hash, NedError::BriefMismatch);
     check_work_window(used(fund), now)?;
     let reference_is_zero = payout_reference.iter().all(|b| *b == 0);
     match payout_kind {

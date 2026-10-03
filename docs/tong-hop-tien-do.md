@@ -156,6 +156,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | N13 bảo mật + README; sửa theo review | `chore/n13-security-readme` | `8dacce1`, `bf752d4`, `7b866ee`, `55a6954`, `e1e77d5` |
 | W0 `packages/ned-core` + pnpm workspace ở gốc | `feat/w0-ned-core` | `5e55049`, `111c970`, `c3d70a1`, `ad83f13` |
 | W1 khung `ned-workspace` (Vite + React), đăng nhập, wallet panel, `vercel.json` | `feat/w1-workspace-scaffold` | `1a8fb24`, `5b0ac9a`, `fb3648f`, `17ab376`, `df97ef1`, `6e3fc52` |
+| A1 program v1.1 (`brief_hash`, evidence ≠ 0, `post_note`), chưa deploy | `feat/a1-program-v1-1` (chưa merge, chờ A2) | xem block A1 |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -169,6 +170,21 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**A1 (03/10/2026, chưa deploy):**
+- **Program v1.1 theo program-spec:**
+  - `SharedFund` thêm `brief_hash` ở offset 676, nên account dài **740 byte**; `ACCOUNT_VERSION = 2`; `NOTE_MAX_LEN = 900`, `NOTE_MAX_PARTS = 8`;
+  - `create_fund(…, brief_hash)`: hash toàn số 0 thì lỗi `InvalidBriefHash`; event `FundCreated` có thêm `brief_hash`;
+  - `accept(…, expected_brief_hash)`: khác hash đã lưu thì lỗi `BriefMismatch`, kiểm tra trước mọi thay đổi state;
+  - `submit`: evidence toàn số 0 thì lỗi `InvalidEvidence`;
+  - instruction mới `post_note` (fund chỉ đọc, không đổi state, emit `NotePosted`);
+  - 5 lỗi mới nối sau `MathOverflow`, không đổi thứ tự lỗi cũ.
+- **Test:**
+  - `anchor build && cargo test`: milestone 27/27 (24 cũ + 16, 17, 18), identity 10/10, helpers 4/4, `test_id` 1/1; 0 warning;
+  - `program_autofixer`: 0 issue;
+  - CU: `post_note` 900 byte ≈ 4 630 (brief) / 4 641 (delivery).
+- **Kích thước `.so`:** 488 464 byte, lớn hơn 475 280 byte đang cấp phát nên A2 **phải `solana program extend`** thêm ≥ 13 184 byte. Tiền rent ước tính ≈ 0,092 SOL [Inference: 6 960 lamport/byte]; A2 sẽ tính chính xác.
+- **Chưa làm (A2):** đóng các fund 708 byte cũ (G4), extend, upgrade, `anchor idl upgrade`, copy IDL vào `packages/ned-core/src/idl/`, sửa `layout.ts`/`decode.ts`/`client.ts` trong core (W0 đã chuyển các file này từ `ned-wallet/services/milestone/` sang core), smoke run. Cho tới lúc đó app vẫn dùng IDL v1, khớp với program đang chạy trên devnet.
 
 **W1 (03/10/2026):**
 - **App mới `ned-workspace/`** (Vite 8 + React 19 + TypeScript, trong pnpm workspace):

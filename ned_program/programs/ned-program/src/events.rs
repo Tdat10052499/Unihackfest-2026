@@ -50,6 +50,7 @@ pub struct FundCreated {
     pub freelancer: Pubkey,
     pub total: u64,
     pub milestone_count: u8,
+    pub brief_hash: [u8; 32],
 }
 
 #[event]
@@ -118,4 +119,16 @@ pub struct FundCancelled {
 pub struct FundClosed {
     pub fund: Pubkey,
     pub leftover_to_client: u64,
+}
+
+/// An encrypted brief or delivery note was posted (v1.1); the ciphertext is in the instruction data only
+#[event]
+pub struct NotePosted {
+    pub fund: Pubkey,
+    pub author: Pubkey,
+    pub kind: u8,
+    pub milestone: u8,
+    pub part: u8,
+    pub parts: u8,
+    pub len: u16,
 }
