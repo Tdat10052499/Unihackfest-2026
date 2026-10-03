@@ -194,7 +194,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 - **Chưa làm / cần chủ dự án:**
   - đăng nhập Google thật (cần `.env.local` và thêm `http://localhost:4173` vào allowed origins của Dynamic);
   - so địa chỉ ví với điện thoại; Lighthouse cho `/` khi đã đăng nhập;
-  - ~~tạo project Vercel~~: chủ dự án đã tạo ngày 03/10/2026, domain production **https://unihackfest-2026.vercel.app** (route SPA và các header của `vercel.json` đã được kiểm tra trên site thật). Lần deploy đầu thiếu `VITE_DYNAMIC_ENVIRONMENT_ID` và `VITE_HELIUS_DEVNET_URL`: cần điền rồi Redeploy, sau đó thêm domain vào Dynamic (Allowed CORS Origin) và Helius (Allowed Domains).
+  - ~~tạo project Vercel~~: chủ dự án đã tạo ngày 03/10/2026, domain production **https://unihackfest-2026.vercel.app** (route SPA và các header của `vercel.json` đã được kiểm tra trên site thật). Lần deploy đầu thiếu `VITE_DYNAMIC_ENVIRONMENT_ID` và `VITE_HELIUS_DEVNET_URL`; sau khi Redeploy, bundle đã có đủ biến. Đã kiểm tra: Dynamic cho phép origin Vercel và GitHub Pages, chặn origin lạ. Riêng key Helius **vẫn nhận request từ origin lạ** (Allowed Domains chưa có hiệu lực).
 - **Ghi chú:**
   - board ghi "Received this month", nhưng chain không lưu ngày release, nên panel hiện "Released to you" (tổng từ trước đến nay);
   - bundle JS 457 kB gzip (Dynamic + web3.js), sẽ tách lazy-load ở W6;
