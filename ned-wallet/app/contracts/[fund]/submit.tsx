@@ -20,15 +20,8 @@ import { useFund } from '@/hooks/useFund';
 import { useMilestoneActions } from '@/hooks/useMilestoneActions';
 import { deliveryEvidence, LIMITS, validateDelivery, type DeliveryDraft } from '@/services/milestone/content';
 import { shortHash } from '@/services/milestone/evidence';
+import { looksUnversioned } from '@/services/milestone/links';
 import { formatCountdown, formatDeadline } from '@/services/milestone/format';
-
-/** A link that points at a moving target (a whole Figma file, a branch) gets the fixed-version hint */
-export function looksUnversioned(link: string): boolean {
-  const l = link.trim().toLowerCase();
-  if (l.includes('figma.com/')) return !l.includes('version-id=');
-  if (l.includes('github.com/') || l.includes('gitlab.com/')) return !/\/(commit|tree|blob)\/[0-9a-f]{7,40}/.test(l);
-  return false;
-}
 
 export default function SubmitScreen() {
   const { fund: address = '', i = '0' } = useLocalSearchParams<{ fund: string; i?: string }>();

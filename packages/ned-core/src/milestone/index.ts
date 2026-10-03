@@ -16,3 +16,4 @@ export * from './keys.ts';
 export * from './notes.ts';
 export * from './records.ts';
 export * from './events.ts';
+export * from './links.ts';
