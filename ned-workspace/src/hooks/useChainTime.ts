@@ -38,3 +38,9 @@ export function useChainTime(): number {
   }, []);
   return now;
 }
+
+/** Current chain time without React (for actions); syncs first if the offset is stale */
+export async function chainNowSeconds(): Promise<number> {
+  if (Date.now() - lastSync > RESYNC_MS) await sync();
+  return Math.floor(Date.now() / 1000 + offset);
+}
