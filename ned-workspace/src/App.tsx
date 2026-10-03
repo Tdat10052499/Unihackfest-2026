@@ -9,6 +9,7 @@ import { ComingSoon } from './pages/ComingSoon.tsx';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
 import { InviteRouter, PendingInvite } from './pages/InviteRouter.tsx';
+import { NewContract } from './pages/NewContract.tsx';
 import { Overview } from './pages/Overview.tsx';
 import { SignIn } from './pages/SignIn.tsx';
 
@@ -50,7 +51,7 @@ export function App() {
           <Route path="contract/:fund" element={signedIn(<Contract />)} />
           <Route path="contract/:fund/submit" element={signedIn(<ComingSoon page="submit" />)} />
           <Route path="contract/:fund/review" element={signedIn(<ComingSoon page="review" />)} />
-          <Route path="new" element={signedIn(<ComingSoon page="new" />)} />
+          <Route path="new" element={signedIn(<NewContract />)} />
           <Route
             path="sign-in"
             element={
