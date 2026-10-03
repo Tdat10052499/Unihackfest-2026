@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-nav{transition:background-color .15s ease}
+.ned-nav:hover{background:#EEEEF2}
+.ned-row{transition:background-color .15s ease}
+.ned-row:hover{background:#FAFAFB}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-nav:focus-visible,.ned-row:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 380px; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="home" on-close="{{close}}" hint-size="380px,600px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+    <nav aria-label="Workspace" style="flex: 1 1 200px; max-width: 100%; display: flex; flex-direction: column; gap: 4px">
+      <a href="WebWorkspace.dc.html" aria-current="page" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; background: #FFFFFF; color: #111116; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+      <a href="ContractsList.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6"></path></svg>Contracts</a>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ true }}">
+        <a href="WebContractNew.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New contract</a>
+      </sc-if>
+      <a href="{{recordsHref}}" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Records</a>
+      <a href="{{settingsHref}}" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Settings</a>
+      <div style="margin-top: 16px; padding: 14px; border-radius: 16px; background: #FFFFFF">
+        <div style="font-size: 13px; font-weight: 600">On your phone too</div>
+        <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: #5E5E6A">Same Google sign-in, same wallet. Confirm steps from your phone when you are away.</div>
+      </div>
+    </nav>
+
+    <main class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <h1 style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500; color: #5E5E6A">Good afternoon,</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.1">{{name}}</span></h1>
+        <a href="{{ctaHref}}" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ctaIcon}}"></path></svg>{{ctaLabel}}</a>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+        <sc-for list="{{stats}}" as="s" hint-placeholder-count="3">
+          <div style="padding: 18px; border-radius: 20px; background: #FFFFFF">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; color: #5E5E6A">{{s.label}}</span></div>
+            <div style="margin-top: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px">{{s.value}}</div>
+            <div style="margin-top: 4px; font-size: 12px; color: #5E5E6A">{{s.sub}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <section aria-labelledby="ws-needs">
+        <h2 id="ws-needs" style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #5E5E6A">Needs your action</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px">
+          <sc-for list="{{needs}}" as="n" hint-placeholder-count="2">
+            <div style="padding: 18px; border-radius: 20px; background: #FFFFFF; display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; align-items: flex-start; gap: 12px">
+                <span aria-hidden="true" style="{{n.iconBox}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{n.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"></path></svg></span>
+                <div style="flex: 1; min-width: 0">
+                  <div style="font-size: 16px; font-weight: 600">{{n.title}}</div>
+                  <div style="margin-top: 3px; font-size: 13px; line-height: 1.45; color: #5E5E6A">{{n.sub}}</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+                <span style="{{n.chip}}"><span style="{{n.dot}}"></span>{{n.when}}</span>
+                <a href="{{n.href}}" style="height: 40px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 14px; font-weight: 600; text-decoration: none">{{n.cta}}</a>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="ws-contracts">
+        <div style="margin: 0 0 10px; display: flex; justify-content: space-between; align-items: baseline"><h2 id="ws-contracts" style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5E6A">Your contracts</h2><a href="ContractsList.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">See all</a></div>
+        <div style="border-radius: 20px; background: #FFFFFF; overflow-x: auto">
+          <div role="table" aria-label="Your contracts" style="min-width: 760px">
+            <div role="row" style="display: grid; grid-template-columns: 2.2fr 1.3fr 1fr 1.8fr 1.4fr 1.3fr; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #F0F0F3; font-size: 12px; font-weight: 600; color: #5E5E6A">
+              <span role="columnheader">Contract</span><span role="columnheader">{{withLabel}}</span><span role="columnheader">Milestones</span><span role="columnheader">Next step</span><span role="columnheader" style="text-align: right">Amount</span><span role="columnheader">Status</span>
+            </div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="2">
+              <a role="row" href="{{r.href}}" class="ned-row" style="display: grid; grid-template-columns: 2.2fr 1.3fr 1fr 1.8fr 1.4fr 1.3fr; gap: 12px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #F0F0F3; color: #111116; text-decoration: none">
+                <span role="cell" style="font-size: 14px; font-weight: 600">{{r.title}}</span>
+                <span role="cell" style="display: flex; align-items: center; gap: 8px; font-size: 14px"><dc-import name="Avatar" seed="{{r.seed}}" size="28" hint-size="28px,28px"></dc-import>{{r.party}}</span>
+                <span role="cell" style="font-size: 14px; color: #3F3F49">{{r.ms}}</span>
+                <span role="cell" style="font-size: 13px; line-height: 1.4; color: #3F3F49">{{r.next}}</span>
+                <span role="cell" style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{r.amt}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{r.amtSub}}</span></span>
+                <span role="cell"><span style="{{r.chip}}"><span style="{{r.dot}}"></span>{{r.status}}</span></span>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["mia", "vinh"], "default": "mia"}, "panelOpen": {"editor": "boolean", "default": true}, "$preview": {"width": 1440, "height": 1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var p = props.panelOpen;
+    this.state = { open: !(p === false || p === 'false') };
+  }
+  renderVals() {
+    var self = this;
+    var who = this.props.who ?? 'mia';
+    var vn = who === 'vinh';
+    var TONE = { info: ['#EEEFFE', '#3730A3', '#4F46E5'], purple: ['#F2EAFB', '#6A22B0', '#7B2FBE'], warning: ['#FFF5E1', '#8A5300', '#F59E0B'], success: ['#E7F6EC', '#127A3A', '#16A34A'] };
+    function chip(t) { var c = TONE[t]; return 'display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 3px 10px; box-sizing: border-box; border-radius: 9999px; font-size: 12px; font-weight: 600; background: ' + c[0] + '; color: ' + c[1]; }
+    function dot(t) { return 'width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; background: ' + TONE[t][2]; }
+    var P = { submit: 'M12 19V5M5 12l7-7 7 7', review: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', release: 'M12 3v12M7 10l5 5 5-5M5 21h14', plus: 'M12 5v14M5 12h14', share: 'M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13' };
+    function need(o) {
+      var c = TONE[o.tone];
+      return { title: o.t, sub: o.s, when: o.w, cta: o.cta, href: o.href, icon: P[o.icon], ink: c[1], chip: chip(o.wTone), dot: dot(o.wTone),
+        iconBox: 'width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + c[0] };
+    }
+    function row(o) { return { seed: o.p.replace('@', ''), title: o.t, party: o.p, ms: o.ms, next: o.n, amt: o.a, amtSub: o.as, status: o.st, chip: chip(o.tone), dot: dot(o.tone), href: o.href }; }
+
+    var stats = vn
+      ? [{ label: 'Locked for you', value: '≈ 780,000 VND', sub: 'Estimate · $30.00 · rate of 2 Oct' }, { label: 'To submit', value: '1', sub: 'Next deadline 12 Oct, 18:00' }, { label: 'Active contracts', value: '2', sub: 'Both from @mia' }]
+      : [{ label: 'Locked in your contracts', value: '30.00 USDC', sub: 'Held by the program, not by N.E.D' }, { label: 'Waiting for your review', value: '1', sub: 'Auto-release 15 Oct, 18:00' }, { label: 'Active contracts', value: '2', sub: 'Both with @vinh' }];
+    var needs = vn
+      ? [need({ t: 'Submit milestone 1', s: 'Landing page design for @mia · wireframes and visual design', w: 'Due 12 Oct, 18:00 · 9 days', wTone: 'warning', cta: 'Open delivery form', href: 'WebSubmit.dc.html', icon: 'submit', tone: 'purple' })]
+      : [need({ t: 'Review milestone 1', s: 'Landing page design · @vinh submitted on 3 Oct, 00:31', w: 'Auto-release 15 Oct, 18:00', wTone: 'info', cta: 'Review delivery', href: 'WebReview.dc.html', icon: 'review', tone: 'info' }),
+         need({ t: 'Release now: Logo refresh', s: 'Review time is over. Anyone can release it now.', w: 'Ready to release', wTone: 'success', cta: 'Release', href: 'ContractAnyoneAction.dc.html', icon: 'release', tone: 'success' })];
+    var rows = vn
+      ? [row({ t: 'Landing page design', p: '@mia', ms: '0 of 2 done', n: 'Submit milestone 1 by 12 Oct, 18:00', a: '≈ 520,000 VND', as: '$20.00 · estimate', st: 'Working', tone: 'purple', href: 'WebSubmit.dc.html' }),
+         row({ t: 'Logo refresh', p: '@mia', ms: '0 of 1 done', n: 'Review time is over: release pending', a: '≈ 260,000 VND', as: '$10.00 · estimate', st: 'Ready to release', tone: 'success', href: 'ContractDetailLogo.dc.html' })]
+      : [row({ t: 'Landing page design', p: '@vinh', ms: '0 of 2 done', n: 'Review milestone 1 by 15 Oct, 18:00', a: '20.00 USDC', as: 'to VND via payout partner', st: 'In review', tone: 'info', href: 'WebReview.dc.html' }),
+         row({ t: 'Logo refresh', p: '@vinh', ms: '0 of 1 done', n: 'Anyone can release now', a: '10.00 USDC', as: 'to VND via payout partner', st: 'Ready to release', tone: 'success', href: 'ContractDetailLogo.dc.html' })];
+    return {
+      who: who, handle: vn ? 'vinh' : 'mia', name: vn ? 'Vinh' : 'Mia',
+      walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
+      isClient: !vn, withLabel: vn ? 'Client' : 'Freelancer',
+      ctaLabel: vn ? 'Share @vinh' : 'New contract', ctaHref: vn ? 'HomeVN.dc.html' : 'WebContractNew.dc.html', ctaIcon: vn ? P.share : P.plus,
+      recordsHref: vn ? 'Records.dc.html' : 'RecordsIntl.dc.html', settingsHref: vn ? 'Settings.dc.html' : 'SettingsIntl.dc.html',
+      stats: stats, needs: needs, rows: rows,
+      open: this.state.open, openStr: this.state.open ? 'true' : 'false',
+      toggle: function () { self.setState({ open: !self.state.open }); },
+      close: function () { self.setState({ open: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

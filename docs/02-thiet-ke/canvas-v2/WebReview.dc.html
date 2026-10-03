@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Review delivery</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-ghost{transition:background-color .15s ease}
+.ned-ghost:hover{background:#ECE3F8}
+.ned-drop:hover{background:#F2EAFB}
+.ned-link{transition:background-color .15s ease}
+.ned-link:hover{background:#EEEEF2}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+button:focus-visible,a:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @mia" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="mia" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@mia</span><span style="display: block; font-size: 11px; color: #5E5E6A">USDC wallet</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{panelOn}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{isSign}}" hint-placeholder-val="{{ false }}"><div class="ned-backdrop" aria-hidden="true" style="position: fixed; inset: 0; z-index: 35; background: rgba(17,17,22,0.32)"></div></sc-if>
+          <div style="{{panelPos}}">
+            <dc-import name="WebWalletPanel" who="mia" mode="{{panelMode}}" action="approve" fingerprint="{{onchain}}" on-confirm="{{confirm}}" on-cancel="{{close}}" on-close="{{close}}" hint-size="380px,600px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 24px 24px 64px; box-sizing: border-box">
+    <nav aria-label="Breadcrumb" style="font-size: 13px; color: #5E5E6A"><a href="WebWorkspace.dc.html" style="text-decoration: none">Workspace</a> <span aria-hidden="true">/</span> Landing page design <span aria-hidden="true">/</span> Milestone 1</nav>
+
+    <!-- Released -->
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div class="ned-swap" style="margin-top: 24px; max-width: 720px; padding: 28px; border-radius: 20px; background: #FFFFFF">
+        <div style="width: 56px; height: 56px; border-radius: 9999px; background: #E7F6EC; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div>
+        <h1 style="margin: 16px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Milestone 1 released</h1>
+        <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #3F3F49">10.00 USDC went from the contract to the payout partner for @vinh, who receives VND in his bank (simulated in the demo).</p>
+        <div style="margin-top: 16px; border-radius: 14px; padding: 4px 14px; border: none; background: #F7F7F9">
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14px"><span style="color: #5E5E6A">Still locked</span><span style="font-family: 'Space Mono', monospace; font-weight: 700">10.00 USDC</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F0F3; font-size: 14px"><span style="color: #5E5E6A">Next</span><span style="font-weight: 600">Milestone 2 · Build and launch · due 19 Oct, 18:00</span></div>
+        </div>
+        <div style="margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px">
+          <a href="https://explorer.solana.com/tx/3Rk8pW2nQ7vYc4mLd9TfB6sJ1aZe5Gu8HkTr2qPw7YxV4nCm9LbD3sF6gK1jQ5?cluster=devnet" target="_blank" rel="noopener" class="ned-ghost" style="height: 46px; padding: 0 18px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 15px; font-weight: 600; text-decoration: none">View on Explorer</a>
+          <a href="MilestoneReleasedVN.dc.html" style="height: 46px; padding: 0 12px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none">See @vinh's phone</a>
+          <a href="WebWorkspace.dc.html" style="height: 46px; padding: 0 12px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none">Back to Workspace</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Review -->
+    <sc-if value="{{form}}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <div>
+          <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px">Review milestone 1</h1>
+          <div style="margin-top: 4px; font-size: 14px; color: #5E5E6A">Landing page design · Wireframes and visual design · by @vinh</div>
+        </div>
+        <span role="timer" style="{{cdChip}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg>Auto-release in <strong style="font-family: 'Space Mono', monospace">{{cd}}</strong> unless you dispute</span>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <div class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+          <section aria-labelledby="rv-del" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="display: flex; align-items: center; gap: 12px">
+              <dc-import name="Avatar" seed="vinh" size="40" hint-size="40px,40px"></dc-import>
+              <div style="flex: 1; min-width: 0">
+                <h2 id="rv-del" style="margin: 0; font-size: 16px; font-weight: 600">Delivery from @vinh</h2>
+                <div style="margin-top: 2px; font-size: 13px; color: #5E5E6A">Submitted 3 Oct 2026, 00:31 · recorded by the chain clock</div>
+              </div>
+              <span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 12px; font-weight: 600; white-space: nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>On time · deadline 12 Oct</span>
+            </div>
+            <blockquote style="margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: #F4F4F6; font-size: 14px; line-height: 1.55; color: #3F3F49">Both layouts are on the page “Final” in Figma. Components are named as in the brand guide.</blockquote>
+            <div style="margin-top: 14px; font-size: 13px; font-weight: 600; color: #3F3F49">Links</div>
+            <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px">
+              <a href="https://www.figma.com/design/Lp7Qx/landing?version-id=2214" target="_blank" rel="noopener" class="ned-link" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #F4F4F6; color: #111116; text-decoration: none">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+                <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Figma · version 2214</span><span style="display: block; font-family: 'Space Mono', monospace; font-size: 12px; color: #5E5E6A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">figma.com/design/Lp7Qx/landing?version-id=2214</span></span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>
+              </a>
+              <a href="https://github.com/vinh-ng/landing/tree/3f9a1c2" target="_blank" rel="noopener" class="ned-link" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #F4F4F6; color: #111116; text-decoration: none">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+                <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">GitHub · commit 3f9a1c2</span><span style="display: block; font-family: 'Space Mono', monospace; font-size: 12px; color: #5E5E6A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">github.com/vinh-ng/landing/tree/3f9a1c2</span></span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>
+              </a>
+            </div>
+            <div style="margin-top: 14px; font-size: 13px; font-weight: 600; color: #3F3F49">Files listed by @vinh</div>
+            <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{files}}" as="f" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #F4F4F6">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6"></path></svg>
+                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{f.name}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{f.size}} · fingerprint <span style="font-family: 'Space Mono', monospace">{{f.sha}}</span></span></span>
+                  <span style="{{f.chip}}">{{f.state}}</span>
+                </div>
+              </sc-for>
+            </div>
+            <button onClick="{{checkFile}}" class="ned-drop" style="margin-top: 10px; width: 100%; height: 72px; border-radius: 16px; background: #F8F4FD; color: #3F3F49; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; border: none">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg>
+              <span style="font-size: 14px; font-weight: 600">Drop a file @vinh shared to check it is the same</span>
+            </button>
+          </section>
+
+          <section aria-labelledby="rv-int" style="{{intBox}}">
+            <h2 id="rv-int" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{intIcon}}"></path></svg>{{intTitle}}</h2>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55">{{intBody}}</p>
+            <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 12px">
+              <div><div style="opacity: 0.8">Saved on-chain at submit</div><div style="margin-top: 2px; font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{onchain}}</div></div>
+              <div><div style="opacity: 0.8">This delivery now</div><div style="margin-top: 2px; font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{shown}}</div></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="rv-check" style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><h2 id="rv-check" style="margin: 0; font-size: 16px; font-weight: 600">Done when…</h2><span style="{{checkCountStyle}}">{{checkCount}}</span></div>
+            <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #5E5E6A">From your brief (fingerprint {{briefFp}}). Ticks help you decide; they are not saved on-chain.</p>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+                <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-radius: 12px; background: #F4F4F6; cursor: pointer">
+                  <input type="checkbox" checked="{{c.on}}" onChange="{{c.flip}}" style="width: 18px; height: 18px; accent-color: #7B2FBE; margin: 0">
+                  <span style="font-size: 14px; line-height: 1.4">{{c.text}}</span>
+                </label>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <aside class="ned-stagger" aria-label="Decide" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <div style="padding: 20px; border-radius: 20px; background: #FFFFFF">
+            <div style="font-size: 13px; color: #5E5E6A">Release for milestone 1</div>
+            <div style="margin-top: 4px; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.6px">10.00<span style="font-size: 17px"> USDC</span></div>
+            <div style="margin-top: 4px; font-size: 13px; color: #5E5E6A">To the payout partner for @vinh · paid out in VND (simulated)</div>
+          </div>
+          <div style="padding: 18px; border-radius: 20px; background: #FFFFFF">
+            <div style="font-size: 14px; font-weight: 600">Timeline</div>
+            <ol style="margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0">
+              <sc-for list="{{timeline}}" as="t" hint-placeholder-count="5">
+                <li style="display: flex; gap: 10px">
+                  <span style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0"><span style="{{t.dot}}"></span><span style="{{t.line}}"></span></span>
+                  <span style="padding-bottom: 12px; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 600">{{t.title}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{t.when}}</span></span>
+                </li>
+              </sc-for>
+            </ol>
+          </div>
+          <button onClick="{{startSign}}" style="height: 56px; border-radius: 9999px; border: none; background: #7B2FBE; color: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer">Release 10.00 USDC</button>
+          <a href="DisputeSheet.dc.html" class="ned-ghost" style="height: 50px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 15px; font-weight: 600; text-decoration: none">Dispute <span style="font-size: 11px; font-weight: 600; color: #3730A3">(if shipped)</span></a>
+          <div style="padding: 14px 16px; border-radius: 16px; background: #FFFFFF; font-size: 12px; line-height: 1.6; color: #5E5E6A"><strong style="color: #111116">Need changes?</strong> Talk to @vinh before 15 Oct, 18:00. Only a dispute stops the automatic release.</div>
+        </aside>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"delivery": {"editor": "enum", "options": ["matches", "changed"], "default": "matches"}, "review": {"editor": "enum", "options": ["3 days", "1 min"], "default": "3 days"}, "done": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { panel: 'closed', done: props.done === true || props.done === 'true', t: 0, checked: false, checks: [true, true, true, true] };
+  }
+  componentDidMount() { var self = this; this.timer = setInterval(function () { self.setState({ t: self.state.t + 1 }); }, 1000); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    var self = this, st = this.state;
+    function fp(s) { var h = 5381; for (var i = 0; i < s.length; i++) { h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; } var x = ('00000000' + h.toString(16)).slice(-8); return '0x' + x.slice(0, 4) + '…' + x.slice(4); }
+    var LINKS = ['https://www.figma.com/design/Lp7Qx/landing?version-id=2214', 'https://github.com/vinh-ng/landing/tree/3f9a1c2'];
+    var FILES = ['landing-v1.fig:3f9a…c21e', 'export-desktop.png:b81d…07f4'];
+    var NOTE = 'Both layouts are on the page “Final” in Figma. Components are named as in the brand guide.';
+    var onchain = fp(JSON.stringify({ l: LINKS, f: FILES, n: NOTE }));
+    var changed = (this.props.delivery ?? 'matches') === 'changed';
+    var shown = changed ? fp(JSON.stringify({ l: LINKS, f: ['landing-v2.fig:9e41…2b7d', 'export-desktop.png:b81d…07f4'], n: NOTE })) : onchain;
+
+    var fast = (this.props.review ?? '3 days') === '1 min';
+    var win = fast ? 60 : 259200, left = Math.max(0, (fast ? 42 : 236000) - st.t);
+    var cd;
+    if (left < 3600) { var m = Math.floor(left / 60), s2 = left % 60; cd = (m < 10 ? '0' : '') + m + ':' + (s2 < 10 ? '0' : '') + s2; }
+    else cd = Math.floor(left / 86400) + ' days ' + Math.floor((left % 86400) / 3600) + ' h';
+    var warn = left < win * 0.1;
+
+    var CRIT = ['Desktop and mobile layouts', 'Colours and fonts from the brand guide', 'Figma file with named components', 'Copy from the brief, no placeholder text'];
+    var nOn = st.checks.filter(function (c) { return c; }).length;
+    function fchip(ok, idle) { return 'height: 24px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: ' + (idle ? '#EFEFF3' : (ok ? '#E7F6EC' : '#FDECEC')) + '; color: ' + (idle ? '#4B4B57' : (ok ? '#127A3A' : '#B42318')); }
+    var f1ok = !changed;
+    var files = [
+      { name: changed ? 'landing-v2.fig' : 'landing-v1.fig', size: '4.2 MB', sha: changed ? '9e41…2b7d' : '3f9a…c21e', idle: !st.checked, ok: f1ok },
+      { name: 'export-desktop.png', size: '1.1 MB', sha: 'b81d…07f4', idle: true, ok: true }
+    ].map(function (f) { return { name: f.name, size: f.size, sha: f.sha, state: f.idle ? 'Not checked' : (f.ok ? 'Same file ✓' : 'Different file'), chip: fchip(f.ok, f.idle) }; });
+
+    function dot(c) { return 'width: 10px; height: 10px; margin-top: 4px; border-radius: 9999px; background: ' + c; }
+    var TL = [['Contract created · brief saved', '2 Oct, 21:40', '#7B2FBE'], ['@vinh accepted · VND payout', '2 Oct, 22:05', '#7B2FBE'], ['You locked 20.00 USDC', '2 Oct, 22:12', '#7B2FBE'], ['Milestone 1 submitted', '3 Oct, 00:31 · on time', '#4F46E5'], ['Review deadline', '15 Oct, 18:00 · then anyone can release', '#C9C9D2']];
+    var timeline = TL.map(function (t, i) { return { title: t[0], when: t[1], dot: dot(t[2]), line: i < TL.length - 1 ? 'width: 2px; flex: 1; min-height: 14px; background: #E6E6EB' : 'display: none' }; });
+
+    return {
+      done: st.done, form: !st.done,
+      panelOn: st.panel !== 'closed', isSign: st.panel === 'sign', panelMode: st.panel === 'sign' ? 'sign' : 'home', openStr: st.panel !== 'closed' ? 'true' : 'false',
+      panelPos: st.panel === 'sign' ? 'position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px)); z-index: 40; width: 380px; max-width: calc(100vw - 32px)' : 'position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 380px; max-width: calc(100vw - 32px)',
+      toggle: function () { self.setState({ panel: st.panel === 'closed' ? 'home' : 'closed' }); },
+      close: function () { self.setState({ panel: 'closed' }); },
+      startSign: function () { self.setState({ panel: 'sign' }); },
+      confirm: function () { self.setState({ panel: 'closed', done: true }); },
+      cd: cd,
+      cdChip: 'display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 9999px; font-size: 14px; font-weight: 600; background: ' + (warn ? '#FFF5E1' : '#EEEFFE') + '; color: ' + (warn ? '#8A5300' : '#3730A3'),
+      files: files, checkFile: function () { self.setState({ checked: true }); },
+      onchain: onchain, shown: shown,
+      intBox: 'padding: 18px 20px; border-radius: 20px; background: ' + (changed ? '#FDECEC' : '#E7F6EC') + '; color: ' + (changed ? '#B42318' : '#127A3A'),
+      intIcon: changed ? 'M12 8v5M12 16.5v.5M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z' : 'M5 12.5l4.5 4.5L19 7.5',
+      intTitle: changed ? 'This delivery changed after it was submitted' : 'Same delivery that was submitted',
+      intBody: changed ? 'The fingerprint saved on-chain does not match what you see now. Ask @vinh which version is final, or dispute before the review deadline.' : 'The links, file fingerprints and note match the fingerprint saved on-chain on 3 Oct, 00:31. Nothing was swapped after the deadline.',
+      briefFp: '0x2831…3b17',
+      checks: CRIT.map(function (t, j) { return { text: t, on: !!st.checks[j], flip: function () { var a = st.checks.slice(); a[j] = !a[j]; self.setState({ checks: a }); } }; }),
+      checkCount: nOn + ' of ' + CRIT.length + ' met',
+      checkCountStyle: 'font-size: 13px; font-weight: 600; color: ' + (nOn === CRIT.length ? '#127A3A' : '#8A5300'),
+      timeline: timeline
+    };
+  }
+}
+</script>
+</body>
+</html>

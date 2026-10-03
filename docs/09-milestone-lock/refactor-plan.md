@@ -1,5 +1,7 @@
 # Refactor plan: from wallet demo to Milestone Lock (3 → 10 Oct 2026)
 
+> **3 Oct 2026:** the schedule (section 4) and the order of the remaining work are replaced by [`build-plan.md`](build-plan.md). PR4–PR6 content below still applies as the detail for build-plan B3–B5; section 0 "Where we are" is out of date (see `docs/tong-hop-tien-do.md`).
+
 Status: **plan, 3 Oct 2026**, based on a full read of `main` at `dbfe2ea`. It turns [`product-spec.md`](product-spec.md) and [`program-spec.md`](program-spec.md) into an ordered list of pull requests. The owner of each estimate is the developer; the hours are estimates \[Assumption\] for one developer working with an AI coding assistant.
 
 ## 0. Summary
