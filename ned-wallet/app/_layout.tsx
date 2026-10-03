@@ -6,9 +6,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, router, useRouter, useSegments, type Href } from 'expo-router';
 import { AuthProvider, useAuth } from '../services/auth';
 import { resolveOnboarding } from '../services/onboarding';
+import { takeInvite } from '../services/milestone/invite';
+import { importKeyFromFragment } from '../services/milestone/keys';
+import { contractKeyStorage } from '../services/milestone/keyStore';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import { useFonts } from 'expo-font';
 import { colors } from '../constants/design';
@@ -19,7 +22,8 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
 // (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found']);
+// 'c': the invite link route decides itself (it keeps the #k= fragment for after sign-in)
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -41,6 +45,25 @@ function AuthGate() {
  * Đã đăng nhập nhưng chưa xong onboarding (chưa có ReverseRecord hoặc chưa chọn khu vực) mà mở thẳng một màn
  * trong app (deep link) → về /setup; setup tự chọn bước tiếp theo. Kiểm tra một lần cho mỗi ví; lỗi RPC thì không chặn.
  */
+/** An invite opened before sign-in (app/c/[fund]) is imported once the wallet exists, then opens that contract */
+function PendingInviteGate() {
+  const { isReady, isAuthenticated, walletAddress } = useAuth();
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !walletAddress) return;
+    let cancelled = false;
+    void (async () => {
+      const pending = await takeInvite();
+      if (!pending || cancelled) return;
+      await importKeyFromFragment(contractKeyStorage, walletAddress, pending.fund, pending.fragment);
+      router.push(`/contracts/${pending.fund}` as Href);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, isAuthenticated, walletAddress]);
+  return null;
+}
+
 function OnboardingGate() {
   const { isReady, isAuthenticated, walletAddress, connection } = useAuth();
   const segments = useSegments();
@@ -99,6 +122,7 @@ export default function RootLayout() {
                   <View style={styles.root}>
                     <AuthGate />
                     <OnboardingGate />
+                    <PendingInviteGate />
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
