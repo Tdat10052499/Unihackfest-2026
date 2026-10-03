@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Keypair, PublicKey, type AccountInfo } from '@solana/web3.js';
 import { fetchUsdcUnits, tokenAmountFromAccountData, usdcNumberFromUnits } from '../balance.ts';
 import { ata } from '../ata.ts';
-import { TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../../constants/chain.ts';
+import { TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../constants.ts';
 
 /** Raw 165-byte SPL token account: mint · owner · amount (u64 LE at 64). */
 function tokenAccount(mint: PublicKey, owner: PublicKey, amount: bigint): AccountInfo<Buffer> {

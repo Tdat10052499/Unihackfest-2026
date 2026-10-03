@@ -1,6 +1,6 @@
 // Hand-built 708-byte SharedFund accounts (program-spec 3.1), shared by the milestone tests.
 import { Keypair, PublicKey } from '@solana/web3.js';
-import { USDC_DEVNET_MINT } from '../../../constants/chain.ts';
+import { USDC_DEVNET_MINT } from '../../constants.ts';
 import { decodeFund, FUND_DISCRIMINATOR, type FundAccount } from '../decode.ts';
 import { FUND_STATES, MILESTONE_STATUSES, PAYOUT_KINDS, type FundStateName, type MilestoneStatusName, type PayoutKindName } from '../layout.ts';
 

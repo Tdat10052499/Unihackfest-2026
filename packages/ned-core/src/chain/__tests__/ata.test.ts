@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { ata, createAtaIdempotentIx } from '../ata.ts';
-import { ATA_PROGRAM_ID, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../../constants/chain.ts';
+import { ATA_PROGRAM_ID, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../constants.ts';
 
 // Fixture read from devnet on 2 Oct 2026 (getTokenAccountsByOwner, mint = devnet USDC): the owner's USDC token account.
 const OWNER = new PublicKey('9PZwK7pZmZnqfq1D5Xm9JvmoFQbPSjCoxj4AHiVLrhkW');

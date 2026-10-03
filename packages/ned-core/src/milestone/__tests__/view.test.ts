@@ -1,7 +1,7 @@
 // Labels for every state × role × region (snapshot), plus actions, P1 gating and the other FundView fields.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEMO_PAYOUT_PARTNER } from '../../../constants/chain.ts';
+import { DEMO_PAYOUT_PARTNER } from '../../constants.ts';
 import { evidenceHash } from '../evidence.ts';
 import { vaultPda } from '../pda.ts';
 import { RELEASED_TO_PARTNER, toFundView, type Region, type Role } from '../view.ts';

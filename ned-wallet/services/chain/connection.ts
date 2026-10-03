@@ -1,15 +1,9 @@
-// One devnet Connection for the whole app (non-ui-plan N0.3).
-import { Connection } from '@solana/web3.js';
+// Re-export shim (workspace-plan W0): the code lives in packages/ned-core. Keeps old import paths working.
+import '../../services/coreInit.ts';
+import { getConnection, getRpcUrl } from '@ned/core/config.ts';
 
-export const PUBLIC_DEVNET_RPC = 'https://api.devnet.solana.com';
-
-/** Env order: EXPO_PUBLIC_HELIUS_DEVNET_URL → EXPO_PUBLIC_SOLANA_DEVNET_RPC → public devnet. */
-export const DEVNET_RPC_URL: string =
-  process.env.EXPO_PUBLIC_HELIUS_DEVNET_URL ||
-  process.env.EXPO_PUBLIC_SOLANA_DEVNET_RPC ||
-  PUBLIC_DEVNET_RPC;
-
-export const connection = new Connection(DEVNET_RPC_URL, {
-  commitment: 'confirmed',
-  confirmTransactionInitialTimeout: 30_000,
-});
+export { createConnection, PUBLIC_DEVNET_RPC } from '@ned/core/chain/connection.ts';
+/** The configured devnet RPC URL */
+export const DEVNET_RPC_URL = getRpcUrl();
+/** The one devnet Connection of this app */
+export const connection = getConnection();

@@ -1,6 +1,6 @@
 // Scenarios for view.test.ts: every fund state / milestone status the screens can show.
 import { CLIENT, FREELANCER, M, T0, type FixtureFund } from './fixture.ts';
-import { DEMO_PAYOUT_PARTNER } from '../../../constants/chain.ts';
+import { DEMO_PAYOUT_PARTNER } from '../../constants.ts';
 
 export const NAMES = { [CLIENT.toBase58()]: '@mia', [FREELANCER.toBase58()]: '@vinh' };
 export const NOW = T0;

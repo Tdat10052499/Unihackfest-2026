@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PublicKey } from '@solana/web3.js';
-import { USDC_DEVNET_MINT } from '../../../constants/chain.ts';
+import { USDC_DEVNET_MINT } from '../../constants.ts';
 import { decodeFund } from '../decode.ts';
 import { CLIENT, FREELANCER, FUND_ADDRESS, fundBytes, STRANGER, T0, USDC } from './fixture.ts';
 

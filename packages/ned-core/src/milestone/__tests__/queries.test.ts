@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import bs58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
-import { PROGRAM_ID } from '../../../constants/chain.ts';
+import { IDL_PROGRAM_ID as PROGRAM_ID } from '../../constants.ts';
 import { FUND_DISCRIMINATOR } from '../decode.ts';
 import { getChainNow, getFund, listFunds } from '../queries.ts';
 import { CLIENT, FREELANCER, fundBytes, FUND_ADDRESS, M, T0 } from './fixture.ts';

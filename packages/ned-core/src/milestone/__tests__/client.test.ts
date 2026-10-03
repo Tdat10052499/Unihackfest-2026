@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PublicKey, SystemProgram, type TransactionInstruction } from '@solana/web3.js';
-import { ATA_PROGRAM_ID, DEMO_PAYOUT_PARTNER, PROGRAM_ID, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../../constants/chain.ts';
+import { ATA_PROGRAM_ID, DEMO_PAYOUT_PARTNER, IDL_PROGRAM_ID as PROGRAM_ID, TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../../constants.ts';
 import { ata } from '../../chain/ata.ts';
 import * as client from '../client.ts';
 import { coder } from '../decode.ts';
