@@ -14,7 +14,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNotificationStore } from '../stores/useNotificationStore';
@@ -79,6 +79,10 @@ export function NotificationInAppBanner() {
     hideBanner();
     markAsRead(item.id);
     setActiveNotification(item);
+    if (item.route) {
+      router.push(item.route as Href);
+      return;
+    }
     router.push({
       pathname: '/notification-detail',
       params: { id: item.id },

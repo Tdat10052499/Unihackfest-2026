@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchOnChainHistory, ActivityItem } from '../services/solana';
 
-export type NotificationType = 'RECEIVE_MONEY' | 'TRANSFER' | 'SYSTEM' | 'WARNING';
+export type NotificationType = 'RECEIVE_MONEY' | 'TRANSFER' | 'SYSTEM' | 'WARNING' | 'CONTRACT';
 
 export interface InAppNotification {
   id: string;
@@ -25,6 +25,8 @@ export interface InAppNotification {
   network?: string; // Mạng lưới (Solana Devnet / Mainnet)
   fee?: string; // Phí mạng
   blockNumber?: number | string; // Số khối / Slot
+  /** CONTRACT notifications (B5): screen to open instead of the transfer detail */
+  route?: string;
 }
 
 interface NotificationState {
@@ -272,6 +274,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       network: payload.network || 'Solana Devnet',
       fee: payload.fee || '0.000005 SOL',
       blockNumber: payload.blockNumber,
+      ...(payload.route ? { route: payload.route } : {}),
     };
 
     const updated = [newNotif, ...notifications];

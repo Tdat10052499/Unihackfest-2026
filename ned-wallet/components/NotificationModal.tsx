@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Pressable, Modal, ScrollView, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useNotificationStore, InAppNotification } from '../stores/useNotificationStore';
 import { Mascot } from '@/components/Mascot';
 import { Badge, Button, DText, IconButton } from '@/components/design';
@@ -57,6 +57,10 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
     markAsRead(item.id);
     setActiveNotification(item);
     onClose();
+    if (item.route) {
+      router.push(item.route as Href);
+      return;
+    }
     router.push({
       pathname: '/notification-detail',
       params: { id: item.id },

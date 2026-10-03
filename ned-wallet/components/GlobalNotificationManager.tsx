@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useUserStore } from '../stores/useUserStore';
 import { useNotificationStore } from '../stores/useNotificationStore';
 import { useNotificationSync } from '../hooks/useNotificationSync';
+import { useContractWatch } from '../hooks/useContractWatch';
 import { NotificationInAppBanner } from './NotificationInAppBanner';
 
 /**
@@ -18,6 +19,8 @@ export function GlobalNotificationManager() {
 
   // Polling on-chain liên tục
   useNotificationSync(activeWallet);
+  // Contract changes (B5): new contract, locked, submitted, released
+  useContractWatch();
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
