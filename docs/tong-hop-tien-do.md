@@ -194,7 +194,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 - **Chưa làm / cần chủ dự án:**
   - đăng nhập Google thật (cần `.env.local` và thêm `http://localhost:4173` vào allowed origins của Dynamic);
   - so địa chỉ ví với điện thoại; Lighthouse cho `/` khi đã đăng nhập;
-  - tạo project Vercel (chưa đụng dashboard).
+  - ~~tạo project Vercel~~: chủ dự án đã tạo ngày 03/10/2026, domain production **https://unihackfest-2026.vercel.app** (route SPA và các header của `vercel.json` đã được kiểm tra trên site thật). Lần deploy đầu thiếu `VITE_DYNAMIC_ENVIRONMENT_ID` và `VITE_HELIUS_DEVNET_URL`: cần điền rồi Redeploy, sau đó thêm domain vào Dynamic (Allowed CORS Origin) và Helius (Allowed Domains).
 - **Ghi chú:**
   - board ghi "Received this month", nhưng chain không lưu ngày release, nên panel hiện "Released to you" (tổng từ trước đến nay);
   - bundle JS 457 kB gzip (Dynamic + web3.js), sẽ tách lazy-load ở W6;
@@ -219,6 +219,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | Payout partner demo | `FA2qzovJShkNNNnMz3nXmYXvBzenRTgU2oko7RBBhbyp` (keypair `~/.config/solana/ned-demo-partner.json`), USDC ATA `Abey9woydP9w8voHfGsoBzM6tKnAcDugUVWmeQdiD96i` |
 | Ví test smoke run | Client `BT9czjT3y8MZvGT5HSB8c7uXZriXJj13BBiGDQCtRT7B` (18 USDC), freelancer `EcpCrZB6HAV8VBRcfmR6DZqwitFpxfkUnEXfqAYPrA4y` |
 | Ví deploy | 8,546 SOL (02/10) → 7,197 SOL |
+| Workspace (Vercel) | https://unihackfest-2026.vercel.app (Root Directory `ned-workspace`, CSP đang Report-Only) |
 | Kích thước | `SharedFund` 708 byte (client @12, freelancer @44); `.so` 475 280 byte |
 
 ### Vấn đề còn mở
