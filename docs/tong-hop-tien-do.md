@@ -168,7 +168,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | C1 đóng phần mobile (link mời đi qua router Workspace mặc định) | `feat/c1-hosting` | `1088e77` + docs |
 | W3 Workspace `/new`: soạn brief, tạo hợp đồng, xác nhận trong wallet panel | `feat/w3-brief-editor` | `af18ff9`, `e0e55ae`, `b588f08` + docs |
 | W4 Workspace: nộp bài (submit) và duyệt (review) | `feat/w4-submit-review` | `df00cf2`, `36a61ff`, `ef6492a` + docs |
-| W5 Workspace: dọn dẹp, a11y, Reduce Motion, tách bundle, CSP chặn thật, README (**chờ PO đồng ý deploy production**) | `chore/w5-workspace-polish` | `64a64d9`, `20dd075`, `2fdd484`, `1d027fb`, `9d8d7f0` + docs |
+| W5 Workspace: dọn dẹp, a11y, Reduce Motion, tách bundle, CSP chặn thật, README; **đã deploy production** | `chore/w5-workspace-polish` | `64a64d9`, `20dd075`, `2fdd484`, `1d027fb`, `9d8d7f0` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -216,7 +216,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
 
-**W5 (03/10/2026): hoàn thiện Workspace (chưa deploy production; chờ PO đồng ý).**
+**W5 (03/10/2026): hoàn thiện Workspace; đã deploy production (PO đồng ý).**
 - **Dọn dẹp:**
   - xoá `pages/ComingSoon.tsx` (không còn dùng);
   - xoá 42 branch local đã merge vào `main` (`git branch -d`, chỉ xoá được khi commit đã có trong `main`); giữ 3 branch chưa merge (`docs/build-plan`, `feat/c1-hosting-early`, `feat/t1-dynamic-auth`);
@@ -247,10 +247,10 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 - **README:** thêm mục "Workspace (ned-workspace): run, env, deploy" (lệnh chạy, tên biến môi trường, deploy Vercel, header, lưu ý domain của Dynamic).
 - **Test:** workspace 10, core 96, wallet 25; `npm run build` OK; `tsc` app 0 lỗi.
 - **Devnet:** một hợp đồng tạm `3LF5…` (0.5 USDC, own wallet) để đo trang review; đã release và đóng. Hợp đồng W4 `Ff9h…` còn milestone 2 (1 USDC) chờ hết hạn nộp, sau đó ai cũng refund được rồi đóng.
-- **Còn lại (cần PO):**
-  1. đồng ý deploy production (merge vào `main` thì Vercel tự deploy);
-  2. sau deploy: chạy D1 end-to-end trên URL production (đăng nhập, tạo, accept, lock, submit, review, release) và xem console có lỗi CSP không;
-  3. ghi kết quả vào đây.
+- **Production (03/10, sau khi PO đồng ý):** `main` = `986881f`, Vercel đã deploy.
+  - `curl -I https://unihackfest-2026.vercel.app/new`: có `content-security-policy` (chặn thật), `permissions-policy`, `x-frame-options: DENY`, `referrer-policy: no-referrer`, `x-content-type-options: nosniff`.
+  - Mở live dưới CSP chặn thật: Dynamic khởi động, nút "Continue with Google" bật, router invite giữ lại máy tính; **không có lỗi CSP hay lỗi console**.
+- **Còn lại (cần PO):** chạy D1 end-to-end trên URL production (đăng nhập Google, tạo, accept, lock, submit, review, release), mở console xem có lỗi CSP không, rồi ghi kết quả vào đây. Nếu đăng nhập hoặc ký lỗi vì CSP: đổi tên header thành `Content-Security-Policy-Report-Only` trong `ned-workspace/vercel.json` rồi gửi lỗi console.
 
 **W4 (03/10/2026): nộp và duyệt milestone trên Workspace (board WebSubmit, WebReview).**
 - **Xác nhận trong wallet panel:** đã làm ở W3 (các dòng tóm tắt, ghi chú, Cancel/Confirm, vị trí cố định, backdrop fade, trả về lựa chọn của người dùng); W4 dùng lại cho submit và release.
