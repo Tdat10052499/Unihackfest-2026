@@ -2,9 +2,11 @@
  * Sends the devnet USDC that reached the demo payout partner back to the client (Mia), so the next demo run does
  * not need a faucet claim (non-ui-plan N12, product-spec section 7).
  *
- *   npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <mia wallet> [--amount 20]
- *   npm run recycle:demo-usdc -- --keypair <path> --create-ata      # only create the partner's USDC account
- *   npm run recycle:demo-usdc -- --keypair <path> --to <wallet> --dry-run
+ *   npm run recycle:demo-usdc -- --to <mia wallet> [--amount 20]
+ *   npm run recycle:demo-usdc -- --create-ata                       # only create the partner's USDC account
+ *   npm run recycle:demo-usdc -- --to <wallet> --dry-run
+ *
+ * --keypair defaults to ~/.config/solana/ned-demo-partner.json.
  *
  * --amount is in USDC (default: the whole partner balance). The partner keypair only signs the transfer; network
  * fees and any account rent are paid by --payer (default ~/.config/solana/id.json), so the partner needs no SOL.
@@ -72,8 +74,7 @@ function transferCheckedIx(source: PublicKey, destination: PublicKey, owner: Pub
 const explorerTx = (sig: string) => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
 
 async function main() {
-  const keypairPath = arg('keypair');
-  if (!keypairPath) throw new Error('Usage: --keypair <partner keypair> --to <wallet> [--amount <USDC>] [--payer <keypair>] [--dry-run] [--create-ata]');
+  const keypairPath = arg('keypair') ?? path.join(os.homedir(), '.config', 'solana', 'ned-demo-partner.json');
   const partner = loadKeypair(keypairPath, 'partner');
   const payer = loadKeypair(arg('payer') ?? path.join(os.homedir(), '.config', 'solana', 'id.json'), 'payer');
   const connection = new Connection(loadEnvRpc(), 'confirmed');
@@ -96,7 +97,9 @@ async function main() {
   }
 
   const toArg = arg('to');
-  if (!toArg) throw new Error('--to <wallet> is required (Mia’s wallet address)');
+  if (!toArg) {
+    throw new Error('Usage: npm run recycle:demo-usdc -- --to <wallet> [--amount <USDC>] [--keypair <partner>] [--payer <keypair>] [--dry-run] | --create-ata');
+  }
   const to = new PublicKey(toArg);
   const requested = arg('amount');
   const amount = requested === undefined ? balance : unitsFromUsdc(requested);

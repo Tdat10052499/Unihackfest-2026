@@ -250,12 +250,12 @@ Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 C
 | 15 phút trước pitch | Chuẩn bị hợp đồng B **trong app** bằng chính login của Mia và Vinh (create → accept VND → lock → submit). Để review deadline qua lúc trình bày | Team |
 | Ngày demo | Mở hợp đồng B bằng deep link, bấm Release; mở explorer xem vault thuộc program | Presenter |
 
-Lệnh recycle (chạy trong `ned-wallet/`; phí do `~/.config/solana/id.json` trả, partner không cần SOL):
+Lệnh recycle (chạy trong `ned-wallet/`; keypair partner mặc định `~/.config/solana/ned-demo-partner.json`; phí do `~/.config/solana/id.json` trả, partner không cần SOL):
 
 ```bash
-npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia> --dry-run   # xem trước
-npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia>             # gửi toàn bộ
-npm run recycle:demo-usdc -- --keypair ~/.config/solana/ned-demo-partner.json --to <ví Mia> --amount 10 # gửi 10 USDC
+npm run recycle:demo-usdc -- --to <ví Mia> --dry-run      # xem trước
+npm run recycle:demo-usdc -- --to <ví Mia>                # gửi toàn bộ
+npm run recycle:demo-usdc -- --to <ví Mia> --amount 10    # gửi 10 USDC
 ```
 
 ## 4. Lệnh hay dùng
