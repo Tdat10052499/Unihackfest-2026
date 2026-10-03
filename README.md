@@ -83,7 +83,7 @@ The application integrates:
 | `ned_program` on **devnet** (`8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, Anchor 1.1.2) | Identity (`@username`, optional phone hash) and **Milestone Lock**: `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`, plus `dispute`, `concede`, `propose_cancel`, `accept_cancel`. 17 instructions; IDL on-chain. Not audited |
 | Web app (`ned-wallet/`, Expo SDK 57, web first) | Google sign-in with an embedded Solana wallet (Dynamic), onboarding, on-chain identity lookup, USDC send on devnet |
 | Milestone Lock in the app | `services/milestone/` (builders, decoding, rules, labels) and the hooks the screens will use (`useFunds`, `useFund`, `useMilestoneActions`, `useChainTime`, `useRegion`). The contract **screens are being redesigned**; until then a dev-only harness at `/dev/milestone` runs every action |
-| Hidden | Swap, xStocks, dApp browser: code kept, routes redirect home (`constants/features.ts`) |
+| Hidden or removed | Swap and xStocks: code kept, routes redirect home (`constants/features.ts`). dApp browser and Mobile Wallet Adapter: removed |
 | Backend | None. Shared data lives on-chain; the payout partner is simulated by a team-controlled devnet wallet |
 
 Everything runs on **devnet with test money**. N.E.D holds no funds and charges no fee.
@@ -154,7 +154,7 @@ cp .env.example .env          # fill in; see Environment variables
 | `npx tsc --noEmit` | Type check |
 | `npm run lint` | ESLint |
 | `npm run web` | Dev server on http://localhost:8081 |
-| `npm run identity:check` | Read-only identity check against devnet |
+| `npm run identity:check` | Read-only identity check: devnet identity records plus a mainnet `.sol` lookup (needs `EXPO_PUBLIC_HELIUS_MAINNET_URL`) |
 | `npm run milestone:devnet` | Milestone Lock smoke run on devnet with local keypairs (`-- --refund`, `-- --own-wallet`); needs devnet USDC on the test client |
 | `npm run recycle:demo-usdc -- --to <wallet>` | Sends the demo payout partner's devnet USDC back to the client |
 

@@ -31,7 +31,12 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 ### T0.2 — Gỡ khoá bí mật + relayer (PR #2)
 - Xoá luồng "client-side relayer" dùng `EXPO_PUBLIC_ADMIN_SECRET_KEY`, mọi lời gọi `ned-hub`, `RELAYER_FEE_PAYER`, `TREASURY_FEE_PAYER`; xoá `test_key.js` (chứa secret key) và `test-relayer.js` (Helius key); tạo `.env.example`.
 - Quét bí mật toàn repo + lịch sử git: **khoá ví relayer `b7TFMuVZzZneuHSMuoWiV3d52yRF7pLTLVF7HDKNWqz` đã lộ** (trong `test_key.js`, `.env` từng commit, bundle cũ trên `gh-pages`); Helius key và Supabase `service_role` key cũng lộ.
-- **Việc chủ dự án cần làm (nếu chưa)**: rút hết SOL khỏi ví `b7TF…Wqz`; đổi Helius API key; đổi/xoá Supabase keys/project; lịch sử git vẫn còn các khoá cũ.
+- **Việc chủ dự án cần làm (nếu chưa)** — cập nhật ở N13 (03/10/2026). Lịch sử git và bundle cũ trên `gh-pages` vẫn còn các khoá cũ, nên phải đổi khoá chứ không chỉ xoá file:
+  - [ ] Rút hết SOL khỏi ví relayer `b7TF…Wqz` và không dùng ví này nữa.
+  - [ ] Helius: tạo key devnet + mainnet mới, xoá key cũ, **giới hạn key theo domain** `https://tdat10052499.github.io` (thêm `http://localhost:8081` khi chạy local). Cập nhật `EXPO_PUBLIC_HELIUS_DEVNET_URL` / `EXPO_PUBLIC_HELIUS_MAINNET_URL` trong `.env`, rồi kiểm tra bằng `npm run identity:check` (bước tra `sns.sol` trên mainnet).
+  - [ ] Supabase: xoá project (không còn dùng) hoặc đổi `service_role` + anon key.
+  - [ ] Jupiter: thu hồi key cũ (từng nằm trong `.env.example` và bundle), tạo key mới, chỉ đặt trong `.env`.
+  - [ ] Sau khi đổi khoá: deploy lại GitHub Pages (`npm run predeploy && npm run deploy`) để bundle chỉ chứa khoá mới.
 
 ### T0.3 — Chuẩn bị dev build EAS (PR #3)
 `eas.json` profile `development` (developmentClient, internal, android apk); cài `expo-dev-client`; `expo install --fix` 21 gói; bỏ `newArchEnabled`/`edgeToEdgeEnabled` (không hợp lệ SDK 57); thêm `runtimeVersion`; đổi package **`com.teichidev.nedwallet`**. `expo-doctor` 21/21.
