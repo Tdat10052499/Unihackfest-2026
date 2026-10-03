@@ -1,7 +1,9 @@
-// N.E.D DesignKit — token lấy từ docs/02-thiet-ke/ned-wallet-ui.pdf trang 6 (Design Token System)
-// và trang 7 (Typography System); giá trị gốc ở canvas Main.dc.html / Typography.dc.html.
-// Màn hình không tự viết mã màu, cỡ chữ, bo góc: lấy từ file này hoặc components/design.
-import { StyleSheet } from 'react-native';
+// N.E.D DesignKit — "Modern Minimal v2" (build-plan B2, decision D17): light theme, no outlines; depth comes from
+// tone and a soft shadow. Values from docs/02-thiet-ke/canvas-v2/Main.dc.html and MotionSurfaces.dc.html.
+// Screens never write colours, font sizes or radii themselves: they use this file or components/design.
+// The dark-theme names (surface1–3, glass.*, light.*, home.*, gradients.screen, orbs) are kept as DEPRECATED aliases
+// with light values so screens keep working until B3/B4 rebuild them on `palette`; do not use them in new code.
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 
 /** Primary — NED Purple (from Mascot), 500 là màu thương hiệu */
 export const purple = {
@@ -16,95 +18,125 @@ export const purple = {
   900: '#160530',
 } as const;
 
+/** Light palette (Main board). New code uses these names. */
+export const palette = {
+  ground: '#F4F4F6', // screen background
+  card: '#FFFFFF',
+  field: '#F4F4F6', // filled inputs, tonal cards on white
+  row: '#F7F7F9', // grouped list on white
+  hoverGround: '#EEEEF2',
+  divider: '#F0F0F3', // the only line allowed: between rows of one list
+  ink: '#111116',
+  ink2: '#3F3F49',
+  caption: '#5E5E6A',
+  muted: '#8A8A96', // placeholders only (3.3:1 on white)
+  accent: purple[500],
+  accentPressed: '#6A22B0',
+  link: '#6A22B0',
+  tint: '#F2EAFB',
+  onAccent: '#FFFFFF',
+  scrim: 'rgba(17,17,22,0.32)',
+  switchOff: '#D9D9E0',
+} as const;
+
+/** Status tints: background · ink (text and icons) · dot */
+export const status = {
+  info: { bg: '#EEEFFE', ink: '#3730A3', dot: '#4F46E5' },
+  accent: { bg: '#F2EAFB', ink: '#6A22B0', dot: '#7B2FBE' },
+  warning: { bg: '#FFF5E1', ink: '#8A5300', dot: '#F59E0B' },
+  success: { bg: '#E7F6EC', ink: '#127A3A', dot: '#16A34A' },
+  error: { bg: '#FDECEC', ink: '#B42318', dot: '#D92D20' },
+  neutral: { bg: '#F4F4F6', ink: '#3F3F49', dot: '#8A8A96' },
+} as const;
+
+/** Semantic colours. The surface/text names keep their dark-theme meaning with light values (see header). */
 export const colors = {
   purple,
   brand: purple[500],
 
-  // Surfaces (Dark-First)
-  background: '#0A0A0A',
-  surface1: '#141418',
-  surface2: '#1C1C24', // Card
-  surface3: '#252530', // Hover / pressed
-  border: '#353540', // Border / Divider
+  background: palette.ground,
+  /** @deprecated use palette.card */
+  surface1: palette.card,
+  /** @deprecated use palette.card (Card) */
+  surface2: palette.card,
+  /** @deprecated use palette.hoverGround */
+  surface3: palette.hoverGround,
+  /** @deprecated no outlines in v2: only list dividers (palette.divider) */
+  border: palette.divider,
 
-  // Semantic Colors
-  success: '#22C55E',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  info: '#6366F1',
+  success: status.success.dot,
+  error: status.error.dot,
+  warning: status.warning.dot,
+  info: status.info.dot,
 
-  // Text Hierarchy
-  text: '#FFFFFF', // Headlines, balances, CTAs
-  textSecondary: '#9CA3AF', // Labels, descriptions
-  textTertiary: '#6B7280', // Hints, timestamps
-  textAccent: purple[400], // Links, highlights
+  text: palette.ink,
+  textSecondary: palette.caption,
+  /** Hints and timestamps: caption, not muted, to keep 4.5:1 on white */
+  textTertiary: palette.caption,
+  textAccent: palette.link,
 
-  // Chữ trạng thái trên nền tối: sắc sáng của cùng màu semantic (các board màn hình dùng)
-  successText: '#4ADE80',
-  errorText: '#F87171',
-  warningText: '#FBBF24',
-  infoText: '#A5B4FC',
-  errorSoftText: '#FCA5A5',
+  successText: status.success.ink,
+  errorText: status.error.ink,
+  warningText: status.warning.ink,
+  infoText: status.info.ink,
+  errorSoftText: status.error.ink,
 
   white: '#FFFFFF',
   black: '#000000',
 } as const;
 
-/** Lớp kính trên nền gradient (Visual Effects — Glassmorphism): nền trong + viền mảnh */
+/** @deprecated dark-theme glass layer, mapped to light tonal fills; borders are transparent (no outlines) */
 export const glass = {
-  fill: 'rgba(255,255,255,0.05)',
-  fillStrong: 'rgba(255,255,255,0.08)',
-  border: 'rgba(255,255,255,0.1)',
-  borderStrong: 'rgba(255,255,255,0.14)',
-  divider: 'rgba(255,255,255,0.07)',
-  iconTint: 'rgba(155,79,222,0.18)', // ô icon trong hàng danh sách
-  toggleOff: 'rgba(255,255,255,0.18)',
-  popover: '#1A1428',
-  popoverBorder: 'rgba(184,122,237,0.3)',
-  selectedFill: 'rgba(123,47,190,0.2)',
-  focusBorder: 'rgba(155,79,222,0.5)',
-  cardLabel: 'rgba(255,255,255,0.85)',
-  nav: 'rgba(22,16,31,0.94)', // thanh điều hướng nổi
-  navActive: 'rgba(155,79,222,0.3)',
-  shadow: '0 12px 30px rgba(0,0,0,0.45)',
-  scrim: 'rgba(0,0,0,0.6)', // nền mờ sau modal
-  onBrand: 'rgba(255,255,255,0.14)', // kính trên nền tím (splash, thẻ filled)
+  fill: palette.card,
+  fillStrong: palette.field,
+  border: 'transparent',
+  borderStrong: 'transparent',
+  divider: palette.divider,
+  iconTint: palette.tint,
+  toggleOff: palette.switchOff,
+  popover: palette.card,
+  popoverBorder: 'transparent',
+  selectedFill: palette.tint,
+  /** Focus is shown with a halo (shadows.focusHalo); this tone stays for screens not yet rebuilt */
+  focusBorder: 'rgba(123,47,190,0.45)',
+  cardLabel: 'rgba(255,255,255,0.85)', // on the coloured mini wallet cards
+  nav: palette.card,
+  navActive: palette.tint,
+  shadow: '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)',
+  scrim: palette.scrim,
+  onBrand: 'rgba(255,255,255,0.14)', // on purple (splash)
   onBrandBorder: 'rgba(255,255,255,0.32)',
-  accentFill: 'rgba(123,47,190,0.15)', // Card Accent: purple glow bg
-  accentBorder: 'rgba(123,47,190,0.3)', // Card Accent: border purple/30%
-  successFill: 'rgba(34,197,94,0.12)',
-  successBorder: 'rgba(74,222,128,0.35)',
-  errorFill: 'rgba(239,68,68,0.1)',
-  errorBorder: 'rgba(248,113,113,0.4)',
-  errorSoftFill: 'rgba(239,68,68,0.08)',
-  errorSoftBorder: 'rgba(248,113,113,0.3)',
-  warningFill: 'rgba(245,158,11,0.12)',
-  warningBorder: 'rgba(251,191,36,0.35)',
-  infoFill: 'rgba(99,102,241,0.1)',
-  infoBorder: 'rgba(129,140,248,0.28)',
+  accentFill: status.accent.bg,
+  accentBorder: 'transparent',
+  successFill: status.success.bg,
+  successBorder: 'transparent',
+  errorFill: status.error.bg,
+  errorBorder: 'transparent',
+  errorSoftFill: status.error.bg,
+  errorSoftBorder: 'transparent',
+  warningFill: status.warning.bg,
+  warningBorder: 'transparent',
+  infoFill: status.info.bg,
+  infoBorder: 'transparent',
 } as const;
 
-/** Nửa dưới sáng của Home (PDF trang 8 / HomeV4 tweak sheet=light) */
+/** @deprecated Home lower half; same as palette now */
 export const light = {
-  background: '#FFFFFF',
-  surface: '#F6F0FB',
-  divider: '#F0ECF6',
-  text: '#16101F',
-  textSecondary: '#6B6780',
+  background: palette.card,
+  surface: palette.tint,
+  divider: palette.divider,
+  text: palette.ink,
+  textSecondary: palette.caption,
   accent: purple[500],
-  successText: '#15803D',
-  errorText: '#B91C1C',
+  successText: status.success.ink,
+  errorText: status.error.ink,
 } as const;
 
 /** Dải màu hero Home (HomeV4, sheet = light): 7 mốc, nội suy smoothstep 6 bước/đoạn như canvas */
+// v2: a light tint fading into the ground (the dark hero is retired; Home is rebuilt in B3/B4)
 const heroKeys: [number, string][] = [
-  [0, '#0A0614'],
-  [0.22, '#140A2C'],
-  [0.42, '#2A1363'],
-  [0.58, '#4A2BA3'],
-  [0.72, '#8A6AD8'],
-  [0.86, '#D9CDF6'],
-  [1, '#FFFFFF'],
+  [0, '#F2EAFB'],
+  [1, '#F4F4F6'],
 ];
 function smoothRamp(keys: [number, string][]) {
   const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -130,11 +162,11 @@ const heroRamp = smoothRamp(heroKeys);
 
 /** Home (HomeV4): phần trên tối → tím → nửa dưới sáng; ô thao tác sáng; thẻ ví mini */
 export const home = {
-  heroTop: '#0A0614',
+  heroTop: '#F2EAFB',
   heroColors: heroRamp.colors,
   heroLocations: heroRamp.locations,
-  tile: 'rgba(250,248,255,0.94)',
-  tileShadow: '0 6px 20px rgba(40,12,90,0.18)',
+  tile: palette.card,
+  tileShadow: '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)',
   /** Thẻ ví mini 64×40: linear-gradient(135deg, a 0%, b 55%, c 100%) */
   walletCards: {
     cash: ['#9B4FDE', '#6366F1', '#1A0B33'] as const,
@@ -142,21 +174,22 @@ export const home = {
     stocks: ['#E0A33A', '#8A3AD0', '#1A0B33'] as const,
   },
   walletLocations: [0, 0.55, 1] as const,
-  addCardBorder: 'rgba(255,255,255,0.55)',
+  addCardBorder: palette.switchOff,
   /** Phần xu của số dư lớn */
-  cents: 'rgba(255,255,255,0.72)',
+  cents: palette.caption,
 } as const;
 
 /** Gradient Accents — dùng với expo-linear-gradient, hướng 135deg */
 export const gradients = {
-  primary: [purple[500], purple[400]] as const, // NED Primary — nút chính, Active
+  /** v2 buttons are flat accent (two equal stops keep the LinearGradient call sites working) */
+  primary: [purple[500], purple[500]] as const,
   purpleIndigo: [purple[500], colors.info] as const,
   purplePink: [purple[400], '#EC4899'] as const,
   deep: [purple[600], purple[500], purple[400]] as const, // NED Deep
   /** Card Accent: linear-gradient(135deg, rgba(123,47,190,0.15), rgba(155,79,222,0.05)) */
-  accentCard: ['rgba(123,47,190,0.15)', 'rgba(155,79,222,0.05)'] as const,
-  /** Nền màn tối: linear-gradient(170deg, #110822 0%, #0D0618 30%, #080812 60%, #06060E 100%) */
-  screen: ['#110822', '#0D0618', '#080812', '#06060E'] as const,
+  accentCard: [status.accent.bg, status.accent.bg] as const,
+  /** @deprecated the screen background is flat palette.ground in v2 */
+  screen: [palette.ground, palette.ground, palette.ground, palette.ground] as const,
   screenLocations: [0, 0.3, 0.6, 1] as const,
 } as const;
 
@@ -247,6 +280,14 @@ export const dataColors = {
  * Đổ bóng & chiều sâu — lấy nguyên từ các board canvas (box-shadow). React Native 0.86 và web đều nhận `boxShadow`.
  */
 export const shadows = {
+  /** v2 S1: cards and rows on the ground */
+  s1: '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)',
+  /** v2 S-accent: the selected card, the primary call to action */
+  sAccent: '0 1px 2px rgba(123,47,190,0.06), 0 10px 28px -10px rgba(123,47,190,0.30)',
+  /** v2 popover / sheet */
+  pop: '0 18px 48px rgba(17,17,22,0.16), 0 2px 6px rgba(17,17,22,0.06)',
+  /** v2 field focus halo */
+  focusHalo: '0 0 0 3px rgba(123,47,190,0.18)',
   /** Viên kính trên hero Home (header pill): 0 8px 24px + viền sáng trên */
   glassPill: '0 8px 24px rgba(8,2,20,0.35), inset 0 1px 0 rgba(255,255,255,0.12)',
   /** Thanh điều hướng nổi */
@@ -274,6 +315,22 @@ export const shadows = {
   appIcon: '0 18px 50px rgba(30,6,70,0.45), inset 0 1px 0 rgba(255,255,255,0.35)',
 } as const;
 
+/**
+ * v2 elevation per platform (MotionSurfaces): web boxShadow, iOS shadow props, Android elevation.
+ * Spread into a style: `[styles.card, elevation.s1]`.
+ */
+const elevated = (web: string, color: string, opacity: number, radius: number, y: number, android: number): ViewStyle =>
+  Platform.select<ViewStyle>({
+    web: { boxShadow: web } as ViewStyle,
+    ios: { shadowColor: color, shadowOpacity: opacity, shadowRadius: radius, shadowOffset: { width: 0, height: y } },
+    default: { elevation: android, shadowColor: color },
+  });
+export const elevation = {
+  s1: elevated(shadows.s1, palette.ink, 0.08, 8, 4, 2),
+  sAccent: elevated(shadows.sAccent, purple[500], 0.22, 14, 8, 4),
+  pop: elevated(shadows.pop, palette.ink, 0.16, 24, 12, 12),
+} as const;
+
 /** Kính mờ (backdrop-filter: blur(18px)) — chỉ có hiệu lực trên web; react-native-web tự thêm -webkit- cho Safari */
 export const blur = {
   glass: { backdropFilter: 'blur(18px)' },
@@ -285,6 +342,7 @@ export const blur = {
  * `y` là mép trên. `color` là rgb, `alpha` là độ đậm ở tâm, `stop` là điểm tắt (transparent X%).
  */
 export type Orb = { x: number; y: number; w: number; h: number; color: string; alpha: number; stop: number; mid?: [string, number, number] };
+/** @deprecated ambient glows belong to the dark theme; AmbientGlow renders nothing in v2 */
 export const orbs = {
   /** OnbWelcome / Setup / Profile / Mode / Send: tím giữa, có dải indigo */
   brand: [{ x: 0, y: 40, w: 400, h: 380, color: '123,47,190', alpha: 0.36, stop: 0.68, mid: ['99,102,241', 0.1, 0.45] }],
