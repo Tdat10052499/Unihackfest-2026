@@ -163,6 +163,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B3 điều hướng, onboarding, Home hai chế độ xem, Settings, Disclosures | `feat/b3-nav-onboarding` | `285bcf9`, `83a0f43`, `ccc9ecd`, `42c0330`, `3c54d48` + docs |
 | W2 Workspace: Overview, trang hợp đồng chỉ đọc, router invite `/c/:fund`, dán link hợp đồng | `feat/w2-workspace-overview` | `6f75edf`, `0d5a18e`, `5174980` + docs |
 | B4a app: danh sách + chi tiết hợp đồng, accept, lock, release/refund now, close | `feat/b4a-contracts-detail` | `cc08c77`, `aa3e14a` + docs |
+| B4b app: tạo hợp đồng 3 bước có brief, submit, review, route invite `/c/[fund]` | `feat/b4b-contracts-flow` | `7806542`, `9e9020d`, `f672557`, `530a05b` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -209,6 +210,37 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**B4b (03/10/2026): tạo hợp đồng, nộp, duyệt, link mời trên app.**
+- **`/contracts/new`** (3 bước, một màn):
+  - bước 1: freelancer qua `resolveRecipient(…, { fresh: true })`, không cho chọn chính ví mình;
+  - bước 2: tên việc (đếm byte /32), scope, references, tối đa 5 milestone; mỗi milestone có tên, số tiền, hạn nộp, thời gian review và danh sách "Done when"; giới hạn lấy từ `LIMITS` trong content.ts, kiểm tra bằng `validateDraft` + `validateBrief`;
+  - bước 3: tóm tắt, phí liệt kê từng dòng, **brief fingerprint**, "What happens next", slide to create;
+  - màn Created: **QR** (`react-native-qrcode-svg`) + Copy contract link + View contract.
+  - Vietnam view: "Not available in the Vietnam view" (D18).
+  - **Khác prompt:** hạn nộp chọn theo mốc (10 min demo / 1 / 3 / 7 / 14 ngày) cộng vào giờ chain, không dùng date picker; review 1 min (demo) / 3 / 7 ngày.
+- **Submit** (`/contracts/[fund]/submit?i=`):
+  - link (gợi ý dùng phiên bản cố định: Figma có version-id, Git commit / tree/<sha> / blob/<sha>; `looksUnversioned()` cảnh báo link chưa cố định);
+  - note; tự kiểm "Done when" (chỉ trên máy, không lên chain); delivery fingerprint cập nhật trực tiếp; hạn theo giờ chain;
+  - slide to submit (tắt nếu không có key); màn kết quả "Submitted · in review" + Explorer.
+- **Review** (`/contracts/[fund]/review?i=`):
+  - chip "On time"/"Late" từ `submitted_at`; đếm ngược auto-release theo giờ chain;
+  - "Same delivery that was submitted ✓" / "Does not match what was submitted" (kèm giải thích: chứng minh note khớp evidence trên chain, **không** chứng minh nội dung trong link không đổi); không có key → hướng dẫn mở link;
+  - tick "Done when" trên máy, phí, slide to release, màn Released có biên nhận + Explorer; nút Dispute chỉ khi `FEATURES.dispute`.
+  - **Khác prompt:** Submit và Review là route riêng (trượt lên như sheet), không phải bottom sheet, để giữ được trạng thái khi tải lại.
+- **`/c/[fund]`** (route mời):
+  - gọi `routeInvite()` trước (hiện luôn trả `here`, có TODO(C1) cho chuyển host hẹp/rộng);
+  - fund sai → về `/`; đã đăng nhập → nhập key, xoá fragment (`history.replaceState` trên web), vào `/contracts/[fund]`;
+  - chưa đăng nhập → lưu tạm invite (`@ned_pending_invite_v1`, hết hạn 1 ngày), vào `/welcome`; `PendingInviteGate` trong `_layout` nhập key sau khi đăng nhập.
+  - key K không xuất hiện trong log, thông báo hay lỗi.
+- **Test:** core **86/86**, wallet **23** (+2 test invite), workspace 3; `tsc` app + workspace 0 lỗi; `expo export --platform web` OK.
+- **Devnet:** script tạm (đã xoá), VND path, 1 milestone, hợp đồng `85qN…1Tuo`; chụp Chromium 390×844, không chữ bị cắt, không lỗi:
+  - client: new (3 bước); freelancer: submit (gợi ý link cố định hiện đúng);
+  - sau khi nộp: client review hiện **"Same delivery that was submitted ✓"** và "On time";
+  - client chi tiết **không có key**: hiện thông báo mở link, nút "Approve milestone 1" vẫn còn;
+  - `/c/<fund>#k=…` khi chưa đăng nhập: về `/welcome`, fragment đã xoá, invite đã lưu, key không có trong console;
+  - sau đó approve + close. Client test còn **10 USDC**.
+- **Chưa test tay (cần chủ dự án):** chu trình hai trình duyệt thật (Mia tạo trên desktop → gửi link/QR → Vinh mở trên iPhone, accept VND → Mia lock → Vinh submit → Mia review + release).
 
 **W2 (03/10/2026): Workspace Overview, trang hợp đồng, router invite.**
 - **Hook** (`ned-workspace/src/hooks`):
