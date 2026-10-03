@@ -6,6 +6,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { useWalletModeStore, type WalletMode } from '../../stores/useWalletModeStore';
+import { useRegionStore } from '../../stores/useRegionStore';
+import { regionFromMode } from '../../services/onboarding';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
 import { Badge } from '../../components/design';
 import { colors, diagonal, fonts, glass, gradients, radius, shadows, space, type } from '../../constants/design';
@@ -38,6 +40,7 @@ const MODES: {
 export default function ModeScreen() {
   const { isReady, isAuthenticated, walletAddress } = useAuth();
   const setMode = useWalletModeStore((s) => s.setMode);
+  const setRegion = useRegionStore((s) => s.setRegion);
   const [selected, setSelected] = useState<WalletMode>('simple');
 
   useEffect(() => {
@@ -47,6 +50,8 @@ export default function ModeScreen() {
   const confirm = () => {
     if (!walletAddress) return;
     setMode(walletAddress, selected);
+    // TODO(N11 bridge): until the region screen exists, the mode choice also sets the region
+    setRegion(walletAddress, regionFromMode(selected));
     router.replace('/home');
   };
 

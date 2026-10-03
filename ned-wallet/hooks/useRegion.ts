@@ -1,25 +1,19 @@
-// Region of the signed-in user: 'vn' (Vietnam view, VND estimates, payout partner) or 'intl'.
-// TODO(N11): read and write stores/useRegionStore (per wallet, key @ned_region_v1, persisted).
-// Until then this is an in-memory stub that defaults to 'vn' (product-spec 4.2: "I live in Vietnam", default on).
-import { useSyncExternalStore } from 'react';
+// Region of the signed-in wallet: 'vn' (Vietnam view, VND estimates, payout partner) or 'intl'.
+// Backed by stores/useRegionStore (per wallet, persisted at @ned_region_v1). null until chosen in onboarding.
+import { useCallback } from 'react';
+import { useAuth } from '../services/auth';
 import type { Region } from '../services/milestone/view';
-
-let current: Region = 'vn';
-const listeners = new Set<() => void>();
-
-export function setRegionStub(region: Region) {
-  current = region;
-  listeners.forEach((l) => l());
-}
+import { useRegionStore } from '../stores/useRegionStore';
 
 export function useRegion(): { region: Region | null; setRegion(r: Region): void } {
-  const region = useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
+  const { walletAddress } = useAuth();
+  const region = useRegionStore((s) => (walletAddress ? s.regions[walletAddress] ?? null : null));
+  const store = useRegionStore((s) => s.setRegion);
+  const setRegion = useCallback(
+    (r: Region) => {
+      if (walletAddress) store(walletAddress, r);
     },
-    () => current,
-    () => current
+    [walletAddress, store]
   );
-  return { region, setRegion: setRegionStub };
+  return { region, setRegion };
 }

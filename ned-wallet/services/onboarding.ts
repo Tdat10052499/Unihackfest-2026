@@ -7,7 +7,10 @@ import {
   type ReverseRecord,
 } from './identity';
 import { useUserStore } from '../stores/useUserStore';
-import { useWalletModeStore, waitForWalletModeHydration } from '../stores/useWalletModeStore';
+import { useWalletModeStore, waitForWalletModeHydration, type WalletMode } from '../stores/useWalletModeStore';
+import { useRegionStore, waitForRegionHydration } from '../stores/useRegionStore';
+import { useConsentStore, waitForConsentHydration } from '../stores/useConsentStore';
+import type { Region } from './milestone/view';
 
 /** Kích thước account on-chain (ned_program + SPL Token) — xem docs/03-ky-thuat/dev-handoff.md mục 1a */
 export const ACCOUNT_SIZES = { name: 49, reverse: 42, phone: 49, usdcAta: 165 } as const;
@@ -50,7 +53,7 @@ export function formatSol(lamports: number, digits = 4): string {
   return (lamports / LAMPORTS_PER_SOL).toFixed(digits).replace(/\.?0+$/, '');
 }
 
-export type OnboardingStep = 'fund' | 'profile' | 'mode' | 'home';
+export type OnboardingStep = 'fund' | 'consent' | 'profile' | 'region' | 'home';
 
 export interface OnboardingState {
   step: OnboardingStep;
@@ -58,19 +61,56 @@ export interface OnboardingState {
 }
 
 /**
- * Bước tiếp theo sau khi đăng nhập + có ví:
- * có ReverseRecord → (chưa chọn mode ? mode : home); chưa có → (thiếu SOL ? fund : profile)
+ * TODO(N11 bridge): the consent screen comes with the redesigned screens. Until it exists, onboarding skips the
+ * 'consent' step; set this to true when app/(onboarding)/consent.tsx records consent with useConsentStore.
+ */
+export const CONSENT_SCREEN_READY = false;
+
+/**
+ * Bước tiếp theo sau khi đăng nhập + có ví (non-ui-plan N11):
+ *   chưa có ReverseRecord → fund (thiếu SOL) → consent → profile
+ *   đã có ReverseRecord   → consent (nếu chưa đồng ý) → region (nếu chưa chọn) → home
  */
 export async function resolveOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
   const owner = new PublicKey(wallet);
   const reverse = await fetchReverseRecord(connection, owner);
+  await Promise.all([waitForConsentHydration(), waitForRegionHydration(), waitForWalletModeHydration()]);
+  const needsConsent = CONSENT_SCREEN_READY && !useConsentStore.getState().getConsent(wallet);
   if (reverse) {
     syncProfileToUserStore(wallet, reverse.username);
-    await waitForWalletModeHydration();
-    return { step: useWalletModeStore.getState().getMode(wallet) ? 'home' : 'mode', reverse };
+    if (needsConsent) return { step: 'consent', reverse };
+    migrateRegionFromMode(wallet);
+    return { step: useRegionStore.getState().getRegion(wallet) ? 'home' : 'region', reverse };
   }
   const [balance, cost] = await Promise.all([connection.getBalance(owner, 'confirmed'), getSetupCost(connection)]);
-  return { step: balance >= cost.required ? 'profile' : 'fund', reverse: null };
+  if (balance < cost.required) return { step: 'fund', reverse: null };
+  return { step: needsConsent ? 'consent' : 'profile', reverse: null };
+}
+
+/** Wallet mode chosen before regions existed → region ('simple' → 'vn', 'crypto' → 'intl'); never asks again */
+export function regionFromMode(mode: WalletMode): Region {
+  return mode === 'crypto' ? 'intl' : 'vn';
+}
+
+function migrateRegionFromMode(wallet: string) {
+  if (useRegionStore.getState().getRegion(wallet)) return;
+  const mode = useWalletModeStore.getState().getMode(wallet);
+  if (mode) useRegionStore.getState().setRegion(wallet, regionFromMode(mode));
+}
+
+/**
+ * Route for each step. TODO(N11 bridge): there is no region screen yet, so 'region' opens the existing mode screen,
+ * which also writes the region; 'consent' is not reached while CONSENT_SCREEN_READY is false.
+ */
+export function onboardingRoute(step: OnboardingStep): '/home' | '/fund' | '/consent' | '/profile' | '/mode' {
+  switch (step) {
+    case 'home':
+      return '/home';
+    case 'region':
+      return '/mode';
+    default:
+      return `/${step}`;
+  }
 }
 
 /** create_profile (+ link_phone) gộp trong MỘT giao dịch; ví người dùng ký và trả phí + rent */

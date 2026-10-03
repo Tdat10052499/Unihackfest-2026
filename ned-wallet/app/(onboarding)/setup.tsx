@@ -5,7 +5,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
-import { resolveOnboarding, type OnboardingState } from '../../services/onboarding';
+import { onboardingRoute, resolveOnboarding, type OnboardingState } from '../../services/onboarding';
 import { MASCOT_IMAGES } from '../../constants/mascot';
 import { NoticeCard, OnbScreen, PrimaryButton, onbText } from '../../components/onboarding/ui';
 import { colors, fonts, glass, radius, sizes, space, type } from '../../constants/design';
@@ -50,7 +50,7 @@ export default function SetupScreen() {
 
   const next = useCallback(() => {
     if (!result) return;
-    router.replace(result.step === 'home' ? '/home' : `/${result.step}`);
+    router.replace(onboardingRoute(result.step) as never);
   }, [result]);
 
   // Người quay lại: tự vào ví sau một nhịp để kịp đọc "Welcome back"
