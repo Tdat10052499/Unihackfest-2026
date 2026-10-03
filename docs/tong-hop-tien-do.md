@@ -161,6 +161,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B1 content layer (brief/delivery JSON, note mã hoá, key trong invite link) | `feat/b1-content-layer` | `f6156f3`, `b8544ca` + docs |
 | B2 giao diện sáng Modern Minimal v2, bỏ viền, motion | `feat/b2-theme-motion` | `4a762c7`, `d0e8ead` + docs |
 | B3 điều hướng, onboarding, Home hai chế độ xem, Settings, Disclosures | `feat/b3-nav-onboarding` | `285bcf9`, `83a0f43`, `ccc9ecd`, `42c0330`, `3c54d48` + docs |
+| W2 Workspace: Overview, trang hợp đồng chỉ đọc, router invite `/c/:fund`, dán link hợp đồng | `feat/w2-workspace-overview` | `6f75edf`, `0d5a18e`, `5174980` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -174,6 +175,42 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
   - cài đặt từ **gốc repo** (`pnpm install`), không chạy trong `ned-wallet/`.
+
+**W2 (03/10/2026): Workspace Overview, trang hợp đồng, router invite.**
+- **Hook** (`ned-workspace/src/hooks`):
+  - `useFunds`, `useFund`, `useChainTime`, `useRegion`, `useContractContent` (lớp mỏng trên `@ned/core`);
+  - key hợp đồng lưu trong `localStorage` theo ví (`@ned_contract_keys_v1:<wallet>`, cùng định dạng với điện thoại).
+- **`/` Overview** theo board WebWorkspace:
+  - menu bên (Overview, Contracts, New contract chỉ ở international view, Records / Settings mở app điện thoại);
+  - lời chào + nút chính (Vietnam view: "Share @user" sao chép tên; ngược lại "New contract");
+  - 3 thẻ số liệu; thẻ Needs your action có chip thời hạn và nút; bảng hợp đồng (cuộn ngang khi hẹp).
+  - Vietnam view chỉ ≈ VND, không có "New contract".
+  - `/contracts` hiện toàn bộ bảng.
+- **`/contract/:fund`** (chỉ đọc):
+  - trạng thái, bên kia, số tiền theo chế độ xem, nơi nhận tiền (+SIMULATED), link vault trên Explorer;
+  - brief: `ok` / `mismatch` / `noKey` / `missing`, có ô "Paste the contract link" nhận link đầy đủ hoặc `#k=…`; link của hợp đồng khác bị từ chối;
+  - milestone có tên và tiêu chí từ brief, đếm ngược theo giờ chain, delivery (khớp ✓);
+  - bước tiếp theo theo vai trò: submit → `/contract/:fund/submit`, review → `/review`. Hai trang này và `/new` là màn tạm cho W3/W4.
+- **`/c/:fund`** nằm ngoài layout, nên quyết định **trước** khi chạm vào key:
+  - màn hình < 900 px → `location.replace(MOBILE_ORIGIN + '/c/' + fund + hash)`, giữ nguyên `#k=`;
+  - máy tính đã đăng nhập → import key cho ví này, xoá fragment bằng `history.replaceState`, mở `/contract/:fund`;
+  - chưa đăng nhập → giữ invite trong `sessionStorage` của tab, xoá fragment, đăng nhập rồi import (`PendingInvite`).
+  - Phần quyết định là hàm thuần `decideInvite`, có 3 test node; `npm test` ở gốc giờ chạy cả test workspace.
+- **Motion:** đổi trang bằng `AnimatePresence` (mờ dần 200 ms, thoát 70 %); mỗi trang nâng 5 khối đầu, cách 40 ms.
+- **Preview cho dev:** `?previewWallet=<địa chỉ>` chỉ đọc, chỉ có trong bản build có `VITE_DEV_TOOLS=1`; bản build thường không chứa đoạn code này (đã kiểm tra bundle).
+- **Test:**
+  - core 84, wallet 21, workspace 3, tất cả pass; `tsc` và `vite build` OK.
+  - Chromium với một hợp đồng devnet tạm (tạo từ ví client test, có brief, sau đó đã đóng), tất cả đạt:
+    - điện thoại → GitHub Pages `/c/<fund>` giữ đúng `#k=`;
+    - máy tính chưa đăng nhập → `/sign-in`, fragment đã xoá, invite chờ;
+    - máy tính đã đăng nhập (client) → `/contract/<fund>`, fragment đã xoá, key đã lưu cho ví, "Brief matches ✓";
+    - freelancer chưa có key → `noKey`; dán link hợp đồng khác → bị từ chối; dán `#k=` → mở brief;
+    - Overview: international view có hợp đồng; Vietnam view chỉ VND, không có link hay nút "New contract".
+- **Cần chủ dự án:**
+  - test trên Vercel với tài khoản thật Mia và Vinh;
+  - deploy lại Vercel (tự động từ `main`);
+  - đặt `EXPO_PUBLIC_WORKSPACE_ORIGIN=https://unihackfest-2026.vercel.app` khi build GitHub Pages, để link mời của app điện thoại đi qua router này.
+  - App điện thoại **chưa có route `/c/[fund]`** (B4b), nên link mở trên iPhone sẽ tới trang "not found" của bản mobile, `#k=` vẫn còn nguyên.
 
 **B3 (03/10/2026): điều hướng, onboarding, Home, Settings.**
 - **Điều hướng:** thanh dưới màu trắng Home · Contracts · Records · Settings (theo board).
