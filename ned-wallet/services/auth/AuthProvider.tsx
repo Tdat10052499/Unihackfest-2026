@@ -51,7 +51,6 @@ export interface AuthContextValue {
   /** Ký + gửi, trả về signature (chưa chờ confirm). Tự điền blockhash/feePayer cho Transaction legacy nếu thiếu. */
   signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>;
   signMessage: (message: string) => Promise<string>;
-  getJwt: () => string | null;
 }
 
 const FALLBACK_DEVNET_RPC =
@@ -229,7 +228,6 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
     [client, requireAccount]
   );
 
-  const getJwt = useCallback(() => client.token, [client]);
 
   let status: AuthStatus;
   if (initStatus === 'failed') status = 'error';
@@ -252,9 +250,8 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
       signTransaction,
       signAndSendTransaction,
       signMessage,
-      getJwt,
     }),
-    [status, initStatus, sdkUser, accountAddress, connection, error, login, logout, signTransaction, signAndSendTransaction, signMessage, getJwt]
+    [status, initStatus, sdkUser, accountAddress, connection, error, login, logout, signTransaction, signAndSendTransaction, signMessage]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -278,7 +275,6 @@ function UnconfiguredAuthProvider({ children }: { children: ReactNode }) {
       signTransaction: fail,
       signAndSendTransaction: fail,
       signMessage: fail,
-      getJwt: () => null,
     };
   }, []);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

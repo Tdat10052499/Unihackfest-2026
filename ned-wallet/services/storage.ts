@@ -280,6 +280,17 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
     }
   }
 
+  // Region and consent (N11): empty the in-memory stores too, or persist would write the old state back
+  try {
+    const { useRegionStore, REGION_STORAGE_KEY } = require('../stores/useRegionStore');
+    const { useConsentStore, CONSENT_STORAGE_KEY } = require('../stores/useConsentStore');
+    useRegionStore.setState({ regions: {} });
+    useConsentStore.setState({ consents: {} });
+    await AsyncStorage.multiRemove([REGION_STORAGE_KEY, CONSENT_STORAGE_KEY]);
+  } catch (err) {
+    console.warn('[Hard Reset] could not clear region / consent:', err);
+  }
+
   try {
     const keys = await AsyncStorage.getAllKeys();
     await AsyncStorage.multiRemove(keys);
