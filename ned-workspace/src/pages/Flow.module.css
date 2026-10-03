@@ -1,4 +1,4 @@
-/* /new (WebContractNew board): two columns (form + summary aside), no outlines, tone and soft shadow only */
+/* Shared by the flow pages (/new, /contract/:fund/submit, /review): WebContractNew / WebSubmit / WebReview boards. Two columns (form + aside), no outlines, tone and soft shadow only */
 .page { max-width: var(--content-max); margin: 0 auto; padding: 24px 24px 64px; box-sizing: border-box; }
 .crumb { font-size: 13px; color: var(--caption); }
 .crumb a { text-decoration: none; }

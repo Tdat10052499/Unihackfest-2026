@@ -24,7 +24,7 @@ import { useRegion } from '../hooks/region.ts';
 import { useChainTime } from '../hooks/useChainTime.ts';
 import { addCriterion, addReference, brief, canAddMilestone, draft, fromLocalInput, newMilestone, problems, REVIEWS, titleBytes, type ContractForm, type MilestoneForm } from '../lib/newContract.ts';
 import { rise, stateChange, staggerParent } from '../motion.ts';
-import styles from './NewContract.module.css';
+import styles from './Flow.module.css';
 
 const TOKEN_ACCOUNT_SIZE = 165;
 /** Row enter / exit for milestone cards, criteria and references: transform and opacity only */
