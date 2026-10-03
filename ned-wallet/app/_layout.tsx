@@ -1,13 +1,13 @@
 import '../polyfill';
 import '../services/i18n';
 import '../services/webAlert';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../services/auth';
-import { MwaProvider } from '../contexts/MwaProvider';
+import { resolveOnboarding } from '../services/onboarding';
 import { GlobalNotificationManager } from '../components/GlobalNotificationManager';
 import { useFonts } from 'expo-font';
 import { colors } from '../constants/design';
@@ -18,7 +18,7 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
 // (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', 'login', 'poc-dynamic', '+not-found']);
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', 'login', '+not-found']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -32,6 +32,36 @@ function AuthGate() {
       router.replace('/welcome');
     }
   }, [isReady, isAuthenticated, first, router]);
+
+  return null;
+}
+
+/**
+ * Đã đăng nhập nhưng chưa xong onboarding (chưa có ReverseRecord hoặc chưa chọn khu vực) mà mở thẳng một màn
+ * trong app (deep link) → về /setup; setup tự chọn bước tiếp theo. Kiểm tra một lần cho mỗi ví; lỗi RPC thì không chặn.
+ */
+function OnboardingGate() {
+  const { isReady, isAuthenticated, walletAddress, connection } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const first = segments[0] ?? '';
+  const completeFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !walletAddress || PUBLIC_SEGMENTS.has(first)) return;
+    if (completeFor.current === walletAddress) return;
+    let cancelled = false;
+    resolveOnboarding(connection, walletAddress)
+      .then((state) => {
+        if (cancelled) return;
+        if (state.step === 'home') completeFor.current = walletAddress;
+        else router.replace('/setup');
+      })
+      .catch((err) => console.warn('[OnboardingGate] check failed, not blocking:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, isAuthenticated, walletAddress, connection, first, router]);
 
   return null;
 }
@@ -65,9 +95,9 @@ export default function RootLayout() {
       <SafeAreaProvider style={styles.root} initialMetrics={initialMetrics}>
         <View style={styles.root}>
           <AuthProvider>
-            <MwaProvider>
                   <View style={styles.root}>
                     <AuthGate />
+                    <OnboardingGate />
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
@@ -83,7 +113,6 @@ export default function RootLayout() {
                     </Stack>
                     <GlobalNotificationManager />
                   </View>
-            </MwaProvider>
           </AuthProvider>
         </View>
       </SafeAreaProvider>
