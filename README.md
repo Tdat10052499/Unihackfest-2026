@@ -27,6 +27,7 @@
 - [App: install, test and run](#app-install-test-and-run)
 - [Deploy the web build (GitHub Pages)](#deploy-the-web-build-github-pages)
 - [Workspace (ned-workspace): run, env, deploy](#workspace-ned-workspace-run-env-deploy)
+- [Landing page (site)](#landing-page-site)
 - [Environment variables](#environment-variables)
 - [Guidelines](#guidelines)
 
@@ -198,6 +199,12 @@ npm run build                     # tsc --noEmit + vite build → dist/
 | `VITE_DEV_TOOLS` | no | `1` enables the read-only `?previewWallet=<address>` mode for screenshots. **Never on Vercel.** |
 
 **Deploy (Vercel).** The Vercel project uses Root Directory `ned-workspace`; `ned-workspace/vercel.json` sets the install command (pnpm workspace), the build, the SPA rewrite and the security headers (enforced `Content-Security-Policy`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options`, `Permissions-Policy`). Every push to a branch gives a preview URL; `main` is production at `https://unihackfest-2026.vercel.app`. Login works only on origins listed in the Dynamic dashboard (CORS origins), so preview URLs other than production cannot sign in. When a new host is used at runtime (RPC, Dynamic, fonts), add it to the CSP in `vercel.json`, or the browser blocks it.
+
+---
+
+## Landing page (site)
+
+`site/` is the static landing page (Vercel project 1, Root Directory `site`): product line, "Try the mobile demo" (QR to `/m`, redirected to the GitHub Pages build), "Open Workspace", how it works, the 2-minute judge path and the disclosures. See [`site/README.md`](site/README.md).
 
 ---
 

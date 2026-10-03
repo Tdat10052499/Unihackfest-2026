@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>N.E.D · Milestone Lock for freelancers</title>
+    <meta name="description" content="A client abroad locks USDC per milestone in a Solana program; the program releases each milestone to the freelancer's chosen destination. Devnet pilot, test money only." />
+    <meta name="theme-color" content="#F4F4F6" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="top">
+      <div class="wrap top-inner">
+        <a class="brand" href="/" aria-label="N.E.D home">
+          <span class="logo" aria-hidden="true">N.E.D</span>
+          <span class="brand-word">N.E.D</span>
+        </a>
+        <span class="badge"><span class="dot" aria-hidden="true"></span>Devnet · test money</span>
+        <a class="btn btn-small" href="{{WORKSPACE_URL}}">Open Workspace</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="wrap hero" aria-labelledby="hero-title">
+        <div class="hero-text rise">
+          <span class="eyebrow">For freelancers and the clients who hire them</span>
+          <h1 id="hero-title">Freelancers receive their earnings, locked by code.</h1>
+          <p class="lead">
+            A client abroad locks USDC for each milestone in a Solana program before work starts. When a milestone is approved, or its review time ends,
+            the program releases it to the destination the freelancer chose: their own wallet abroad, or a payout partner that sends VND to a bank account
+            in Vietnam.
+          </p>
+          <div class="ctas">
+            <a class="btn" href="#demo">Try the mobile demo</a>
+            <a class="btn btn-ghost" href="{{WORKSPACE_URL}}">Open Workspace</a>
+          </div>
+          <p class="note">Devnet pilot with test money. The payout partner is simulated in this demo.</p>
+        </div>
+      </section>
+
+      <section id="demo" class="wrap section" aria-labelledby="demo-title">
+        <div class="demo card rise">
+          <div class="qr" role="img" aria-label="QR code that opens the N.E.D mobile demo">{{QR_SVG}}</div>
+          <div class="demo-text">
+            <h2 id="demo-title">Try the mobile demo</h2>
+            <p>Scan with your phone camera to open the N.E.D app in the browser. Sign in with Google: your wallet is created for you, on devnet, with test money only.</p>
+            <p><a class="link" href="/m">Open the mobile demo</a> <span class="muted">· {{DEMO_URL_SHORT}}</span></p>
+            <p class="muted small">On a computer, use the <a class="link" href="{{WORKSPACE_URL}}">Workspace</a>: the same Google account gives the same wallet and contracts.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap section" aria-labelledby="how-title">
+        <h2 id="how-title" class="section-title">How it works</h2>
+        <ol class="steps">
+          <li class="card rise">
+            <span class="step-num" aria-hidden="true">1</span>
+            <span class="who">Client</span>
+            <h3>Write the brief</h3>
+            <p>Scope, milestones and what counts as done. Its fingerprint is saved on-chain, so neither side can change it later.</p>
+          </li>
+          <li class="card rise">
+            <span class="step-num" aria-hidden="true">2</span>
+            <span class="who">Both</span>
+            <h3>Accept and lock</h3>
+            <p>The freelancer accepts and chooses where earnings go. The client locks USDC per milestone in a vault that only the program controls.</p>
+          </li>
+          <li class="card rise">
+            <span class="step-num" aria-hidden="true">3</span>
+            <span class="who">Both</span>
+            <h3>Submit, review, release</h3>
+            <p>The chain clock records each submission. The client approves, or the milestone is released when the review time ends.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="wrap section" aria-labelledby="path-title">
+        <h2 id="path-title" class="section-title">The 2-minute judge path</h2>
+        <p class="section-lead">Two people, two screens: Mia, a client in Singapore, and Vinh, a freelancer in Vietnam.</p>
+        <ol class="path card">
+          <li><span class="time">0:00</span><span>Mia creates “Landing page design” with 2 milestones of 10 USDC each and sends Vinh the invite link.</span></li>
+          <li><span class="time">0:20</span><span>Vinh opens it on his phone, reads the brief and accepts with “VND to my bank account”.</span></li>
+          <li><span class="time">0:40</span><span>Mia locks 20 devnet USDC. Vinh sees “≈ 520,000 VND locked (estimate)”.</span></li>
+          <li><span class="time">1:00</span><span>Vinh submits milestone 1; Mia approves. Status: “Released to payout partner · VND payout simulated in this demo”.</span></li>
+          <li><span class="time">1:30</span><span>A second contract whose review time has ended: anyone presses Release.</span></li>
+          <li><span class="time">1:45</span><span>Solana Explorer: the vault is owned by the program, not by N.E.D.</span></li>
+        </ol>
+      </section>
+
+      <section class="wrap section" aria-labelledby="disc-title">
+        <div class="disc card">
+          <h2 id="disc-title">Disclosures</h2>
+          <ul>
+            <li>Devnet, test money only. Network fees use test SOL.</li>
+            <li>N.E.D holds no funds, converts nothing and charges no fee in the pilot. The money sits in a program vault.</li>
+            <li>The payout partner is simulated in the demo (candidate payout partners: Due, Nium). In the Vietnam path, the freelancer relies on the payout partner after release.</li>
+            <li>No KYC yet. The program is not audited. Phone numbers are not OTP-verified, and the phone hash can be brute-forced.</li>
+            <li>Circle can freeze USDC addresses.</li>
+            <li>Not legal, tax or financial advice.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap foot">
+      <span>N.E.D · UniHackFest 2026</span>
+      <span class="foot-links"><a class="link" href="/m">Mobile demo</a><a class="link" href="{{WORKSPACE_URL}}">Workspace</a></span>
+    </footer>
+  </body>
+</html>
