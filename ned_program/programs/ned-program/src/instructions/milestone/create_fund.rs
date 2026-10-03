@@ -13,11 +13,13 @@ pub fn create_fund_handler(
     freelancer: Pubkey,
     title: String,
     milestones: Vec<MilestoneInput>,
+    brief_hash: [u8; 32],
 ) -> Result<()> {
     let client = ctx.accounts.client.key();
     let now = Clock::get()?.unix_timestamp;
 
     // Validate
+    require!(brief_hash.iter().any(|b| *b != 0), NedError::InvalidBriefHash);
     require!(
         (1..=MAX_MILESTONES).contains(&milestones.len()),
         NedError::InvalidMilestoneCount
@@ -71,6 +73,7 @@ pub fn create_fund_handler(
     fund.bump = ctx.bumps.fund;
     fund.vault_bump = ctx.bumps.vault;
     fund.payout_reference = [0u8; 32];
+    fund.brief_hash = brief_hash;
     fund._reserved = [0u8; 32];
 
     emit!(FundCreated {
@@ -79,6 +82,7 @@ pub fn create_fund_handler(
         freelancer,
         total,
         milestone_count: fund.milestone_count,
+        brief_hash,
     });
     Ok(())
 }

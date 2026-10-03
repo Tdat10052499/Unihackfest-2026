@@ -15,6 +15,7 @@ pub fn submit_handler(ctx: Context<Submit>, index: u8, evidence: [u8; 32]) -> Re
     let i = index_ok(fund, index)?;
     require!(fund.milestones[i].status == MilestoneStatus::Pending, NedError::InvalidMilestoneStatus);
     require!(now <= fund.milestones[i].submit_by, NedError::DeadlinePassed);
+    require!(evidence.iter().any(|b| *b != 0), NedError::InvalidEvidence);
 
     // State
     fund.milestones[i].submitted_at = now;

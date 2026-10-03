@@ -1,4 +1,4 @@
-//! Milestone Lock P0 tests (docs/09-milestone-lock/program-spec.md section 8: groups 1–6, 9–15).
+//! Milestone Lock tests (docs/09-milestone-lock/program-spec.md section 8: groups 1–18; P1 groups 7, 8, 13 below).
 //! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
 
 mod common;
@@ -10,7 +10,7 @@ use anchor_lang::{AnchorDeserialize, Discriminator, InstructionData, ToAccountMe
 use common::*;
 use litesvm::LiteSVM;
 use ned_program::{
-    FundState, MilestoneInput, MilestoneReleased, MilestoneStatus, PayoutKind, SharedFund, FUND_SEED,
+    FundCreated, FundState, MilestoneInput, NotePosted, MilestoneReleased, MilestoneStatus, PayoutKind, SharedFund, FUND_SEED,
     MIN_WORK_WINDOW_SECS, PAYOUT_PARTNERS, VAULT_SEED,
 };
 use solana_keypair::Keypair;
@@ -22,6 +22,8 @@ const USDC: u64 = 1_000_000;
 /// First submission deadline: 10 minutes after T0
 const SUBMIT0: i64 = T0 + 600;
 const REVIEW_WINDOW: i64 = 120;
+/// Brief fingerprint used by every contract unless a test says otherwise (v1.1)
+const BRIEF: [u8; 32] = [7; 32];
 
 // -----------------------------------------------------------------------------
 // Environment and instruction builders
@@ -73,6 +75,20 @@ fn create_ix_full(
     ms: Vec<MilestoneInput>,
     mint: Pubkey,
 ) -> Instruction {
+    create_ix_brief(client, payer, fund_id, freelancer, title, ms, mint, BRIEF)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn create_ix_brief(
+    client: &Pubkey,
+    payer: &Pubkey,
+    fund_id: u64,
+    freelancer: Pubkey,
+    title: &str,
+    ms: Vec<MilestoneInput>,
+    mint: Pubkey,
+    brief_hash: [u8; 32],
+) -> Instruction {
     let fund = fund_pda(client, fund_id);
     Instruction {
         program_id: ned_program::ID,
@@ -86,12 +102,29 @@ fn create_ix_full(
             system_program: SYSTEM_PROGRAM_ID,
         }
         .to_account_metas(None),
-        data: ned_program::instruction::CreateFund { fund_id, freelancer, title: title.to_string(), milestones: ms }
-            .data(),
+        data: ned_program::instruction::CreateFund {
+            fund_id,
+            freelancer,
+            title: title.to_string(),
+            milestones: ms,
+            brief_hash,
+        }
+        .data(),
     }
 }
 
 fn accept_ix(fund: Pubkey, freelancer: &Pubkey, kind: PayoutKind, destination: Pubkey, reference: [u8; 32]) -> Instruction {
+    accept_ix_brief(fund, freelancer, kind, destination, reference, BRIEF)
+}
+
+fn accept_ix_brief(
+    fund: Pubkey,
+    freelancer: &Pubkey,
+    kind: PayoutKind,
+    destination: Pubkey,
+    reference: [u8; 32],
+    expected_brief_hash: [u8; 32],
+) -> Instruction {
     Instruction {
         program_id: ned_program::ID,
         accounts: ned_program::accounts::Accept { fund, freelancer: *freelancer }.to_account_metas(None),
@@ -99,6 +132,7 @@ fn accept_ix(fund: Pubkey, freelancer: &Pubkey, kind: PayoutKind, destination: P
             payout_kind: kind,
             payout_destination: destination,
             payout_reference: reference,
+            expected_brief_hash,
         }
         .data(),
     }
@@ -121,10 +155,22 @@ fn lock_ix(fund: Pubkey, client: &Pubkey, mint: Pubkey) -> Instruction {
 }
 
 fn submit_ix(fund: Pubkey, freelancer: &Pubkey, index: u8) -> Instruction {
+    submit_ix_evidence(fund, freelancer, index, [index + 1; 32])
+}
+
+fn submit_ix_evidence(fund: Pubkey, freelancer: &Pubkey, index: u8, evidence: [u8; 32]) -> Instruction {
     Instruction {
         program_id: ned_program::ID,
         accounts: ned_program::accounts::Submit { fund, freelancer: *freelancer }.to_account_metas(None),
-        data: ned_program::instruction::Submit { index, evidence: [index + 1; 32] }.data(),
+        data: ned_program::instruction::Submit { index, evidence }.data(),
+    }
+}
+
+fn note_ix(fund: Pubkey, author: &Pubkey, kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::PostNote { fund, author: *author }.to_account_metas(None),
+        data: ned_program::instruction::PostNote { kind, milestone, part, parts, data }.data(),
     }
 }
 
@@ -715,12 +761,13 @@ fn g15_compute_units_per_instruction() {
 
 #[test]
 fn g14_layout_size_and_memcmp_offsets() {
-    assert_eq!(8 + <SharedFund as anchor_lang::Space>::INIT_SPACE, 708);
-    assert_eq!(SharedFund::SPACE, 708);
+    assert_eq!(8 + <SharedFund as anchor_lang::Space>::INIT_SPACE, 740);
+    assert_eq!(SharedFund::SPACE, 740);
     let mut e = env();
     e.as_client(e.create_ix(1, milestones(2, USDC))).unwrap();
     let data = e.svm.get_account(&fund_pda(&e.c(), 1)).unwrap().data;
-    assert_eq!(data.len(), 708);
+    assert_eq!(data.len(), 740);
+    assert_eq!(data[8], 2, "version 2 (v1.1) at offset 8");
     assert_eq!(&data[0..8], SharedFund::DISCRIMINATOR);
     assert_eq!(&data[12..44], e.c().as_ref(), "client at offset 12");
     assert_eq!(&data[44..76], e.f().as_ref(), "freelancer at offset 44");
@@ -728,6 +775,8 @@ fn g14_layout_size_and_memcmp_offsets() {
     assert_eq!(data[244], 2, "milestone_count at offset 244");
     assert_eq!(u64::from_le_bytes(data[245..253].try_into().unwrap()), USDC, "milestones at offset 245");
     assert!(data[245 + 2 * 65..570].iter().all(|b| *b == 0), "unused slots zeroed");
+    assert_eq!(&data[676..708], &BRIEF, "brief_hash at offset 676");
+    assert!(data[708..740].iter().all(|b| *b == 0), "_reserved zeroed");
 }
 
 // -----------------------------------------------------------------------------
@@ -1012,4 +1061,119 @@ fn pda_vector_for_the_app() {
     println!("PDA vector: fund {fund} vault {vault}");
     assert_eq!(fund, Pubkey::from_str_const("2rM8YfeiMG6oXCRxfgFXWgR91sfVxa5ekmrq5TzXWRcM"));
     assert_eq!(vault, Pubkey::from_str_const("CpznorLKcrdrGqi8wtvpXv1oPpgZqE8uNXyzGe7u2PsC"));
+}
+
+// -----------------------------------------------------------------------------
+// v1.1: 16. Brief hash · 17. Evidence · 18. Notes
+// -----------------------------------------------------------------------------
+
+/// The one event of type `T` in the logs of a transaction
+fn event<T: AnchorDeserialize + Discriminator>(meta: &litesvm::types::TransactionMetadata) -> T {
+    let mut found = meta
+        .logs
+        .iter()
+        .filter_map(|l| l.strip_prefix("Program data: "))
+        .filter_map(|b64| STANDARD.decode(b64).ok())
+        .filter(|d| d.starts_with(T::DISCRIMINATOR))
+        .map(|d| T::deserialize(&mut &d[8..]).unwrap());
+    let first = found.next().expect("event in the logs");
+    assert!(found.next().is_none(), "exactly one event");
+    first
+}
+
+#[test]
+fn g16_brief_hash_is_stored_checked_on_accept_and_never_zero() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+
+    let zero = create_ix_brief(&c, &c, 1, f, "Logo", milestones(1, USDC), mint, [0; 32]);
+    assert_err(e.as_client(zero), "InvalidBriefHash");
+
+    let mut brief = [0u8; 32];
+    brief[31] = 1; // one non-zero byte is enough
+    let meta = e.as_client(create_ix_brief(&c, &c, 1, f, "Logo", milestones(1, USDC), mint, brief)).unwrap();
+    assert_eq!(e.fund(1).brief_hash, brief);
+    let created: FundCreated = event(&meta);
+    assert_eq!(created.brief_hash, brief);
+    assert_eq!(created.fund, fund_pda(&c, 1));
+
+    let fund = fund_pda(&c, 1);
+    assert_err(e.as_freelancer(accept_ix_brief(fund, &f, PayoutKind::OwnWallet, f, [0; 32], BRIEF)), "BriefMismatch");
+    assert_err(e.as_freelancer(accept_ix_brief(fund, &f, PayoutKind::OwnWallet, f, [0; 32], [0; 32])), "BriefMismatch");
+    assert_eq!(e.fund(1).state, FundState::Created, "nothing changed after a mismatch");
+    e.as_freelancer(accept_ix_brief(fund, &f, PayoutKind::OwnWallet, f, [0; 32], brief)).unwrap();
+    assert_eq!(e.fund(1).state, FundState::Accepted);
+}
+
+#[test]
+fn g17_submit_with_zero_evidence_fails() {
+    let mut e = env();
+    let f = e.f();
+    let fund = e.funded(1, milestones(1, USDC));
+    assert_err(e.as_freelancer(submit_ix_evidence(fund, &f, 0, [0; 32])), "InvalidEvidence");
+    assert_eq!(e.fund(1).milestones[0].status, MilestoneStatus::Pending);
+    e.as_freelancer(submit_ix(fund, &f, 0)).unwrap();
+    assert_eq!(e.fund(1).milestones[0].status, MilestoneStatus::Submitted);
+}
+
+#[test]
+fn g18_notes_who_when_size_parts_and_no_state_change() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = fund_pda(&c, 1);
+    let bytes = |svm: &LiteSVM| svm.get_account(&fund).unwrap().data;
+    e.as_client(e.create_ix(1, milestones(2, USDC))).unwrap();
+
+    // Brief notes: client only, while Created, milestone 0
+    let before = bytes(&e.svm);
+    let meta = e.as_client(note_ix(fund, &c, 0, 0, 0, 2, vec![1; 900])).unwrap();
+    cu("post_note (brief, 900 bytes)", &meta);
+    let posted: NotePosted = event(&meta);
+    assert_eq!((posted.fund, posted.author), (fund, c));
+    assert_eq!((posted.kind, posted.milestone, posted.part, posted.parts, posted.len), (0, 0, 0, 2, 900));
+    e.as_client(note_ix(fund, &c, 0, 0, 1, 2, vec![2; 10])).unwrap();
+    assert_eq!(bytes(&e.svm), before, "fund unchanged byte for byte");
+    assert_err(e.as_client(note_ix(fund, &c, 0, 1, 0, 1, vec![1])), "NoteNotAllowed"); // brief with milestone 1
+    assert_err(e.as_freelancer(note_ix(fund, &f, 0, 0, 0, 1, vec![1])), "NoteNotAllowed");
+    assert_err(e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![1])), "NoteNotAllowed"); // unknown kind
+
+    // Size and part rules
+    assert_err(e.as_client(note_ix(fund, &c, 0, 0, 0, 1, vec![])), "InvalidNote");
+    assert_err(e.as_client(note_ix(fund, &c, 0, 0, 0, 1, vec![1; 901])), "InvalidNote");
+    assert_err(e.as_client(note_ix(fund, &c, 0, 0, 1, 1, vec![1])), "InvalidNote"); // part >= parts
+    assert_err(e.as_client(note_ix(fund, &c, 0, 0, 0, 9, vec![1])), "InvalidNote"); // parts = 9
+    e.as_client(note_ix(fund, &c, 0, 0, 7, 8, vec![1])).unwrap(); // last allowed part
+
+    // After accept the brief is fixed
+    e.as_freelancer(accept_ix(fund, &f, PayoutKind::OwnWallet, f, [0; 32])).unwrap();
+    assert_err(e.as_client(note_ix(fund, &c, 0, 0, 0, 1, vec![1])), "NoteNotAllowed");
+    e.as_client(lock_ix(fund, &c, mint)).unwrap();
+
+    // Delivery notes: freelancer only, Submitted milestone
+    assert_err(e.as_freelancer(note_ix(fund, &f, 1, 0, 0, 1, vec![1])), "NoteNotAllowed"); // Pending
+    let freelancer = e.freelancer.insecure_clone();
+    let before = bytes(&e.svm);
+    let meta = send_signed(
+        &mut e.svm,
+        &[submit_ix(fund, &f, 0), note_ix(fund, &f, 1, 0, 0, 1, vec![3; 600])],
+        &freelancer,
+        &[],
+    )
+    .unwrap();
+    let posted: NotePosted = event(&meta);
+    assert_eq!((posted.author, posted.kind, posted.milestone, posted.len), (f, 1, 0, 600));
+    let after_submit = bytes(&e.svm);
+    assert_ne!(after_submit, before, "submit changed the fund");
+    let meta = e.as_freelancer(note_ix(fund, &f, 1, 0, 0, 1, vec![4; 900])).unwrap();
+    cu("post_note (delivery, 900 bytes)", &meta);
+    assert_eq!(bytes(&e.svm), after_submit, "fund unchanged byte for byte by post_note");
+    assert_err(e.as_client(note_ix(fund, &c, 1, 0, 0, 1, vec![1])), "NoteNotAllowed");
+    assert_err(e.as_freelancer(note_ix(fund, &f, 1, 1, 0, 1, vec![1])), "NoteNotAllowed"); // milestone 1 Pending
+    assert_err(e.as_freelancer(note_ix(fund, &f, 1, 2, 0, 1, vec![1])), "NoteNotAllowed"); // out of range
+
+    // A third wallet can post nothing
+    let stranger = new_user(&mut e.svm);
+    let s = stranger.pubkey();
+    assert_err(send_signed(&mut e.svm, &[note_ix(fund, &s, 1, 0, 0, 1, vec![1])], &stranger, &[]), "NoteNotAllowed");
+    assert_err(send_signed(&mut e.svm, &[note_ix(fund, &s, 0, 0, 0, 1, vec![1])], &stranger, &[]), "NoteNotAllowed");
 }

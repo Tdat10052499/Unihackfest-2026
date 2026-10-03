@@ -38,4 +38,12 @@ pub const MIN_WORK_WINDOW_SECS: i64 = 60;
 pub const MIN_REVIEW_WINDOW_SECS: i64 = 60;
 /// Bytes of UTF-8; no personal data in titles (public on-chain)
 pub const TITLE_MAX_LEN: usize = 32;
-pub const ACCOUNT_VERSION: u8 = 1;
+/// 1 = the 708-byte layout deployed on 2–3 Oct (no `brief_hash`); 2 = v1.1 (740 bytes)
+pub const ACCOUNT_VERSION: u8 = 2;
+/// `post_note` data bytes per transaction part (v1.1)
+pub const NOTE_MAX_LEN: usize = 900;
+/// `post_note` parts per note (v1.1)
+pub const NOTE_MAX_PARTS: u8 = 8;
+/// `post_note` kinds (v1.1)
+pub const NOTE_KIND_BRIEF: u8 = 0;
+pub const NOTE_KIND_DELIVERY: u8 = 1;

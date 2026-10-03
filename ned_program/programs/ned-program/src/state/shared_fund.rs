@@ -3,7 +3,8 @@ use anchor_lang::prelude::*;
 // =============================================================================
 // MILESTONE LOCK STATE (docs/09-milestone-lock/program-spec.md section 3)
 // Field order is fixed: the app filters with memcmp at `client` (12) and `freelancer` (44).
-// Never reorder; add fields only by taking bytes from `_reserved`.
+// Never reorder. v1.1 grew the account once (708 → 740 bytes, `brief_hash` before `_reserved`, every v1 fund
+// closed first); from now on add fields only by taking bytes from `_reserved`.
 // =============================================================================
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, Default, InitSpace)]
@@ -57,7 +58,7 @@ pub struct Milestone {
     pub review_by: i64,
     /// 0 until submitted
     pub submitted_at: i64,
-    /// SHA-256 of the delivery link or file, computed by the app
+    /// SHA-256 of the canonical delivery JSON (links, file fingerprints, note), computed by the app; never all zero
     pub evidence: [u8; 32],
     pub status: MilestoneStatus,
 }
@@ -70,7 +71,7 @@ pub struct MilestoneInput {
     pub review_by: i64,
 }
 
-/// PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 708 bytes with the discriminator
+/// PDA [FUND_SEED, creator, fund_id.to_le_bytes()]; 740 bytes with the discriminator
 #[account]
 #[derive(InitSpace)]
 pub struct SharedFund {
@@ -107,6 +108,8 @@ pub struct SharedFund {
     pub vault_bump: u8,
     /// PayoutPartner only: hash of the partner's recipient ID; zero for OwnWallet
     pub payout_reference: [u8; 32],
+    /// SHA-256 of the canonical brief JSON (offset 676), computed by the app; never all zero (v1.1)
+    pub brief_hash: [u8; 32],
     pub _reserved: [u8; 32],
 }
 
@@ -114,5 +117,5 @@ impl SharedFund {
     pub const SPACE: usize = 8 + Self::INIT_SPACE;
 }
 
-const _: () = assert!(SharedFund::SPACE == 708, "SharedFund layout must stay 708 bytes");
+const _: () = assert!(SharedFund::SPACE == 740, "SharedFund layout must stay 740 bytes");
 const _: () = assert!(crate::constants::MAX_MILESTONES == 5, "milestones array length must equal MAX_MILESTONES");
