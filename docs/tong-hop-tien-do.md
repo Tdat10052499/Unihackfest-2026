@@ -160,6 +160,10 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
 - **Test:** core 72/72 + `ned-wallet` 19/19 = 91 (bằng trước); `npx tsc --noEmit` 0 lỗi; `npx expo export --platform web` OK. Bước devnet của `identity:check` PASS qua core.
 - **Script ts-node** chạy bằng `tsconfig.scripts.json`.
+- **Devnet sau W0:**
+  - `npm run milestone:devnet` PASS qua `@ned/core` (fund `EnGA2qTWs995ihRP22W1SFNmRxx6nWNmAqW7GFyVVJWr`, Settled 2/0/2, đã đóng).
+  - `recycle:demo-usdc` trả 4 USDC từ partner về client test (14 → 18 USDC).
+  - Đã merge vào `main` qua PR #32.
 - **Vấn đề mới:**
   - chưa thử build EAS (Android) từ monorepo;
   - `tsc` riêng cho core cần thêm `@types/node` (devDependency, cần hỏi trước, làm ở W1);
