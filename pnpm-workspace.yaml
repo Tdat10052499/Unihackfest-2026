@@ -1,5 +1,6 @@
 packages:
   - ned-wallet
+  - ned-workspace
   - packages/*
 
 allowBuilds:
