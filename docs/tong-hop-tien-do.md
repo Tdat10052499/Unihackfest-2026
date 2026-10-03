@@ -166,6 +166,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | B4b app: tạo hợp đồng 3 bước có brief, submit, review, route invite `/c/[fund]` | `feat/b4b-contracts-flow` | `7806542`, `9e9020d`, `f672557`, `530a05b` + docs |
 | B5 Records + thông báo hợp đồng | `feat/b5-records` | `3c0d378`, `a5ff2b3`, `911a590`, `6e2e743` + docs |
 | C1 đóng phần mobile (link mời đi qua router Workspace mặc định) | `feat/c1-hosting` | `1088e77` + docs |
+| W3 Workspace `/new`: soạn brief, tạo hợp đồng, xác nhận trong wallet panel | `feat/w3-brief-editor` | `af18ff9`, `e0e55ae`, `b588f08` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -212,6 +213,46 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**W3 (03/10/2026): trình soạn brief `/new` trên Workspace (board WebContractNew).**
+- **Freelancer:**
+  - nhập @username hoặc địa chỉ ví → bấm **Find**, luôn đọc on-chain mới (`createIdentityResolver` của core + `dualPda`, cache theo tab);
+  - không tự chọn chính mình;
+  - Workspace không nhận số điện thoại hay `.sol` (`resolve.ts` của app vẫn chỉ dùng cho mobile).
+- **The job:** tiêu đề có bộ đếm byte /32 (tô vàng khi đầy, đỏ khi vượt), scope, references (chỉ `https://`, tối đa 5, không trùng).
+- **Milestone cards:**
+  - tên, số tiền, **Submit by** (`datetime-local`, giờ máy), review time có **"1 min (devnet demo)"** / 3 / 7 ngày;
+  - danh sách **"Done when…"** thêm/xoá, tối đa 6, không trùng; thêm/xoá milestone (tối đa 5).
+- **Kiểm tra:** giống hệt app điện thoại (`validateDraft` + `validateBrief` + giới hạn B1), gom trong `lib/newContract.ts` (có test).
+  - Nút Create bị đánh dấu `aria-disabled`; bấm vào thì hiện lý do đầu tiên.
+- **Cột tóm tắt:** tổng cần lock, từng milestone, **brief fingerprint** cập nhật khi gõ (`briefHash` của core), danh sách "Checked before you sign".
+- **Create:**
+  - **wallet panel chuyển sang trạng thái xác nhận** (theo board WebWalletPanel, chế độ sign): hợp đồng, freelancer, số milestone + tổng, fingerprint, phí mạng, **rent tài khoản** (đọc từ chain, ~0.0059 SOL, trả lại khi đóng), N.E.D fee "None during the pilot", ghi chú, Cancel/Create;
+  - có backdrop; panel cố định trên màn hình khi trang đã cuộn; Escape, bấm ra ngoài hoặc đóng panel đều tính là Cancel;
+  - sau đó gọi `runCreate` của core.
+- **Created:** link mời (Copy link), **QR để mở trên điện thoại**, fingerprint, "Next", View contract.
+  - Link mời dùng origin Workspace production (`DEFAULT_WORKSPACE_ORIGIN`), kể cả từ preview hay localhost, để điện thoại đi qua router `/c/:fund`.
+- **Vietnam view:** khối "New contracts come from your clients" + Share @username (D18).
+- **Motion:**
+  - thêm/xoá milestone, "Done when" và reference dùng layout animation (`layout="position"`, chỉ transform + opacity);
+  - chuyển trạng thái editor → created mất 320 ms.
+  - `LazyMotion` chuyển từ `domAnimation` sang `domMax` để có layout animation.
+- Nút "New contract" trong wallet panel giờ mở `/new` trên Workspace, thay vì app điện thoại.
+- **Khác prompt / board:**
+  - trạng thái xác nhận của wallet panel vốn thuộc W4, nhưng W3 cần nó nên làm luôn; W4 chỉ cần dùng lại `confirm()`;
+  - board có câu "at least one done-when item per milestone", nhưng core và app điện thoại không bắt buộc. Theo prompt ("validation identical to mobile") nên **không** bắt buộc và bỏ câu đó khỏi danh sách luật. Nếu muốn bắt buộc thì sửa `validateBrief` trong core để cả hai app cùng đổi;
+  - tên hiển thị "Vinh Nguyen" trên board không có trong N.E.D: chỉ có @username + ví.
+- **Test:** workspace **7/7** (+4 cho form), core 94; `npm run build` (tsc + vite) OK; `tsc` app điện thoại 0 lỗi.
+- **Kiểm tra trên Chromium 1440×900** (preview chỉ đọc `?previewWallet=`, `VITE_DEV_TOOLS=1`):
+  - điền đủ 2 milestone với "Done when", fingerprint đổi khi gõ;
+  - bấm Create khi thiếu → "Choose the freelancer first.";
+  - panel xác nhận hiện đúng các dòng; Escape hủy; Confirm ở preview báo lỗi vì không ký được (đúng);
+  - Vietnam view hiện khối chặn; trạng thái created xem qua `?previewCreated` (chỉ có trong bản dev, đã kiểm tra bản build thường không có);
+  - không có lỗi console.
+- **Chưa test (cần chủ dự án):**
+  - tạo hợp đồng 2 milestone có "Done when" trên devnet **từ bản preview Vercel** (cần đăng nhập Google thật);
+  - mở link mời trên iPhone → app hiện brief và "Brief matches ✓".
+  - Lưu ý: bản GitHub Pages cần `npm run deploy` (bản đang chạy là trước B4b).
 
 **C1 (03/10/2026): đóng theo D20, chỉ làm phần mobile.**
 - Prompt C1 cũ (build app Expo lên Vercel, route `/workspace`, `vercel.json` trong `ned-wallet`) **trái với D20**: `ned-wallet` chỉ là app điện thoại. PO chọn đóng C1 phía mobile (03/10).
