@@ -8,6 +8,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App.tsx';
 import { AuthProvider } from './auth/AuthProvider.tsx';
 import { WalletPanelProvider } from './components/WalletPanelContext.tsx';
+import { followReducedMotion } from './motion.ts';
+
+followReducedMotion();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: true } },

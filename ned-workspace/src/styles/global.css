@@ -33,7 +33,7 @@ input:focus, select:focus, textarea:focus { outline: none; background-color: var
 }
 
 .skip-link {
-  position: absolute; left: 16px; top: -48px; z-index: 100; padding: 10px 14px; border-radius: var(--r-12);
-  background: var(--card); color: var(--link); font-weight: 600; box-shadow: var(--shadow-pop);
+  position: absolute; left: 16px; top: -60px; z-index: 100; padding: 10px 14px; border-radius: var(--r-12);
+  background: var(--card); color: var(--link); font-weight: 600;
 }
-.skip-link:focus { top: 12px; }
+.skip-link:focus { top: 12px; box-shadow: var(--shadow-pop); }

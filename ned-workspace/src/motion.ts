@@ -1,7 +1,7 @@
 // Motion tokens of docs/02-thiet-ke/canvas-v2/MotionSurfaces.dc.html, for Motion for React (D17, D20).
 // Rules: only opacity and transform; nothing over 400 ms; exits ≈ 70 % of the enter; stagger ≤ 5 items, 40 ms apart;
 // amounts never animate; Reduce Motion → instant (MotionConfig reducedMotion="user" in main.tsx).
-import type { Transition, Variants } from 'motion/react';
+import { MotionGlobalConfig, type Transition, type Variants } from 'motion/react';
 
 export const EASE = [0.2, 0, 0, 1] as const;
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
@@ -52,3 +52,16 @@ export const popover: Variants = {
 };
 
 export const stateChange: Transition = { duration: DURATION.stateChange, ease: EASE_OUT };
+
+/**
+ * "Reduce motion: everything becomes an instant change" (MotionSurfaces). MotionConfig reducedMotion="user" only
+ * drops transforms and keeps opacity fades, so this also makes every Motion animation instant while the setting is on.
+ */
+export function followReducedMotion(): void {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = () => {
+    MotionGlobalConfig.instantAnimations = mq.matches;
+  };
+  apply();
+  mq.addEventListener('change', apply);
+}

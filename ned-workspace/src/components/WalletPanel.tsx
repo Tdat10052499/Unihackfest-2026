@@ -29,7 +29,8 @@ export function WalletPanel({ id }: { id: string }) {
   // Focus the first control on open; Escape closes and returns focus to the wallet button; Tab stays inside
   useEffect(() => {
     const panel = ref.current;
-    panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    // Focus the first control, or the panel itself when it has none (sign-in not configured)
+    (panel?.querySelector<HTMLElement>(FOCUSABLE) ?? panel)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -39,7 +40,10 @@ export function WalletPanel({ id }: { id: string }) {
       }
       if (e.key !== 'Tab' || !panel) return;
       const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
-      if (!items.length) return;
+      if (!items.length) {
+        e.preventDefault();
+        return;
+      }
       const first = items[0];
       const last = items[items.length - 1];
       const active = document.activeElement;
@@ -79,6 +83,7 @@ export function WalletPanel({ id }: { id: string }) {
       className={styles.popover}
       role="dialog"
       aria-modal="false"
+      tabIndex={-1}
       aria-label={signedIn ? 'Your N.E.D Wallet' : 'Sign in with N.E.D Wallet'}
       variants={popover}
       initial="closed"
@@ -113,7 +118,7 @@ function SignedOut() {
       </div>
       <button type="button" className={styles.primary} onClick={start} disabled={busy || status === 'unconfigured'}>
         <MailIcon />
-        {status === 'setting-up' ? 'Setting up your wallet…' : busy ? 'Opening Google…' : 'Continue with Google'}
+        {status === 'setting-up' ? 'Setting up your wallet…' : starting ? 'Opening Google…' : 'Continue with Google'}
       </button>
       {error && (
         <p className={styles.error} role="alert">
