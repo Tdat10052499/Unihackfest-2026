@@ -1,6 +1,6 @@
 // Routes: / Overview, /contracts, /contract/:fund (read-only), /contract/:fund/submit and /review?i= (W4), /new (W3),
 // /sign-in, and the invite link /c/:fund — outside the layout, so it decides phone vs computer before anything else.
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { useAuth } from './auth/AuthProvider.tsx';
 import { Layout } from './components/Layout.tsx';
@@ -8,11 +8,22 @@ import { hasPendingInvite } from './hooks/keyStore.ts';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
 import { InviteRouter, PendingInvite } from './pages/InviteRouter.tsx';
-import { NewContract } from './pages/NewContract.tsx';
-import { Review } from './pages/Review.tsx';
-import { Submit } from './pages/Submit.tsx';
 import { Overview } from './pages/Overview.tsx';
 import { SignIn } from './pages/SignIn.tsx';
+
+// The editor, submit and review pages load on first visit (W5 bundle split): Overview and the contract page stay in
+// the first download.
+const NewContract = lazy(() => import('./pages/NewContract.tsx').then((m) => ({ default: m.NewContract })));
+const Submit = lazy(() => import('./pages/Submit.tsx').then((m) => ({ default: m.Submit })));
+const Review = lazy(() => import('./pages/Review.tsx').then((m) => ({ default: m.Review })));
+
+function Loading() {
+  return (
+    <main id="main" style={{ padding: 48, textAlign: 'center', color: 'var(--caption)' }} aria-busy="true">
+      Loading…
+    </main>
+  );
+}
 
 function Starting() {
   return (
@@ -39,6 +50,7 @@ function SignedOut({ children }: { children: ReactNode }) {
 }
 
 const signedIn = (page: ReactNode) => <SignedIn>{page}</SignedIn>;
+const lazyPage = (page: ReactNode) => signedIn(<Suspense fallback={<Loading />}>{page}</Suspense>);
 
 export function App() {
   return (
@@ -50,9 +62,9 @@ export function App() {
           <Route index element={signedIn(<Overview />)} />
           <Route path="contracts" element={signedIn(<Contracts />)} />
           <Route path="contract/:fund" element={signedIn(<Contract />)} />
-          <Route path="contract/:fund/submit" element={signedIn(<Submit />)} />
-          <Route path="contract/:fund/review" element={signedIn(<Review />)} />
-          <Route path="new" element={signedIn(<NewContract />)} />
+          <Route path="contract/:fund/submit" element={lazyPage(<Submit />)} />
+          <Route path="contract/:fund/review" element={lazyPage(<Review />)} />
+          <Route path="new" element={lazyPage(<NewContract />)} />
           <Route
             path="sign-in"
             element={
