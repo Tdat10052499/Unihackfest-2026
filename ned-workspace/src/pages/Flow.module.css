@@ -137,3 +137,10 @@
 .qrCard { flex: 1 1 240px; max-width: 300px; padding: 20px; border-radius: var(--r-20); background: var(--card); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .qr { padding: 14px; border-radius: var(--r-16); background: var(--field); line-height: 0; }
 .qrTitle { margin-top: 4px; font-size: 15px; font-weight: 600; }
+
+.presets { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.preset {
+  height: 28px; padding: 0 10px; border: none; border-radius: var(--r-pill); background: var(--tint); color: var(--link);
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.preset:hover { background: var(--tint-hover); }

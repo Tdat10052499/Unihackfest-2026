@@ -22,11 +22,17 @@ import { resolveFreelancer } from '../hooks/identity.ts';
 import { useUsername } from '../hooks/queries.ts';
 import { useRegion } from '../hooks/region.ts';
 import { useChainTime } from '../hooks/useChainTime.ts';
-import { addCriterion, addReference, brief, canAddMilestone, draft, fromLocalInput, newMilestone, problems, REVIEWS, titleBytes, type ContractForm, type MilestoneForm } from '../lib/newContract.ts';
+import { addCriterion, addReference, brief, canAddMilestone, draft, fromLocalInput, newMilestone, problems, REVIEWS, titleBytes, toLocalInput, type ContractForm, type MilestoneForm } from '../lib/newContract.ts';
 import { rise, stateChange, staggerParent } from '../motion.ts';
 import styles from './Flow.module.css';
 
 const TOKEN_ACCOUNT_SIZE = 165;
+/** Same quick choices as the phone (D1: picking a date and time by hand was slow and easy to get wrong) */
+const DEADLINE_PRESETS = [
+  { label: '+10 min (demo)', seconds: 600 },
+  { label: '+1 day', seconds: 86_400 },
+  { label: '+7 days', seconds: 7 * 86_400 },
+];
 /** Row enter / exit for milestone cards, criteria and references: transform and opacity only */
 const row = {
   initial: { opacity: 0, y: 8 },
@@ -517,7 +523,7 @@ function MilestoneCard({
   const amountError = issue(`milestones.${index}.amountUsdc`);
   const err =
     (attempted || ms.amount ? amountError : undefined) ??
-    issue(`milestones.${index}.submitBy`) ??
+    (attempted ? issue(`milestones.${index}.submitBy`) : undefined) ??
     issue(`milestones.${index}.reviewSeconds`) ??
     (attempted || ms.name ? issue(`milestones.${index}.name`) : undefined) ??
     issue(`milestones.${index}.criteria`) ??
@@ -558,6 +564,13 @@ function MilestoneCard({
             Submit by
           </label>
           <input id={id('date')} className={styles.inputSmall} type="datetime-local" value={ms.submitBy} onChange={(e) => onChange({ submitBy: e.target.value })} />
+          <div className={styles.presets} role="group" aria-label={`Quick submission deadline for milestone ${n}`}>
+            {DEADLINE_PRESETS.map((p) => (
+              <button key={p.label} type="button" className={styles.preset} onClick={() => onChange({ submitBy: toLocalInput(Math.floor(Date.now() / 1000) + p.seconds) })}>
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div>
           <label htmlFor={id('rev')} className={styles.labelSmall}>

@@ -150,6 +150,9 @@ export default function ContractDetail() {
           {clientBlocked && isParty ? (
             <View style={[d.banner, { backgroundColor: status.info.bg }]}>
               <Text style={d.bannerText}>You are the client of this contract. Client actions are not available in the Vietnam view; switch it off in Settings to lock, review or close.</Text>
+              <Text style={d.bannerLink} accessibilityRole="link" onPress={() => router.push('/settings' as Href)}>
+                Open Settings
+              </Text>
             </View>
           ) : null}
         </Animated.View>
@@ -288,6 +291,7 @@ const d = StyleSheet.create({
   bannerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bannerTitle: { fontFamily: fonts.display, fontSize: 16, color: palette.ink },
   bannerText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: palette.ink2 },
+  bannerLink: { marginTop: space[2], fontFamily: fonts.bodySemi, fontSize: 14, color: palette.link, paddingVertical: space[1] },
   party: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], paddingHorizontal: 14, borderRadius: radius.xl, backgroundColor: palette.card },
   partyRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   partyName: { fontFamily: fonts.monoBold, fontSize: 15, color: palette.ink },
