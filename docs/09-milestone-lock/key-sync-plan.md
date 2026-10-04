@@ -1,6 +1,6 @@
 # Key sync: read the brief on every device without pasting a link (proposal, 4 Oct 2026)
 
-Status: **proposal, waiting for PO approval.** If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
+Status: **proposal; direction approved by the PO (4 Oct). Spike S0 done: Plan A is out; Plan C proposed, waiting for the PO's choice.** If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
 
 ## 1. Problem
 
@@ -19,7 +19,23 @@ D15 puts the contract key `K` only in the invite-link fragment `#k=`. A device t
 - **Plan B (if signatures are not repeatable):** the first device creates a random WCK and keeps it on the device. A new device gets it **once** by scanning a "Pair this device" QR from a device that has it. Pairing happens once per device, not once per contract.
 - The private WCK is cached on the device like `K` today (AsyncStorage / localStorage, per wallet). It never goes on-chain, in a URL, a log or an error.
 
+### 2.1a Spike S0 result (4 Oct 2026) [Verified]
+
+On the production Workspace, the Dynamic embedded wallet signed the fixed message twice and returned **two different signatures** (1,749 ms for both). The MPC signer is not repeatable, so **Plan A is not possible**.
+
+### 2.1b Plan C: one key per device, shared by the wallet's other devices (proposed)
+
+- Each device creates its own random X25519 key pair on first sign-in and keeps the private key on the device (like `K` today).
+- The device registers its public key on-chain in the wallet's `ContentKey` registry (2.2), which holds up to 5 device keys.
+- `create_fund` adds wraps of `K` for **every registered device** of the client and of the freelancer. A device registered before the contract was created reads it at once.
+- **Older contracts on a new device:** when any device of the same wallet that already has `K` opens N.E.D, it sees that a sibling device has no wrap and posts one (a small key note). There is no QR, no paste and no code; the user only has to open N.E.D once on a device they used before.
+- **Freelancer not registered at create time:** the invite link works as today, and it is the first contact anyway. After reading the brief, the freelancer's app wraps `K` for all their devices.
+- **Lost device:** remove its key from the registry. New contracts no longer include it. Contracts it already read stay readable on that device.
+- No secret is shown on a screen or in a QR. Compared with Plan B, there is no pairing step and no camera on the laptop.
+
 ### 2.2 Registry on-chain (program change)
+
+> Plan C: the account holds a list `device_keys: [[u8; 32]; 5]` with a count, instead of one key; instructions `add_device_key(key)` and `remove_device_key(key)`, signer = wallet.
 
 - New account `ContentKey`, PDA `["content_key", wallet]`: `{ wallet, x25519_public: [u8; 32], version: u8, bump }` (about 75 bytes; rent ≈ 0.0014 SOL, paid once by the wallet).
 - New instruction `set_content_key(x25519_public)`: signer = `wallet`; creates the account or updates it (re-key).
