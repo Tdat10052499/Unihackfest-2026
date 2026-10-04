@@ -6,10 +6,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack, router, useRouter, useSegments, type Href } from 'expo-router';
+import { Stack, router, usePathname, useRouter, useSegments, type Href } from 'expo-router';
 import { AuthProvider, useAuth } from '../services/auth';
 import { resolveOnboarding } from '../services/onboarding';
 import { ensureDeviceRegistered } from '../services/milestone/keySync';
+import { EMBEDDED, isAppPath, postToParent, ROOT_PATHS } from '../services/embedded';
+import { REGION_STORAGE_KEY, useRegionStore } from '../stores/useRegionStore';
 import { takeInvite } from '../services/milestone/invite';
 import { importKeyFromFragment } from '../services/milestone/keys';
 import { contractKeyStorage } from '../services/milestone/keyStore';
@@ -47,6 +49,40 @@ function AuthGate() {
  * trong app (deep link) → về /setup; setup tự chọn bước tiếp theo. Kiểm tra một lần cho mỗi ví; lỗi RPC thì không chặn.
  */
 /** An invite opened before sign-in (app/c/[fund]) is imported once the wallet exists, then opens that contract */
+/**
+ * Wallet extension (W6, D23): inside the Workspace's same-origin iframe, report the route to the parent (for Back and
+ * "Open in full view"), follow navigation requests from the parent, pass Escape up (it closes the panel), and pick up a
+ * money view chosen in the Workspace. Messages are checked for origin and source; nothing secret is ever posted.
+ */
+function EmbeddedBridge() {
+  const pathname = usePathname();
+  useEffect(() => {
+    postToParent({ type: 'ned-route', path: pathname, root: ROOT_PATHS.has(pathname) });
+  }, [pathname]);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      const data = e.data as { type?: string; path?: unknown };
+      if (data?.type === 'ned-navigate' && isAppPath(data.path)) router.push(data.path as Href);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') postToParent({ type: 'ned-escape' });
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === REGION_STORAGE_KEY) void useRegionStore.persist.rehydrate();
+    };
+    window.addEventListener('message', onMessage);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+  return null;
+}
+
 /** Key sync (D22): registers this device's key for the signed-in wallet, once per session, silently */
 function DeviceKeyGate() {
   const { isReady, isAuthenticated, walletAddress, signTransaction } = useAuth();
@@ -135,6 +171,7 @@ export default function RootLayout() {
                     <OnboardingGate />
                     <PendingInviteGate />
                     <DeviceKeyGate />
+                    {EMBEDDED ? <EmbeddedBridge /> : null}
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
