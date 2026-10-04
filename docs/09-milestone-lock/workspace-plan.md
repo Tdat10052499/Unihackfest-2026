@@ -170,3 +170,113 @@ Do: keyboard pass on every page (Tab order, focus-visible ring, Escape closes pa
 Acceptance: the D1 end-to-end run passes on the production URL; results recorded in docs/tong-hop-tien-do.md.
 Finish: commit, push, fast-forward main.
 ```
+
+---
+
+## 5. Additions (4 Oct 2026): wallet extension (W6) and Records page (W7)
+
+Decisions D23 and D24 in [`README.md`](README.md#decision-log). Boards: `WebWalletPanel.dc.html`, `WebExtensionGallery.dc.html` and `WebRecords.dc.html` in [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md) (canvas version 104).
+
+### 5.1 W6 · The wallet panel becomes an extension that **is** the mobile app
+
+**What the PO asked for.** The panel that drops down from @handle works like a wallet extension. When signed in, its content is identical to the mobile app, with every page and feature.
+
+**Design (board).**
+
+- Extension header: Back (when not on a tab root), N.E.D mark, avatar + @handle, "Devnet · short address", Open in full view, Close.
+- Body: the mobile screens themselves.
+- A tap that leads to another app screen stays inside the panel; the bottom tabs return to their root screens.
+- Signed out and "confirm a web action" keep their own states.
+
+**Build (recommended): the mobile web build in a same-origin iframe.**
+
+| Item | Decision |
+| --- | --- |
+| Where the mobile app comes from | Vercel builds `ned-wallet` for the web with base URL `/wallet` and copies it to `ned-workspace/dist/wallet/`. Same origin as the Workspace. GitHub Pages (phones) is unchanged |
+| Why same origin | One origin means one `localStorage`, so both apps share:<br>• the Dynamic session (same headless SDK, same environment ID);<br>• the contract-key store (`@ned_contract_keys_v1:<wallet>`, same key in both apps);<br>• very likely the device key (D22).<br>No second Google login inside the panel \[Inference: W6 proves it on the Vercel preview\] |
+| Panel shell (React, in `ned-workspace`) | Header as the board. `<iframe src="/wallet/…">` 390 px wide; height `min(780px, 100vh - 96px)`.<br>• Mounted on first open, then kept mounted (hidden) so the app keeps its state.<br>• Back = `iframe.contentWindow.history.back()`.<br>• Expand = open `/wallet/<current path>` in a new tab.<br>• Deep links (`openWalletAt('/settings')`, `/contracts/<fund>`) set the iframe location |
+| Embedded mode in `ned-wallet` | Detects `window.top !== window.self`:<br>• no "open in app" prompts;<br>• no page-level scroll lock;<br>• posts its current route to the parent with `postMessage` (same origin only, origin checked), so Back and Expand know where it is |
+| Headers | The global rule keeps `X-Frame-Options: DENY` and `frame-ancestors 'none'` for every path **except** `/wallet/*`. `/wallet/*` gets `X-Frame-Options: SAMEORIGIN` and its own CSP with `frame-ancestors 'self'` (Report-Only first, enforce once clean). The Workspace CSP already allows `frame-src 'self'` |
+| Web actions | Create, Submit and Release started on a Workspace page keep the Workspace confirm state (W3/W4). Actions inside the panel use the mobile app's own slide-to-confirm |
+| Region and consent | Shared through the same storage keys, so the user is not asked twice. If the keys differ, align them in W6 |
+
+**Fallback, if the session or the device key is not shared and cannot be fixed within 2 hours:**
+
+- the panel shows "Open N.E.D Wallet", which opens the GitHub Pages mobile build in a 390 × 844 popup window (`window.open`);
+- one more Google sign-in on that origin.
+
+**Risks.**
+
+| Risk | Mitigation |
+| --- | --- |
+| Two Dynamic SDK instances on one origin refresh the same session | Load the iframe only when the panel opens. If token refresh races appear, the iframe app becomes the single signer and the Workspace asks it to sign through `postMessage` |
+| Bigger Vercel build (Expo export) | Separate cache; check the build time stays inside the plan limit |
+| Embedded app registers itself as another device (D22) | Prefer sharing the Workspace device key. If not possible, accept one extra `DeviceKeys` entry and say so in the progress log |
+
+### 5.2 W7 · Records page in the Workspace
+
+`/records`, following `WebRecords.dc.html`. It does not link to mobile screens; Settings opens the extension at Settings.
+
+**International view (client)**
+- Stats:
+  - contracts created;
+  - locked now;
+  - released;
+  - refunded to you.
+- **By contract:** one card per contract with its milestones and a history timeline (created, accepted, locked, submitted, review over, released, refunded, closed).
+- **All activity:** one table with filters by event, a period selector and CSV export.
+
+**Vietnam view (freelancer)**
+- Same structure, from the freelancer's side.
+- ≈ VND only.
+- The simulated-payout disclaimer.
+
+**Data (core).**
+- `@ned/core/milestone/history.ts`:
+  - collect fund addresses from the open funds (memcmp) plus the wallet's own transactions (`create_fund` as client, `accept` as freelancer);
+  - for each fund, read **its** signatures (`getSignaturesForAddress(fund)` also works after `close`) and decode the program events with the IDL.
+  - This includes events signed by others: the freelancer's `submit`, and `release_after_review` / `refund` by anyone.
+- Cache per wallet in the existing records cache; refresh incrementally from the newest known signature.
+- The mobile Records screen can use the same history for the client side (today `RecordsIntl` shows releases only).
+
+### 5.3 Order and hours
+
+| Task | Depends on | Hours \[Assumption\] |
+| --- | --- | --- |
+| W6 | W5 (done), D22 (done) | 5 |
+| W7 | W5 | 4 |
+| (optional) mobile Records for clients from the same history | W7 | 1.5 |
+
+Run W7 first if time is short. W6 has the higher risk: session sharing must be proven before the rest of W6 is built.
+
+### W6 · Prompt
+
+```text
+Task: workspace-plan.md section 5.1 (W6) — the wallet panel becomes an extension whose signed-in body is the real mobile app: the ned-wallet web build served at /wallet on the Workspace origin and shown in a same-origin iframe.
+Branch: feat/w6-wallet-extension (from up-to-date main).
+Read first: CLAUDE.md; workspace-plan.md sections 1, 3 and 5; README.md D20–D24; key-sync-plan.md (device keys); ned-workspace/src/components/WalletPanel.tsx, WalletPanelContext.tsx, TopBar.tsx, vercel.json, src/auth/*; ned-wallet/app.json, package.json (export/deploy scripts), app/_layout.tsx, services/auth/*, the storage keys used for session, contract keys, device keys, region and consent; docs/02-thiet-ke/canvas-v2/WebWalletPanel.dc.html and WebExtensionGallery.dc.html. I attach screenshots of the gallery.
+Do, in this order, stopping after step 1 if it fails:
+1. Spike (≤ 2 h): build ned-wallet for the web with base URL /wallet (add app.config.ts reading EXPO_BASE_URL, default "/Unihackfest-2026" so GitHub Pages is unchanged), copy it to ned-workspace/dist/wallet, serve both from one origin locally, sign in on the Workspace and open /wallet in an iframe. Report: is the iframe app signed in without a second login? Same wallet? Contract keys visible? Device key reused or a new DeviceKeys entry? Region/consent asked again? If the session is not shared, try aligning storage keys; if still not shared, STOP and tell me (fallback: popup window to the GitHub Pages build, workspace-plan 5.1).
+2. Build: the Vercel install/build for ned-workspace also builds ned-wallet web (/wallet) and copies it into dist/wallet; keep the build time reasonable and report it. Keep `npm run deploy` (GitHub Pages) unchanged.
+3. vercel.json: rewrite /wallet/(.*) to /wallet/index.html before the catch-all; global security headers apply to every path except /wallet/*; /wallet/* gets X-Frame-Options SAMEORIGIN and a CSP (Report-Only first) with frame-ancestors 'self' and every host the mobile app calls.
+4. ned-wallet embedded mode: when window.top !== window.self, hide prompts that make no sense in a panel, and post { type: 'ned-route', path } to window.parent on every route change (targetOrigin = location.origin); ignore messages from other origins.
+5. WalletPanel: signed-in state = extension header (Back when not a tab root, avatar, @handle, Devnet · short address, Open in full view, Close) + the iframe (390 px wide, height min(780px, 100vh − 96px)), mounted on first open and kept mounted; openWalletAt(path) in WalletPanelContext; Workspace "Settings" nav and "Release now" rows call it. Signed out and confirm states stay. Motion from motion.ts; Escape/focus behaviour unchanged.
+Rules: build-plan section 10; workspace-plan section 3; no change to signing logic; never post keys or tokens through postMessage.
+Acceptance: workspace + wallet tests, typechecks, both builds; on the Vercel preview: one Google login, open the panel → mobile Home signed in (no second login), Contracts → a contract → Back, Settings deep link, a Send and a Submit done inside the panel, the same wallet and keys as the Workspace; headers checked with curl -I for / and /wallet/; GitHub Pages build unchanged. Report bundle/initial-load impact (the iframe must not load before the panel opens).
+Finish: commit in small steps, push, fast-forward main; tong-hop-tien-do.md row with the spike results.
+```
+
+### W7 · Prompt
+
+```text
+Task: workspace-plan.md section 5.2 (W7) — /records in the Workspace following WebRecords.dc.html, from a new chain history in @ned/core.
+Branch: feat/w7-workspace-records.
+Read first: CLAUDE.md; workspace-plan.md sections 3 and 5.2; README.md D24; packages/ned-core/src/milestone/records.ts, events.ts, queries.ts, view.ts, format.ts; ned-wallet Records screen (B5); docs/02-thiet-ke/canvas-v2/WebRecords.dc.html (tweaks who = mia / vinh, view = contract / activity). I attach screenshots of both views.
+Do:
+1. packages/ned-core/src/milestone/history.ts: fund addresses = open funds where the wallet is client or freelancer + funds from the wallet's own create_fund / accept transactions; for each fund read getSignaturesForAddress(fund) (works after close) and decode program events with the IDL (FundCreated, FundAccepted, FundLocked, MilestoneSubmitted, MilestoneReleased, MilestoneRefunded, MilestoneDisputed, FundCancelled, FundClosed, NotePosted ignored); return per-contract timelines + a flat activity list with time, kind, milestone, amount units, actor, signature. Incremental cache per wallet in the existing records cache (newest signature per fund). Unit tests with recorded transaction fixtures.
+2. ned-workspace /records page exactly as the board: stats, By contract (expand/collapse cards with milestones + history), All activity (filters by event, period selector, Explorer link per row), CSV export (core recordsCsv extended), footer disclaimer; Vietnam view in ≈ VND only, from the freelancer's side; link in WorkspaceNav; Overview "History" link to /records.
+3. Optional if time: ned-wallet Records uses the same history for clients (Mia sees her created contracts and milestone steps, not an empty list).
+Rules: build-plan section 10; RPC calls batched and cached (no request per row on every render); amounts never animate.
+Acceptance: tests, typechecks, builds; with Mia's account the page shows the open contracts and one closed contract with every step, numbers equal to the chain (spot-check 3 signatures on Explorer); Vinh's view shows only VND; CSV opens in a spreadsheet.
+Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+```

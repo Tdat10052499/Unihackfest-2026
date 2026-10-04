@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Records</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-nav{transition:background-color .15s ease}
+.ned-nav:hover{background:#EEEEF2}
+.ned-row{transition:background-color .15s ease}
+.ned-row:hover{background:#FAFAFB}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-nav:focus-visible,.ned-row:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes ned-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ned-sheet{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-screen .ned-scroll>*,.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-scroll>*:nth-child(2),.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-scroll>*:nth-child(3),.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-scroll>*:nth-child(4),.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-scroll>*:nth-child(5),.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-scroll>*:nth-child(n+6),.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+.ned-pop{animation:ned-pop 200ms var(--ned-ease-out) both;transform-origin:top right}
+.ned-sheet{animation:ned-sheet 360ms var(--ned-ease-out) both}
+.ned-backdrop{animation:ned-fade 220ms var(--ned-ease) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="app" start-screen="{{panelStart}}" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+    <nav aria-label="Workspace" style="flex: 1 1 200px; max-width: 100%; display: flex; flex-direction: column; gap: 4px">
+      <a href="WebWorkspace.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ true }}">
+        <a href="WebContractNew.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New contract</a>
+      </sc-if>
+      <a href="WebRecords.dc.html" aria-current="page" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; background: #FFFFFF; color: #111116; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Records</a>
+      <button onClick="{{openSettings}}" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; border: none; background: transparent; color: #3F3F49; font-family: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Settings<span style="margin-left: auto; font-size: 11px; font-weight: 500; color: #5E5E6A">in wallet</span></button>
+    </nav>
+
+    <main class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <div>
+          <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px">Records</h1>
+          <div style="margin-top: 4px; font-size: 14px; color: #5E5E6A">{{subtitle}}</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label for="rc-period" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Period</label>
+          <select id="rc-period" value="{{period}}" onChange="{{onPeriod}}" style="height: 40px; padding: 0 12px; border: none; border-radius: 9999px; background: #FFFFFF; color: #111116; font-family: inherit; font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+            <option value="all">All time</option>
+            <option value="oct">October 2026</option>
+            <option value="sep">September 2026</option>
+          </select>
+          <button onClick="{{exportCsv}}" style="height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>{{exportLabel}}</button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px">
+        <sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+          <div style="padding: 18px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+            <div style="font-size: 13px; color: #5E5E6A">{{s.label}}</div>
+            <div style="margin-top: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.4px">{{s.value}}</div>
+            <div style="margin-top: 4px; font-size: 12px; color: #5E5E6A">{{s.sub}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+        <div role="tablist" aria-label="Records view" style="display: inline-flex; padding: 4px; border-radius: 9999px; background: #EBEBF0">
+          <sc-for list="{{views}}" as="v" hint-placeholder-count="2">
+            <button role="tab" aria-selected="{{v.sel}}" onClick="{{v.pick}}" style="{{v.style}}">{{v.label}}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{isActivity}}" hint-placeholder-val="{{ false }}">
+          <div role="group" aria-label="Filter by event" style="display: flex; flex-wrap: wrap; gap: 6px">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="6">
+              <button aria-pressed="{{f.sel}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- By contract -->
+      <sc-if value="{{isByContract}}" hint-placeholder-val="{{ true }}">
+        <div class="ned-swap" style="display: flex; flex-direction: column; gap: 14px">
+          <sc-for list="{{contracts}}" as="c" hint-placeholder-count="3">
+            <section aria-label="{{c.title}}" style="border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); overflow: hidden">
+              <button onClick="{{c.toggle}}" aria-expanded="{{c.openStr}}" style="width: 100%; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border: none; background: transparent; color: #111116; font-family: inherit; text-align: left; cursor: pointer">
+                <dc-import name="Avatar" seed="{{c.seed}}" size="40" hint-size="40px,40px"></dc-import>
+                <span style="flex: 1; min-width: 0">
+                  <span style="display: block; font-size: 16px; font-weight: 600">{{c.title}}</span>
+                  <span style="display: block; margin-top: 2px; font-size: 13px; color: #5E5E6A">{{c.meta}}</span>
+                </span>
+                <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">{{c.total}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{c.totalSub}}</span></span>
+                <span style="{{c.chip}}"><span style="{{c.dot}}"></span>{{c.status}}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A96" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{c.chev}}"><path d="m6 9 6 6 6-6"></path></svg>
+              </button>
+              <sc-if value="{{c.open}}" hint-placeholder-val="{{ true }}">
+                <div class="ned-swap" style="padding: 0 20px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+                  <div>
+                    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">Milestones</div>
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px">
+                      <sc-for list="{{c.milestones}}" as="m" hint-placeholder-count="2">
+                        <div style="padding: 12px 14px; border-radius: 14px; background: #F4F4F6; display: flex; align-items: center; gap: 12px">
+                          <span style="width: 26px; height: 26px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #6A22B0; flex-shrink: 0">{{m.n}}</span>
+                          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{m.name}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #5E5E6A">{{m.when}}</span></span>
+                          <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700">{{m.amt}}</span><span style="{{m.chip}}">{{m.status}}</span></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">History</div>
+                    <ol style="margin: 8px 0 0; padding: 0; list-style: none">
+                      <sc-for list="{{c.events}}" as="e" hint-placeholder-count="5">
+                        <li style="display: flex; gap: 10px">
+                          <span style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0"><span style="{{e.dot}}"></span><span style="{{e.line}}"></span></span>
+                          <span style="padding-bottom: 12px; min-width: 0; flex: 1; display: flex; justify-content: space-between; gap: 10px">
+                            <span><span style="display: block; font-size: 13px; font-weight: 600">{{e.title}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{e.when}}</span></span>
+                            <span style="font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; white-space: nowrap">{{e.amt}}</span>
+                          </span>
+                        </li>
+                      </sc-for>
+                    </ol>
+                    <a href="{{c.href}}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; text-decoration: none">{{c.cta}}</a>
+                  </div>
+                </div>
+              </sc-if>
+            </section>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- All activity -->
+      <sc-if value="{{isActivity}}" hint-placeholder-val="{{ false }}">
+        <div class="ned-swap" style="border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); overflow-x: auto">
+          <div role="table" aria-label="All activity" style="min-width: 820px">
+            <div role="row" style="display: grid; grid-template-columns: 1.1fr 2fr 1.6fr 1fr 1.2fr 0.6fr; gap: 12px; padding: 12px 20px; font-size: 12px; font-weight: 600; color: #5E5E6A">
+              <span role="columnheader">Date</span><span role="columnheader">Event</span><span role="columnheader">Contract</span><span role="columnheader">With</span><span role="columnheader" style="text-align: right">Amount</span><span role="columnheader" style="text-align: right">Chain</span>
+            </div>
+            <sc-for list="{{activity}}" as="a" hint-placeholder-count="8">
+              <div role="row" style="display: grid; grid-template-columns: 1.1fr 2fr 1.6fr 1fr 1.2fr 0.6fr; gap: 12px; align-items: center; padding: 12px 20px; border-top: 1px solid #F0F0F3">
+                <span role="cell" style="font-size: 13px; color: #3F3F49">{{a.when}}</span>
+                <span role="cell" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span aria-hidden="true" style="{{a.iconBox}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{a.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{a.icon}}"></path></svg></span><span style="font-size: 14px; font-weight: 600">{{a.title}}</span></span>
+                <span role="cell" style="font-size: 13px; color: #3F3F49">{{a.contract}}</span>
+                <span role="cell" style="font-size: 13px; color: #3F3F49">{{a.party}}</span>
+                <span role="cell" style="text-align: right; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700">{{a.amt}}</span>
+                <span role="cell" style="text-align: right"><a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener" style="font-size: 13px; font-weight: 600; text-decoration: none">View</a></span>
+              </div>
+            </sc-for>
+            <sc-if value="{{noActivity}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 20px; border-top: 1px solid #F0F0F3; font-size: 14px; color: #5E5E6A">Nothing in this period for this filter.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #5E5E6A">{{foot}}</p>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["mia", "vinh"], "default": "mia"}, "view": {"editor": "enum", "options": ["contract", "activity"], "default": "contract"}, "panelOpen": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var p = props.panelOpen;
+    this.state = { open: p === true || p === 'true', panelStart: 'home', view: props.view === 'activity' ? 'activity' : 'contract', filter: 'all', period: 'all', exported: false, expanded: { landing: true } };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var vn = (this.props.who ?? 'mia') === 'vinh';
+    var RATE = 26019.5;
+    function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
+    function money(usd) { return vn ? vnd(usd) : usd.toFixed(2) + ' USDC'; }
+    var TONE = { info: ['#EEEFFE', '#3730A3', '#4F46E5'], purple: ['#F2EAFB', '#6A22B0', '#7B2FBE'], warning: ['#FFF5E1', '#8A5300', '#F59E0B'], success: ['#E7F6EC', '#127A3A', '#16A34A'], neutral: ['#EFEFF3', '#4B4B57', '#8A8A96'] };
+    function chip(t, small) { var c = TONE[t]; return 'display: inline-flex; align-items: center; gap: 6px; min-height: ' + (small ? 20 : 26) + 'px; padding: ' + (small ? '1px 8px' : '3px 10px') + '; margin-top: ' + (small ? 4 : 0) + 'px; box-sizing: border-box; border-radius: 9999px; font-size: ' + (small ? 11 : 12) + 'px; font-weight: 600; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1]; }
+    function dot(t) { return 'width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; background: ' + TONE[t][2]; }
+    var ICON = { created: 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6', accepted: 'M5 12.5l4.5 4.5L19 7.5', locked: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', submitted: 'M12 19V5M5 12l7-7 7 7', review: 'M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', released: 'M12 3v12M7 10l5 5 5-5M5 21h14', closed: 'M6 6l12 12M18 6 6 18' };
+    var KTONE = { created: 'purple', accepted: 'purple', locked: 'purple', submitted: 'info', review: 'warning', released: 'success', closed: 'neutral' };
+
+    // One moment for both views: 4 Oct 2026, after milestone 1 of "Landing page design" was released.
+    var C = [
+      { id: 'landing', title: 'Landing page design', client: 'mia', freelancer: 'vinh', usd: 20, created: '2 Oct 2026', month: 'oct',
+        status: ['Working · 1 of 2 released', 'purple'],
+        ms: [{ name: 'Wireframes and visual design', usd: 10, status: ['Released', 'success'], when: 'Submitted 3 Oct, 00:31 (on time) · released 3 Oct, 09:15' },
+             { name: 'Build and launch', usd: 10, status: ['Pending', 'neutral'], when: 'Submit by 19 Oct 2026, 18:00' }],
+        ev: [['3 Oct, 09:15', 'released', 10, 'You released milestone 1 to the payout partner for @vinh', 'Milestone 1 released to the payout partner · VND payout simulated'],
+             ['3 Oct, 00:31', 'submitted', null, '@vinh submitted milestone 1 · on time', 'You submitted milestone 1 · on time'],
+             ['2 Oct, 22:12', 'locked', 20, 'You locked the contract', '@mia locked the contract'],
+             ['2 Oct, 22:05', 'accepted', null, '@vinh accepted · VND via payout partner', 'You accepted · earnings in VND'],
+             ['2 Oct, 21:40', 'created', 20, 'You created the contract · brief saved', '@mia created the contract · brief saved']] },
+      { id: 'logo', title: 'Logo refresh', client: 'mia', freelancer: 'vinh', usd: 10, created: '2 Oct 2026', month: 'oct',
+        status: ['Ready to release', 'success'],
+        ms: [{ name: 'Logo files', usd: 10, status: ['Review time over', 'warning'], when: 'Submitted 2 Oct, 23:08 · review ended 23:09 · anyone can release' }],
+        ev: [['2 Oct, 23:09', 'review', 10, 'Review time over · anyone can release', 'Review time over · ready to release'],
+             ['2 Oct, 23:08', 'submitted', null, '@vinh submitted milestone 1', 'You submitted milestone 1'],
+             ['2 Oct, 23:06', 'locked', 10, 'You locked the contract', '@mia locked the contract'],
+             ['2 Oct, 23:05', 'accepted', null, '@vinh accepted · VND via payout partner', 'You accepted · earnings in VND'],
+             ['2 Oct, 23:02', 'created', 10, 'You created the contract · brief saved', '@mia created the contract · brief saved']] },
+      { id: 'icons', title: 'Icon set', client: 'mia', freelancer: 'linh', usd: 15, created: '18 Sep 2026', month: 'sep', clientOnly: true,
+        status: ['Closed', 'neutral'],
+        ms: [{ name: '24 icons, SVG and PNG', usd: 15, status: ['Released', 'success'], when: 'Submitted 22 Sep, 16:20 · released 23 Sep, 09:05' }],
+        ev: [['23 Sep, 09:06', 'closed', null, 'Contract closed · rent returned', ''],
+             ['23 Sep, 09:05', 'released', 15, 'You released milestone 1 to @linh', ''],
+             ['22 Sep, 16:20', 'submitted', null, '@linh submitted milestone 1 · on time', ''],
+             ['18 Sep, 10:44', 'locked', 15, 'You locked the contract', ''],
+             ['18 Sep, 10:40', 'accepted', null, '@linh accepted · USDC to own wallet', ''],
+             ['18 Sep, 10:15', 'created', 15, 'You created the contract · brief saved', '']] }
+    ].filter(function (c) { return !(vn && c.clientOnly); });
+
+    var monthOf = function (when) { return /Sep/.test(when) ? 'sep' : 'oct'; };
+    var inPeriod = function (when) { return st.period === 'all' || monthOf(when) === st.period; };
+
+    var contracts = C.filter(function (c) { return c.ev.some(function (e) { return inPeriod(e[0]); }); }).map(function (c) {
+      var open = !!st.expanded[c.id];
+      var other = vn ? c.client : c.freelancer;
+      var evs = c.ev.filter(function (e) { return inPeriod(e[0]); });
+      return {
+        title: c.title, seed: other, open: open, openStr: open ? 'true' : 'false',
+        toggle: function () { var x = Object.assign({}, st.expanded); x[c.id] = !open; self.setState({ expanded: x }); },
+        meta: (vn ? 'from @' + c.client + ' · accepted ' : 'with @' + c.freelancer + ' · created ') + c.created + (c.id === 'icons' ? ' · USDC to own wallet' : (vn ? ' · earnings in VND' : ' · VND via payout partner')),
+        total: money(c.usd), totalSub: vn ? '$' + c.usd.toFixed(2) + ' · estimate' : 'total',
+        status: c.status[0], chip: chip(c.status[1]), dot: dot(c.status[1]),
+        chev: 'flex-shrink: 0; transition: transform 200ms cubic-bezier(.2,0,0,1); transform: rotate(' + (open ? 180 : 0) + 'deg)',
+        milestones: c.ms.map(function (m, i) { return { n: i + 1, name: m.name, when: m.when, amt: money(m.usd), status: m.status[0], chip: chip(m.status[1], true) }; }),
+        events: evs.map(function (e, i) {
+          return { title: vn ? e[4] : e[3], when: e[0].replace(',', ' 2026,'), amt: e[2] == null ? '' : money(e[2]),
+            dot: 'width: 10px; height: 10px; margin-top: 4px; border-radius: 9999px; background: ' + TONE[KTONE[e[1]]][2],
+            line: i < evs.length - 1 ? 'width: 2px; flex: 1; min-height: 14px; background: #EBEBF0' : 'display: none' };
+        }),
+        href: 'WebWorkspace.dc.html', cta: 'Open in Workspace →'
+      };
+    });
+
+    var FILTERS = [['all', 'All'], ['created', 'Created'], ['accepted', 'Accepted'], ['locked', 'Locked'], ['submitted', 'Submitted'], ['released', 'Released'], ['closed', 'Closed']];
+    var activity = [];
+    C.forEach(function (c) {
+      c.ev.forEach(function (e) {
+        if (!inPeriod(e[0])) return;
+        if (st.filter !== 'all' && e[1] !== st.filter && !(st.filter === 'released' && e[1] === 'review')) return;
+        var t = TONE[KTONE[e[1]]];
+        activity.push({ sortKey: (monthOf(e[0]) === 'oct' ? '10' : '09') + ('0' + e[0].split(' ')[0]).slice(-2) + e[0].slice(-5),
+          when: e[0].replace(',', ' 2026,'), title: vn ? e[4] : e[3], contract: c.title, party: '@' + (vn ? c.client : c.freelancer),
+          amt: e[2] == null ? '—' : money(e[2]), icon: ICON[e[1]], ink: t[1],
+          iconBox: 'width: 28px; height: 28px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ' + t[0] });
+      });
+    });
+    activity.sort(function (a, b) { return a.sortKey < b.sortKey ? 1 : -1; });
+
+    var stats = vn
+      ? [{ label: 'Received', value: vnd(10), sub: '$10.00 · 1 milestone · estimate' },
+         { label: 'Ready to release', value: vnd(10), sub: 'Logo refresh · anyone can release' },
+         { label: 'Still to deliver', value: vnd(10), sub: '1 milestone · due 19 Oct' },
+         { label: 'Contracts', value: '2', sub: 'Both from @mia' }]
+      : [{ label: 'Contracts created', value: '3', sub: '2 active · 1 closed' },
+         { label: 'Locked now', value: '20.00 USDC', sub: 'Held by the program in 2 contracts' },
+         { label: 'Released', value: '25.00 USDC', sub: '2 milestones · to @vinh and @linh' },
+         { label: 'Refunded to you', value: '0.00 USDC', sub: 'No missed deadlines' }];
+
+    function tabStyle(on) { return 'height: 36px; padding: 0 16px; border: none; border-radius: 9999px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: ' + (on ? '#111116' : '#5E5E6A') + '; box-shadow: ' + (on ? '0 1px 2px rgba(17,17,22,0.06), 0 4px 10px -4px rgba(17,17,22,0.12)' : 'none'); }
+    function pillStyle(on) { return 'height: 32px; padding: 0 12px; border: none; border-radius: 9999px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ' + (on ? '#7B2FBE' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#3F3F49'); }
+
+    return {
+      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet', isClient: !vn,
+      subtitle: vn ? 'Your contracts, milestones and earnings, read from the chain. VND amounts are estimates.' : 'Every contract you created and every milestone step, read from the chain.',
+      stats: stats,
+      views: [['contract', 'By contract'], ['activity', 'All activity']].map(function (v) { var on = st.view === v[0]; return { label: v[1], sel: on ? 'true' : 'false', style: tabStyle(on), pick: function () { self.setState({ view: v[0] }); } }; }),
+      isByContract: st.view === 'contract', isActivity: st.view === 'activity',
+      filters: FILTERS.map(function (f) { var on = st.filter === f[0]; return { label: f[1], sel: on ? 'true' : 'false', style: pillStyle(on), pick: function () { self.setState({ filter: f[0] }); } }; }),
+      contracts: contracts, activity: activity, noActivity: activity.length === 0,
+      period: st.period, onPeriod: function (e) { self.setState({ period: e.target.value }); },
+      exportLabel: st.exported ? 'CSV ready' : 'Export CSV', exportCsv: function () { self.setState({ exported: true }); },
+      foot: vn ? 'Read from devnet program accounts and transactions. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026). The payout partner is simulated in this demo, so no bank transfer took place. Not a tax document.' : 'Read from devnet program accounts and transactions. Amounts are devnet test USDC. Not a tax document.',
+      open: st.open, openStr: st.open ? 'true' : 'false', panelStart: st.panelStart,
+      toggle: function () { self.setState({ open: !st.open, panelStart: 'home' }); },
+      openSettings: function () { self.setState({ open: true, panelStart: 'settings' }); },
+      close: function () { self.setState({ open: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

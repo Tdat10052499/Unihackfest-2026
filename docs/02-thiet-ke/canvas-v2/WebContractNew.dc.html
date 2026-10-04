@@ -60,7 +60,7 @@ input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!im
         <sc-if value="{{panelOn}}" hint-placeholder-val="{{ false }}">
           <sc-if value="{{isSign}}" hint-placeholder-val="{{ false }}"><div class="ned-backdrop" aria-hidden="true" style="position: fixed; inset: 0; z-index: 35; background: rgba(17,17,22,0.32)"></div></sc-if>
           <div style="{{panelPos}}">
-            <dc-import name="WebWalletPanel" who="{{who}}" mode="{{panelMode}}" action="create" fingerprint="{{fp}}" on-confirm="{{confirm}}" on-cancel="{{close}}" on-close="{{close}}" hint-size="380px,600px"></dc-import>
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="{{panelMode}}" action="create" fingerprint="{{fp}}" on-confirm="{{confirm}}" on-cancel="{{close}}" on-close="{{close}}" hint-size="336px,746px"></dc-import>
           </div>
         </sc-if>
       </div>
@@ -292,8 +292,8 @@ class Component extends DCLogic {
       who: who, handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
       blocked: vn, created: !vn && st.created, editing: !vn && !st.created,
       isSign: st.panel === 'sign',
-      panelPos: st.panel === 'sign' ? 'position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px)); z-index: 40; width: 380px; max-width: calc(100vw - 32px)' : 'position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 380px; max-width: calc(100vw - 32px)',
-      panelOn: st.panel !== 'closed', panelMode: st.panel === 'sign' ? 'sign' : 'home', openStr: st.panel !== 'closed' ? 'true' : 'false',
+      panelPos: st.panel === 'sign' ? 'position: fixed; top: 76px; right: max(16px, calc((100vw - 1280px) / 2 + 24px)); z-index: 40; max-width: calc(100vw - 32px)' : 'position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)',
+      panelOn: st.panel !== 'closed', panelMode: st.panel === 'sign' ? 'sign' : 'app', openStr: st.panel !== 'closed' ? 'true' : 'false',
       toggle: function () { self.setState({ panel: st.panel === 'closed' ? 'home' : 'closed' }); },
       close: function () { self.setState({ panel: 'closed' }); },
       startSign: function () { if (!cant) self.setState({ panel: 'sign' }); },

@@ -1,6 +1,6 @@
 # Design boards v2 (source of truth for screens)
 
-Exported on 3 Oct 2026 from the Design canvas "NED Wallet Design System" (claude.ai, version 103). Each `.dc.html` file is one artboard: **inline styles are the exact values** (colours, sizes, spacing, radii, shadows), the copy in the markup is the final English copy, and `renderVals()` holds sample data and the state logic (tweaks in `data-props`). Wrapper boards only import a base board with other props.
+Exported on 3 Oct 2026 from the Design canvas "NED Wallet Design System" (claude.ai, version 104; web boards updated 4 Oct: Records page, wallet extension). Each `.dc.html` file is one artboard: **inline styles are the exact values** (colours, sizes, spacing, radii, shadows), the copy in the markup is the final English copy, and `renderVals()` holds sample data and the state logic (tweaks in `data-props`). Wrapper boards only import a base board with other props.
 
 How to use them in code: rebuild each screen with `components/design` and the tokens in `constants/design.ts` / `constants/motion.ts` (build-plan B2). Do not copy the HTML into the app; do not use the sample data (amounts, names, hashes) outside tests. The motion and surface rules are on `MotionSurfaces.dc.html`.
 
@@ -16,7 +16,7 @@ How to use them in code: rebuild each screen with `components/design` and the to
 | `OnbResidence.dc.html` | Onboarding — Where do you live? | B3 |  |
 | `WebSignIn.dc.html` | Web · Sign in with N.E.D Wallet | C2–C4 |  |
 | `WebWorkspace.dc.html` | Web · Workspace (wallet panel open) | C2–C4 |  |
-| `WebWalletPanel.dc.html` | Web · Wallet panel (component) | C2–C4 |  |
+| `WebWalletPanel.dc.html` | Web · Wallet extension (the mobile app inside) | W6 | The signed-in body is the mobile app itself (every mobile board, 86%); Back, expand, close in the header |
 | `Main.dc.html` | Design System · Modern Minimal | B2 |  |
 | `MilestoneComponents.dc.html` | Milestone Lock components | B2, B4 |  |
 | `HomeVN.dc.html` | Home — Vietnam view (Vinh) | B3 |  |
@@ -73,3 +73,5 @@ How to use them in code: rebuild each screen with `components/design` and the to
 | `SendAmount.dc.html` | Send — Amount | B3 |  |
 | `SendReview.dc.html` | Send — Review | B3 |  |
 | `SendSuccess.dc.html` | Send — Sent | B3 |  |
+| `WebRecords.dc.html` | Web · Records (history of contracts and milestones) | W7 | Tweaks: who = mia / vinh, view = contract / activity |
+| `WebExtensionGallery.dc.html` | Web · Wallet extension, screen by screen | W6 | Nine extension states for review |
