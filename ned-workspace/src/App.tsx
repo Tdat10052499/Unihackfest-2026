@@ -15,6 +15,7 @@ import { SignIn } from './pages/SignIn.tsx';
 // the first download.
 const NewContract = lazy(() => import('./pages/NewContract.tsx').then((m) => ({ default: m.NewContract })));
 const Submit = lazy(() => import('./pages/Submit.tsx').then((m) => ({ default: m.Submit })));
+const KeyCheck = lazy(() => import('./pages/KeyCheck.tsx').then((m) => ({ default: m.KeyCheck })));
 const Review = lazy(() => import('./pages/Review.tsx').then((m) => ({ default: m.Review })));
 
 function Loading() {
@@ -65,6 +66,8 @@ export function App() {
           <Route path="contract/:fund/submit" element={lazyPage(<Submit />)} />
           <Route path="contract/:fund/review" element={lazyPage(<Review />)} />
           <Route path="new" element={lazyPage(<NewContract />)} />
+          {/* spike S0 (key-sync-plan.md), temporary */}
+          <Route path="key-check" element={lazyPage(<KeyCheck />)} />
           <Route
             path="sign-in"
             element={

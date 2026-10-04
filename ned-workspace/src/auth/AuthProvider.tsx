@@ -8,6 +8,7 @@ import {
   initializeClient,
   logout as dynamicLogout,
   signInWithSocialRedirect,
+  signMessage as dynamicSignMessage,
   switchActiveNetwork,
   type DynamicClient,
 } from '@dynamic-labs-sdk/client';
@@ -32,6 +33,8 @@ export interface AuthContextValue {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
+  /** Signs a text message with the embedded wallet; returns the signature as the SDK gives it */
+  signMessage: (message: string) => Promise<string>;
 }
 
 const NOT_CONFIGURED = 'Missing VITE_DYNAMIC_ENVIRONMENT_ID: add it to ned-workspace/.env.local and restart.';
@@ -156,6 +159,15 @@ function DynamicAuth({ client, children }: { client: DynamicClient; children: Re
     [client, account, devnetFor]
   );
 
+  const signMessage = useCallback(
+    async (text: string): Promise<string> => {
+      if (!account) throw new Error('No wallet yet. Sign in first.');
+      const { signature } = await dynamicSignMessage({ message: text, walletAccount: account }, client);
+      return signature;
+    },
+    [client, account]
+  );
+
   let status: AuthStatus;
   if (initStatus === 'failed') status = 'error';
   else if (initStatus !== 'finished') status = 'initializing';
@@ -164,8 +176,8 @@ function DynamicAuth({ client, children }: { client: DynamicClient; children: Re
   else status = 'ready';
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, walletAddress: address, email: user?.email ?? null, error, login, logout, signTransaction }),
-    [status, address, user?.email, error, login, logout, signTransaction]
+    () => ({ status, walletAddress: address, email: user?.email ?? null, error, login, logout, signTransaction, signMessage }),
+    [status, address, user?.email, error, login, logout, signTransaction, signMessage]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -175,7 +187,7 @@ function Preview({ wallet, children }: { wallet: string; children: ReactNode }) 
     const fail = async (): Promise<never> => {
       throw new Error('Preview only: nothing can be signed here.');
     };
-    return { status: 'ready', walletAddress: wallet, email: 'preview@example.com', error: null, login: fail, logout: async () => {}, signTransaction: fail };
+    return { status: 'ready', walletAddress: wallet, email: 'preview@example.com', error: null, login: fail, logout: async () => {}, signTransaction: fail, signMessage: fail };
   }, [wallet]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -185,7 +197,7 @@ function Unconfigured({ children }: { children: ReactNode }) {
     const fail = async (): Promise<never> => {
       throw new Error(NOT_CONFIGURED);
     };
-    return { status: 'unconfigured', walletAddress: null, email: null, error: NOT_CONFIGURED, login: fail, logout: async () => {}, signTransaction: fail };
+    return { status: 'unconfigured', walletAddress: null, email: null, error: NOT_CONFIGURED, login: fail, logout: async () => {}, signTransaction: fail, signMessage: fail };
   }, []);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
