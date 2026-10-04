@@ -2,7 +2,7 @@
 // Stored on this computer per wallet. Since W6 the Workspace also reads and writes the phone app's store
 // (`@ned_region_v1`, zustand JSON), because the app runs on this origin in the wallet extension: one choice for both. Until the user chooses, the view is 'vn' (product-spec 4.2:
 // "I live in Vietnam", default on) and the Workspace asks once (RegionPrompt, workspace-plan section 3).
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import type { Region } from '@ned/core/milestone/view.ts';
 
 const key = (wallet: string) => `ned.region.${wallet}`;
@@ -34,7 +34,8 @@ if (typeof window !== 'undefined') {
 function stored(wallet: string | null): Region | null {
   if (!wallet) return null;
   try {
-    const value = localStorage.getItem(key(wallet)) ?? appRegions()[wallet] ?? null;
+    // One choice for both apps: the phone app's store first (the extension reads only that one), then the Workspace's
+    const value = appRegions()[wallet] ?? localStorage.getItem(key(wallet)) ?? null;
     return value === 'intl' || value === 'vn' ? value : null;
   } catch {
     return null;
@@ -48,7 +49,23 @@ export function openRegionPrompt(): void {
   notify();
 }
 
+/** Copies a choice made in the Workspace before W6 into the phone app's store, so the extension does not ask again */
+function migrateToAppStore(wallet: string): void {
+  try {
+    const own = localStorage.getItem(key(wallet));
+    if ((own !== 'vn' && own !== 'intl') || appRegions()[wallet]) return;
+    const raw = localStorage.getItem(APP_STORE);
+    const store = raw ? (JSON.parse(raw) as { state?: { regions?: Record<string, string> }; version?: number }) : { version: 0 };
+    localStorage.setItem(APP_STORE, JSON.stringify({ ...store, state: { ...store.state, regions: { ...store.state?.regions, [wallet]: own } } }));
+  } catch {
+    // storage blocked: nothing to share
+  }
+}
+
 export function useRegion(wallet: string | null): { region: Region; chosen: boolean; prompt: boolean; setRegion(r: Region): void } {
+  useEffect(() => {
+    if (wallet) migrateToAppStore(wallet);
+  }, [wallet]);
   const choice = useSyncExternalStore(subscribe, () => stored(wallet), () => null);
   const prompt = useSyncExternalStore(subscribe, () => promptOpen, () => false);
   const setRegion = useCallback(
