@@ -18,6 +18,7 @@ import { shortHash } from '../services/milestone/evidence';
 import { formatUsdc } from '../services/milestone/format';
 import { fetchNotes, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY } from '../services/milestone/notes';
 import { vaultPda } from '../services/milestone/pda';
+import { fetchDeviceKeys } from '@ned/core/milestone/devicekeys.ts';
 import { getChainNow, getFund, listFunds } from '../services/milestone/queries';
 
 const short = (a: string | PublicKey) => `${String(a).slice(0, 4)}…${String(a).slice(-4)}`;
@@ -37,7 +38,8 @@ async function showFund(f: FundAccount, now: number) {
   console.log(`\nContract ${address}  "${f.title}"`);
   console.log(`  state ${f.state} · client ${short(f.client)} · freelancer ${short(f.freelancer)} · destination ${dest}`);
   console.log(`  total ${formatUsdc(f.total)} · released ${formatUsdc(f.released)} · refunded ${formatUsdc(f.refunded)} · vault ${formatUsdc(await vaultUnits(f.address))}`);
-  console.log(`  brief fingerprint ${shortHash(f.briefHash)} · brief note parts ${briefParts} · delivery note parts ${deliveryParts} · created ${when(f.createdAt)}`);
+  const keyParts = notes.filter((n) => n.kind === 2).length;
+  console.log(`  brief fingerprint ${shortHash(f.briefHash)} · brief note parts ${briefParts} · delivery note parts ${deliveryParts} · key note parts ${keyParts} · created ${when(f.createdAt)}`);
   for (const m of f.milestones) {
     const late = m.submittedAt > m.submitBy ? ' LATE' : '';
     const flag = m.status === 'Pending' && now > m.submitBy ? ' (deadline passed: refund possible)' : m.status === 'Submitted' && now > m.reviewBy ? ' (review over: anyone can release)' : '';
@@ -64,7 +66,8 @@ async function main() {
     return;
   }
   const [lamports, usdc] = await Promise.all([connection.getBalance(key, 'confirmed'), fetchUsdcUnits(connection, key)]);
-  console.log(`Wallet ${arg}: ${(lamports / LAMPORTS_PER_SOL).toFixed(4)} SOL · ${formatUsdc(usdc)}`);
+  const devices = (await fetchDeviceKeys([key], connection)).get(arg)?.length ?? 0;
+  console.log(`Wallet ${arg}: ${(lamports / LAMPORTS_PER_SOL).toFixed(4)} SOL · ${formatUsdc(usdc)} · registered devices ${devices}`);
   const funds = [...(await listFunds(key, 'client', connection)), ...(await listFunds(key, 'freelancer', connection))];
   if (!funds.length) console.log('No open contracts (closed contracts are not listed).');
   for (const f of funds) await showFund(f, now);
