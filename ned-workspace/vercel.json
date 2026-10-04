@@ -1,10 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "installCommand": "npx --yes pnpm@11.24.0 install --frozen-lockfile --filter ned-workspace...",
-  "buildCommand": "npm run build",
+  "installCommand": "npx --yes pnpm@11.24.0 install --frozen-lockfile --filter ned-workspace... --filter ned-wallet...",
+  "buildCommand": "npm run build:all",
   "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/wallet/(.*)",
+      "destination": "/wallet/index.html"
+    },
+    {
+      "source": "/wallet",
+      "destination": "/wallet/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -12,7 +20,7 @@
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/((?!wallet(?:/|$)).*)",
       "headers": [
         {
           "key": "Content-Security-Policy",
@@ -33,6 +41,31 @@
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(), geolocation=(), payment=()"
+        }
+      ]
+    },
+    {
+      "source": "/wallet/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://api.devnet.solana.com wss://api.devnet.solana.com https://devnet.helius-rpc.com wss://devnet.helius-rpc.com https://mainnet.helius-rpc.com https://*.ably.net wss://*.ably.net https://*.ably-realtime.com wss://*.ably-realtime.com https://*.ably.io wss://*.ably.io https://api.jup.ag https://api.geckoterminal.com; worker-src 'self' blob:; frame-src 'self' https://*.dynamicauth.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=(), payment=()"
         }
       ]
     },

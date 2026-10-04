@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "build:wallet": "node scripts/build-wallet.mjs",
+    "build:all": "npm run build && npm run build:wallet"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

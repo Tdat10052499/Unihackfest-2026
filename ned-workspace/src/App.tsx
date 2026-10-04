@@ -15,6 +15,7 @@ import { SignIn } from './pages/SignIn.tsx';
 // the first download.
 const NewContract = lazy(() => import('./pages/NewContract.tsx').then((m) => ({ default: m.NewContract })));
 const Submit = lazy(() => import('./pages/Submit.tsx').then((m) => ({ default: m.Submit })));
+const WalletSpike = lazy(() => import('./pages/WalletSpike.tsx').then((m) => ({ default: m.WalletSpike })));
 const Review = lazy(() => import('./pages/Review.tsx').then((m) => ({ default: m.Review })));
 
 function Loading() {
@@ -65,6 +66,8 @@ export function App() {
           <Route path="contract/:fund/submit" element={lazyPage(<Submit />)} />
           <Route path="contract/:fund/review" element={lazyPage(<Review />)} />
           <Route path="new" element={lazyPage(<NewContract />)} />
+          {/* W6 step 1 spike, temporary */}
+          <Route path="wallet-spike" element={lazyPage(<WalletSpike />)} />
           <Route
             path="sign-in"
             element={
