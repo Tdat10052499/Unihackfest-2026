@@ -310,6 +310,70 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "addDeviceKey",
+      "docs": [
+        "Registers one device key (no change if it is already registered)"
+      ],
+      "discriminator": [
+        194,
+        39,
+        116,
+        250,
+        95,
+        158,
+        187,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "signer": true,
+          "relations": [
+            "deviceKeys"
+          ]
+        },
+        {
+          "name": "deviceKeys",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  118,
+                  105,
+                  99,
+                  101,
+                  95,
+                  107,
+                  101,
+                  121,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "key",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "approve",
       "docs": [
         "Client approves a submitted (or disputed) milestone: release to the destination"
@@ -1016,6 +1080,62 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "initDeviceKeys",
+      "docs": [
+        "Creates the wallet's empty device-key list (sent with the first add_device_key)"
+      ],
+      "discriminator": [
+        32,
+        10,
+        25,
+        117,
+        236,
+        104,
+        211,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "deviceKeys",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  118,
+                  105,
+                  99,
+                  101,
+                  95,
+                  107,
+                  101,
+                  121,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "linkPhone",
       "docs": [
         "Liên kết SĐT: PhoneRecord [b\"phone_v1\", phone_key]. phone_key = scrypt(SĐT E.164) tính trong app —",
@@ -1248,7 +1368,8 @@ export type NedProgram = {
     {
       "name": "postNote",
       "docs": [
-        "Posts one part of an encrypted brief (client, while Created) or delivery note (freelancer, Submitted milestone).",
+        "Posts one part of an encrypted brief (client, while Created), delivery (freelancer, Submitted milestone) or,",
+        "from v1.2, key note (either party, wraps of the contract key for registered devices).",
         "No state change; the app reads it back from the transaction (v1.1)"
       ],
       "discriminator": [
@@ -1672,6 +1793,70 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "removeDeviceKey",
+      "docs": [
+        "Removes one device key"
+      ],
+      "discriminator": [
+        202,
+        207,
+        22,
+        63,
+        122,
+        138,
+        66,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "signer": true,
+          "relations": [
+            "deviceKeys"
+          ]
+        },
+        {
+          "name": "deviceKeys",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  118,
+                  105,
+                  99,
+                  101,
+                  95,
+                  107,
+                  101,
+                  121,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "key",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "submit",
       "docs": [
         "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the canonical delivery JSON (never all zero)"
@@ -1942,6 +2127,19 @@ export type NedProgram = {
   ],
   "accounts": [
     {
+      "name": "deviceKeys",
+      "discriminator": [
+        21,
+        109,
+        123,
+        236,
+        228,
+        152,
+        47,
+        126
+      ]
+    },
+    {
       "name": "nameRecord",
       "discriminator": [
         254,
@@ -2006,6 +2204,32 @@ export type NedProgram = {
         143,
         148,
         174
+      ]
+    },
+    {
+      "name": "deviceKeyAdded",
+      "discriminator": [
+        101,
+        124,
+        212,
+        99,
+        90,
+        160,
+        208,
+        152
+      ]
+    },
+    {
+      "name": "deviceKeyRemoved",
+      "discriminator": [
+        26,
+        241,
+        137,
+        74,
+        147,
+        94,
+        244,
+        106
       ]
     },
     {
@@ -2399,6 +2623,21 @@ export type NedProgram = {
       "code": 6038,
       "name": "noteNotAllowed",
       "msg": "This note cannot be added now."
+    },
+    {
+      "code": 6039,
+      "name": "deviceKeysFull",
+      "msg": "This wallet already has the maximum number of devices. Remove one first."
+    },
+    {
+      "code": 6040,
+      "name": "deviceKeyNotFound",
+      "msg": "This device is not registered for this wallet."
+    },
+    {
+      "code": 6041,
+      "name": "invalidDeviceKey",
+      "msg": "The device key is not valid."
     }
   ],
   "types": [
@@ -2418,6 +2657,101 @@ export type NedProgram = {
           {
             "name": "freelancerAmount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deviceKeyAdded",
+      "docs": [
+        "v1.2: a device key was registered for `wallet`"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "key",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deviceKeyRemoved",
+      "docs": [
+        "v1.2: a device key was removed from `wallet`"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "key",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deviceKeys",
+      "docs": [
+        "[b\"device_keys\", wallet] → X25519 public keys of the wallet's devices (v1.2, key-sync Plan C).",
+        "A contract's key is wrapped for each of these keys in a `post_note` of kind 2; the private keys never leave",
+        "the devices. `keys[..count]` are in use; the rest are zero."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          },
+          {
+            "name": "keys",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                5
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
