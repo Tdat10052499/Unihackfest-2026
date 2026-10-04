@@ -1,6 +1,6 @@
 # Key sync: read the brief on every device without pasting a link (proposal, 4 Oct 2026)
 
-Status: **adopted (4 Oct, PO): Plan C, decision D22.** Spike S0 ruled out Plan A. P1 (program v1.2) built and tested; devnet upgrade pending the PO's go. If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
+Status: **adopted and shipped (4 Oct, PO): Plan C, decision D22.** S0 ruled out Plan A; P1 program v1.2 upgraded on devnet (`31n4oCxD…`); P2 core and P3 apps deployed; P4 passed on the PO's laptop and iPhone (brief shown with no link on both). If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
 
 ## 1. Problem
 

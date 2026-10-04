@@ -170,6 +170,8 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | W4 Workspace: nộp bài (submit) và duyệt (review) | `feat/w4-submit-review` | `df00cf2`, `36a61ff`, `ef6492a` + docs |
 | W5 Workspace: dọn dẹp, a11y, Reduce Motion, tách bundle, CSP chặn thật, README; **đã deploy production** | `chore/w5-workspace-polish` | `64a64d9`, `20dd075`, `2fdd484`, `1d027fb`, `9d8d7f0` + docs |
 | C5 landing page tĩnh `site/` (Vercel project 1) | `feat/c5-landing` | `c75ed87` + docs |
+| D1 chạy end-to-end (1 tài khoản Google + script) + sửa lỗi | `fix/d1-e2e`, `fix/d1-ux` | `6ef66ac`, `d4f27c6`, `0963632`, sửa UX + docs |
+| D22 key sync Plan C (chương trình v1.2, core, hai app) | `feat/p1-program-v1-2`, `feat/p2-core-key-sync`, `feat/s0-key-check` | `08ea7fd`, `065aeef`, `6851698`, `53e6b7a` |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -216,6 +218,42 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - review passed: cả hai chi tiết, nhãn đúng open issue 3;
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
+
+**D1 (04/10/2026): chạy end-to-end trên bản đã deploy.**
+- **Cách chạy:** PO chỉ có 1 tài khoản Google, nên PO đóng một vai bằng giao diện thật, vai còn lại chạy bằng script tạm (hai ví test, dùng chung các hàm của core). Đã chuyển 0.15 SOL từ ví deploy sang hai ví test (PO đồng ý).
+- **Công cụ:** `npm run milestone:status -- <hợp đồng | ví>` (chỉ đọc): trạng thái, vault, note brief/delivery/key, số thiết bị đã đăng ký.
+- **Deploy:** GitHub Pages bản mới (có `/c/…`, Records, key sync); Workspace qua `main`.
+- **Lượt 1 (PO là Mia, client), hợp đồng `DXtu…`:** tạo trên laptop → accept bằng script → lock trên điện thoại → nộp bằng script → PO duyệt trên laptop ("Same delivery ✓", so file) → release → nộp/release M2 → close trên điện thoại. **Đạt.**
+  - Bước 7 (release sau khi hết hạn review): dùng hợp đồng chuẩn bị sẵn `3t22…` (hạn nộp +2 phút, review 1 phút). PO bấm Release now trên điện thoại bằng một ví **không tham gia hợp đồng** → `release_after_review` đạt.
+- **Lượt 2 (PO là Vinh, freelancer, Vietnam view), hợp đồng `Dfo5…`, sau khi có key sync:** script tạo hợp đồng **không gửi link** → PO mở từ Contracts trên điện thoại: **brief tự hiện**, accept VND → script lock → PO nộp M1 + M2 trên laptop (brief cũng tự hiện) → script kiểm "matches", approve → close. **Đạt.**
+- **Lỗi tìm được và đã sửa:**
+  1. **Workspace không có chỗ chọn money view** (luôn Vietnam view, client bị chặn) → hộp "Where do you live?" hỏi một lần + "Money view · Change" (`6ef66ac`);
+  2. **Dán link mới đọc được brief** → key sync Plan C (D22, xem dưới);
+  3. **Chọn hạn nộp bằng tay chậm và dễ nhầm ngày** → nút "+10 min (demo) / +1 day / +7 days", lỗi hạn nộp chỉ hiện khi bấm Create;
+  4. **Thông báo Vietnam view che nút Lock mà không có lối tới Settings** → thêm "Open Settings";
+  5. `milestone:status` báo lỗi khó hiểu với hợp đồng đã đóng (`d4f27c6`).
+- **Còn mở:**
+  - router mời mở trên **laptop** thì ở lại Workspace (đúng thiết kế); muốn bấm "Release now" thì phải dùng điện thoại, vì trang hợp đồng trên Workspace chưa có nút đó;
+  - hợp đồng `349o…` đã `Settled`, cần PO **Close** trên điện thoại (PO là người tạo) để lấy lại rent.
+
+**D22 (04/10/2026, PO): key sync Plan C, đọc brief trên mọi thiết bị không cần dán link.**
+- **S0:** ví MPC của Dynamic ký cùng thông điệp hai lần ra **hai chữ ký khác nhau** → không sinh lại khoá từ chữ ký được (bỏ Plan A).
+- **Plan C:**
+  - mỗi thiết bị có khoá X25519 riêng, public key đăng ký trên chain (`DeviceKeys`, tối đa 5);
+  - khi tạo hợp đồng, K được gói cho mọi thiết bị đã đăng ký của hai bên (note loại 2);
+  - thiết bị đã có K tự gói lại cho thiết bị anh em còn thiếu;
+  - link mời vẫn là kênh liên lạc đầu tiên và phương án dự phòng.
+- **Chương trình v1.2 trên devnet:**
+  - `init_device_keys`, `add_device_key`, `remove_device_key`, `post_note` loại 2; test g19, g20, toàn bộ 29 test milestone + 10 identity đạt;
+  - upgrade `31n4oCxDZfv59Q6KQMu5czm9hXuNwWPpAXqetn3QKFXNLf4eKneGvZWxQWKyot4i1o9DC5TZB1pBDcKqunEproML` (slot 507408511), extend +40,000 byte (≈ 0.204 SOL), buffer đã hoàn lại; smoke test devnet đạt sau upgrade.
+  - CU: `post_note` key (6 wrap) 4,611; `init_device_keys` + `add_device_key` 14,554.
+- **Core:** `devicekeys.ts` (khoá thiết bị, registry, wrap/unwrap HKDF + XChaCha20-Poly1305, AD = fund ‖ thiết bị), `runRegisterDevice`, `runShareKey`, `recoverContentKey`; `runCreate` tự gói K. `@noble/curves` 2.0.1 thành dependency trực tiếp (PO đồng ý; lockfile chỉ thêm 9 dòng). Core **100/100**.
+- **Hai app:**
+  - tự đăng ký thiết bị sau khi đăng nhập (một giao dịch nhỏ, lần đầu, ≈ 0.0017 SOL);
+  - mở hợp đồng thì tự lấy K từ note key; tự gói cho thiết bị còn thiếu;
+  - câu báo "chưa có key" mới (mở N.E.D trên thiết bị đã dùng trước, hoặc dán link).
+- **Kiểm tra devnet:** script mô phỏng nhiều thiết bị (điện thoại đọc không cần link, laptop mới đọc sau khi gói lại; lần gói thứ hai không gửi gì); PO kiểm trên laptop + iPhone thật: **brief hiện trên cả hai, không dán link**.
+- **Tài liệu:** `key-sync-plan.md`, `program-spec.md` v1.2, D22 trong decision log.
 
 **D21 (03/10/2026, PO): landing chuyển sang repo khác.**
 - Landing giới thiệu sẽ được xây ở **một repo riêng** và gắn link sau. Project Vercel của repo này **chỉ chạy Workspace** tại `https://unihackfest-2026.vercel.app`.
