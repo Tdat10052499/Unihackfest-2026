@@ -9,9 +9,13 @@ import { MASCOT_IMAGES } from '../constants/mascot';
 import { colors, fonts, glass, purple, shadows, space } from '../constants/design';
 
 const SPLASH_MS = 900;
+/** Never wait longer than this for the SDK to restore a session (then Welcome, which still follows a late sign-in) */
+const MAX_WAIT_MS = 10_000;
 
 export default function SplashScreen() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isReady } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [icon] = useState(() => new Animated.Value(0));
   const [word] = useState(() => new Animated.Value(0));
@@ -41,14 +45,22 @@ export default function SplashScreen() {
         icon.setValue(1);
         word.setValue(1);
       });
-    const timer = setTimeout(() => router.replace(authRef.current ? '/setup' : '/welcome'), SPLASH_MS);
+    // Route only once the splash has played AND the SDK has restored (or not) the session: on a slow start (the
+    // Workspace extension, a slow network) a fixed timer sent signed-in users to Welcome first (D1/W6).
+    const timer = setTimeout(() => setSplashDone(true), SPLASH_MS);
+    const cap = setTimeout(() => setTimedOut(true), MAX_WAIT_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(cap);
     };
     // Chạy một lần khi mở app
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (splashDone && (isReady || timedOut)) router.replace(authRef.current ? '/setup' : '/welcome');
+  }, [splashDone, isReady, timedOut]);
 
   const iconStyle = reduceMotion
     ? undefined
