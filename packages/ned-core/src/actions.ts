@@ -1,7 +1,7 @@
 // Framework-free Milestone Lock action pipeline (workspace-plan section 1): fresh fund read → rules.ts check →
 // builder → sign with the injected signer → send → confirm → result. Both apps wrap it in their own hooks
 // (busy / status / error state, refresh). Errors stay raw here; map them with describeActionError.
-import { PublicKey, type Connection, type Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction, type Connection } from '@solana/web3.js';
 export type { BriefDraft, DeliveryDraft } from './milestone/content.ts';
 import { fetchUsdcUnits } from './chain/balance.ts';
 import { describeTxError, UserFacingError } from './chain/errors.ts';
@@ -13,6 +13,9 @@ import type { FundAccount } from './milestone/decode.ts';
 import { shortHash } from './milestone/evidence.ts';
 import { assertContent, canonicalBrief, canonicalDelivery, contentBytes, equalBytes, hashBytes, validateBrief, validateDelivery, type BriefDraft, type DeliveryDraft } from './milestone/content.ts';
 import { generateContentKey, inviteLink, loadContentKey, saveContentKey, type KeyStorage } from './milestone/keys.ts';
+import { buildKeyNotes, buildRegisterDevice, contentKeyFromNotes, deviceKeysPda, fetchDeviceKeys, loadDeviceKey, loadOrCreateDeviceKey, wrappedRecipients } from './milestone/devicekeys.ts';
+import { toBase64Url as toB64 } from './milestone/keys.ts';
+import { fetchNotes } from './milestone/notes.ts';
 import { encryptNoteParts, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, NOTE_MAX_PLAINTEXT, type EncryptedNote } from './milestone/notes.ts';
 import { formatUsdc, unitsFromUsdc } from './milestone/format.ts';
 import { getFund } from './milestone/queries.ts';
@@ -180,7 +183,7 @@ function briefBytes(title: string, brief: BriefDraft, milestoneCount: number): U
 export async function runCreate(
   env: ActionEnv,
   draft: ContractDraft & { brief: BriefDraft }
-): Promise<{ signature: string; fund: string; inviteLink: string; noteSignatures: string[] }> {
+): Promise<{ signature: string; fund: string; inviteLink: string; noteSignatures: string[]; keySignatures: string[] }> {
   const connection = env.connection ?? getConnection();
   const keys = needKeys(env);
   const key = generateContentKey();
@@ -215,7 +218,79 @@ export async function runCreate(
   } catch {
     throw new BriefNotSavedError(fund, link);
   }
-  return { signature: result.signature, fund, inviteLink: link, noteSignatures };
+  // Key sync (D22): wrap K for every registered device of both parties. Best effort: the invite link still works.
+  let keySignatures: string[] = [];
+  try {
+    keySignatures = (await runShareKey(env, fund, { contentKey: key, freelancer: draft.freelancer })).signatures;
+  } catch {
+    keySignatures = [];
+  }
+  return { signature: result.signature, fund, inviteLink: link, noteSignatures, keySignatures };
+}
+
+// ---- key sync (decision D22, key-sync-plan.md Plan C) ----
+
+/**
+ * Registers this device's key for the signed-in wallet when it is not listed yet (one small transaction, the first
+ * time on each device). Returns false when nothing had to be sent.
+ */
+export async function runRegisterDevice(env: ActionEnv): Promise<{ registered: boolean; signature?: string }> {
+  const { walletAddress, signTransaction } = env.signer;
+  if (!walletAddress) throw new UserFacingError('Sign in first.');
+  const connection = env.connection ?? getConnection();
+  const me = new PublicKey(walletAddress);
+  const device = await loadOrCreateDeviceKey(needKeys(env), walletAddress);
+  const listInfo = await connection.getAccountInfo(deviceKeysPda(me), 'confirmed');
+  const listed = (await fetchDeviceKeys([me], connection)).get(walletAddress) ?? [];
+  if (listed.some((k) => equalBytes(k, device.publicKey))) return { registered: false };
+  const tx = new Transaction().add(...buildRegisterDevice({ wallet: me, publicKey: device.publicKey, listExists: Boolean(listInfo) }));
+  const { signature } = await sendAndConfirm(tx, { walletAddress, signTransaction }, sendOptions(env));
+  return { registered: true, signature };
+}
+
+/**
+ * Posts wraps of the contract key for every registered device of the client and the freelancer that has none yet
+ * (sibling re-wrap, and the freelancer after opening an invite link). Needs K on this device. No transaction when
+ * every device already has a wrap.
+ */
+export async function runShareKey(
+  env: ActionEnv,
+  address: string,
+  known?: { contentKey?: Uint8Array; freelancer?: string }
+): Promise<{ signatures: string[]; wrapped: number }> {
+  const { walletAddress } = env.signer;
+  if (!walletAddress) throw new UserFacingError('Sign in first.');
+  const connection = env.connection ?? getConnection();
+  const fund = await readFund(address, connection);
+  const me = new PublicKey(walletAddress);
+  if (!fund.client.equals(me) && !fund.freelancer.equals(me)) return { signatures: [], wrapped: 0 };
+  const contentKey = known?.contentKey ?? (await loadContentKey(needKeys(env), walletAddress, address));
+  if (!contentKey) return { signatures: [], wrapped: 0 };
+  const registry = await fetchDeviceKeys([fund.client, fund.freelancer], connection);
+  const all = [...(registry.get(fund.client.toBase58()) ?? []), ...(registry.get(fund.freelancer.toBase58()) ?? [])];
+  const already = wrappedRecipients(await fetchNotes(fund.address, connection));
+  const missing = all.filter((k) => !already.has(toB64(k)));
+  if (!missing.length) return { signatures: [], wrapped: 0 };
+  const signatures = await sendExtra(env, buildKeyNotes({ fund: fund.address, author: me, contentKey, recipients: missing }));
+  return { signatures, wrapped: missing.length };
+}
+
+/**
+ * K for `address` from the fund's key notes, using this device's key; saved on the device when found. Read-only
+ * (no transaction). Returns null when no wrap is addressed to this device.
+ */
+export async function recoverContentKey(
+  storage: KeyStorage,
+  wallet: string,
+  fund: FundAccount,
+  records?: Awaited<ReturnType<typeof fetchNotes>>,
+  connection: Connection = getConnection()
+): Promise<Uint8Array | null> {
+  const device = await loadDeviceKey(storage, wallet);
+  if (!device) return null;
+  const key = contentKeyFromNotes(fund, records ?? (await fetchNotes(fund.address, connection)), device);
+  if (key) await saveContentKey(storage, wallet, fund.address.toBase58(), key);
+  return key;
 }
 
 /** Posts the brief again for a Created fund (after BriefNotSavedError); the brief must hash to the stored brief_hash */
