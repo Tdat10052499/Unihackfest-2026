@@ -1,12 +1,14 @@
 // Brief and deliveries of one contract, decrypted on this device (build-plan B1, non-ui-plan 3.1). Notes are read
 // from the fund's transactions; only a set whose hash equals the on-chain hash is shown. The contract key K comes
-// from this device's key store or from an imported invite link; it is never logged or shown in an error.
+// from this device's key store, from a key note wrapped for this device (key sync, D22) or from an imported invite
+// link; it is never logged or shown in an error.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useAuth } from '../services/auth';
 import type { Brief, DeliveryDraft } from '../services/milestone/content';
 import { importKeyFromFragment, inviteLink as makeInviteLink, loadContentKey } from '../services/milestone/keys';
 import { contractKeyStorage } from '../services/milestone/keyStore';
+import { recoverKey, shareKeyOnce } from '../services/milestone/keySync';
 import { fetchNotes, readContractContent, type ContentStatus, type ContractContent } from '../services/milestone/notes';
 import { getFund } from '../services/milestone/queries';
 import type { FundAccount } from '../services/milestone/view';
@@ -43,7 +45,7 @@ const isAddress = (value: string) => {
 const noteStamp = (f: FundAccount) => `${f.state}|${f.milestones.map((m) => `${m.status}:${m.submittedAt}`).join(',')}`;
 
 export function useContractContent(address: string): ContractContentState {
-  const { walletAddress } = useAuth();
+  const { walletAddress, signTransaction } = useAuth();
   const [content, setContent] = useState<ContractContent>();
   const [key, setKey] = useState<Uint8Array | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,8 +71,17 @@ export function useContractContent(address: string): ContractContentState {
         // Notes only change with the fund; re-read them only then (or on a forced refresh)
         const stamp = noteStamp(fund);
         const records = !force && last.current?.stamp === stamp ? last.current.records : await fetchNotes(fund.address);
-        last.current = { stamp, key: k, records };
-        const next = readContractContent(fund, records, k);
+        // Key sync (D22): no K on this device yet → take it from a key note addressed to this device
+        let key = k;
+        if (!key) {
+          key = await recoverKey(walletAddress, fund, records);
+          if (key) setKey(key);
+        }
+        // This device has K: make sure the parties' other registered devices get it too (silent, once per session)
+        const party = fund.client.toBase58() === walletAddress || fund.freelancer.toBase58() === walletAddress;
+        if (key && party) void shareKeyOnce({ walletAddress, signTransaction }, address);
+        last.current = { stamp, key, records };
+        const next = readContractContent(fund, records, key);
         shown.set(shownKey(walletAddress, address), next);
         setContent(next);
       } catch (err) {
@@ -81,7 +92,7 @@ export function useContractContent(address: string): ContractContentState {
         setLoading(false);
       }
     },
-    [address, walletAddress]
+    [address, walletAddress, signTransaction]
   );
 
   useEffect(() => {

@@ -53,7 +53,7 @@ export function BriefCard({ content, fingerprint }: { content: ContractContentSt
       {content.contentStatus === 'noKey' || content.contentStatus === 'mismatch' ? (
         <View style={b.paste}>
           {content.contentStatus === 'noKey' ? (
-            <Text style={b.muted}>Open the contract link on this device to read the brief, or paste the link here.</Text>
+            <Text style={b.muted}>This device cannot open the brief yet. Open N.E.D on a device you used for this contract before, and it unlocks here by itself. Or paste the contract link.</Text>
           ) : null}
           <Field
             value={input}

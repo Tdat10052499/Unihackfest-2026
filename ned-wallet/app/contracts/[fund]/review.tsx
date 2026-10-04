@@ -163,7 +163,7 @@ export default function ReviewScreen() {
               </Text>
             </>
           ) : !content.hasKey && content.contentStatus !== 'loading' ? (
-            <Text style={r.body}>Open the contract link on this device to read the delivery. On-chain fingerprint {ms?.evidence}.</Text>
+            <Text style={r.body}>This device cannot open the delivery yet. Open N.E.D on a device you used for this contract before, or paste the contract link on the contract page. On-chain fingerprint {ms?.evidence}.</Text>
           ) : content.contentStatus === 'loading' ? (
             <Text style={r.small}>Reading the delivery…</Text>
           ) : (

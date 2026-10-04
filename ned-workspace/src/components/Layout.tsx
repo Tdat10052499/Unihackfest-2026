@@ -5,6 +5,7 @@ import { AnimatePresence, m } from 'motion/react';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { PhoneGate, useNarrowScreen } from './PhoneGate.tsx';
 import { RegionPrompt } from './RegionPrompt.tsx';
+import { DeviceKeyGate } from './DeviceKeyGate.tsx';
 import { TopBar } from './TopBar.tsx';
 
 export function Layout() {
@@ -18,6 +19,7 @@ export function Layout() {
       </a>
       <TopBar />
       <RegionPrompt />
+      <DeviceKeyGate />
       <AnimatePresence mode="wait" initial={false}>
         <m.div
           key={location.pathname}

@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, router, useRouter, useSegments, type Href } from 'expo-router';
 import { AuthProvider, useAuth } from '../services/auth';
 import { resolveOnboarding } from '../services/onboarding';
+import { ensureDeviceRegistered } from '../services/milestone/keySync';
 import { takeInvite } from '../services/milestone/invite';
 import { importKeyFromFragment } from '../services/milestone/keys';
 import { contractKeyStorage } from '../services/milestone/keyStore';
@@ -46,6 +47,16 @@ function AuthGate() {
  * trong app (deep link) → về /setup; setup tự chọn bước tiếp theo. Kiểm tra một lần cho mỗi ví; lỗi RPC thì không chặn.
  */
 /** An invite opened before sign-in (app/c/[fund]) is imported once the wallet exists, then opens that contract */
+/** Key sync (D22): registers this device's key for the signed-in wallet, once per session, silently */
+function DeviceKeyGate() {
+  const { isReady, isAuthenticated, walletAddress, signTransaction } = useAuth();
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !walletAddress) return;
+    void ensureDeviceRegistered({ walletAddress, signTransaction });
+  }, [isReady, isAuthenticated, walletAddress, signTransaction]);
+  return null;
+}
+
 function PendingInviteGate() {
   const { isReady, isAuthenticated, walletAddress } = useAuth();
   useEffect(() => {
@@ -123,6 +134,7 @@ export default function RootLayout() {
                     <AuthGate />
                     <OnboardingGate />
                     <PendingInviteGate />
+                    <DeviceKeyGate />
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />

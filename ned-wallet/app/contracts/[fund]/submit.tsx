@@ -132,7 +132,7 @@ export default function SubmitScreen() {
         {!content.hasKey && content.contentStatus !== 'loading' ? (
           <View style={[u.notice, { backgroundColor: status.warning.bg }]}>
             <Text style={[u.body, { color: status.warning.ink }]}>
-              Open the contract link on this device first: your delivery is saved encrypted with the contract key.
+              This device cannot open the contract yet. Open N.E.D on a device you used for this contract before, or paste the contract link on the contract page.
             </Text>
           </View>
         ) : null}

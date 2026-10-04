@@ -175,7 +175,7 @@ function Form({ page, onDone }: { page: Page; onDone(d: { signature: string; evi
   const submit = async () => {
     setError('');
     if (problems.length) return setError(problems[0].message);
-    if (noKey) return setError('Open the contract link on this computer first, so your delivery can be saved with the contract.');
+    if (noKey) return setError('This computer cannot open the contract yet. Open N.E.D on a device you used for this contract before, or paste the contract link.');
     const ok = await confirm({
       title: `Submit milestone ${index + 1}`,
       rows: [
@@ -227,7 +227,7 @@ function Form({ page, onDone }: { page: Page; onDone(d: { signature: string; evi
             <m.div variants={rise} custom={0}>
               <KeyMissing
                 content={content}
-                text="Your delivery is saved encrypted with the contract key, and the brief needs it too. Paste the contract link you opened on your phone."
+                text="Open N.E.D on a device you used for this contract before (your phone, for example), and this computer unlocks by itself. Or paste the contract link."
               />
             </m.div>
           ) : null}

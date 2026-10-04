@@ -17,7 +17,7 @@ export function KeyMissing({ content, text }: { content: ContractContentState; t
   return (
     <section className={styles.card} aria-labelledby="key-missing">
       <h2 id="key-missing" className={styles.h2}>
-        Open the contract link on this computer
+        This computer cannot open the contract yet
       </h2>
       <p className={styles.hint}>{text}</p>
       <form className={styles.addRow} onSubmit={(e) => void submit(e)} aria-label="Paste the contract link">

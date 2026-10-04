@@ -225,7 +225,7 @@ function Brief({ fund, content }: { fund: FundView; content: ContractContentStat
         <form onSubmit={(e) => void submit(e)} className={styles.pasteRow} aria-label="Paste the contract link">
           {content.contentStatus === 'noKey' ? (
             <p className={styles.muted} style={{ flexBasis: '100%' }}>
-              Open the contract link on this computer to read the brief, or paste it here.
+              This computer cannot open the brief yet. Open N.E.D on a device you used for this contract before and it unlocks here by itself, or paste the contract link.
             </p>
           ) : null}
           <label className="visually-hidden" htmlFor="paste-link">

@@ -190,7 +190,7 @@ function Form({ page, onReleased }: { page: Page; onReleased(r: Released): void 
         <m.div className={flow.main} variants={staggerParent} initial="hidden" animate="shown">
           {noKey ? (
             <m.div variants={rise} custom={0}>
-              <KeyMissing content={content} text="The delivery is encrypted with the contract key. Paste the contract link (from the app or from when you created the contract)." />
+              <KeyMissing content={content} text="Open N.E.D on a device you used for this contract before, and this computer unlocks by itself. Or paste the contract link." />
             </m.div>
           ) : null}
           <m.section variants={rise} custom={0} aria-labelledby="rv-del" className={flow.card} style={{ gap: 0 }}>
@@ -262,7 +262,7 @@ function Form({ page, onReleased }: { page: Page; onReleased(r: Released): void 
               </>
             ) : (
               <p className={flow.hint} style={{ marginTop: 12 }}>
-                {noKey ? 'Paste the contract link above to read the delivery.' : 'The delivery saved with this contract could not be read.'}
+                {noKey ? 'Open N.E.D on a device you used for this contract before to unlock it here, or paste the contract link above.' : 'The delivery saved with this contract could not be read.'}
               </p>
             )}
           </m.section>
@@ -279,7 +279,7 @@ function Form({ page, onReleased }: { page: Page; onReleased(r: Released): void 
             </h2>
             <p className={styles.intBody}>
               {noKey
-                ? 'Open the contract link here to compare the delivery with the fingerprint saved on-chain.'
+                ? 'Unlock this computer (open N.E.D on a device you used before, or paste the contract link) to compare the delivery with the fingerprint saved on-chain.'
                 : matches
                   ? `The links, file fingerprints and note match the fingerprint saved on-chain on ${formatDeadline(submittedAt)}. This proves the delivery is the one submitted; it cannot prove that what a link points to has not changed since, so prefer fixed-version links.`
                   : `The delivery saved with the contract does not match the fingerprint saved on-chain at submit. Ask ${other} which version is final before you release.`}
