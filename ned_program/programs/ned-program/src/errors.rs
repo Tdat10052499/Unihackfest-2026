@@ -86,4 +86,11 @@ pub enum NedError {
     InvalidNote,
     #[msg("This note cannot be added now.")]
     NoteNotAllowed,
+    // ---- v1.2 (key-sync Plan C); append only, never reorder ----
+    #[msg("This wallet already has the maximum number of devices. Remove one first.")]
+    DeviceKeysFull,
+    #[msg("This device is not registered for this wallet.")]
+    DeviceKeyNotFound,
+    #[msg("The device key is not valid.")]
+    InvalidDeviceKey,
 }

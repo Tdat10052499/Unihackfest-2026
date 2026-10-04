@@ -47,3 +47,13 @@ pub const NOTE_MAX_PARTS: u8 = 8;
 /// `post_note` kinds (v1.1)
 pub const NOTE_KIND_BRIEF: u8 = 0;
 pub const NOTE_KIND_DELIVERY: u8 = 1;
+/// v1.2 (key-sync Plan C): wraps of the contract key for the parties' registered devices
+pub const NOTE_KIND_KEY: u8 = 2;
+
+// -----------------------------------------------------------------------------
+// Device keys (v1.2, docs/09-milestone-lock/key-sync-plan.md Plan C)
+// -----------------------------------------------------------------------------
+
+/// PDA [b"device_keys", wallet]: the X25519 public keys of the wallet's devices
+pub const DEVICE_KEYS_SEED: &[u8] = b"device_keys";
+pub const MAX_DEVICE_KEYS: usize = 5;

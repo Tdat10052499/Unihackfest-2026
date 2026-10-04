@@ -1,6 +1,6 @@
-# Milestone Lock: program specification (v1.1, build target for 10 Oct 2026)
+# Milestone Lock: program specification (v1.2, build target for 10 Oct 2026)
 
-Status: **build spec, frozen for coding on 3 Oct 2026** (reviewed on 2–3 Oct; fixes R1–R12 in [`README.md`](README.md#review-fixes-3-oct)). **v1.1 amendment (3 Oct, decision D14):** `brief_hash`, non-zero evidence and `post_note`; sections 2, 3.1, 4, 4.1, 5, 6, 8 and 9 changed; build order in [`build-plan.md`](build-plan.md) phase A. Product rules are in [`product-spec.md`](product-spec.md); the decisions behind them are in [`README.md`](README.md#decision-log). If code and this file disagree, fix one of them in the same pull request.
+Status: **build spec, frozen for coding on 3 Oct 2026** (reviewed on 2–3 Oct; fixes R1–R12 in [`README.md`](README.md#review-fixes-3-oct)). **v1.1 amendment (3 Oct, decision D14):** `brief_hash`, non-zero evidence and `post_note`; sections 2, 3.1, 4, 4.1, 5, 6, 8 and 9 changed; build order in [`build-plan.md`](build-plan.md) phase A. **v1.2 amendment (4 Oct, decision D22, [`key-sync-plan.md`](key-sync-plan.md) Plan C):** `DeviceKeys` account (3.5), `init_device_keys` / `add_device_key` / `remove_device_key`, `post_note` kind 2 (key); sections 2, 3.5, 4, 4.1, 5, 6, 8 changed. No change to `SharedFund` (still 740 bytes). Product rules are in [`product-spec.md`](product-spec.md); the decisions behind them are in [`README.md`](README.md#decision-log). If code and this file disagree, fix one of them in the same pull request.
 
 Scope: add Milestone Lock to the existing Anchor program `ned_program` (`ned_program/programs/ned-program/src/lib.rs`, program ID `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, Anchor 1.1.2, Rust 1.89). The identity instructions, accounts and error codes stay unchanged.
 
@@ -94,6 +94,10 @@ Invariant: `released + refunded + unsettled == total` at all times, so `released
 
 **Any milestone status change clears a pending cancel proposal** (`cancel_proposer = default`, `cancel_freelancer_amount = 0`).
 
+### 3.5 `DeviceKeys`, PDA `[b"device_keys", wallet]` (v1.2)
+
+`wallet: Pubkey` · `count: u8` · `keys: [[u8; 32]; MAX_DEVICE_KEYS = 5]` (X25519 public keys; `keys[..count]` in use, the rest zero) · `bump: u8`. Size `8 + 32 + 1 + 160 + 1 = 202` bytes, rent paid by the wallet. Only the wallet can change it (`seeds` + `has_one = wallet`). The private keys never leave the devices; see [`key-sync-plan.md`](key-sync-plan.md).
+
 ### 3.4 Time
 
 All times are `Clock::get()?.unix_timestamp`. One boundary convention everywhere: **"a deadline has passed" means `now > deadline`.**
@@ -123,7 +127,10 @@ Priority **P0** = never cut, **P1** = cut if late, as a group: `dispute`, `conce
 | 10 | `concede(index: u8)` | `freelancer` | state `Funded`; status `Disputed` | status `Refunded`; vault → client ATA; `refunded += amount`. A disputed milestone can therefore always be settled by either side | P1 |
 | 11 | `propose_cancel(freelancer_amount: u64)` | `client` or `freelancer` (`NotAParty` otherwise) | state `Funded`; `freelancer_amount <= unsettled` | store proposer + amount; overwrites an earlier proposal | P1 |
 | 12 | `accept_cancel(expected_freelancer_amount: u64, expected_unsettled: u64)` | the other party | state `Funded`; a proposal exists; signer ≠ proposer; both `expected_*` equal the current values; `freelancer_amount <= unsettled` re-checked | `freelancer_amount` → destination ATA; `unsettled - freelancer_amount` → client ATA; `released += freelancer_amount`; `refunded += unsettled - freelancer_amount`; non-terminal milestones → `Cancelled`; clear the proposal; state `Settled` | P1 |
-| 13 | `post_note(kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>)` | `author` | `kind = 0` (brief): author = `client`, state `Created`, `milestone = 0`. `kind = 1` (delivery): author = `freelancer`, `milestone < milestone_count`, status `Submitted`. Otherwise `NoteNotAllowed`. `1 <= data.len() <= NOTE_MAX_LEN`, `part < parts <= NOTE_MAX_PARTS` (`InvalidNote`) | no state change; `NotePosted`. `data` is ciphertext made by the app (XChaCha20-Poly1305, key only in the invite link); the program never reads it | P0 |
+| 13 | `post_note(kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>)` | `author` | `kind = 0` (brief): author = `client`, state `Created`, `milestone = 0`. `kind = 1` (delivery): author = `freelancer`, `milestone < milestone_count`, status `Submitted`. `kind = 2` (key, v1.2): author = `client` or `freelancer`, any state, `milestone = 0`. Otherwise `NoteNotAllowed`. `1 <= data.len() <= NOTE_MAX_LEN`, `part < parts <= NOTE_MAX_PARTS` (`InvalidNote`) | no state change; `NotePosted`. `data` is ciphertext made by the app (XChaCha20-Poly1305; from v1.2 the contract key also travels as per-device wraps in kind 2 notes); the program never reads it | P0 |
+| 14 | `init_device_keys()` (v1.2) | `wallet` | creates `DeviceKeys` for the signer (fails if it exists) | empty list; sent with the first `add_device_key` | P0 |
+| 15 | `add_device_key(key: [u8; 32])` (v1.2) | `wallet` | `key != 0` (`InvalidDeviceKey`); already listed → no change, no error; `count < MAX_DEVICE_KEYS` (`DeviceKeysFull`) | appends; `DeviceKeyAdded` | P0 |
+| 16 | `remove_device_key(key: [u8; 32])` (v1.2) | `wallet` | key listed (`DeviceKeyNotFound`) | last key moves into the gap; `DeviceKeyRemoved` | P0 |
 
 After every instruction that changes a milestone status, set the fund to `Settled` if all milestones in `0..milestone_count` are terminal.
 
@@ -160,6 +167,8 @@ The program does **not** create ATAs (no `init_if_needed`). The app adds `create
 Append to the existing `NedError` **after** `InvalidAmount`, and never reorder existing variants (the app maps the codes). Reuse `InvalidAmount` for an amount of 0.
 
 `InvalidMilestoneCount` · `AmountTooLarge` · `InvalidDeadline` · `ReviewWindowTooShort` · `WorkWindowTooShort` · `SameParty` · `InvalidFreelancer` · `TitleTooLong` · `InvalidMint` · `InvalidFundState` · `InvalidPayoutKind` · `InvalidPayoutDestination` · `PayoutPartnerNotAllowed` · `InvalidPayoutReference` · `MilestoneIndexOutOfRange` · `InvalidMilestoneStatus` · `DeadlinePassed` · `DeadlineNotReached` · `NotAParty` · `NoCancelProposal` · `CannotAcceptOwnProposal` · `CancelAmountTooLarge` · `CancelProposalChanged` · `FundNotClosable` · `MathOverflow` · then, appended in v1.1 after `MathOverflow`: `InvalidBriefHash` · `BriefMismatch` · `InvalidEvidence` · `InvalidNote` · `NoteNotAllowed`
+
+**v1.2:** appended after `NoteNotAllowed`: `DeviceKeysFull` · `DeviceKeyNotFound` · `InvalidDeviceKey`.
 
 Every error gets an English `#[msg]` sentence, which the app shows as is (English-only rule).
 
@@ -199,6 +208,9 @@ Move the clock with `svm.set_sysvar::<Clock>()`. Create the devnet USDC mint at 
 16. **Brief (v1.1):** `create_fund` with an all-zero `brief_hash` fails with `InvalidBriefHash`; the stored hash equals the argument and `FundCreated` carries it; `accept` with a different `expected_brief_hash` fails with `BriefMismatch`, with the same one succeeds
 17. **Evidence (v1.1):** `submit` with all-zero evidence fails with `InvalidEvidence`
 18. **Notes (v1.1):** client posts a brief note while `Created` (succeeds) and after `accept` (fails, `NoteNotAllowed`); freelancer posts a brief note (fails); freelancer posts a delivery note for a `Submitted` milestone (succeeds) and for a `Pending` one (fails); a third wallet fails; empty data, 901 bytes, `part >= parts` and `parts = 9` fail with `InvalidNote`; a delivery note in the same transaction right after `submit` succeeds; the fund account is unchanged byte for byte
+
+19. **Key notes (v1.2):** client and freelancer post kind 2 while `Created`, after `accept`, after `lock` and when `Settled`; `milestone ≠ 0` fails; a third wallet fails (`NoteNotAllowed`); the fund bytes do not change
+20. **Device keys (v1.2):** init + add in one transaction; init twice fails; the same key again changes nothing; zero key fails; full at 5 (`DeviceKeysFull`); remove moves the last key into the gap; unknown key fails (`DeviceKeyNotFound`); another wallet cannot change the list
 
 Keep the existing 10 identity tests green.
 

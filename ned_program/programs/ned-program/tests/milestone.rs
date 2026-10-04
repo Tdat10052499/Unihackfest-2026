@@ -10,6 +10,7 @@ use anchor_lang::{AnchorDeserialize, Discriminator, InstructionData, ToAccountMe
 use common::*;
 use litesvm::LiteSVM;
 use ned_program::{
+    DeviceKeyAdded, DeviceKeyRemoved, DeviceKeys, DEVICE_KEYS_SEED, MAX_DEVICE_KEYS,
     FundCreated, FundState, MilestoneInput, NotePosted, MilestoneReleased, MilestoneStatus, PayoutKind, SharedFund, FUND_SEED,
     MIN_WORK_WINDOW_SECS, PAYOUT_PARTNERS, VAULT_SEED,
 };
@@ -1135,7 +1136,7 @@ fn g18_notes_who_when_size_parts_and_no_state_change() {
     assert_eq!(bytes(&e.svm), before, "fund unchanged byte for byte");
     assert_err(e.as_client(note_ix(fund, &c, 0, 1, 0, 1, vec![1])), "NoteNotAllowed"); // brief with milestone 1
     assert_err(e.as_freelancer(note_ix(fund, &f, 0, 0, 0, 1, vec![1])), "NoteNotAllowed");
-    assert_err(e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![1])), "NoteNotAllowed"); // unknown kind
+    assert_err(e.as_client(note_ix(fund, &c, 3, 0, 0, 1, vec![1])), "NoteNotAllowed"); // unknown kind (2 = key since v1.2)
 
     // Size and part rules
     assert_err(e.as_client(note_ix(fund, &c, 0, 0, 0, 1, vec![])), "InvalidNote");
@@ -1176,4 +1177,123 @@ fn g18_notes_who_when_size_parts_and_no_state_change() {
     let s = stranger.pubkey();
     assert_err(send_signed(&mut e.svm, &[note_ix(fund, &s, 1, 0, 0, 1, vec![1])], &stranger, &[]), "NoteNotAllowed");
     assert_err(send_signed(&mut e.svm, &[note_ix(fund, &s, 0, 0, 0, 1, vec![1])], &stranger, &[]), "NoteNotAllowed");
+}
+
+// -----------------------------------------------------------------------------
+// v1.2 · key-sync Plan C (docs/09-milestone-lock/key-sync-plan.md)
+// -----------------------------------------------------------------------------
+
+fn device_keys_pda(wallet: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[DEVICE_KEYS_SEED, wallet.as_ref()], &ned_program::ID).0
+}
+fn init_keys_ix(wallet: &Pubkey) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::InitDeviceKeys {
+            wallet: *wallet,
+            device_keys: device_keys_pda(wallet),
+            system_program: anchor_lang::system_program::ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::InitDeviceKeys {}.data(),
+    }
+}
+fn add_key_ix(wallet: &Pubkey, key: [u8; 32]) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::UpdateDeviceKeys { wallet: *wallet, device_keys: device_keys_pda(wallet) }.to_account_metas(None),
+        data: ned_program::instruction::AddDeviceKey { key }.data(),
+    }
+}
+fn remove_key_ix(wallet: &Pubkey, key: [u8; 32]) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::UpdateDeviceKeys { wallet: *wallet, device_keys: device_keys_pda(wallet) }.to_account_metas(None),
+        data: ned_program::instruction::RemoveDeviceKey { key }.data(),
+    }
+}
+
+#[test]
+fn g19_key_notes_either_party_any_state_milestone_0() {
+    let mut e = env();
+    let (c, f, mint) = (e.c(), e.f(), e.mint);
+    let fund = fund_pda(&c, 1);
+    let bytes = |svm: &LiteSVM| svm.get_account(&fund).unwrap().data;
+    e.as_client(e.create_ix(1, milestones(1, USDC))).unwrap();
+
+    // Created: the client wraps for both parties' devices; the freelancer may wrap for its own devices too
+    let before = bytes(&e.svm);
+    let meta = e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![9; 816])).unwrap();
+    cu("post_note (key, 6 wraps)", &meta);
+    let posted: NotePosted = event(&meta);
+    assert_eq!((posted.author, posted.kind, posted.milestone, posted.len), (c, 2, 0, 816));
+    e.as_freelancer(note_ix(fund, &f, 2, 0, 0, 1, vec![9; 136])).unwrap();
+    assert_eq!(bytes(&e.svm), before, "fund unchanged byte for byte");
+    assert_err(e.as_client(note_ix(fund, &c, 2, 1, 0, 1, vec![1])), "NoteNotAllowed"); // milestone must be 0
+    assert_err(e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![1; 901])), "InvalidNote");
+
+    // Still allowed after accept, lock and settle (a new device may need a wrap any time)
+    e.as_freelancer(accept_ix(fund, &f, PayoutKind::OwnWallet, f, [0; 32])).unwrap();
+    e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![1; 136])).unwrap();
+    e.as_client(lock_ix(fund, &c, mint)).unwrap();
+    e.as_freelancer(note_ix(fund, &f, 2, 0, 0, 1, vec![1; 136])).unwrap();
+    e.as_freelancer(submit_ix(fund, &f, 0)).unwrap();
+    e.as_client(approve_ix(fund, &c, f, mint, 0)).unwrap();
+    assert_eq!(e.fund(1).state, FundState::Settled);
+    e.as_client(note_ix(fund, &c, 2, 0, 0, 1, vec![1; 136])).unwrap();
+
+    // A third wallet cannot post key notes
+    let stranger = new_user(&mut e.svm);
+    let s = stranger.pubkey();
+    assert_err(send_signed(&mut e.svm, &[note_ix(fund, &s, 2, 0, 0, 1, vec![1])], &stranger, &[]), "NoteNotAllowed");
+}
+
+#[test]
+fn g20_device_keys_init_add_idempotent_full_remove_owner_only() {
+    let mut e = env();
+    let user = e.client.insecure_clone();
+    let w = user.pubkey();
+    let list = device_keys_pda(&w);
+
+    // init + first key in one transaction, as the app sends them
+    let meta = send_signed(&mut e.svm, &[init_keys_ix(&w), add_key_ix(&w, [1; 32])], &user, &[]).unwrap();
+    cu("init_device_keys + add_device_key", &meta);
+    let added: DeviceKeyAdded = event(&meta);
+    assert_eq!((added.wallet, added.key, added.count), (w, [1; 32], 1));
+    let keys: DeviceKeys = read(&e.svm, &list).unwrap();
+    assert_eq!((keys.wallet, keys.count), (w, 1));
+    assert_eq!(keys.in_use(), &[[1; 32]]);
+    assert!(send_signed(&mut e.svm, &[init_keys_ix(&w)], &user, &[]).is_err(), "init twice fails");
+
+    // Same key again: no change, no error; zero key rejected
+    send_signed(&mut e.svm, &[add_key_ix(&w, [1; 32])], &user, &[]).unwrap();
+    assert_eq!(read::<DeviceKeys>(&e.svm, &list).unwrap().count, 1);
+    assert_err(send_signed(&mut e.svm, &[add_key_ix(&w, [0; 32])], &user, &[]), "InvalidDeviceKey");
+
+    // Up to MAX_DEVICE_KEYS, then full
+    for k in 2..=MAX_DEVICE_KEYS as u8 {
+        send_signed(&mut e.svm, &[add_key_ix(&w, [k; 32])], &user, &[]).unwrap();
+    }
+    assert_eq!(read::<DeviceKeys>(&e.svm, &list).unwrap().count as usize, MAX_DEVICE_KEYS);
+    assert_err(send_signed(&mut e.svm, &[add_key_ix(&w, [99; 32])], &user, &[]), "DeviceKeysFull");
+
+    // Remove: the last key fills the gap; unknown key fails
+    let meta = send_signed(&mut e.svm, &[remove_key_ix(&w, [2; 32])], &user, &[]).unwrap();
+    let removed: DeviceKeyRemoved = event(&meta);
+    assert_eq!((removed.key, removed.count), ([2; 32], 4));
+    let keys: DeviceKeys = read(&e.svm, &list).unwrap();
+    assert_eq!(keys.in_use(), &[[1; 32], [5; 32], [3; 32], [4; 32]]);
+    assert_eq!(keys.keys[4], [0; 32]);
+    assert_err(send_signed(&mut e.svm, &[remove_key_ix(&w, [2; 32])], &user, &[]), "DeviceKeyNotFound");
+
+    // Another wallet cannot change this list (seeds and has_one bind it to the signer)
+    let other = e.freelancer.insecure_clone();
+    let o = other.pubkey();
+    let foreign_add = Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::UpdateDeviceKeys { wallet: o, device_keys: list }.to_account_metas(None),
+        data: ned_program::instruction::AddDeviceKey { key: [7; 32] }.data(),
+    };
+    assert!(send_signed(&mut e.svm, &[foreign_add], &other, &[]).is_err());
+    assert_eq!(read::<DeviceKeys>(&e.svm, &list).unwrap().count, 4);
 }

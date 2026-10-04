@@ -132,3 +132,19 @@ pub struct NotePosted {
     pub parts: u8,
     pub len: u16,
 }
+
+/// v1.2: a device key was registered for `wallet`
+#[event]
+pub struct DeviceKeyAdded {
+    pub wallet: Pubkey,
+    pub key: [u8; 32],
+    pub count: u8,
+}
+
+/// v1.2: a device key was removed from `wallet`
+#[event]
+pub struct DeviceKeyRemoved {
+    pub wallet: Pubkey,
+    pub key: [u8; 32],
+    pub count: u8,
+}

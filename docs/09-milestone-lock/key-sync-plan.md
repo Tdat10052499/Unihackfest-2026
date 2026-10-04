@@ -1,6 +1,6 @@
 # Key sync: read the brief on every device without pasting a link (proposal, 4 Oct 2026)
 
-Status: **proposal; direction approved by the PO (4 Oct). Spike S0 done: Plan A is out; Plan C proposed, waiting for the PO's choice.** If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
+Status: **adopted (4 Oct, PO): Plan C, decision D22.** Spike S0 ruled out Plan A. P1 (program v1.2) built and tested; devnet upgrade pending the PO's go. If adopted it becomes decision D22 and replaces the "key only in the invite link" part of D15.
 
 ## 1. Problem
 
@@ -35,9 +35,9 @@ On the production Workspace, the Dynamic embedded wallet signed the fixed messag
 
 ### 2.2 Registry on-chain (program change)
 
-> Plan C: the account holds a list `device_keys: [[u8; 32]; 5]` with a count, instead of one key; instructions `add_device_key(key)` and `remove_device_key(key)`, signer = wallet.
+> **Plan C (built):** account `DeviceKeys`, PDA `["device_keys", wallet]`, holds `keys: [[u8; 32]; 5]` and a `count`; instructions `init_device_keys`, `add_device_key(key)`, `remove_device_key(key)`, signer = wallet ([`program-spec.md`](program-spec.md) 3.5, rows 14–16).
 
-- New account `ContentKey`, PDA `["content_key", wallet]`: `{ wallet, x25519_public: [u8; 32], version: u8, bump }` (about 75 bytes; rent ≈ 0.0014 SOL, paid once by the wallet).
+- (Superseded by Plan C below.) New account `ContentKey`, PDA `["content_key", wallet]`: `{ wallet, x25519_public: [u8; 32], version: u8, bump }` (about 75 bytes; rent ≈ 0.0014 SOL, paid once by the wallet).
 - New instruction `set_content_key(x25519_public)`: signer = `wallet`; creates the account or updates it (re-key).
 - The app registers silently after sign-in (one signature + one small transaction), and again only if the derived key changes.
 

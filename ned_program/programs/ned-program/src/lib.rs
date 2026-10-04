@@ -111,10 +111,28 @@ pub mod ned_program {
         close_handler(ctx)
     }
 
-    /// Posts one part of an encrypted brief (client, while Created) or delivery note (freelancer, Submitted milestone).
+    /// Posts one part of an encrypted brief (client, while Created), delivery (freelancer, Submitted milestone) or,
+    /// from v1.2, key note (either party, wraps of the contract key for registered devices).
     /// No state change; the app reads it back from the transaction (v1.1)
     pub fn post_note(ctx: Context<PostNote>, kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>) -> Result<()> {
         post_note_handler(ctx, kind, milestone, part, parts, data)
+    }
+
+    // Device keys (v1.2, key-sync Plan C): X25519 public keys of the wallet's devices
+
+    /// Creates the wallet's empty device-key list (sent with the first add_device_key)
+    pub fn init_device_keys(ctx: Context<InitDeviceKeys>) -> Result<()> {
+        init_device_keys_handler(ctx)
+    }
+
+    /// Registers one device key (no change if it is already registered)
+    pub fn add_device_key(ctx: Context<UpdateDeviceKeys>, key: [u8; 32]) -> Result<()> {
+        add_device_key_handler(ctx, key)
+    }
+
+    /// Removes one device key
+    pub fn remove_device_key(ctx: Context<UpdateDeviceKeys>, key: [u8; 32]) -> Result<()> {
+        remove_device_key_handler(ctx, key)
     }
 
     // P1 group (ships together or not at all): dispute, concede, propose_cancel, accept_cancel

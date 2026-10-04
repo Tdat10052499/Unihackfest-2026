@@ -9,6 +9,7 @@ use crate::state::*;
 /// (XChaCha20-Poly1305, key only in the invite link); the program never reads it and changes no state.
 /// Brief (kind 0): the client, while the fund is Created, milestone 0.
 /// Delivery (kind 1): the freelancer, for a Submitted milestone.
+/// Key (kind 2, v1.2): either party, any state, milestone 0 — wraps of the contract key for registered devices.
 pub fn post_note_handler(ctx: Context<PostNote>, kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>) -> Result<()> {
     let fund = &ctx.accounts.fund;
     let author = ctx.accounts.author.key();
@@ -21,6 +22,7 @@ pub fn post_note_handler(ctx: Context<PostNote>, kind: u8, milestone: u8, part: 
                 && milestone < fund.milestone_count
                 && fund.milestones[milestone as usize].status == MilestoneStatus::Submitted
         }
+        NOTE_KIND_KEY => (author == fund.client || author == fund.freelancer) && milestone == 0,
         _ => false,
     };
     require!(allowed, NedError::NoteNotAllowed);
