@@ -16,6 +16,7 @@ import { useRegion } from '../hooks/region.ts';
 import { useContractContent, type ContractContentState } from '../hooks/useContractContent.ts';
 import { isFundAddress, useFund } from '../hooks/useFund.ts';
 import { rise, staggerParent } from '../motion.ts';
+import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import styles from './Contract.module.css';
 
 export function Contract() {
@@ -142,8 +143,9 @@ export function Contract() {
   );
 }
 
-/** The role's next step: submit and review have their pages (W4); other steps are done in the phone app for now */
-function NextStep({ fund, vn }: { fund: FundView; vn: boolean }) {
+/** The role's next step: submit and review have their pages (W4); the other steps open the contract in the wallet extension (W6) */
+function NextStep({ fund }: { fund: FundView; vn: boolean }) {
+  const { openWalletAt } = useWalletPanel();
   const next = fund.nextAction;
   if (!next) {
     const m0 = fund.milestones.find((ms) => ms.countdown);
@@ -163,13 +165,17 @@ function NextStep({ fund, vn }: { fund: FundView; vn: boolean }) {
       <span className={styles.nextText}>
         <strong>Next · </strong>
         {next.label}
-        {path ? '' : vn ? '. Open the N.E.D app on your phone to do this.' : '. Do this in the N.E.D app for now; the Workspace gets it next.'}
+        {path ? '' : '. Do it in your wallet.'}
       </span>
       {path ? (
         <Link to={`/contract/${fund.address}/${path}?i=${next.milestone ?? 0}`} className={styles.primary}>
           {path === 'submit' ? 'Open delivery form' : 'Review delivery'}
         </Link>
-      ) : null}
+      ) : (
+        <button type="button" className={styles.primary} onClick={() => openWalletAt(`/contracts/${fund.address}`)}>
+          Open in wallet
+        </button>
+      )}
     </div>
   );
 }

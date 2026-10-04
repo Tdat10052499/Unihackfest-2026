@@ -10,6 +10,7 @@ import { Avatar } from './Avatar.tsx';
 import { DevnetBadge } from './DevnetBadge.tsx';
 import { Icon, WalletIcon } from './icons.tsx';
 import { Logo } from './Logo.tsx';
+import { WalletExtension } from './WalletExtension.tsx';
 import { WalletPanel } from './WalletPanel.tsx';
 import { useWalletPanel } from './WalletPanelContext.tsx';
 import styles from './TopBar.module.css';
@@ -19,7 +20,7 @@ export const PANEL_ID = 'ned-wallet-panel';
 
 export function TopBar() {
   const { status, walletAddress } = useAuth();
-  const { open, toggle, triggerRef, request } = useWalletPanel();
+  const { open, toggle, triggerRef, request, walletMounted } = useWalletPanel();
   const signedIn = status === 'ready' && walletAddress;
 
   return (
@@ -61,7 +62,10 @@ export function TopBar() {
               />
             )}
           </AnimatePresence>
-          <AnimatePresence>{open && <WalletPanel key="panel" id={PANEL_ID} />}</AnimatePresence>
+          {/* Signed in: the wallet extension (the phone app, W6) — mounted on first open, then kept */}
+          {signedIn && walletMounted ? <WalletExtension wallet={walletAddress} id={PANEL_ID} /> : null}
+          {/* Signed out, or a confirm request from a Workspace page: the panel's own states */}
+          <AnimatePresence>{open && (!signedIn || request) && <WalletPanel key="panel" id={request ? `${PANEL_ID}-confirm` : PANEL_ID} />}</AnimatePresence>
         </div>
       </div>
     </header>

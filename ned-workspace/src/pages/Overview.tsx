@@ -17,16 +17,18 @@ import { useFundAccounts, useFunds, useUsername } from '../hooks/queries.ts';
 import { useRegion } from '../hooks/region.ts';
 import { shortAddress } from '../lib/format.ts';
 import { rise, staggerParent } from '../motion.ts';
+import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import styles from './Overview.module.css';
 
+// Steps with a Workspace page open it; the others open the contract in the wallet extension (the phone app, W6)
 const LOOK: Partial<Record<ActionKind, { icon: IconName; tone: string; cta: string; path?: 'submit' | 'review' }>> = {
   submit: { icon: 'submit', tone: 'purple', cta: 'Open delivery form', path: 'submit' },
   approve: { icon: 'review', tone: 'info', cta: 'Review delivery', path: 'review' },
-  releaseNow: { icon: 'release', tone: 'success', cta: 'Release' },
-  refundNow: { icon: 'release', tone: 'warning', cta: 'Open contract' },
+  releaseNow: { icon: 'release', tone: 'success', cta: 'Release in wallet' },
+  refundNow: { icon: 'release', tone: 'warning', cta: 'Refund in wallet' },
   accept: { icon: 'check', tone: 'info', cta: 'Read and accept' },
-  lock: { icon: 'lock', tone: 'info', cta: 'Open contract' },
-  close: { icon: 'close', tone: 'neutral', cta: 'Open contract' },
+  lock: { icon: 'lock', tone: 'info', cta: 'Lock in wallet' },
+  close: { icon: 'close', tone: 'neutral', cta: 'Close in wallet' },
 };
 
 const vnd = (units: bigint) => `≈ ${vndFromUnits(units).toLocaleString('en-US')} VND`;
@@ -74,6 +76,7 @@ function stats(raw: FundAccount[], views: FundView[], wallet: string, vn: boolea
 }
 
 export function Overview() {
+  const { openWalletAt } = useWalletPanel();
   const { walletAddress } = useAuth();
   const wallet = walletAddress!;
   const username = useUsername(wallet).data;
@@ -138,7 +141,7 @@ export function Overview() {
                 const look = LOOK[kind] ?? { icon: 'check' as IconName, tone: 'purple', cta: 'Open contract' };
                 const ms = f.nextAction!.milestone !== undefined ? f.milestones[f.nextAction!.milestone] : undefined;
                 const when = ms?.countdown?.label ?? (ms ? `Due ${formatDeadline(ms.submitBy)}` : f.statusLabel);
-                const href = look.path ? `/contract/${f.address}/${look.path}` : `/contract/${f.address}`;
+                const href = look.path ? `/contract/${f.address}/${look.path}?i=${f.nextAction!.milestone ?? 0}` : `/contract/${f.address}`;
                 return (
                   <div key={f.address} className={styles.need}>
                     <div className={styles.needTop}>
@@ -154,9 +157,15 @@ export function Overview() {
                     </div>
                     <div className={styles.needFoot}>
                       <StatusChip tone={(ms?.tone ?? f.tone) as ChipTone}>{when.charAt(0).toUpperCase() + when.slice(1)}</StatusChip>
-                      <Link to={href} className={styles.needCta}>
-                        {look.cta}
-                      </Link>
+                      {look.path || kind === 'accept' ? (
+                        <Link to={href} className={styles.needCta}>
+                          {look.cta}
+                        </Link>
+                      ) : (
+                        <button type="button" className={styles.needCta} onClick={() => openWalletAt(`/contracts/${f.address}`)}>
+                          {look.cta}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

@@ -30,12 +30,26 @@ interface WalletPanelValue {
   confirm(request: ConfirmRequest): Promise<boolean>;
   /** The panel's answer to the request on show */
   answer(ok: boolean): void;
+  // ---- wallet extension (W6, D23): the phone app at /wallet in a same-origin iframe ----
+  /** True once the extension was opened signed in; the iframe then stays mounted (hidden when closed) */
+  walletMounted: boolean;
+  /** Route the app reported last ("/contracts/<fund>"), and whether it is a bottom-tab root */
+  walletRoute: { path: string; root: boolean };
+  setWalletRoute(route: { path: string; root: boolean }): void;
+  /** Path to open when the iframe mounts, or to navigate to when it is already there */
+  pendingPath: string | null;
+  clearPendingPath(): void;
+  /** Opens the extension at an app route, e.g. openWalletAt('/settings') or openWalletAt(`/contracts/${fund}`) */
+  openWalletAt(path: string): void;
 }
 
 const WalletPanelContext = createContext<WalletPanelValue | null>(null);
 
 export function WalletPanelProvider({ children }: { children: ReactNode }) {
   const [open, setOpenState] = useState(false);
+  const [walletMounted, setWalletMounted] = useState(false);
+  const [walletRoute, setWalletRoute] = useState({ path: '/', root: true });
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const pending = useRef<((ok: boolean) => void) | null>(null);
   /** The control that asked for the confirm ("Create contract", "Release…"): focus goes back there afterwards */
@@ -58,10 +72,19 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
     (next: boolean) => {
       // Closing the panel while a request waits is a Cancel
       if (!next && pending.current) answer(false);
-      else setOpenState(next);
+      else {
+        if (next) setWalletMounted(true);
+        setOpenState(next);
+      }
     },
     [answer]
   );
+  const openWalletAt = useCallback((path: string) => {
+    setPendingPath(path);
+    setWalletMounted(true);
+    setOpenState(true);
+  }, []);
+  const clearPendingPath = useCallback(() => setPendingPath(null), []);
   const toggle = useCallback(() => setOpen(!open), [open, setOpen]);
 
   const confirm = useCallback((next: ConfirmRequest) => {
@@ -74,7 +97,10 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const value = useMemo(() => ({ open, setOpen, toggle, triggerRef, request, confirm, answer }), [open, setOpen, toggle, request, confirm, answer]);
+  const value = useMemo(
+    () => ({ open, setOpen, toggle, triggerRef, request, confirm, answer, walletMounted, walletRoute, setWalletRoute, pendingPath, clearPendingPath, openWalletAt }),
+    [open, setOpen, toggle, request, confirm, answer, walletMounted, walletRoute, pendingPath, clearPendingPath, openWalletAt]
+  );
   return <WalletPanelContext.Provider value={value}>{children}</WalletPanelContext.Provider>;
 }
 

@@ -26,3 +26,5 @@
 }
 .needCta:hover { background: var(--tint-hover); color: var(--link); }
 .empty { padding: 18px; border-radius: var(--r-20); background: var(--card); font-size: 14px; color: var(--caption); margin: 0; }
+
+button.needCta { border: none; font-family: inherit; cursor: pointer; }

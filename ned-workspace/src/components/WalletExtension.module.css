@@ -1,0 +1,22 @@
+/* Wallet extension (WebWalletPanel board): header + the phone app, like a browser wallet extension */
+.ext {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 390px; max-width: calc(100vw - 32px);
+  border-radius: var(--r-20); background: var(--card); box-shadow: var(--shadow-pop); overflow: hidden; transform-origin: top right;
+}
+.hidden { visibility: hidden; pointer-events: none; }
+.head { height: 56px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--divider); }
+.mark {
+  width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: #fff; flex: none;
+  display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 10px; font-weight: 700;
+}
+.who { flex: 1; min-width: 0; line-height: 1.2; }
+.handle { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { margin-top: 2px; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--caption); }
+.dot { width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--warning-dot); }
+.mono { font-family: var(--font-mono); }
+.iconBtn {
+  width: 36px; height: 36px; border: none; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); flex: none;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none;
+}
+.iconBtn:hover { background: var(--hover-ground); color: var(--ink); }
+.frame { display: block; width: 100%; height: min(780px, calc(100vh - 96px - 56px)); border: none; background: #fff; }
