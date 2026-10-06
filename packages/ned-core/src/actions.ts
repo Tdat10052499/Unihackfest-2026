@@ -1,8 +1,8 @@
 // Framework-free Milestone Lock action pipeline (workspace-plan section 1): fresh fund read → rules.ts check →
 // builder → sign with the injected signer → send → confirm → result. Both apps wrap it in their own hooks
 // (busy / status / error state, refresh). Errors stay raw here; map them with describeActionError.
-import { PublicKey, Transaction, type Connection } from '@solana/web3.js';
-export type { BriefDraft, DeliveryDraft } from './milestone/content.ts';
+import { PublicKey, Transaction, type Connection, type TransactionInstruction } from '@solana/web3.js';
+export type { BriefDraft, DeliveryDraft, ReviewDraft } from './milestone/content.ts';
 import { fetchUsdcUnits } from './chain/balance.ts';
 import { describeTxError, UserFacingError } from './chain/errors.ts';
 import { sendAndConfirm, type SendAuth, type SendStatus } from './chain/send.ts';
@@ -11,12 +11,14 @@ import { prepareTransactionCost } from './identity/transactionCost.ts';
 import * as client from './milestone/client.ts';
 import type { FundAccount } from './milestone/decode.ts';
 import { shortHash } from './milestone/evidence.ts';
-import { assertContent, canonicalBrief, canonicalDelivery, contentBytes, equalBytes, hashBytes, validateBrief, validateDelivery, type BriefDraft, type DeliveryDraft } from './milestone/content.ts';
+import { assertContent, canonicalBrief, canonicalDelivery, canonicalReview, contentBytes, equalBytes, hashBytes, validateBrief, validateDelivery, validateReview, type BriefDraft, type DeliveryDraft, type ReviewDraft } from './milestone/content.ts';
 import { generateContentKey, inviteLink, loadContentKey, saveContentKey, type KeyStorage } from './milestone/keys.ts';
 import { buildKeyNotes, buildRegisterDevice, contentKeyFromNotes, deviceKeysPda, fetchDeviceKeys, loadDeviceKey, loadOrCreateDeviceKey, wrappedRecipients } from './milestone/devicekeys.ts';
 import { toBase64Url as toB64 } from './milestone/keys.ts';
 import { fetchNotes } from './milestone/notes.ts';
-import { encryptNoteParts, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, NOTE_MAX_PLAINTEXT, type EncryptedNote } from './milestone/notes.ts';
+import { encryptNoteParts, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, NOTE_KIND_REVIEW, NOTE_MAX_PLAINTEXT, type EncryptedNote } from './milestone/notes.ts';
+import { buildLockFromJobIx } from './jobs/client.ts';
+import { jobForFund } from './jobs/queries.ts';
 import { formatUsdc, unitsFromUsdc } from './milestone/format.ts';
 import { getFund } from './milestone/queries.ts';
 import * as rules from './milestone/rules.ts';
@@ -81,6 +83,8 @@ export async function buildMilestoneAction(
       return client.buildAccept({ fund, freelancer: me, choice: 'ownWallet', username: '', expectedBriefHash: extra.expectedBriefHash });
     case 'lock': {
       check(rules.canLock(fund, me, now));
+      // A job contract's budget is already locked in the job: never take it from the wallet a second time
+      if (await jobForFund(fund.address, connection)) throw new UserFacingError(JOB_CONTRACT_LOCK);
       // The Token program would fail with a bare 0x1; say what is missing instead
       const balance = await fetchUsdcUnits(connection, me);
       if (balance < fund.total) {
@@ -119,8 +123,23 @@ export async function buildMilestoneAction(
     case 'acceptSplit':
       check(rules.canAcceptSplit(fund, me));
       return client.buildAcceptSplit({ fund, signer: me }, connection);
+    case 'lockFromJob': {
+      const job = await jobForFund(fund.address, connection);
+      check(fund.state === 'Accepted' && job?.state === 'Selected' && Boolean(job.fund?.equals(fund.address)) && rules.workWindowOk(fund.milestones, now));
+      return { tx: new Transaction().add(buildLockFromJobIx({ job: job!.address, business: job!.business, fund: fund.address, caller: me })), rent: 0 };
+    }
+    case 'requestChanges':
+      // Fee preview of the on-chain part; runRequestChanges also sends the review note
+      check(rules.canRequestChanges(fund, me, index, now));
+      if (fund.milestones[index].status === 'Submitted') return client.buildDispute({ fund, client: me, index });
+      throw new UserFacingError('Use Request changes on the milestone.');
+    case 'sendRevision':
+    case 'handover':
+      throw new UserFacingError('Use the delivery form on the milestone.');
   }
 }
+
+export const JOB_CONTRACT_LOCK = 'This contract’s budget is already locked in the job. Use Move locked budget instead.';
 
 /** Fresh read of a contract (never act on a stale poll result) */
 export async function readFund(address: string | undefined, connection: Connection = getConnection()): Promise<FundAccount> {
@@ -180,9 +199,19 @@ function briefBytes(title: string, brief: BriefDraft, milestoneCount: number): U
  * create_fund from the create form, then the encrypted brief notes. A fresh contract key K is stored on this device
  * before anything is sent; the invite link is the only other place K goes.
  */
+export interface CreateExtra {
+  /** Sent in the same transaction before create_fund (a re-select closes the previous job contract) */
+  before?: TransactionInstruction[];
+  /** Sent in the same transaction after create_fund (select_job) */
+  after?: TransactionInstruction[];
+  /** Fixed fund ID, when an extra instruction needs the contract address in advance */
+  fundId?: bigint;
+}
+
 export async function runCreate(
   env: ActionEnv,
-  draft: ContractDraft & { brief: BriefDraft }
+  draft: ContractDraft & { brief: BriefDraft },
+  extra: CreateExtra = {}
 ): Promise<{ signature: string; fund: string; inviteLink: string; noteSignatures: string[]; keySignatures: string[] }> {
   const connection = env.connection ?? getConnection();
   const keys = needKeys(env);
@@ -198,6 +227,7 @@ export async function runCreate(
         freelancer: new PublicKey(draft.freelancer),
         title: draft.title,
         briefHash: hashBytes(bytes),
+        ...(extra.fundId !== undefined ? { fundId: extra.fundId } : {}),
         milestones: draft.milestones.map((m) => ({
           amount: unitsFromUsdc(m.amountUsdc) ?? 0n,
           submitBy: m.submitBy,
@@ -207,6 +237,10 @@ export async function runCreate(
       connection
     );
     note = encryptNoteParts(key, built.fund, NOTE_KIND_BRIEF, 0, bytes);
+    if (extra.before?.length || extra.after?.length) {
+      built.tx = new Transaction().add(...(extra.before ?? []), ...built.tx.instructions, ...(extra.after ?? []));
+      if (client.txSize(built.tx, me) > client.TX_MAX_BYTES) throw new Error('The create transaction is too large');
+    }
     await saveContentKey(keys, me.toBase58(), built.fund.toBase58(), key);
     return built;
   });
@@ -329,11 +363,21 @@ export function runAccept(
     if (!equalBytes(shownBriefHash, fund.briefHash)) throw new UserFacingError('The brief changed. Read the brief again before accepting.');
     // The payout-partner reference is built from the username (demo-<username>-001)
     if (choice === 'payoutPartner' && !username) {
-      throw new UserFacingError('Create your N.E.D profile before choosing a VND payout.');
+      throw new UserFacingError('Create your N.E.D profile before choosing to receive VND.');
     }
-    return client.buildAccept({ fund, freelancer: me, choice, username, expectedBriefHash: shownBriefHash });
+    const built = await client.buildAccept({ fund, freelancer: me, choice, username, expectedBriefHash: shownBriefHash });
+    // Funded Jobs: a contract made by select_job gets its budget from the job in the same transaction (lock_from_job),
+    // so the destination is fixed before the money reaches the contract. No new screen in either app.
+    const job = await jobForFund(fund.address, connection);
+    if (job?.state === 'Selected' && job.fund?.equals(fund.address)) {
+      built.tx.add(buildLockFromJobIx({ job: job.address, business: job.business, fund: fund.address, caller: me }));
+    }
+    return built;
   });
 }
+
+/** lock_from_job alone: a job contract accepted without it (an old build); anyone may send it */
+export const runLockFromJob = (env: ActionEnv, address: string | undefined) => runFundAction(env, address, 'lockFromJob');
 
 /**
  * submit with a delivery: evidence = SHA-256 of the canonical delivery JSON, plus the encrypted delivery note (in the
@@ -373,3 +417,85 @@ export async function previewAction(env: ActionEnv, address: string | undefined,
   const cost = await prepareTransactionCost(connection, built.tx, walletAddress, built.rent);
   return { feeLamports: cost.fee, rentLamports: cost.rent };
 }
+
+// ---- D27: request changes, revised version, handover (review-decision-plan.md section 3) ----
+
+/** dispute confirmed but the review note did not: the milestone is Disputed; post the review again */
+export class ReviewNotSavedError extends UserFacingError {
+  readonly fund: string;
+  readonly index: number;
+  constructor(fund: string, index: number) {
+    super('Changes were requested, but your review was not saved. Save the review again.');
+    this.fund = fund;
+    this.index = index;
+  }
+}
+
+async function contractKey(env: ActionEnv, address: string): Promise<Uint8Array> {
+  const key = await loadContentKey(needKeys(env), env.signer.walletAddress!, address);
+  if (!key) throw new UserFacingError('Open the contract link on this device first, so your note can be saved with the contract.');
+  return key;
+}
+
+/** Encrypted review note (kind 3) for milestone `index`; criteria count unknown here, so only the limits are checked */
+function reviewNote(key: Uint8Array, fund: PublicKey, index: number, review: ReviewDraft): EncryptedNote {
+  assertContent(validateReview(review, Number.MAX_SAFE_INTEGER));
+  const bytes = contentBytes(canonicalReview(review));
+  if (bytes.length > NOTE_MAX_PLAINTEXT) throw new UserFacingError('The review is too long to save. Shorten the reason.');
+  return encryptNoteParts(key, fund, NOTE_KIND_REVIEW, index, bytes);
+}
+
+/**
+ * Client: "Request changes". On a Submitted milestone: dispute (stops release after the review deadline), then the
+ * review note. On a Disputed milestone (a revised version arrived): the review note only. Request changes never
+ * refunds the client. A failed note after a confirmed dispute throws ReviewNotSavedError (retry with runPostReview).
+ */
+export async function runRequestChanges(env: ActionEnv, address: string | undefined, index: number, review: ReviewDraft) {
+  const { walletAddress } = env.signer;
+  if (!walletAddress || !address) throw new UserFacingError('Sign in first.');
+  const connection = env.connection ?? getConnection();
+  const fund = await readFund(address, connection);
+  if (!rules.canRequestChanges(fund, walletAddress, index, await env.now())) throw new UserFacingError(NOT_NOW);
+  const note = reviewNote(await contractKey(env, address), fund.address, index, review);
+  let signature: string | undefined;
+  if (fund.milestones[index].status === 'Submitted') signature = (await runFundAction(env, address, 'dispute', index)).signature;
+  try {
+    const noteSignatures = await sendExtra(env, client.buildNoteTxs({ fund: fund.address, author: fund.client, note }));
+    return { ...(signature ? { signature } : {}), noteSignatures };
+  } catch (err) {
+    if (!signature) throw err;
+    throw new ReviewNotSavedError(address, index);
+  }
+}
+
+/** Posts the review note again (after ReviewNotSavedError) on a Submitted or Disputed milestone */
+export async function runPostReview(env: ActionEnv, address: string | undefined, index: number, review: ReviewDraft) {
+  const { walletAddress } = env.signer;
+  if (!walletAddress || !address) throw new UserFacingError('Sign in first.');
+  const fund = await readFund(address, env.connection ?? getConnection());
+  if (!rules.canRequestChanges(fund, walletAddress, index, await env.now())) throw new UserFacingError(NOT_NOW);
+  const note = reviewNote(await contractKey(env, address), fund.address, index, review);
+  return { noteSignatures: await sendExtra(env, client.buildNoteTxs({ fund: fund.address, author: fund.client, note })) };
+}
+
+async function runDeliveryNote(env: ActionEnv, address: string | undefined, index: number, delivery: DeliveryDraft, stage: 'revision' | 'handover') {
+  const { walletAddress } = env.signer;
+  if (!walletAddress || !address) throw new UserFacingError('Sign in first.');
+  const draft: DeliveryDraft = { ...delivery, stage };
+  assertContent(validateDelivery(draft));
+  const bytes = contentBytes(canonicalDelivery(draft));
+  if (bytes.length > NOTE_MAX_PLAINTEXT) throw new UserFacingError('The delivery is too long to save. Shorten the note.');
+  const fund = await readFund(address, env.connection ?? getConnection());
+  const allowed = stage === 'revision' ? rules.canSendRevision(fund, walletAddress, index) : rules.canHandover(fund, walletAddress, index);
+  if (!allowed) throw new UserFacingError(NOT_NOW);
+  const note = encryptNoteParts(await contractKey(env, address), fund.address, NOTE_KIND_DELIVERY, index, bytes);
+  return { noteSignatures: await sendExtra(env, client.buildNoteTxs({ fund: fund.address, author: fund.freelancer, note })), evidence: shortHash(hashBytes(bytes)) };
+}
+
+/** Freelancer: a revised version on a Disputed milestone (delivery note with stage "revision") */
+export const runSendRevision = (env: ActionEnv, address: string | undefined, index: number, delivery: DeliveryDraft) =>
+  runDeliveryNote(env, address, index, delivery, 'revision');
+
+/** Freelancer: the final files on a Released milestone (delivery note with stage "handover") */
+export const runHandover = (env: ActionEnv, address: string | undefined, index: number, delivery: DeliveryDraft) =>
+  runDeliveryNote(env, address, index, delivery, 'handover');

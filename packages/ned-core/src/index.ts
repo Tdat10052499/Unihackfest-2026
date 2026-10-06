@@ -9,6 +9,7 @@ export * from './chain/balance.ts';
 export * from './chain/errors.ts';
 export * from './chain/send.ts';
 export * from './milestone/index.ts';
+export * from './jobs/index.ts';
 export * from './identity/dualPda.ts';
 export * from './identity/resolveCore.ts';
 export * from './identity/format.ts';

@@ -1,6 +1,6 @@
-# Milestone Lock: program specification (v1.2, build target for 10 Oct 2026)
+# Milestone Lock: program specification (v1.3, build target for 10 Oct 2026)
 
-Status: **build spec, frozen for coding on 3 Oct 2026** (reviewed on 2–3 Oct; fixes R1–R12 in [`README.md`](README.md#review-fixes-3-oct)). **v1.1 amendment (3 Oct, decision D14):** `brief_hash`, non-zero evidence and `post_note`; sections 2, 3.1, 4, 4.1, 5, 6, 8 and 9 changed; build order in [`build-plan.md`](build-plan.md) phase A. **v1.2 amendment (4 Oct, decision D22, [`key-sync-plan.md`](key-sync-plan.md) Plan C):** `DeviceKeys` account (3.5), `init_device_keys` / `add_device_key` / `remove_device_key`, `post_note` kind 2 (key); sections 2, 3.5, 4, 4.1, 5, 6, 8 changed. No change to `SharedFund` (still 740 bytes). Product rules are in [`product-spec.md`](product-spec.md); the decisions behind them are in [`README.md`](README.md#decision-log). If code and this file disagree, fix one of them in the same pull request.
+Status: **build spec, frozen for coding on 3 Oct 2026** (reviewed on 2–3 Oct; fixes R1–R12 in [`README.md`](README.md#review-fixes-3-oct)). **v1.1 amendment (3 Oct, decision D14):** `brief_hash`, non-zero evidence and `post_note`; sections 2, 3.1, 4, 4.1, 5, 6, 8 and 9 changed; build order in [`build-plan.md`](build-plan.md) phase A. **v1.2 amendment (4 Oct, decision D22, [`key-sync-plan.md`](key-sync-plan.md) Plan C):** `DeviceKeys` account (3.5), `init_device_keys` / `add_device_key` / `remove_device_key`, `post_note` kind 2 (key); sections 2, 3.5, 4, 4.1, 5, 6, 8 changed. No change to `SharedFund` (still 740 bytes). **v1.3 amendment (6 Oct, decisions D25 and D27):** Funded Jobs (`JobListing`, `JobApplication`, six `job` instructions) and the D27 note rules (delivery notes also on `Disputed` and `Released`, new kind 3 review); see [section 10](#10-v13-funded-jobs-and-d27-notes) and row 13 of section 4. `SharedFund` unchanged. Product rules are in [`product-spec.md`](product-spec.md); the decisions behind them are in [`README.md`](README.md#decision-log). If code and this file disagree, fix one of them in the same pull request.
 
 Scope: add Milestone Lock to the existing Anchor program `ned_program` (`ned_program/programs/ned-program/src/lib.rs`, program ID `8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, Anchor 1.1.2, Rust 1.89). The identity instructions, accounts and error codes stay unchanged.
 
@@ -127,7 +127,7 @@ Priority **P0** = never cut, **P1** = cut if late, as a group: `dispute`, `conce
 | 10 | `concede(index: u8)` | `freelancer` | state `Funded`; status `Disputed` | status `Refunded`; vault → client ATA; `refunded += amount`. A disputed milestone can therefore always be settled by either side | P1 |
 | 11 | `propose_cancel(freelancer_amount: u64)` | `client` or `freelancer` (`NotAParty` otherwise) | state `Funded`; `freelancer_amount <= unsettled` | store proposer + amount; overwrites an earlier proposal | P1 |
 | 12 | `accept_cancel(expected_freelancer_amount: u64, expected_unsettled: u64)` | the other party | state `Funded`; a proposal exists; signer ≠ proposer; both `expected_*` equal the current values; `freelancer_amount <= unsettled` re-checked | `freelancer_amount` → destination ATA; `unsettled - freelancer_amount` → client ATA; `released += freelancer_amount`; `refunded += unsettled - freelancer_amount`; non-terminal milestones → `Cancelled`; clear the proposal; state `Settled` | P1 |
-| 13 | `post_note(kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>)` | `author` | `kind = 0` (brief): author = `client`, state `Created`, `milestone = 0`. `kind = 1` (delivery): author = `freelancer`, `milestone < milestone_count`, status `Submitted`. `kind = 2` (key, v1.2): author = `client` or `freelancer`, any state, `milestone = 0`. Otherwise `NoteNotAllowed`. `1 <= data.len() <= NOTE_MAX_LEN`, `part < parts <= NOTE_MAX_PARTS` (`InvalidNote`) | no state change; `NotePosted`. `data` is ciphertext made by the app (XChaCha20-Poly1305; from v1.2 the contract key also travels as per-device wraps in kind 2 notes); the program never reads it | P0 |
+| 13 | `post_note(kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>)` | `author` | `kind = 0` (brief): author = `client`, state `Created`, `milestone = 0`. `kind = 1` (delivery): author = `freelancer`, `milestone < milestone_count`, status `Submitted`, `Disputed` or `Released` (v1.3, D27). `kind = 2` (key, v1.2): author = `client` or `freelancer`, any state, `milestone = 0`. `kind = 3` (review, v1.3, D27): author = `client`, `milestone < milestone_count`, status `Submitted` or `Disputed`. Otherwise `NoteNotAllowed`. `1 <= data.len() <= NOTE_MAX_LEN`, `part < parts <= NOTE_MAX_PARTS` (`InvalidNote`) | no state change; `NotePosted`. `data` is ciphertext made by the app (XChaCha20-Poly1305; from v1.2 the contract key also travels as per-device wraps in kind 2 notes); the program never reads it | P0 |
 | 14 | `init_device_keys()` (v1.2) | `wallet` | creates `DeviceKeys` for the signer (fails if it exists) | empty list; sent with the first `add_device_key` | P0 |
 | 15 | `add_device_key(key: [u8; 32])` (v1.2) | `wallet` | `key != 0` (`InvalidDeviceKey`); already listed → no change, no error; `count < MAX_DEVICE_KEYS` (`DeviceKeysFull`) | appends; `DeviceKeyAdded` | P0 |
 | 16 | `remove_device_key(key: [u8; 32])` (v1.2) | `wallet` | key listed (`DeviceKeyNotFound`) | last key moves into the gap; `DeviceKeyRemoved` | P0 |
@@ -220,3 +220,70 @@ Keep the existing 10 identity tests green.
 1. `anchor build`, then copy the regenerated IDL to `packages/ned-core/src/idl/` (json + ts; never edit it by hand; `ned-wallet/idl/` is a re-export shim since W0); update `packages/ned-core/src/milestone/layout.ts` (`FUND_SIZE = 740`, `OFFSET_BRIEF_HASH = 676`) in the same PR. Upload the IDL with `@solana-program/program-metadata` (create-buffer → fetch-buffer and compare → `update idl --buffer … --close-buffer`, simulated first); `anchor idl upgrade` failed at its last step on 2 Oct (see `docs/tong-hop-tien-do.md`).
 2. Upgrade the existing devnet program ID. If the program grows past its allocated size, first run `solana program extend 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh <bytes>`.
 3. Record the deploy signature and program size in `docs/tong-hop-tien-do.md`.
+
+## 10. v1.3: Funded Jobs and D27 notes
+
+Added on 6 Oct 2026 (decisions D25 and D27; design in [`funded-jobs-plan.md`](funded-jobs-plan.md) section 4 and [`review-decision-plan.md`](review-decision-plan.md) section 2). New accounts and instructions only; the only change to an existing instruction is the `post_note` rule in 10.6. Code: `state/job.rs`, `instructions/job/`, tests `tests/jobs.rs`.
+
+### 10.1 Constants
+
+| Name | Value | Note |
+| --- | --- | --- |
+| `JOB_SEED` | `b"job"` | Listing PDA `[JOB_SEED, business, job_id.to_le_bytes()]` |
+| `JOB_VAULT_SEED` | `b"job_vault"` | Token account `[JOB_VAULT_SEED, job]`, authority = the listing PDA |
+| `JOB_APP_SEED` | `b"job_app"` | Application PDA `[JOB_APP_SEED, job, freelancer]` (one per person) |
+| `JOB_PITCH_MAX_LEN` | `280` | Bytes of UTF-8, public on-chain |
+| `JOB_SUMMARY_MAX_LEN` | `160` | Bytes of UTF-8, public on-chain |
+| `JOB_CATEGORY_COUNT` | `8` | Must equal the list in `@ned/core` `jobs/taxonomy.ts` |
+| `JOB_ACCEPT_WINDOW_SECS` | `120` | Devnet value; launch 48 h \[Assumption\] |
+| `JOB_DEADLINE_SLACK_SECS` | `300` | Allowed gap between template and absolute deadlines at select time |
+| `JOB_VERSION` | `1` | |
+| `NOTE_KIND_REVIEW` | `3` | See 10.6 |
+
+### 10.2 Accounts (offsets include the 8-byte discriminator; checked by `layout_every_offset_of_job_listing_and_application`)
+
+`JobListing`, 576 bytes (compile-time assert): `version` u8 @8 · `state` u8 @9 (`Open` 0, `Selected` 1, `Filled` 2, `Withdrawn` 3) · `business` @10 · `category` u8 @42 · `skills` u64 @43 · `mint` @51 · `job_id` u64 @83 · `created_at` i64 @91 · `apply_by` i64 @99 · `select_by` i64 @107 · `total` u64 @115 · `milestone_count` u8 @123 · `milestones` `[JobMilestone; 5]` @124 (24 bytes each: `amount` u64, `work_secs` i64, `review_secs` i64) · `title` `[u8; 32]` @244 · `summary` `[u8; 160]` @276 · `brief_hash` @436 · `selected` @468 · `selected_at` i64 @500 · `fund` @508 · `application_count` u16 @540 · `bump` @542 · `vault_bump` @543 · `_reserved` `[u8; 32]` @544.
+
+`JobApplication`, 364 bytes (compile-time assert): `version` u8 @8 · `job` @9 · `freelancer` @41 · `created_at` i64 @73 · `pitch_len` u16 @81 · `pitch` `[u8; 280]` @83 · `bump` @363.
+
+The listing stays after `Filled` or `Withdrawn` as the record; its rent (about 0.0049 SOL) is not returned in v1.3 \[Inference: standard rent formula\].
+
+### 10.3 Instructions
+
+| # | Instruction | Signer | Pre-conditions | Effect |
+| --- | --- | --- | --- | --- |
+| 17 | `post_job(job_id, title, summary, category, skills, milestones: Vec<JobMilestoneInput>, brief_hash, apply_by, select_by)` | `business`, `payer` | `brief_hash` non-zero (`InvalidBriefHash`); `category < 8` (`InvalidCategory`); summary 1–160 bytes (`SummaryTooLong`); title ≤ 32 (`TitleTooLong`); 1–5 milestones (`InvalidMilestoneCount`); `now < apply_by ≤ select_by` (`InvalidJobDeadlines`); each amount > 0 (`InvalidAmount`), `work_secs ≥ MIN_WORK_WINDOW_SECS` (`WorkWindowTooShort`), `review_secs ≥ MIN_REVIEW_WINDOW_SECS` (`ReviewWindowTooShort`); checked total ≤ `MAX_CONTRACT_AMOUNT` (`AmountTooLarge`) | Init listing + job vault; `transfer_checked(total)` business ATA → job vault; `Open`; `JobPosted` |
+| 18 | `post_job_brief(part, parts, data)` | `business` | `Open` (`JobNotOpen`); `1 ≤ len ≤ NOTE_MAX_LEN`, `part < parts ≤ NOTE_MAX_PARTS` (`InvalidNote`) | No state change; `JobBriefPosted`. The plain-text brief is read back from the transaction |
+| 19 | `apply_job(pitch)` | `freelancer` (pays rent) | `Open` (`JobNotOpen`); `now ≤ apply_by` (`ApplyClosed`); freelancer ≠ business (`SameParty`); pitch ≤ 280 (`PitchTooLong`) | Init application (a second one fails at init); `application_count += 1`; `JobApplied` |
+| 20 | `select_job()` | `business` | Listing `Open`, or `Selected` and `now > selected_at + JOB_ACCEPT_WINDOW_SECS` (`AcceptWindowOpen`); else `JobNotOpen`; `now ≤ select_by` (`SelectClosed`). Fund `Created`, `client == business`, same mint, brief hash and milestone count; per milestone same amount, `review_by − submit_by == review_secs`, `submit_by ≥ now + work_secs − JOB_DEADLINE_SLACK_SECS` (all `JobFundMismatch`). The application PDA for `fund.freelancer` must exist (account load fails otherwise) | `selected`, `selected_at`, `fund`; `Selected`; `JobSelected`. Same transaction, after `create_fund` |
+| 21 | `lock_from_job()` | anyone | Listing `Selected` and `fund == listing.fund` (`NotSelected`); fund `Accepted` (`InvalidFundState`); `fund.total == listing.total` (`JobFundMismatch`); `check_work_window` | Stored `total` → contract vault; fund `Funded`; listing `Filled`; any balance above `total` (a donation) → business ATA; close job vault, rent → business; existing `FundLocked` + `JobFilled`. Same transaction, after `accept` |
+| 22 | `withdraw_job()` | `business` | `Open` with `application_count == 0`, or `Open` with `now > select_by`, or `Selected` with `now > select_by` and the accept window over (`WithdrawTooEarly`); `Filled` / `Withdrawn` → `JobNotOpen` | Stored `total` + any donation → business ATA; close job vault; `Withdrawn`; `JobWithdrawn` |
+
+Transfers always use the stored `total`, never `job_vault.amount`; the extra step for a donation stops a small USDC gift to the job vault from blocking the close of the job vault.
+
+### 10.4 Events (appended)
+
+`JobPosted { job, business, job_id, category, total, apply_by, select_by, brief_hash }` · `JobBriefPosted { job, part, parts, len }` · `JobApplied { job, freelancer, application_count }` · `JobSelected { job, fund, freelancer }` · `JobFilled { job, fund, amount }` · `JobWithdrawn { job, amount }`. `lock_from_job` also emits the existing `FundLocked`.
+
+### 10.5 Errors (appended after `InvalidDeviceKey`, never renumber)
+
+`JobNotOpen` · `ApplyClosed` · `SelectClosed` · `AcceptWindowOpen` · `JobFundMismatch` · `NotSelected` · `WithdrawTooEarly` · `PitchTooLong` · `InvalidJobDeadlines` · `InvalidCategory` · `SummaryTooLong`
+
+### 10.6 Note kinds (`post_note`)
+
+| Kind | Name | Author | Allowed when | `milestone` | Since |
+| --- | --- | --- | --- | --- | --- |
+| 0 | brief | client | fund `Created` | 0 | v1.1 |
+| 1 | delivery | freelancer | milestone `Submitted`, `Disputed` or `Released` | `< milestone_count` | v1.1; `Disputed`, `Released` added in v1.3 (D27) |
+| 2 | key | client or freelancer | any state | 0 | v1.2 |
+| 3 | review | client | milestone `Submitted` or `Disputed` | `< milestone_count` | v1.3 (D27) |
+
+Anything else fails with `NoteNotAllowed`.
+
+### 10.7 Tests (`tests/jobs.rs`)
+
+Offsets of both accounts; the happy path (post → brief → apply ×2 → `create_fund` + `select_job` → `accept` (PayoutPartner) + `lock_from_job` → submit → approve, partner paid, listing `Filled`, job vault closed); every refusal of funded-jobs-plan 4.5 items 2–6; a donation to the job vault is returned and does not block the lock; D27: review note refused for the freelancer and on `Pending` / `Released`, delivery note refused on `Pending` / `Refunded` and accepted on `Disputed` / `Released`. All earlier tests unchanged.
+
+### 10.8 Deploy
+
+Same procedure as section 9. The v1.3 binary is larger than the v1.2 program account: extend first (numbers in `docs/tong-hop-tien-do.md`, S1 row), then upgrade. The PO runs it.

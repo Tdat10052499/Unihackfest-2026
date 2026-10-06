@@ -31,21 +31,21 @@ const SNAPSHOT: Record<string, [string, string, string, string, string, string |
   "locked/client/intl": ["Locked · work in progress","accent","Locked · work in progress","accent","10.00 USDC",null],
   "locked/freelancer/vn": ["Locked · work in progress","accent","Locked · work in progress","accent","≈ 260,000 VND (estimate)","submit"],
   "locked/freelancer/intl": ["Locked · work in progress","accent","Locked · work in progress","accent","10.00 USDC","submit"],
-  "submitted/client/vn": ["Submitted · review by 2 Oct, 10:25 · auto-release in 12:01","warning","Submitted · review by 2 Oct, 10:25 · auto-release in 12:01","warning","≈ 260,000 VND (estimate)","approve"],
-  "submitted/client/intl": ["Submitted · review by 2 Oct, 10:25 · auto-release in 12:01","warning","Submitted · review by 2 Oct, 10:25 · auto-release in 12:01","warning","10.00 USDC","approve"],
+  "submitted/client/vn": ["Submitted · review by 2 Oct, 10:25 · Release opens in 12:01 if not reviewed","warning","Submitted · review by 2 Oct, 10:25 · Release opens in 12:01 if not reviewed","warning","≈ 260,000 VND (estimate)","approve"],
+  "submitted/client/intl": ["Submitted · review by 2 Oct, 10:25 · Release opens in 12:01 if not reviewed","warning","Submitted · review by 2 Oct, 10:25 · Release opens in 12:01 if not reviewed","warning","10.00 USDC","approve"],
   "submitted/freelancer/vn": ["Submitted · in review","warning","Submitted · in review","warning","≈ 260,000 VND (estimate)",null],
   "submitted/freelancer/intl": ["Submitted · in review","warning","Submitted · in review","warning","10.00 USDC",null],
-  "disputed/client/vn": ["Disputed · auto-release paused","warning","Disputed · auto-release paused","warning","≈ 260,000 VND (estimate)","approve"],
-  "disputed/client/intl": ["Disputed · auto-release paused","warning","Disputed · auto-release paused","warning","10.00 USDC","approve"],
-  "disputed/freelancer/vn": ["Disputed · auto-release paused","warning","Disputed · auto-release paused","warning","≈ 260,000 VND (estimate)",null],
-  "disputed/freelancer/intl": ["Disputed · auto-release paused","warning","Disputed · auto-release paused","warning","10.00 USDC",null],
+  "disputed/client/vn": ["Changes requested · waiting for @vinh","warning","Changes requested · waiting for @vinh","warning","≈ 260,000 VND (estimate)",null],
+  "disputed/client/intl": ["Changes requested · waiting for @vinh","warning","Changes requested · waiting for @vinh","warning","10.00 USDC",null],
+  "disputed/freelancer/vn": ["Changes requested · send a revised version","warning","Changes requested · send a revised version","warning","≈ 260,000 VND (estimate)",null],
+  "disputed/freelancer/intl": ["Changes requested · send a revised version","warning","Changes requested · send a revised version","warning","10.00 USDC",null],
   "released/client/vn": ["Completed","success","Released","success","≈ 260,000 VND (estimate)","close"],
   "released/client/intl": ["Completed","success","Released","success","10.00 USDC","close"],
   "released/freelancer/vn": ["Completed","success","Released","success","≈ 260,000 VND (estimate)",null],
   "released/freelancer/intl": ["Completed","success","Released","success","10.00 USDC",null],
-  "releasedPartner/client/vn": ["Completed","success","Released to payout partner · VND payout simulated in this demo","success","≈ 260,000 VND (estimate)","close"],
+  "releasedPartner/client/vn": ["Completed","success","Released to payout partner · VND transfer simulated in this demo","success","≈ 260,000 VND (estimate)","close"],
   "releasedPartner/client/intl": ["Completed","success","Released","success","10.00 USDC","close"],
-  "releasedPartner/freelancer/vn": ["Completed","success","Released to payout partner · VND payout simulated in this demo","success","≈ 260,000 VND (estimate)",null],
+  "releasedPartner/freelancer/vn": ["Completed","success","Released to payout partner · VND transfer simulated in this demo","success","≈ 260,000 VND (estimate)",null],
   "releasedPartner/freelancer/intl": ["Completed","success","Released","success","10.00 USDC",null],
   "refunded/client/vn": ["Completed","success","Refunded to you","neutral","≈ 260,000 VND (estimate)","close"],
   "refunded/client/intl": ["Completed","success","Refunded to you","neutral","10.00 USDC","close"],
@@ -79,7 +79,7 @@ test('the Vietnam release line appears only for a payout-partner release in the 
 
 test('fund-level label follows a disputed, then a submitted milestone', () => {
   const mixed = fund({ milestones: [M('Released'), M('Submitted'), M('Disputed')] });
-  assert.equal(toFundView(mixed, f, 'intl', NOW).statusLabel, 'Disputed · auto-release paused');
+  assert.equal(toFundView(mixed, f, 'intl', NOW).statusLabel, 'Changes requested · send a revised version');
   const noDispute = fund({ milestones: [M('Released'), M('Submitted'), M()] });
   assert.equal(toFundView(noDispute, f, 'intl', NOW).statusLabel, 'Submitted · in review');
 });
@@ -87,10 +87,11 @@ test('fund-level label follows a disputed, then a submitted milestone', () => {
 test('milestone actions follow rules.ts; P1 actions only with p1 on', () => {
   const submitted = fund({ milestones: [M('Submitted')] });
   assert.deepEqual(toFundView(submitted, c, 'intl', NOW, { p1: false }).milestones[0].actions, ['approve']);
-  assert.deepEqual(toFundView(submitted, c, 'intl', NOW, { p1: true }).milestones[0].actions, ['approve', 'dispute']);
+  assert.deepEqual(toFundView(submitted, c, 'intl', NOW, { p1: true }).milestones[0].actions, ['approve', 'dispute', 'requestChanges']);
   assert.deepEqual(toFundView(submitted, f, 'intl', T0 + 721, { p1: true }).milestones[0].actions, ['releaseNow']);
   const disputed = fund({ milestones: [M('Disputed')] });
-  assert.deepEqual(toFundView(disputed, f, 'intl', NOW, { p1: true }).milestones[0].actions, ['concede']);
+  assert.deepEqual(toFundView(disputed, f, 'intl', NOW, { p1: true }).milestones[0].actions, ['concede', 'sendRevision']);
+  assert.deepEqual(toFundView(disputed, c, 'intl', NOW, { p1: true }).milestones[0].actions, ['approve', 'requestChanges']);
   assert.deepEqual(toFundView(disputed, f, 'intl', NOW, { p1: false }).milestones[0].actions, []);
   const pending = fund({ milestones: [M()] });
   assert.deepEqual(toFundView(pending, f, 'intl', T0 + 601).milestones[0].actions, ['refundNow'], 'past submit_by: anyone may refund');
@@ -144,7 +145,7 @@ test('amounts, destination, counterparty, countdown, evidence and links', () => 
   assert.deepEqual(v.destination, { kind: 'payoutPartner', label: 'VND to a Vietnamese bank account through a payout partner (simulated)', simulated: true });
   assert.equal(v.state, 'funded');
   assert.equal(v.tooLate, false);
-  assert.deepEqual(v.milestones[0].countdown, { to: T0 + 721, label: 'auto-release in 12:01' });
+  assert.deepEqual(v.milestones[0].countdown, { to: T0 + 721, label: 'Release opens in 12:01 if not reviewed' });
   assert.deepEqual(v.milestones[1].countdown, { to: T0 + 600, label: 'submit within 10:00' });
   assert.match(v.milestones[0].evidence ?? '', /^[0-9a-f]{6}…[0-9a-f]{4}$/);
   assert.equal(v.milestones[1].evidence, undefined);
@@ -159,24 +160,32 @@ test('amounts, destination, counterparty, countdown, evidence and links', () => 
   assert.equal(toFundView(fund({ state: 'Accepted', milestones: [M()] }), c, 'intl', NOW).lockedLabel, '0.00 USDC');
 });
 
-test('open issue 3: a submitted milestone past its review time reads "anyone can release" / "Ready to release"', () => {
+test('U4: a submitted milestone past its review time reads the same for both sides, and both get Release now', () => {
   const f = fund({ milestones: [M('Submitted', { submittedAt: T0 + 10 })] });
   const after = T0 + 721; // reviewBy = T0 + 720
-  const client = toFundView(f, CLIENT.toBase58(), 'intl', after).milestones[0];
-  const freelancer = toFundView(f, FREELANCER.toBase58(), 'vn', after).milestones[0];
-  assert.equal(client.statusLabel, 'Review time is over · anyone can release');
-  assert.equal(freelancer.statusLabel, 'Ready to release');
-  assert.equal(client.tone, 'success');
-  assert.equal(client.countdown, undefined, 'no "auto-release in 0:00" countdown');
-  assert.ok(client.actions.includes('releaseNow'));
+  const client = toFundView(f, CLIENT.toBase58(), 'intl', after, { names: NAMES });
+  const freelancer = toFundView(f, FREELANCER.toBase58(), 'vn', after, { names: NAMES });
+  assert.equal(client.milestones[0].statusLabel, 'Review time over · ready to release');
+  assert.equal(freelancer.milestones[0].statusLabel, 'Review time over · ready to release');
+  assert.equal(client.milestones[0].tone, 'success');
+  assert.equal(client.milestones[0].countdown, undefined, 'no countdown at 0:00');
+  assert.deepEqual(client.nextAction, {
+    kind: 'releaseNow',
+    milestone: 0,
+    label: 'Release now',
+    detail: 'You didn\'t review by 2 Oct, 10:25. This milestone can now be released to @vinh. Anyone can do this, including you.',
+  });
+  assert.deepEqual(freelancer.nextAction, { kind: 'releaseNow', milestone: 0, label: 'Release now', detail: 'Review time is over. Release your earnings now.' });
   // Before the review deadline the label is unchanged
   assert.equal(toFundView(f, FREELANCER.toBase58(), 'vn', T0 + 700).milestones[0].statusLabel, 'Submitted · in review');
 });
 
-test('a pending milestone past its submission deadline reads "Submission deadline passed"', () => {
+test('a pending milestone past its submission deadline reads "Submission deadline passed" on both sides (U4)', () => {
   const f = fund({ milestones: [M('Pending')] });
   const ms = toFundView(f, CLIENT.toBase58(), 'intl', T0 + 601).milestones[0];
-  assert.equal(ms.statusLabel, 'Submission deadline passed');
+  assert.equal(ms.statusLabel, 'Submission deadline passed · can be refunded to you');
+  assert.equal(toFundView(f, FREELANCER.toBase58(), 'intl', T0 + 601).milestones[0].statusLabel, 'Submission deadline passed · can be refunded to the client');
+  assert.equal(toFundView(f, CLIENT.toBase58(), 'intl', T0 + 601).nextAction?.label, 'Refund now');
   assert.equal(ms.tone, 'warning');
   assert.ok(ms.actions.includes('refundNow'));
 });

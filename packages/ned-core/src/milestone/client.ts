@@ -8,7 +8,7 @@ import { ata, createAtaIdempotentIx } from '../chain/ata.ts';
 import { buildIx, encodeIx, toBN } from '../chain/idl.ts';
 import { getConnection, getProgramId } from '../config.ts';
 import { coder, type FundAccount } from './decode.ts';
-import { buildPostNote, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, type EncryptedNote } from './notes.ts';
+import { buildPostNote, NOTE_KIND_BRIEF, NOTE_KIND_DELIVERY, NOTE_KIND_REVIEW, type EncryptedNote } from './notes.ts';
 import { FUND_SIZE, TOKEN_ACCOUNT_SIZE } from './layout.ts';
 import { fundPda, vaultPda } from './pda.ts';
 import { demoRecipientId, payoutReference } from './reference.ts';
@@ -60,8 +60,17 @@ export function txSize(tx: Transaction, feePayer: PublicKey): number {
 /** One transaction per post_note part */
 function noteTxs(fund: PublicKey, author: PublicKey, note: EncryptedNote): Transaction[] {
   return note.parts.map((data, part) =>
-    tx(buildPostNote({ fund, author, kind: note.kind as 0 | 1, milestone: note.milestone, part, parts: note.parts.length, data }))
+    tx(buildPostNote({ fund, author, kind: note.kind, milestone: note.milestone, part, parts: note.parts.length, data }))
   );
+}
+
+/**
+ * Delivery notes after the first one (D27: a revised version on a Disputed milestone, the final files on a Released
+ * one), signed by the freelancer; review notes (kind 3), signed by the client. One transaction per part.
+ */
+export function buildNoteTxs(p: { fund: PublicKey; author: PublicKey; note: EncryptedNote }): Transaction[] {
+  if (p.note.kind !== NOTE_KIND_DELIVERY && p.note.kind !== NOTE_KIND_REVIEW) throw new Error('Not a delivery or review note');
+  return noteTxs(p.fund, p.author, p.note);
 }
 
 const u8index = (index: number) => {

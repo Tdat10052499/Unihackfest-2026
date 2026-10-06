@@ -93,4 +93,27 @@ pub enum NedError {
     DeviceKeyNotFound,
     #[msg("The device key is not valid.")]
     InvalidDeviceKey,
+    // ---- v1.3 Funded Jobs (funded-jobs-plan.md section 4.4); append only, never reorder ----
+    #[msg("This job is not open.")]
+    JobNotOpen,
+    #[msg("Applications for this job are closed.")]
+    ApplyClosed,
+    #[msg("The time to select an applicant has passed.")]
+    SelectClosed,
+    #[msg("The selected freelancer can still accept. Try again after the accept window.")]
+    AcceptWindowOpen,
+    #[msg("This contract does not match the job.")]
+    JobFundMismatch,
+    #[msg("No applicant is selected for this job, or this is not the selected contract.")]
+    NotSelected,
+    #[msg("The budget cannot be withdrawn yet.")]
+    WithdrawTooEarly,
+    #[msg("The pitch is longer than 280 bytes.")]
+    PitchTooLong,
+    #[msg("The job deadlines are not valid.")]
+    InvalidJobDeadlines,
+    #[msg("The job category is not valid.")]
+    InvalidCategory,
+    #[msg("The job summary must be 1 to 160 bytes.")]
+    SummaryTooLong,
 }

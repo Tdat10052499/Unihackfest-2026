@@ -172,6 +172,11 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | C5 landing page tĩnh `site/` (Vercel project 1) | `feat/c5-landing` | `c75ed87` + docs |
 | D1 chạy end-to-end (1 tài khoản Google + script) + sửa lỗi | `fix/d1-e2e`, `fix/d1-ux` | `6ef66ac`, `d4f27c6`, `0963632`, sửa UX + docs |
 | D22 key sync Plan C (chương trình v1.2, core, hai app) | `feat/p1-program-v1-2`, `feat/p2-core-key-sync`, `feat/s0-key-check` | `08ea7fd`, `065aeef`, `6851698`, `53e6b7a` |
+| S0 baseline 06/10 (`release/6oct`): tất cả test/typecheck/build đạt; lint `ned-wallet` đã lỗi từ trước (11 lỗi) | `release/6oct` | `da14040` + docs |
+| S1 program v1.3 (Funded Jobs + note D27): `JobListing` 576 B, `JobApplication` 364 B, 6 lệnh `job`, `post_note` kind 1 thêm Disputed/Released, kind 3 review; `tests/jobs.rs` 10 test (54/54 đạt); program-spec mục 10; IDL đã copy. **Chưa deploy**: .so 661.424 B > tài khoản 528.464 B → cần `extend` ≥ 132.960 B (đề xuất 140.000 B ≈ 0,974 SOL) | `release/6oct` | `f02a0c5`, `2e77cf1` + docs |
+| Smoke v1.3 (06/10): `npm run jobs:smoke` (`ned-wallet/scripts/jobs-smoke.ts`) — key dùng một lần trong `ned-wallet/.smoke-keys/` (gitignore); kiểm tra binary trên devnet = bản build local và IDL core = IDL build. `extend` +140.000 B (data 668.464 B); PO đã deploy v1.3, binary devnet = bản build local, IDL core = IDL build. **Chạy xanh trên devnet**: job 1 `6gD6…An2R` Filled, contract `BvTz…E9Y` Settled (0,1 USDC → DEMO_PAYOUT_PARTNER); job 2 `7srC…L7PUg` Withdrawn (trả 0,1 USDC). CU: post_job 25.482 · post_job_brief 3.931 · apply_job 12.855 · create_fund+select_job 36.594 · accept+lock_from_job 36.411 · withdraw_job 17.138 | `release/6oct` | `2050ae3`, `4f16578` + docs |
+| S3 `@ned/core` jobs (06/10): `packages/ned-core/src/jobs/` — layout/pda/decode, queries (memcmp 9/42, 10, 9, 41, 508), brief công khai (bộ đầy đủ mới nhất thắng; ok/mismatch/missing), rules, actions (`runPostJob` từ chối chế độ xem Việt Nam, `runApplyJob`, `runWithdrawJob`, `runPostJobBrief`), taxonomy 8 nhóm + 40 kỹ năng (chỉ thêm cuối), search + URL. Test core 127/127 (27 mới); tsc `ned-wallet`, `ned-workspace` đạt. `runSelectJob` và nối `runAccept` để sang S4 | `release/6oct` | `2f98d0c` |
+| S4 `@ned/core` (06/10): nối jobs (`runCreate` nhận lệnh trước/sau `create_fund`, `runSelectJob` đóng contract cũ trước, `runAccept` tự thêm `lock_from_job`, `runLockFromJob`, contract của job không bao giờ có nút Lock thường); D27 (`ReviewDraft`, `stage` của delivery — bỏ trống thì hash cũ không đổi, note kind 3, lịch sử từng milestone, `runRequestChanges`/`runPostReview`/`runSendRevision`/`runHandover`, nhãn + dòng trạng thái Disputed); U4 (cả hai bên có Release now, "Release opens in … if not reviewed"); C4; U3 phần 1 (notices vào core, đủ sự kiện bảng U3 + job, shim ở ned-wallet); F2 (cột `note` CSV, `RECORDS_CSV_FILENAME`), `readFundHistory`. Test core 147/147, ned-wallet 26/26, ned-workspace 10/10; tsc hai app đạt | `release/6oct` | `826fac1`, `816a579`, `8ef2c69` |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -220,7 +225,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
 
 **Baseline 06/10/2026 (`release/6oct`, prompts-6oct mục 0).**
-- **Branch:** `release/6oct` tạo từ `main` = `4b64b21` (Merge PR #36 `docs/funded-jobs-plan`), đã push lên origin. Chưa sửa gì.
+- **Branch:** `release/6oct` tạo từ `main` = `4b64b21` (Merge PR #36 `docs/funded-jobs-plan`), đã push lên origin; sau khi PO push tài liệu D27/D28 (PR #37, #38) đã fast-forward lên `6ceb6f0`. Chưa sửa gì trong code.
 - **Công cụ:** anchor-cli 1.1.2 · solana-cli 3.1.10 (Agave) · node v24.10.0 · pnpm 11.24.0 · npm 11.6.1 · cargo/rustc 1.98.0.
 - **Cài đặt:** `pnpm install --frozen-lockfile` ở gốc repo: OK, lockfile không đổi.
 - **Kết quả (tất cả đạt, không có lỗi nào):**
@@ -238,11 +243,10 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   | `ned-workspace` `npm run build` | OK (cảnh báo sẵn có: chunk chính > 500 kB) |
   | `ned-wallet` web export (`/Unihackfest-2026`, GitHub Pages) | OK |
   | `ned-workspace` `build:wallet` (app ở `/wallet`, W6) | OK, 49 giây |
+  | `ned-wallet` `npm run lint` | **đã lỗi từ trước:** 11 lỗi, 6 cảnh báo trong 5 file cũ (`app/dev/home-preview.tsx`, `app/notification-detail.tsx`, `app/scan-qr.tsx`, `components/Mascot.tsx`, `components/NotificationInAppBanner.tsx`). Lỗi đầu tiên: `home-preview.tsx:26` "Calling setState synchronously within an effect" (`react-hooks`). `ned-core` và `ned-workspace` không có script lint |
 
-- **Tài liệu và board cần cho hôm nay (mục 4):**
-  - có: `funded-jobs-plan.md`, `delivery-review-updates.md`;
-  - **thiếu** (không có trên `main` lẫn mọi branch trên origin): `review-decision-plan.md`, `build-order-6oct.md`, `prompts-6oct.md`;
-  - **thiếu** cả 5 board: `WebJobs`, `WebJobsFind`, `WebJobDetail`, `WebJobPost`, `WebJobApplicants` (`docs/02-thiet-ke/canvas-v2/`).
+- **Tài liệu và board cần cho hôm nay (mục 4):** lần kiểm đầu thiếu 3 tài liệu và 5 board. Sau khi PO push (PR #37), **đã đủ**: `funded-jobs-plan.md`, `delivery-review-updates.md`, `review-decision-plan.md`, `build-order-6oct.md`, `prompts-6oct.md`, cùng các board `WebJobs`, `WebJobsFind`, `WebJobDetail`, `WebJobPost`, `WebJobApplicants`.
+- **Việc của PO trước S1** (build-order bước 0): thu hồi/đổi các key S1–S3; nạp faucet cho các địa chỉ demo; xác nhận D25–D28.
 
 **D1 (04/10/2026): chạy end-to-end trên bản đã deploy.**
 - **Cách chạy:** PO chỉ có 1 tài khoản Google, nên PO đóng một vai bằng giao diện thật, vai còn lại chạy bằng script tạm (hai ví test, dùng chung các hàm của core). Đã chuyển 0.15 SOL từ ví deploy sang hai ví test (PO đồng ý).

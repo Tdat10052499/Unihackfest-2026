@@ -49,6 +49,8 @@ pub const NOTE_KIND_BRIEF: u8 = 0;
 pub const NOTE_KIND_DELIVERY: u8 = 1;
 /// v1.2 (key-sync Plan C): wraps of the contract key for the parties' registered devices
 pub const NOTE_KIND_KEY: u8 = 2;
+/// v1.3 (D27): the client's review of a submitted or disputed milestone (unmet done-when points, reason)
+pub const NOTE_KIND_REVIEW: u8 = 3;
 
 // -----------------------------------------------------------------------------
 // Device keys (v1.2, docs/09-milestone-lock/key-sync-plan.md Plan C)
@@ -57,3 +59,27 @@ pub const NOTE_KIND_KEY: u8 = 2;
 /// PDA [b"device_keys", wallet]: the X25519 public keys of the wallet's devices
 pub const DEVICE_KEYS_SEED: &[u8] = b"device_keys";
 pub const MAX_DEVICE_KEYS: usize = 5;
+
+// -----------------------------------------------------------------------------
+// Funded Jobs (v1.3, docs/09-milestone-lock/funded-jobs-plan.md section 4.1, decision D25)
+// -----------------------------------------------------------------------------
+
+/// PDA [JOB_SEED, business, job_id.to_le_bytes()]
+pub const JOB_SEED: &[u8] = b"job";
+/// Token account [JOB_VAULT_SEED, job], authority = the job PDA
+pub const JOB_VAULT_SEED: &[u8] = b"job_vault";
+/// PDA [JOB_APP_SEED, job, freelancer]: one application per person
+pub const JOB_APP_SEED: &[u8] = b"job_app";
+/// Bytes of UTF-8; public on-chain
+pub const JOB_PITCH_MAX_LEN: usize = 280;
+/// Time the selected freelancer has to accept before the business may select again or withdraw. Devnet value;
+/// launch 48 h [Assumption]
+pub const JOB_ACCEPT_WINDOW_SECS: i64 = 120;
+/// Allowed gap between the template's work window and the contract's absolute deadline at select time
+pub const JOB_DEADLINE_SLACK_SECS: i64 = 300;
+/// Must equal the category list in @ned/core jobs/taxonomy.ts
+pub const JOB_CATEGORY_COUNT: u8 = 8;
+/// Bytes of UTF-8; public on-chain (the card text)
+pub const JOB_SUMMARY_MAX_LEN: usize = 160;
+/// JobListing / JobApplication layout version
+pub const JOB_VERSION: u8 = 1;

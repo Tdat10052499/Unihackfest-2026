@@ -9,14 +9,17 @@ import { PublicKey, type Connection, type TransactionInstruction } from '@solana
 import idl from '../idl/ned_program.json' with { type: 'json' };
 import { buildIx, encodeIx } from '../chain/idl.ts';
 import { getConnection, getProgramId } from '../config.ts';
-import { parseBrief, parseDelivery, type Brief, type Delivery } from './content.ts';
+import { parseBrief, parseDelivery, parseReview, type Brief, type Delivery, type Review } from './content.ts';
 import { coder, type FundAccount } from './decode.ts';
 import { NOTE_MAX_LEN, NOTE_MAX_PARTS } from './layout.ts';
 
 export const NOTE_VERSION = 1;
 export const NOTE_KIND_BRIEF = 0;
 export const NOTE_KIND_DELIVERY = 1;
-export type NoteKind = typeof NOTE_KIND_BRIEF | typeof NOTE_KIND_DELIVERY;
+/** Client's review when requesting changes (D27, program v1.3): Submitted or Disputed milestones */
+export const NOTE_KIND_REVIEW = 3;
+/** Encrypted note kinds (kind 2, key wraps, lives in devicekeys.ts) */
+export type NoteKind = typeof NOTE_KIND_BRIEF | typeof NOTE_KIND_DELIVERY | typeof NOTE_KIND_REVIEW;
 
 const SET_ID_BYTES = 4;
 const NONCE_BYTES = 24;
@@ -133,6 +136,8 @@ export interface NoteRecord {
   part: number;
   parts: number;
   data: Uint8Array;
+  /** Block time of the transaction (unix seconds), when the RPC has it */
+  blockTime?: number;
 }
 
 type NotesConnection = Pick<Connection, 'getSignaturesForAddress' | 'getTransactions'>;
@@ -165,7 +170,18 @@ export async function fetchNotes(fund: PublicKey, conn: NotesConnection = getCon
         const author = keys.get(ix.accountKeyIndexes[1]);
         if (!ixFund?.equals(fund) || !author) continue;
         const a = decoded.data as { kind: number; milestone: number; part: number; parts: number; data: Uint8Array };
-        records.push({ signature: batch[j].signature, slot: tx.slot, author, kind: a.kind, milestone: a.milestone, part: a.part, parts: a.parts, data: Uint8Array.from(a.data) });
+        const blockTime = tx.blockTime ?? batch[j].blockTime ?? undefined;
+        records.push({
+          signature: batch[j].signature,
+          slot: tx.slot,
+          author,
+          kind: a.kind,
+          milestone: a.milestone,
+          part: a.part,
+          parts: a.parts,
+          data: Uint8Array.from(a.data),
+          ...(blockTime ? { blockTime } : {}),
+        });
       }
     });
   }
@@ -181,15 +197,25 @@ interface NoteSet {
   /** Plaintext of a complete, decryptable set */
   plaintext: Uint8Array;
   hash: Uint8Array;
+  /** Of the last part on the chain (the moment the set became complete) */
+  slot: number;
+  signature: string;
+  blockTime?: number;
+}
+
+/** The author the program checked must match the role of the kind: client for brief and review, freelancer for delivery */
+function authorAllowed(fund: FundAccount, r: NoteRecord): boolean {
+  if (r.kind === NOTE_KIND_BRIEF || r.kind === NOTE_KIND_REVIEW) return r.author.equals(fund.client);
+  if (r.kind === NOTE_KIND_DELIVERY) return r.author.equals(fund.freelancer);
+  return false;
 }
 
 /** Complete sets that decrypt under `key`, from parts whose author is allowed for their kind */
 export function openNoteSets(fund: FundAccount, records: NoteRecord[], key: Uint8Array): NoteSet[] {
   const groups = new Map<string, NoteRecord[]>();
   for (const r of records) {
-    const allowed = (r.kind === NOTE_KIND_BRIEF && r.author.equals(fund.client)) || (r.kind === NOTE_KIND_DELIVERY && r.author.equals(fund.freelancer));
     const setId = noteSetId(r.data);
-    if (!allowed || !setId) continue;
+    if (!authorAllowed(fund, r) || !setId) continue;
     const id = `${r.kind}:${r.milestone}:${hex(setId)}`;
     groups.set(id, [...(groups.get(id) ?? []), r]);
   }
@@ -205,7 +231,8 @@ export function openNoteSets(fund: FundAccount, records: NoteRecord[], key: Uint
         decryptNote(key, { fund: fund.address, kind: kind as NoteKind, milestone, part, parts: count }, byPart.get(part)!.data)
       );
       const plaintext = joinParts(plain);
-      sets.push({ kind, milestone, plaintext, hash: sha256(plaintext) });
+      const last = [...byPart.values()].reduce((a, b) => (b.slot > a.slot ? b : a));
+      sets.push({ kind, milestone, plaintext, hash: sha256(plaintext), slot: last.slot, signature: last.signature, ...(last.blockTime ? { blockTime: last.blockTime } : {}) });
     } catch {
       // wrong key or tampered part: this set does not count
     }
@@ -222,6 +249,56 @@ export interface ContractContent {
   shownBriefHash?: Uint8Array;
   /** Per submitted milestone: the delivery whose hash equals the on-chain evidence, if any */
   deliveries: Record<number, { content?: Delivery; matches: boolean }>;
+  /** D27: per milestone, every delivery (first, revisions, handover) and review, oldest first. Empty without the key */
+  history: Record<number, MilestoneHistory>;
+}
+
+export interface NoteEntry {
+  signature: string;
+  slot: number;
+  /** unix seconds, when known */
+  time?: number;
+}
+export interface DeliveryEntry extends NoteEntry {
+  content: Delivery;
+  stage: 'first' | 'revision' | 'handover';
+  /** For a first delivery: its hash equals the on-chain evidence. Revisions and handovers have no on-chain hash */
+  matches: boolean;
+}
+export interface ReviewEntry extends NoteEntry {
+  content: Review;
+}
+export interface MilestoneHistory {
+  deliveries: DeliveryEntry[];
+  reviews: ReviewEntry[];
+}
+
+/** A revision posted after the latest review (or any revision when there is no review) */
+export function revisionAfterLatestReview(h: MilestoneHistory | undefined): boolean {
+  if (!h) return false;
+  const lastReview = h.reviews.length ? h.reviews[h.reviews.length - 1].slot : -1;
+  return h.deliveries.some((d) => d.stage === 'revision' && d.slot > lastReview);
+}
+export const handoverSent = (h: MilestoneHistory | undefined) => Boolean(h?.deliveries.some((d) => d.stage === 'handover'));
+
+function historyOf(fund: FundAccount, sets: NoteSet[]): Record<number, MilestoneHistory> {
+  const out: Record<number, MilestoneHistory> = {};
+  const entry = (s: NoteSet): NoteEntry => ({ signature: s.signature, slot: s.slot, ...(s.blockTime ? { time: s.blockTime } : {}) });
+  const slotOf = (m: number) => (out[m] ??= { deliveries: [], reviews: [] });
+  for (const s of [...sets].sort((a, b) => a.slot - b.slot)) {
+    if (s.milestone >= fund.milestoneCount) continue;
+    const text = new TextDecoder().decode(s.plaintext);
+    if (s.kind === NOTE_KIND_DELIVERY) {
+      const content = parseDelivery(text);
+      if (!content) continue;
+      const evidence = fund.milestones[s.milestone]?.evidence;
+      slotOf(s.milestone).deliveries.push({ ...entry(s), content, stage: content.stage ?? 'first', matches: !content.stage && Boolean(evidence) && equal(s.hash, evidence) });
+    } else if (s.kind === NOTE_KIND_REVIEW) {
+      const content = parseReview(text);
+      if (content) slotOf(s.milestone).reviews.push({ ...entry(s), content });
+    }
+  }
+  return out;
 }
 
 /**
@@ -235,6 +312,7 @@ export function readContractContent(fund: FundAccount, records: NoteRecord[], ke
     return {
       contentStatus: hasBriefNotes ? 'noKey' : 'missing',
       deliveries: Object.fromEntries(submitted.map((m) => [m.index, { matches: false }])),
+      history: {},
     };
   }
   const sets = openNoteSets(fund, records, key);
@@ -246,6 +324,7 @@ export function readContractContent(fund: FundAccount, records: NoteRecord[], ke
     const content = set ? parseDelivery(new TextDecoder().decode(set.plaintext)) : null;
     deliveries[m.index] = content ? { content, matches: true } : { matches: false };
   }
-  if (brief && briefSet) return { brief, contentStatus: 'ok', shownBriefHash: briefSet.hash, deliveries };
-  return { contentStatus: hasBriefNotes ? 'mismatch' : 'missing', deliveries };
+  const history = historyOf(fund, sets);
+  if (brief && briefSet) return { brief, contentStatus: 'ok', shownBriefHash: briefSet.hash, deliveries, history };
+  return { contentStatus: hasBriefNotes ? 'mismatch' : 'missing', deliveries, history };
 }

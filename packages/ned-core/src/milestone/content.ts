@@ -13,6 +13,8 @@ export const LIMITS = {
   links: 5,
   files: 10,
   noteChars: 500,
+  /** Review note (D27): reason for requesting changes */
+  reasonChars: 500,
   /** Not in the spec: keep one milestone name and one criterion to a readable line */
   nameChars: 80,
   criterionChars: 200,
@@ -28,11 +30,26 @@ export interface BriefDraft {
   milestones: { name: string; criteria: string[] }[];
 }
 
+export type DeliveryStage = 'revision' | 'handover';
+
 /** What the freelancer delivers (non-ui-plan 3.1 DeliveryDraft); files are hashed on the device, never uploaded */
 export interface DeliveryDraft {
   links: string[];
   files: { name: string; size: number; sha256: string }[];
   note: string;
+  /**
+   * D27: a revised version after changes were requested, or the final files after release. Absent for the first
+   * delivery, and then left out of the canonical JSON, so the evidence hash of a normal delivery does not change.
+   */
+  stage?: DeliveryStage;
+}
+
+/** What the client writes when requesting changes (D27, review note kind 3) */
+export interface ReviewDraft {
+  /** Indices of the milestone's done-when points that are not met; at least one */
+  unmet: number[];
+  /** Up to 500 characters */
+  reason: string;
 }
 
 /** The brief as hashed: the draft plus the on-chain title, so a brief cannot be reused for another contract title */
@@ -41,6 +58,9 @@ export interface Brief extends BriefDraft {
   title: string;
 }
 export interface Delivery extends DeliveryDraft {
+  v: number;
+}
+export interface Review extends ReviewDraft {
   v: number;
 }
 
@@ -64,7 +84,12 @@ export function normaliseDelivery(draft: DeliveryDraft): Delivery {
     links: list(draft.links),
     files: (draft.files ?? []).map((f) => ({ name: clean(f.name), size: Math.floor(Number(f.size)), sha256: clean(f.sha256).toLowerCase() })),
     note: clean(draft.note),
+    ...(draft.stage ? { stage: draft.stage } : {}),
   };
+}
+
+export function normaliseReview(draft: ReviewDraft): Review {
+  return { v: CONTENT_VERSION, unmet: [...new Set(draft.unmet.map((i) => Math.floor(Number(i))))].sort((a, b) => a - b), reason: clean(draft.reason) };
 }
 
 // Fixed key order: build the JSON from explicit lists, never from Object.keys of the input
@@ -86,7 +111,14 @@ export function canonicalDelivery(draft: DeliveryDraft): string {
     links: d.links,
     files: d.files.map((f) => ({ name: f.name, size: f.size, sha256: f.sha256 })),
     note: d.note,
+    // only when present: a first delivery hashes exactly as before D27
+    ...(d.stage ? { stage: d.stage } : {}),
   });
+}
+
+export function canonicalReview(draft: ReviewDraft): string {
+  const r = normaliseReview(draft);
+  return JSON.stringify({ v: r.v, unmet: r.unmet, reason: r.reason });
 }
 
 export const contentBytes = (canonicalJson: string) => encoder.encode(canonicalJson);
@@ -95,6 +127,7 @@ export const hashContent = (canonicalJson: string): Uint8Array => sha256(content
 export const equalBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 export const briefHash = (title: string, draft: BriefDraft) => hashContent(canonicalBrief(title, draft));
 export const deliveryEvidence = (draft: DeliveryDraft) => hashContent(canonicalDelivery(draft));
+export const reviewHash = (draft: ReviewDraft) => hashContent(canonicalReview(draft));
 
 export interface ContentProblem {
   field: string;
@@ -146,6 +179,16 @@ export function validateDelivery(draft: DeliveryDraft): ContentProblem[] {
   return out;
 }
 
+/** `criteriaCount` = number of done-when points of the milestone in the brief */
+export function validateReview(draft: ReviewDraft, criteriaCount: number): ContentProblem[] {
+  const out: ContentProblem[] = [];
+  const unmet = draft.unmet ?? [];
+  if (!unmet.length) out.push({ field: 'unmet', message: 'Choose at least one done-when point that is not met.' });
+  if (unmet.some((i) => !Number.isInteger(i) || i < 0 || i >= criteriaCount)) out.push({ field: 'unmet', message: 'A done-when point is not valid.' });
+  if (chars(draft.reason) > LIMITS.reasonChars) out.push({ field: 'reason', message: `Keep the reason under ${LIMITS.reasonChars} characters.` });
+  return out;
+}
+
 /** Throws the first problem as a user-facing sentence */
 export function assertContent(problems: ContentProblem[]): void {
   if (problems.length) throw new UserFacingError(problems[0].message);
@@ -166,7 +209,18 @@ export function parseDelivery(json: string): Delivery | null {
   try {
     const o = JSON.parse(json);
     if (o?.v !== CONTENT_VERSION || !Array.isArray(o.links) || !Array.isArray(o.files) || typeof o.note !== 'string') return null;
+    if (o.stage !== undefined && o.stage !== 'revision' && o.stage !== 'handover') return null;
     return o as Delivery;
+  } catch {
+    return null;
+  }
+}
+
+export function parseReview(json: string): Review | null {
+  try {
+    const o = JSON.parse(json);
+    if (o?.v !== CONTENT_VERSION || !Array.isArray(o.unmet) || !o.unmet.every(Number.isInteger) || typeof o.reason !== 'string') return null;
+    return o as Review;
   } catch {
     return null;
   }

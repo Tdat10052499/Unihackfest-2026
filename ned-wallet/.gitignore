@@ -44,3 +44,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Throwaway devnet keypairs of scripts/jobs-smoke.ts
+.smoke-keys/

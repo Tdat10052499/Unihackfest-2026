@@ -161,7 +161,7 @@ test('recordsCsv: header, oldest first, quoted titles, VND estimate at the fixed
   const csv = recordsCsv([rec({ id: 'b', title: 'Logo, "v2"', index: 1 }), rec({ id: 'a', releasedAt: Date.UTC(2026, 9, 1) / 1000, destination: 'payoutPartner' })]);
   const lines = csv.trim().split('\n');
   assert.equal(lines[0], CSV_HEADER.join(','));
-  assert.match(lines[1], /^2026-10-01T00:00:00\.000Z,f,1,Logo refresh,\w+,10\.00,260000,26019\.5,2026-10-02,payout partner \(simulated\),https:\/\/explorer\.solana\.com\/tx\/sig\?cluster=devnet$/);
+  assert.match(lines[1], /^2026-10-01T00:00:00\.000Z,f,1,Logo refresh,\w+,10\.00,260000,26019\.5,2026-10-02,payout partner \(simulated\),https:\/\/explorer\.solana\.com\/tx\/sig\?cluster=devnet,devnet test money; VND is an estimate at the 2 Oct rate; payout partner simulated; not tax advice$/);
   assert.match(lines[2], /,2,"Logo, ""v2""",/);
 });
 

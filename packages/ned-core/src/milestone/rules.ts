@@ -71,6 +71,23 @@ export function canConcede(fund: FundAccount, me: Wallet, index: number): boolea
   return !!m && fund.state === 'Funded' && is(fund.freelancer, me) && m.status === 'Disputed';
 }
 
+// ---- D27 (review-decision-plan.md): notes the program v1.3 post_note accepts ----
+
+/** Client: Submitted before review_by (dispute + review note), or Disputed (another review note on a revised version) */
+export function canRequestChanges(fund: FundAccount, me: Wallet, index: number, now: number): boolean {
+  const m = at(fund, index);
+  return !!m && fund.state === 'Funded' && is(fund.client, me) && ((m.status === 'Submitted' && now <= m.reviewBy) || m.status === 'Disputed');
+}
+
+/** Freelancer: a revised version (delivery note) on a Disputed milestone */
+export const canSendRevision = (fund: FundAccount, me: Wallet, index: number) => canConcede(fund, me, index);
+
+/** Freelancer: the final files (delivery note) on a Released milestone; the fund must still exist */
+export function canHandover(fund: FundAccount, me: Wallet, index: number): boolean {
+  const m = at(fund, index);
+  return !!m && is(fund.freelancer, me) && m.status === 'Released';
+}
+
 const isParty = (fund: FundAccount, me: Wallet) => is(fund.client, me) || is(fund.freelancer, me);
 
 export const canProposeSplit = (fund: FundAccount, me: Wallet, toFreelancerUnits?: bigint) =>
