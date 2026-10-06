@@ -1,9 +1,13 @@
 // Routes: / Overview, /contracts, /contract/:fund (read-only), /contract/:fund/submit and /review?i= (W4), /new (W3),
-// /sign-in, and the invite link /c/:fund — outside the layout, so it decides phone vs computer before anything else.
+// /sign-in (?next= returns to a page on this site), the N.E.D Jobs site /jobs/* (D28, behind FEATURES.jobs), and the invite link /c/:fund — outside the layout, so it decides phone vs computer before anything else.
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from 'react-router';
 import { useAuth } from './auth/AuthProvider.tsx';
 import { Layout } from './components/Layout.tsx';
+import { FEATURES } from './config.ts';
+import { JobsLayout } from './jobs/JobsLayout.tsx';
+import { JobsPlaceholder } from './jobs/pages/Placeholder.tsx';
+import { safeNext } from './lib/next.ts';
 import { hasPendingInvite } from './hooks/keyStore.ts';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
@@ -42,9 +46,10 @@ function SignedIn({ children }: { children: ReactNode }) {
 
 function SignedOut({ children }: { children: ReactNode }) {
   const { status, walletAddress } = useAuth();
+  const [params] = useSearchParams();
   if (status === 'ready' && walletAddress) {
     // An invite opened before sign-in: PendingInvite imports it and opens the contract
-    return hasPendingInvite() ? <Starting /> : <Navigate to="/" replace />;
+    return hasPendingInvite() ? <Starting /> : <Navigate to={safeNext(params.get('next'))} replace />;
   }
   return children;
 }
@@ -58,6 +63,18 @@ export function App() {
       <PendingInvite />
       <Routes>
         <Route path="c/:fund" element={<InviteRouter />} />
+        {FEATURES.jobs ? (
+          // N.E.D Jobs (D28): its own layout; readable signed out. Static paths before :job.
+          <Route path="jobs" element={<JobsLayout />}>
+            <Route index element={<JobsPlaceholder title="Overview" />} />
+            <Route path="find" element={<JobsPlaceholder title="Find jobs" />} />
+            <Route path="new" element={<JobsPlaceholder title="Post a job" />} />
+            <Route path=":job" element={<JobsPlaceholder title="Job" />} />
+            <Route path=":job/applicants" element={<JobsPlaceholder title="Applicants" />} />
+          </Route>
+        ) : (
+          <Route path="jobs/*" element={<Navigate to="/" replace />} />
+        )}
         <Route element={<Layout />}>
           <Route index element={signedIn(<Overview />)} />
           <Route path="contracts" element={signedIn(<Contracts />)} />

@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_WORKSPACE_ORIGIN?: string;
   /** '1' only in dev/test builds: enables the read-only ?previewWallet= preview */
   readonly VITE_DEV_TOOLS?: string;
+  /** 'false' turns the N.E.D Jobs site (/jobs) off; anything else leaves it on */
+  readonly VITE_FEATURE_JOBS?: string;
 }
 
 interface ImportMeta {

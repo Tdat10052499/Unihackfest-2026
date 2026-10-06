@@ -1,0 +1,159 @@
+/* N.E.D Jobs hub (D28; boards WebJobs, WebJobsFind; prompts-6oct.md appendix H). Tokens live on .hub so the Jobs
+   site can differ from the Workspace (lavender header, peach bands, dark featured card) without touching tokens.css.
+   Surfaces have no borders: depth is tone + shadow. Motion uses the src/motion.ts curves; float and lift are the
+   two hub-only effects (H.4) and both stop under prefers-reduced-motion. */
+.hub {
+  /* H.1 colours */
+  --hub-ink: #16161c;
+  --hub-ink-2: #3f3f49;
+  --hub-ink-3: #4b4b57;
+  --hub-caption: #5e5e6a;
+  --hub-muted: #8a8a96;
+  --hub-page: #ffffff;
+  --hub-lavender: #efe6fb;
+  --hub-lavender-2: #dcc9f7;
+  --hub-lavender-3: #d0b7f3;
+  --hub-peach: #ffe4cf;
+  --hub-peach-ink: #5c4636;
+  --hub-cream: #fff1e6;
+  --hub-soft: #f6f4f9;
+  --hub-line: #f0f0f3;
+  --hub-dark: #16161c;
+  --hub-dark-line: #2a2a33;
+  --hub-dark-text: #d7d7de;
+  --hub-dark-caption: #a9a9b4;
+  --hub-dark-soft: #b9b9c4;
+  --hub-purple: #7b2fbe;
+  --hub-purple-hover: #6a22b0;
+  --hub-purple-ink: #6a22b0;
+  /* status tones (chips): background / ink */
+  --tone-info-bg: #eeeffe;    --tone-info-ink: #3730a3;
+  --tone-purple-bg: #f2eafb;  --tone-purple-ink: #6a22b0;
+  --tone-success-bg: #e7f6ec; --tone-success-ink: #127a3a;
+  --tone-neutral-bg: #efeff3; --tone-neutral-ink: #4b4b57;
+  --tone-warning-bg: #fff5e1; --tone-warning-ink: #8a5300; --tone-warning-dot: #f59e0b;
+
+  /* H.2 radii and shadows */
+  --hub-r-chip: 9999px;
+  --hub-r-button: 12px;
+  --hub-r-tile: 18px;
+  --hub-r-card: 20px;
+  --hub-r-band: 24px;
+  --hub-shadow-card: 0 1px 2px rgba(17, 17, 22, 0.04), 0 6px 16px -6px rgba(17, 17, 22, 0.1);
+  --hub-shadow-lift: 0 2px 4px rgba(17, 17, 22, 0.05), 0 18px 34px -14px rgba(17, 17, 22, 0.22);
+  --hub-shadow-tile-lift: 0 2px 4px rgba(17, 17, 22, 0.05), 0 14px 28px -12px rgba(17, 17, 22, 0.18);
+  --hub-shadow-dark: 0 18px 36px -18px rgba(17, 17, 22, 0.55);
+  --hub-shadow-menu: 0 2px 6px rgba(17, 17, 22, 0.06), 0 24px 48px -20px rgba(17, 17, 22, 0.35);
+  --hub-shadow-float: 0 10px 24px -12px rgba(17, 17, 22, 0.3);
+  --hub-shadow-search: 0 2px 4px rgba(17, 17, 22, 0.04), 0 18px 40px -18px rgba(76, 23, 130, 0.35);
+
+  /* H.3 type scale and spacing */
+  --hub-h1: clamp(40px, 5.4vw, 64px);
+  --hub-h2: 34px;
+  --hub-h3: 19px;
+  --hub-body: 15px;
+  --hub-small: 13px;
+  --hub-tiny: 12px;
+  --hub-gap: 16px;
+  --hub-section: 72px;
+  --hub-max: 1200px;
+  --hub-gutter: 24px;
+
+  /* H.4 motion: same curves as src/motion.ts */
+  --hub-ease: cubic-bezier(0.2, 0, 0, 1);
+  --hub-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --hub-lift-ms: 220ms;
+
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--hub-page);
+  color: var(--hub-ink);
+  font-family: var(--font-body);
+}
+.hub a { color: inherit; }
+.main { flex: 1; }
+.container { max-width: var(--hub-max); margin: 0 auto; padding: 0 var(--hub-gutter); box-sizing: border-box; width: 100%; }
+.display { font-family: var(--font-display); }
+.mono { font-family: var(--font-mono); }
+
+/* H.4 float (decoration) and lift (hover on cards and tiles) */
+@keyframes hub-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -6px, 0); } }
+.float { animation: hub-float 6s ease-in-out infinite; }
+.float2 { animation: hub-float 7s ease-in-out 1.2s infinite; }
+.lift {
+  transition: box-shadow var(--hub-lift-ms) var(--hub-ease), transform var(--hub-lift-ms) var(--hub-ease);
+}
+.lift:hover { transform: translate3d(0, -3px, 0); box-shadow: var(--hub-shadow-lift); }
+.liftSmall { transition: box-shadow var(--hub-lift-ms) var(--hub-ease), transform var(--hub-lift-ms) var(--hub-ease); }
+.liftSmall:hover { transform: translate3d(0, -2px, 0); box-shadow: var(--hub-shadow-tile-lift); }
+@keyframes hub-pop { from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.97); } to { opacity: 1; transform: none; } }
+.pop { animation: hub-pop 200ms var(--hub-ease-out) both; transform-origin: top right; }
+@media (prefers-reduced-motion: reduce) {
+  .float, .float2, .pop { animation: none; }
+  .lift, .liftSmall { transition: none; }
+  .lift:hover, .liftSmall:hover { transform: none; }
+}
+.hub :focus-visible { outline: 2px solid var(--hub-purple); outline-offset: 3px; }
+
+/* ---- H.5 navbar ---- */
+.header { position: relative; z-index: 30; background: var(--hub-lavender); }
+.headerInner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding-top: 14px; padding-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.mark {
+  width: 36px; height: 36px; border-radius: 10px; background: var(--hub-dark); color: #fff;
+  display: inline-grid; place-items: center; font-family: var(--font-display); font-size: 12px; font-weight: 700; flex: none;
+}
+.markPurple { background: var(--hub-purple); }
+.brandWord { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 600; }
+.tab { padding: 8px 0; color: var(--hub-ink-3); text-decoration: none; transition: color 150ms var(--hub-ease), box-shadow 150ms var(--hub-ease); }
+.tab:hover { color: var(--hub-ink); }
+.tabActive { color: var(--hub-purple-ink); box-shadow: inset 0 -2px 0 var(--hub-purple); }
+.spacer { flex: 1; }
+.devnet {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: var(--hub-r-chip);
+  background: #fff; font-size: 12px; font-weight: 600; color: var(--tone-warning-ink); white-space: nowrap;
+}
+.devnetDot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone-warning-dot); }
+.anchor { position: relative; }
+.profile {
+  height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border: none;
+  border-radius: var(--hub-r-chip); background: #fff; color: var(--hub-ink); font-family: inherit; cursor: pointer;
+}
+.profile:hover { background: #ececf0; }
+.profileWho { text-align: left; line-height: 1.15; }
+.profileHandle { display: block; font-size: 14px; font-weight: 600; }
+.profileSub { display: block; font-size: 11px; color: var(--hub-caption); }
+
+/* ---- H.6 profile menu ---- */
+.menu {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px);
+  padding: 8px; box-sizing: border-box; border-radius: 18px; background: #fff; box-shadow: var(--hub-shadow-menu);
+}
+.menuHead { padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; box-shadow: inset 0 -1px 0 var(--hub-line); }
+.menuHandle { display: block; font-size: 15px; font-weight: 700; }
+.menuSub { display: block; font-size: 12px; color: var(--hub-caption); }
+.menuItem {
+  width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px;
+  border: none; border-radius: 12px; background: transparent; color: var(--hub-ink); font-family: inherit; font-size: inherit;
+  text-align: left; text-decoration: none; cursor: pointer;
+}
+.menuItem:hover, .menuItem:focus-visible { background: var(--hub-soft); }
+.menuIcon { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; }
+.menuIconTint { background: var(--tone-purple-bg); color: var(--hub-purple-ink); }
+.menuIconDark { background: var(--hub-dark); color: #fff; }
+.menuText { flex: 1; min-width: 0; }
+.menuTitle { display: block; font-size: 14px; font-weight: 600; }
+.menuNote { display: block; font-size: 12px; color: var(--hub-caption); }
+
+/* ---- H.11 footer ---- */
+.footer { background: var(--hub-dark); color: var(--hub-dark-text); }
+.footerTop { display: flex; flex-wrap: wrap; gap: 32px 48px; padding-top: 48px; padding-bottom: 28px; }
+.footerBrand { flex: 2 1 280px; }
+.footerAbout { margin: 14px 0 0; max-width: 360px; font-size: 13px; line-height: 1.6; color: var(--hub-dark-caption); }
+.footerCol { flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.footerHead { font-weight: 700; color: #fff; }
+.footerLink { color: var(--hub-dark-text); text-decoration: none; background: none; border: none; padding: 0; font: inherit; text-align: left; cursor: pointer; }
+.footerLink:hover { color: #fff; }
+.footerNote { padding-top: 16px; padding-bottom: 28px; box-shadow: inset 0 1px 0 var(--hub-dark-line); font-size: 12px; line-height: 1.6; color: #8f8f9b; }
