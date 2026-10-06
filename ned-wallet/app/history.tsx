@@ -241,7 +241,7 @@ export default function HistoryScreen() {
                       <View style={styles.timeAndMetaRow}>
                         <DText variant="caption" tone="secondary" style={styles.metaText} numberOfLines={1}>
                           {item.demoSwap
-                            ? `${item.amount} → ${item.received || '—'} · N.E.D fee ${item.nedFee || '0.25%'}`
+                            ? `${item.amount} → ${item.received || '—'}${item.nedFee ? ` · N.E.D fee ${item.nedFee}` : ''}`
                             : formatLocalizedRelativeTime(item.blockTime, t)}
                         </DText>
                         {item.demoSwap ? (

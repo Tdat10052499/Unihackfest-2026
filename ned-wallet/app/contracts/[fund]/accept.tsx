@@ -116,7 +116,7 @@ export default function AcceptScreen() {
           {option(
             'payoutPartner',
             'VND to my Vietnamese bank account',
-            'A licensed payout partner converts outside Vietnam and sends VND to your bank. Bank details are collected by the partner, not by N.E.D. Simulated in this demo.',
+            'A payout partner converts outside Vietnam and sends VND to your bank. In this demo the partner is simulated (candidates: Due, Nium). Bank details are collected by the partner, not by N.E.D.',
             'home',
             true
           )}

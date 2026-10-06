@@ -1,0 +1,20 @@
+// V1 (compliance fix list): the Vietnam view never sends, receives or lists crypto. One guard for every host (GitHub
+// Pages and the Workspace's /wallet): these routes go to Home when the region is not 'intl'. A wallet that has not
+// chosen a region yet counts as the Vietnam view (product-spec 4.2: "I live in Vietnam" is the default).
+import type { Region } from './milestone/view';
+
+/** V1's four routes, plus the hidden swap and xStocks screens (crypto trading, never in the Vietnam view) */
+export const VN_BLOCKED_ROUTES = ['/send', '/receive', '/history', '/scan-qr', '/swap', '/xstocks'] as const;
+
+/** The app path without a base URL or a trailing slash ("/wallet/send/" → "/send") */
+export function appPath(pathname: string, base = ''): string {
+  let p = pathname || '/';
+  if (base && (p === base || p.startsWith(`${base}/`))) p = p.slice(base.length) || '/';
+  return p.length > 1 ? p.replace(/\/+$/, '') : p;
+}
+
+export function blockedForRegion(pathname: string, region: Region | null): boolean {
+  if (region === 'intl') return false;
+  const p = appPath(pathname);
+  return VN_BLOCKED_ROUTES.some((r) => p === r || p.startsWith(`${r}/`));
+}

@@ -14,7 +14,7 @@ const ITEMS: { icon: Icon; title: string; body: string }[] = [
   { icon: 'user-x', title: 'No KYC yet', body: 'N.E.D does not check anyone’s identity in this version.' },
   { icon: 'phone-off', title: 'Phone numbers are not verified', body: 'We don’t send a code. A number on a profile may not belong to that person.' },
   { icon: 'shield-off', title: 'The program is not audited', body: 'The Solana program that locks and releases USDC has not had a security audit.' },
-  { icon: 'repeat', title: 'The payout partner is simulated', body: 'No licensed partner is connected in this demo. No VND is sent to any bank.' },
+  { icon: 'repeat', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank.' },
   { icon: 'zap', title: 'Network fees use test SOL', body: 'Each action costs about 0.000005 test SOL on devnet. N.E.D charges no fee during the pilot.' },
   { icon: 'pause-circle', title: 'Disputes have no neutral arbiter', body: 'A client can dispute and keep auto-release paused. Nobody outside the contract decides.' },
   { icon: 'arrow-right-circle', title: 'After release in the Vietnam path', body: 'Once a milestone is released to the payout partner, you rely on that partner to send you the VND.' },
