@@ -11,7 +11,7 @@
 
 - **P0**: must be done before the 9 Oct freeze. Each one is a security leak, a false statement in the app, a break of the word table, a gap in our main legal answer ("a Vietnam user never touches crypto"), or a competition rule.
 - **P1**: should be done if there is time. Each one makes us safer in Q&A.
-- **P2**: known limits. Do not fix now; say them honestly if asked (section D).
+- **P2**: known limits. Do not fix now; say them honestly if asked (section G).
 - **Owner**: Dev, PO, CL (Compliance Lead), Design, Biz. Change the owner if the team decides otherwise.
 - Every item has: **Where** (file:line), **Problem**, **Why it matters**, **Fix** (with the exact new text where it is copy), **Done when**.
 
@@ -212,7 +212,7 @@ Word table: `docs/09-milestone-lock/product-spec.md` §6. Use: lock, release, re
 - **Fix:**
   - Rewrite the top half around Milestone Lock, using the one-liner from `product-spec.md` §1 (with C1 wording).
   - Add real screenshots of the contract screens, the Workspace and the Vietnam view.
-  - List the live links and add a "Known limits" box (copy section E below).
+  - List the live links and add a "Known limits" box (copy section G below).
   - Remove the Jupiter badge and the old features.
   - Update the Status table: program v1.2, 21 instructions, 43 tests, Workspace live.
   - Keep the technical sections, which are current.
