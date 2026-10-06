@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { PublicKey } from '@solana/web3.js';
 import { getConnection } from '@ned/core/config.ts';
 import { fetchReverseRecords } from '@ned/core/identity/dualPda.ts';
-import { listMyApplications, listOpenJobs } from '@ned/core/jobs/queries.ts';
+import { decodeJobListing, type JobListingAccount } from '@ned/core/jobs/decode.ts';
+import { listMyApplications, listMyJobs, listOpenJobs } from '@ned/core/jobs/queries.ts';
 
 export const JOBS_POLL_MS = 30_000;
 
@@ -39,4 +40,32 @@ export function useDisplayNames(wallets: string[]) {
       return out;
     },
   });
+}
+
+/** The wallet's applications with their listings (one getMultipleAccounts for the listings), newest first */
+export function useMyApplications(wallet: string | null) {
+  return useQuery({
+    queryKey: ['jobs', 'myApplications', wallet],
+    enabled: Boolean(wallet),
+    refetchInterval: JOBS_POLL_MS,
+    queryFn: async () => {
+      const apps = await listMyApplications(wallet!);
+      const infos = apps.length ? await getConnection().getMultipleAccountsInfo(apps.map((a) => a.job), 'confirmed') : [];
+      return apps.map((application, i) => {
+        const info = infos[i];
+        let job: JobListingAccount | null = null;
+        try {
+          job = info ? decodeJobListing(application.job, info.data) : null;
+        } catch {
+          job = null;
+        }
+        return { application, job };
+      });
+    },
+  });
+}
+
+/** Listings the wallet posted, any state, newest first */
+export function useMyListings(wallet: string | null) {
+  return useQuery({ queryKey: ['jobs', 'mine', wallet], enabled: Boolean(wallet), refetchInterval: JOBS_POLL_MS, queryFn: () => listMyJobs(wallet!) });
 }

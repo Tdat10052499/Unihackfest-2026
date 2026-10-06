@@ -6,6 +6,7 @@ import { useAuth } from './auth/AuthProvider.tsx';
 import { Layout } from './components/Layout.tsx';
 import { FEATURES } from './config.ts';
 import { JobsLayout } from './jobs/JobsLayout.tsx';
+import { Find as JobsFind } from './jobs/pages/Find.tsx';
 import { Overview as JobsOverview } from './jobs/pages/Overview.tsx';
 import { JobsPlaceholder } from './jobs/pages/Placeholder.tsx';
 import { safeNext } from './lib/next.ts';
@@ -68,7 +69,7 @@ export function App() {
           // N.E.D Jobs (D28): its own layout; readable signed out. Static paths before :job.
           <Route path="jobs" element={<JobsLayout />}>
             <Route index element={<JobsOverview />} />
-            <Route path="find" element={<JobsPlaceholder title="Find jobs" />} />
+            <Route path="find" element={<JobsFind />} />
             <Route path="new" element={<JobsPlaceholder title="Post a job" />} />
             <Route path=":job" element={<JobsPlaceholder title="Job" />} />
             <Route path=":job/applicants" element={<JobsPlaceholder title="Applicants" />} />

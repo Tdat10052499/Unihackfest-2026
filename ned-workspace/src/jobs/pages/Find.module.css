@@ -1,0 +1,83 @@
+/* Find jobs (WebJobsFind board; appendix H.15). Variables from .hub (../hub.module.css). */
+.band { background: var(--hub-lavender); }
+.bandInner { padding-top: 28px; padding-bottom: 36px; }
+.h1 { margin: 0; font-family: var(--font-display); font-size: clamp(32px, 4vw, 44px); font-weight: 700; letter-spacing: -1.2px; line-height: 1.08; }
+.lead { margin: 10px 0 0; max-width: 560px; font-size: 15px; line-height: 1.6; color: var(--hub-ink-2); }
+.chips { margin-top: 20px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.chip {
+  height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; border: none; border-radius: 12px;
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; background: #fff; color: var(--hub-ink-2);
+  transition: background-color 200ms var(--hub-ease), color 200ms var(--hub-ease);
+}
+.chip:hover { background: var(--hub-soft); }
+.chipOn, .chipOn:hover { background: var(--hub-dark); color: #fff; }
+.count {
+  min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9999px; font-size: 11px; font-weight: 700; background: #efeff3; color: var(--hub-ink-3);
+}
+.chipOn .count, .tabOn .count { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.board { display: flex; flex-direction: column; gap: 20px; padding-top: 28px; padding-bottom: 64px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.h2 { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: -0.6px; }
+.sub { margin: 4px 0 0; font-size: 14px; color: var(--hub-caption); }
+.tabs { display: inline-flex; flex-wrap: wrap; justify-content: center; padding: 4px; border-radius: 14px; background: var(--hub-soft); }
+.tab {
+  height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 10px; font-family: inherit;
+  font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(--hub-ink-3);
+}
+.tabOn { background: var(--hub-dark); color: #fff; }
+
+.filters { padding: 12px; border-radius: 18px; background: #fff; box-shadow: var(--hub-shadow-card); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.searchBox { flex: 1 1 220px; position: relative; display: block; min-width: 0; }
+.searchIcon { position: absolute; left: 14px; top: 14px; color: var(--hub-caption); pointer-events: none; }
+.searchBox input {
+  width: 100%; height: 44px; padding: 0 14px 0 40px; box-sizing: border-box; border: none; border-radius: 12px; background: var(--hub-soft);
+  font-family: inherit; font-size: 14px; color: var(--hub-ink);
+}
+.select {
+  height: 44px; padding: 0 12px; border: none; border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--hub-soft); color: var(--hub-ink-2); max-width: 100%;
+}
+.selectOn { background: var(--tone-purple-bg); color: var(--hub-purple-ink); }
+.searchBox input:focus, .select:focus { outline: none; box-shadow: 0 0 0 3px rgba(123, 47, 190, 0.22); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ticks { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 2px 4px 0; }
+.tick { min-height: 36px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--hub-ink-2); cursor: pointer; }
+.tick input { width: 17px; height: 17px; margin: 0; accent-color: var(--hub-purple); }
+.grow { flex: 1; }
+.result { font-size: 13px; font-weight: 600; color: var(--hub-ink-3); }
+.small {
+  height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 10px; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer; background: var(--hub-soft); color: var(--hub-ink-2);
+}
+.small:hover { background: #ecebf1; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--hub-gap); }
+.more { align-self: center; }
+.noMatch { padding: 36px 24px; border-radius: 20px; background: var(--hub-soft); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.noMatchTitle { font-size: 16px; font-weight: 600; }
+.noMatchBody { font-size: 14px; color: var(--hub-caption); }
+.error {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 16px;
+  background: #fdecec; color: #b42318; font-size: 14px; font-weight: 600;
+}
+@keyframes shimmer { 0% { opacity: 0.55; } 50% { opacity: 1; } 100% { opacity: 0.55; } }
+.skeleton { height: 290px; border-radius: var(--hub-r-card); background: var(--hub-soft); animation: shimmer 1.4s ease-in-out infinite; }
+.skeletonRow { height: 72px; border-radius: 18px; background: var(--hub-soft); animation: shimmer 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .skeleton, .skeletonRow { animation: none; } }
+
+.rows { display: flex; flex-direction: column; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 16px; border-radius: 18px; background: #fff; box-shadow: var(--hub-shadow-card); }
+.rowMain { flex: 1 1 240px; min-width: 0; }
+.rowTitle { display: block; font-size: 15px; font-weight: 600; }
+.rowMeta { display: block; margin-top: 2px; font-size: 13px; color: var(--hub-caption); }
+.rowMoney { text-align: right; }
+.rowMoney > span { align-items: flex-end; }
+@media (max-width: 520px) {
+  .head { flex-direction: column; align-items: stretch; }
+  .tabs { justify-content: flex-start; }
+  .select { flex: 1 1 140px; }
+  .rowMoney { text-align: left; }
+  .rowMoney > span { align-items: flex-start; }
+}
