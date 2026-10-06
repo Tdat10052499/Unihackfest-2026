@@ -123,6 +123,8 @@ V2 only labels the SOL balance.
 
 ### A6 · Keep the Terms "not a marketplace" line, and add a Q&A answer for the job-board idea
 
+> **Superseded on 6 Oct by D25:** the PO decided to build Funded Jobs for the demo. The new Terms line and Q&A answer are in [`../09-milestone-lock/funded-jobs-plan.md`](../09-milestone-lock/funded-jobs-plan.md) section 9; the legal point below still stands and goes to the expert-check pack.
+
 The draft Terms say N.E.D "is not a payment service, a bank, an exchange or a marketplace". This matches the current direction (D10: freelancers bring their own clients).
 
 The "Funded Jobs" board discussed on 6 Oct is a roadmap idea only. If it comes up, the answer is:
