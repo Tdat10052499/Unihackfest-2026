@@ -220,6 +220,8 @@ Faucet limit: 20 devnet USDC per address every 2 hours \[Verified in 08-research
 
 ## 8. Schedule for today, owners and cut line
 
+> **Superseded on 6 Oct** by [`build-order-6oct.md`](build-order-6oct.md): every change ships today in gated steps, without clock times. The table below is kept for reference.
+
 | Time | Dev A (program + core) | Dev B (Workspace) | PO / CL / Design |
 | --- | --- | --- | --- |
 | 07:30 | Read this plan | Read this plan | PO confirms D25; rotate keys S1–S3 (compliance review decision 7) |
