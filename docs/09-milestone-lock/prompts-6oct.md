@@ -484,3 +484,36 @@ S9); a note line. Vietnam view: "Devnet demo with test money. Listings, budgets 
 N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.
 Your pitch is public on Solana." Otherwise: "Devnet demo with test money. Listings, budgets and applications are read
 from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared."
+
+**Numbering note (6 Oct).** The S5b prompt cites the hero as H.7, category tiles as H.8, featured jobs as H.9 and the
+"Funded before anyone applies" section as H.10. In this appendix those are H.12 (hero), H.8 (tile), H.9 (card) and
+H.14 (why); H.7 is the steps band and H.10 the buttons. The content is the same; only the numbers differ.
+
+**H.12 Overview hero.** Lavender section. Eyebrow chip (lock icon) "Every budget is locked before the job is posted".
+Headline and sub-line: freelancer copy for every Vietnam view and for visitors who are signed out — "Find work that is
+already funded" / "Every job here has its full budget locked on Solana before it is posted. Apply with a short pitch;
+if you are hired, you receive VND milestone by milestone."; client copy (signed in, outside the Vietnam view) — "Hire for
+work you can fund today" / "Browse what others post, or post your own job with its budget locked. Pick one applicant and
+the contract is created for you." Search capsule: Keyword (placeholder "Logo, Framer, translation…"), Category (All
+categories + the 8), dark Search → `/jobs/find?<filtersToQuery({ q, cat })>`. "Popular:" Logo & brand, Figma, English ↔
+Vietnamese, Solana programs → `/jobs/find?skills=<id>` (the core query key is `skills`). Illustration (decorative,
+hidden from screen readers): two lavender circles, two white curves, four floating category icons, the newest open
+listing as a tilted card (business, Budget locked, title, "category · N milestones · up to <time>", amount, Apply);
+the "<sum> locked in N open jobs" card with one bar per open listing (newest 24; height = budget relative to the
+largest; purple for the top half); "N applications on open jobs". With no open listing the tilted card reads "No open
+jobs yet / The newest open job shows here." Every number comes from `listOpenJobs` (state Open only).
+
+**H.13 Overview sections.** The steps band (H.7) overlaps the hero by 28 px. "Choose your field" / "Open jobs with
+locked budgets, by category." with the 8 tiles (H.8). "Featured jobs" on cream / "The newest jobs, each with its budget
+already locked. Find jobs lists every job, with filters." — the 6 newest open listings (H.9, first one dark), then dark
+"Find more jobs" → `/jobs/find`. Loading: 6 skeleton cards (the first dark). Error: "Couldn't read jobs from Solana. Try
+again." with Retry. Empty: "No open jobs yet" — client: "Post the first one: lock a budget and publish it." with Post a
+job; otherwise "New jobs show up here as soon as a business locks a budget."
+
+**H.14 "Funded before anyone applies".** Illustration "Your contract" with two rows (1 · First milestone — Released;
+2 · Final files — Locked; no amounts) and the badge "Checkable on Solana Explorer". Text: "A business can only post a
+job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is
+released milestone by milestone after the work is accepted." Reasons: Budget locked first · Track record from Solana ·
+No fee from N.E.D · Release only accepted work (Vietnam view: Receive earnings in VND). Buttons: client "Post a job" →
+`/jobs/new`, otherwise "Browse open jobs" → `/jobs/find`; outline "See your records" opens the wallet extension at
+`/records` (the Workspace has no `/records` page; signed out it goes to `/sign-in?next=/jobs`).
