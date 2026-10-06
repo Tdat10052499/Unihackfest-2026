@@ -15,6 +15,7 @@
     "identity:devnet": "ts-node -P tsconfig.scripts.json scripts/identity-devnet.ts",
     "test:identity": "node --test services/identity/__tests__/*.test.ts",
     "milestone:devnet": "ts-node -P tsconfig.scripts.json scripts/milestone-devnet.ts",
+    "jobs:smoke": "ts-node -P tsconfig.scripts.json scripts/jobs-smoke.ts",
     "recycle:demo-usdc": "ts-node -P tsconfig.scripts.json scripts/recycle-demo-usdc.ts",
     "milestone:status": "ts-node -P tsconfig.scripts.json scripts/milestone-status.ts",
     "identity:check": "ts-node -P tsconfig.scripts.json scripts/identity-readonly.ts",
