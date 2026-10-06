@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOwnPhone, removeOwnPhone, saveOwnPhone } from './identity/ownPhone';
 import { parseDemoSwaps, serializeDemoSwaps } from './history';
 import { REGION_STORAGE_KEY, useRegionStore } from '../stores/useRegionStore';
-import { CONSENT_STORAGE_KEY, useConsentStore } from '../stores/useConsentStore';
+import { keysToClearOnSignOut } from './signOutKeys';
 
 const STORAGE_KEYS = {
   ACTIVITIES: '@ned_wallet_activities',
@@ -112,18 +112,18 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
     }
   }
 
-  // Region and consent (N11): empty the in-memory stores too, or persist would write the old state back
+  // Region (N11): empty the in-memory store too, or persist would write the old state back. P1: the consent log is
+  // kept (state and storage), with withdrawnAt when the user withdrew; getConsent() ignores withdrawn records.
   try {
     useRegionStore.setState({ regions: {} });
-    useConsentStore.setState({ consents: {} });
-    await AsyncStorage.multiRemove([REGION_STORAGE_KEY, CONSENT_STORAGE_KEY]);
+    await AsyncStorage.multiRemove([REGION_STORAGE_KEY]);
   } catch (err) {
-    console.warn('[Hard Reset] could not clear region / consent:', err);
+    console.warn('[Hard Reset] could not clear region:', err);
   }
 
   try {
     const keys = await AsyncStorage.getAllKeys();
-    await AsyncStorage.multiRemove(keys);
+    await AsyncStorage.multiRemove(keysToClearOnSignOut(keys));
     // SĐT của chính người dùng nằm ngoài AsyncStorage → xoá riêng khi đăng xuất
     await removeOwnPhone().catch(() => {});
     console.log('✅ [Hard Reset] Đã dọn dẹp AsyncStorage (giữ hồ sơ cục bộ)');
