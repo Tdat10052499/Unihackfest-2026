@@ -8,7 +8,9 @@ import { FEATURES } from './config.ts';
 import { JobsLayout } from './jobs/JobsLayout.tsx';
 import { Find as JobsFind } from './jobs/pages/Find.tsx';
 import { Overview as JobsOverview } from './jobs/pages/Overview.tsx';
-import { JobsPlaceholder } from './jobs/pages/Placeholder.tsx';
+import { Applicants } from './jobs/pages/Applicants.tsx';
+import { JobDetail } from './jobs/pages/JobDetail.tsx';
+import { PostJob } from './jobs/pages/PostJob.tsx';
 import { safeNext } from './lib/next.ts';
 import { hasPendingInvite } from './hooks/keyStore.ts';
 import { Contract } from './pages/Contract.tsx';
@@ -70,9 +72,9 @@ export function App() {
           <Route path="jobs" element={<JobsLayout />}>
             <Route index element={<JobsOverview />} />
             <Route path="find" element={<JobsFind />} />
-            <Route path="new" element={<JobsPlaceholder title="Post a job" />} />
-            <Route path=":job" element={<JobsPlaceholder title="Job" />} />
-            <Route path=":job/applicants" element={<JobsPlaceholder title="Applicants" />} />
+            <Route path="new" element={<PostJob />} />
+            <Route path=":job" element={<JobDetail />} />
+            <Route path=":job/applicants" element={<Applicants />} />
           </Route>
         ) : (
           <Route path="jobs/*" element={<Navigate to="/" replace />} />

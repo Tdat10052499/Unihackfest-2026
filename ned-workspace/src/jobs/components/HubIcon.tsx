@@ -2,6 +2,7 @@
 export const HUB_ICONS = {
   lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
   arrowUp: 'M12 19V5M5 12l7-7 7 7',
+  arrowLeft: 'M19 12H5M11 6l-6 6 6 6',
   arrowRight: 'M5 12h14M13 6l6 6-6 6',
   external: 'M7 17 17 7M8 7h9v9',
   chevronDown: 'm6 9 6 6 6-6',

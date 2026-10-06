@@ -5,6 +5,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { PANEL_ID } from '../components/TopBar.tsx';
+import { DeviceKeyGate } from '../components/DeviceKeyGate.tsx';
 import { RegionPrompt } from '../components/RegionPrompt.tsx';
 import { WalletExtension } from '../components/WalletExtension.tsx';
 import { WalletPanel } from '../components/WalletPanel.tsx';
@@ -107,6 +108,8 @@ export function JobsLayout() {
         </div>
       </header>
       <RegionPrompt />
+      {/* Key sync (D22): a selected applicant reads the contract brief through this computer's device key */}
+      <DeviceKeyGate />
       <AnimatePresence mode="wait" initial={false}>
         <m.main
           id="main"

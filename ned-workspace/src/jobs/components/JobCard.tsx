@@ -38,22 +38,19 @@ export interface JobCardProps {
   /** "@orbit_cafe", or a short address when the business has no username */
   businessName?: string;
   mine?: JobMine;
+  /** Live preview on "Post a job": the same card, not a link */
+  preview?: boolean;
 }
 
-export function JobCard({ job, vn, now, dark = false, businessName, mine = null }: JobCardProps) {
+export function JobCard({ job, vn, now, dark = false, businessName, mine = null, preview = false }: JobCardProps) {
   const business = job.business.toBase58();
   const name = businessName ?? shortAddress(business);
   const longest = Math.max(0, ...job.milestones.map((m) => m.workSecs));
   const skills = listingSkills(job.skills).slice(0, 3);
   const closed = now > job.applyBy;
   const cta = mine === 'applied' ? 'View' : mine === 'own' ? 'Manage' : closed ? 'View' : 'Apply now';
-  return (
-    <Link
-      to={`/jobs/${job.address.toBase58()}`}
-      className={`${styles.card} ${dark ? styles.cardDark : ''} ${hub.lift}`}
-      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
-      data-testid="job-card"
-    >
+  const body = (
+    <>
       <div className={styles.cardTop}>
         <span className={styles.cardTitle}>{job.title}</span>
         {mine === 'applied' ? <Chip tone="info">Applied</Chip> : mine === 'own' ? <Chip tone="purple">Your job</Chip> : null}
@@ -97,6 +94,22 @@ export function JobCard({ job, vn, now, dark = false, businessName, mine = null 
           {cta}
         </span>
       </div>
+    </>
+  );
+  if (preview)
+    return (
+      <div className={`${styles.card} ${dark ? styles.cardDark : ''}`} data-testid="job-card-preview">
+        {body}
+      </div>
+    );
+  return (
+    <Link
+      to={`/jobs/${job.address.toBase58()}`}
+      className={`${styles.card} ${dark ? styles.cardDark : ''} ${hub.lift}`}
+      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
+      data-testid="job-card"
+    >
+      {body}
     </Link>
   );
 }
