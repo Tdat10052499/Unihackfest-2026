@@ -68,7 +68,7 @@ export async function saveRecords(storage: KeyStorage, wallet: string, cache: Re
 
 type TxConnection = Pick<Connection, 'getSignaturesForAddress' | 'getTransactions'>;
 
-interface ProgramIx {
+export interface ProgramIx {
   name: string;
   data: Record<string, unknown>;
   accounts: string[];
@@ -136,6 +136,55 @@ function received(tx: VersionedTransactionResponse, account: string): bigint {
 
 const RELEASES = new Set(['approve', 'release_after_review']);
 
+/** The contract an instruction acts on: create_fund has it third; lock_from_job (v1.3) second, after the job */
+export function fundOfInstruction(ix: ProgramIx): string | undefined {
+  if (ix.name === 'create_fund') return ix.accounts[2];
+  if (ix.name === 'lock_from_job') return ix.accounts[1];
+  return ix.accounts[0];
+}
+
+/** Timeline step of each contract instruction; lock_from_job (the job's budget moving in) is the lock step */
+export const HISTORY_STEP: Record<string, 'created' | 'accepted' | 'locked' | 'submitted' | 'changesRequested' | 'released' | 'refunded' | 'settledBySplit' | 'note'> = {
+  create_fund: 'created',
+  accept: 'accepted',
+  lock: 'locked',
+  lock_from_job: 'locked',
+  submit: 'submitted',
+  dispute: 'changesRequested',
+  approve: 'released',
+  release_after_review: 'released',
+  refund: 'refunded',
+  concede: 'refunded',
+  accept_cancel: 'settledBySplit',
+  post_note: 'note',
+};
+
+export interface HistoryEntry {
+  step: (typeof HISTORY_STEP)[string];
+  instruction: string;
+  /** milestone index for per-milestone steps */
+  index?: number;
+  signature: string;
+  time: number;
+}
+
+/** A contract's steps in chain order (oldest first), from its transactions; works for closed contracts too */
+export async function readFundHistory(conn: TxConnection, fund: string): Promise<HistoryEntry[]> {
+  const sigs = await conn.getSignaturesForAddress(new PublicKey(fund), { limit: FUND_SCAN_LIMIT }, 'confirmed');
+  const ok = sigs.filter((s) => !s.err).reverse();
+  const txs = await transactions(conn, ok.map((s) => s.signature));
+  const out: HistoryEntry[] = [];
+  txs.forEach((tx, i) => {
+    for (const ix of programInstructions(tx)) {
+      const step = HISTORY_STEP[ix.name];
+      if (!step || step === 'note' || fundOfInstruction(ix) !== fund) continue;
+      const index = ix.data.index === undefined ? undefined : Number(ix.data.index);
+      out.push({ step, instruction: ix.name, ...(index !== undefined ? { index } : {}), signature: ok[i].signature, time: tx?.blockTime ?? ok[i].blockTime ?? 0 });
+    }
+  });
+  return out;
+}
+
 /**
  * Every release in one contract's history. Works for closed contracts too (signatures stay on the chain).
  * `open`, when given, supplies the title, client, payout kind and amounts that the history might not reach.
@@ -150,7 +199,7 @@ export async function readFundReleases(conn: TxConnection, fund: string, open?: 
   const out: ReleaseRecord[] = [];
   txs.forEach((tx, i) => {
     for (const ix of programInstructions(tx)) {
-      if (ix.accounts[0] !== fund && !(ix.name === 'create_fund' && ix.accounts[2] === fund)) continue;
+      if (fundOfInstruction(ix) !== fund) continue;
       if (ix.name === 'create_fund') {
         title ||= String(ix.data.title ?? '');
         client ||= ix.accounts[0];
@@ -276,7 +325,12 @@ export const CSV_HEADER = [
   'rate_date',
   'released_to',
   'transaction',
+  'note',
 ];
+
+/** F2 (compliance fix list): every row says what this is not */
+export const RECORDS_CSV_NOTE = 'devnet test money; VND is an estimate at the 2 Oct rate; payout partner simulated; not tax advice';
+export const RECORDS_CSV_FILENAME = 'ned-records-devnet.csv';
 
 /** CSV of the records, oldest first. Devnet test money; VND is an estimate at the fixed demo rate. */
 export function recordsCsv(records: ReleaseRecord[]): string {
@@ -296,6 +350,7 @@ export function recordsCsv(records: ReleaseRecord[]): string {
         USD_VND_RATE_DATE,
         r.destination === 'payoutPartner' ? 'payout partner (simulated)' : 'own wallet',
         txExplorerUrl(r.signature),
+        RECORDS_CSV_NOTE,
       ]
         .map(csvCell)
         .join(',');
