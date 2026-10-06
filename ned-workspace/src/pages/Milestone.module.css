@@ -107,3 +107,24 @@
 .finalResult { margin: 8px 0 0; font-size: 13px; font-weight: 600; }
 .finalOk { color: var(--success-ink); }
 .finalBad { color: var(--error-ink); }
+
+/* S8 submit: work type, preview checks, link warnings, guide sheet, quick check */
+.guideLink { align-self: flex-start; border: none; background: none; padding: 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--link); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.types { display: flex; flex-wrap: wrap; gap: 6px; }
+.type { height: 38px; padding: 0 14px; border: none; border-radius: var(--r-pill); background: var(--field); color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.typeOn { background: var(--ink); color: #fff; }
+.problem { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-12); background: var(--warning-bg); color: var(--warning-ink); font-size: 13px; line-height: 1.5; }
+.passed { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: var(--r-12); background: var(--success-bg); color: var(--success-ink); font-size: 13px; font-weight: 600; }
+.thumb { max-width: 100%; max-height: 260px; border-radius: var(--r-12); box-shadow: var(--shadow-s1); align-self: flex-start; }
+.linkNote { display: block; margin-top: 2px; font-size: 12px; color: var(--warning-ink); }
+.linkNoteInfo { color: var(--caption); }
+.quick { display: flex; flex-direction: column; gap: 6px; }
+.quickTitle { font-size: 13px; font-weight: 700; }
+.guide { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.guide h3 { margin: 6px 0 0; font-size: 15px; color: var(--ink); }
+.guide ul, .guide ol { margin: 0; padding-left: 20px; }
+.guideTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.guideTable th, .guideTable td { text-align: left; vertical-align: top; padding: 8px 10px; }
+.guideTable thead th { background: var(--row); }
+.guideTable tbody tr + tr td { box-shadow: inset 0 1px 0 var(--divider); }
+.modeInfo { padding: 12px 14px; border-radius: var(--r-14); background: var(--info-bg); color: var(--info-ink); font-size: 14px; line-height: 1.5; }

@@ -1,9 +1,11 @@
 // Dev only (VITE_DEV_TOOLS=1): every S7 contract state, as the client or the freelancer, on the real Contract and
-// Review views with fixture data. /dev/states?s=<scenario>&role=client|freelancer&page=contract|review&vn=1.
+// Review / Submit views with fixture data. /dev/states?s=<scenario>&role=client|freelancer&page=contract|review|submit
+// [&mode=revision|handover][&type=design]&vn=1.
 // Nothing here signs or reads the chain.
 import { Link, useSearchParams } from 'react-router';
 import { ContractView } from '../pages/Contract.tsx';
 import { ReviewView } from '../pages/Review.tsx';
+import { SubmitView, type SubmitMode, type WorkType } from '../pages/Submit.tsx';
 import { CLIENT, FREELANCER, SCENARIOS, scenarioView } from './states.ts';
 
 const noop = async () => {};
@@ -30,6 +32,11 @@ export function StatesPage() {
   const fund = scenarioView(s, role, vn ? 'vn' : 'intl');
   const content = { hasKey: true, ready: true, contentStatus: 'ok' as const, content: s.content, importKey: async () => false };
   const me = (role === 'client' ? CLIENT : FREELANCER).toBase58();
+  if (params.get('page') === 'submit') {
+    const mode = (params.get('mode') ?? 'submit') as SubmitMode;
+    const type = (params.get('type') ?? undefined) as WorkType | undefined;
+    return <SubmitView fund={fund} raw={s.fund} index={0} now={s.now} vn={vn} content={content} mode={mode} {...(type ? { initialType: type } : {})} status="" onSend={noop} />;
+  }
   if (params.get('page') === 'review')
     return <ReviewView fund={fund} raw={s.fund} index={0} now={s.now} vn={vn} me={me} content={content} p1 status="" onRelease={noop} onRequestChanges={noop} />;
   return <ContractView fund={fund} raw={s.fund} content={content} vn={vn} isParty p1 actions={{ run: noop, busy: null, status: '', error: '' }} />;
