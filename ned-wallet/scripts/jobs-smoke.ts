@@ -157,7 +157,8 @@ async function checks(conn: Connection): Promise<boolean> {
 
 // --- Funding ---
 
-async function ensureFunds(conn: Connection, business: Keypair, freelancer: Keypair): Promise<boolean> {
+/** `allowAirdrop` is false while the program is not upgraded, so no faucet SOL is spent on a run that cannot start */
+async function ensureFunds(conn: Connection, business: Keypair, freelancer: Keypair, allowAirdrop: boolean): Promise<boolean> {
   const need = [
     { kp: business, min: BUSINESS_MIN_SOL, label: 'business' },
     { kp: freelancer, min: FREELANCER_MIN_SOL, label: 'freelancer' },
@@ -165,7 +166,7 @@ async function ensureFunds(conn: Connection, business: Keypair, freelancer: Keyp
   let short = false;
   for (const n of need) {
     let bal = await conn.getBalance(n.kp.publicKey, 'confirmed');
-    if (bal < n.min * LAMPORTS_PER_SOL && has('airdrop')) {
+    if (bal < n.min * LAMPORTS_PER_SOL && allowAirdrop && has('airdrop')) {
       try {
         const sig = await conn.requestAirdrop(n.kp.publicKey, AIRDROP_SOL * LAMPORTS_PER_SOL);
         await conn.confirmTransaction(sig, 'confirmed');
@@ -198,15 +199,16 @@ async function main() {
 
   const checksOk = await checks(conn);
   if (has('check')) process.exit(checksOk ? 0 : 1);
-  if (!checksOk) {
-    console.log('\n⛔ The deployed program is not this v1.3 build. Upgrade it first (PO), then run again.');
-    process.exit(1);
-  }
 
   const business = throwaway('business');
   const freelancer = throwaway('freelancer');
   console.log(`business   ${business.publicKey.toBase58()}\nfreelancer ${freelancer.publicKey.toBase58()}`);
-  if (!(await ensureFunds(conn, business, freelancer))) {
+  const funded = await ensureFunds(conn, business, freelancer, checksOk);
+  if (!checksOk) {
+    console.log('\n⛔ The deployed program is not this v1.3 build. Upgrade it first (PO), then run again.');
+    process.exit(1);
+  }
+  if (!funded) {
     console.log('\n⛔ Fund the addresses above, then run again.');
     process.exit(2);
   }
