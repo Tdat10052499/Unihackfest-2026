@@ -542,3 +542,56 @@ applicants), Selected (info; "Selected @x · accept by …"), Filled (purple; "H
 contract", Open contract), Withdrawn (neutral; "budget returned", "returned to you", View record → the listing). Empty:
 "You haven't applied to a job yet." / "Every open job shows its locked budget, so the money is there before you apply."
 and "You haven't posted a job yet." / "Post a job: lock its budget and publish it."
+
+**H.16 Job detail (`/jobs/:job`, WebJobDetail).** Page background `#F7F4FB`; a dark pill "All jobs" back link. Main
+column: category chip and skill chips; title; summary; business avatar and handle "· posted {date}"; brief chip
+"Brief verified · matches its fingerprint on Solana" (warning when not: "The public brief does not match its
+fingerprint on Solana. Don't apply until the business saves it again." or "The public brief is not on Solana yet.");
+Scope (+ reference links); Milestones ("Each milestone is released after the client accepts it"; per milestone the
+brief name, "Due N days after you are selected · N days to review" — minutes or hours for devnet windows — amount,
+Done when points); "Budget locked" card (amount, "Locked in a program vault on Solana when the job was posted. It
+moves into your contract when you accept. It goes back to {business} only if nobody is hired.", View the vault on
+Explorer); "{business} on N.E.D" facts counted from its SharedFund accounts as client (contracts with a released
+milestone, milestones submitted to them, milestones still locked by a request, first contract) and "Counted from
+contracts on Solana. Not a rating." (the board's "Reviewed before the deadline" needs transaction history and is left
+out). Sticky aside: Budget, Apply by "{date} · N days left", Client selects by, "If selected, accept within 48 h (2 min
+on devnet)", Applicants; then one state: the pitch box ("Why you fit this job, and one link to similar work.", live
+"N / 280" byte counter, "Public on Solana. Don't put names or personal details here.", purple Apply → wallet confirm →
+runApplyJob, payout note per view, "One wallet confirmation; the network fee is test SOL on devnet.") · "Applied ·
+{date}" with the pitch · "You were selected" with "Review & accept in wallet" (opens the wallet extension at the
+contract) · "You're hired" with Open contract · Not selected · "This is your job" with Review applicants · signed out
+"Sign in to apply" · "Applications are closed". "How it works": Apply · Get selected · Accept · Submit each milestone ·
+Released, the reached steps filled. Applying first registers this computer's device key (D22).
+
+**H.17 Post a job (`/jobs/new`, WebJobPost).** Outside the Vietnam view only (the Vietnam view goes to `/jobs/find`;
+signed out to sign-in). "Post a job" / "Freelancers see your job with its budget already locked. You pick one applicant;
+that creates the contract." Three numbered cards: 1 About the job (Title with "N / 32" and the public hint; Category
+pills; Skills "pick up to 3"; Summary "shown on the job card" with "N / 160"; Scope; Reference links, one https link per
+line, optional); 2 Work (Milestone N with Name, Amount (USDC), Due (days after you select), Days to review, Done when
+one point per line; Remove; Add a milestone; "1 to 5 milestones · up to 1,000 USDC per job in this demo. Write done-when
+points someone else could check."); 3 Timing (Applications close in 3 / 7 / 14 days; You select someone within the
+apply days, +2, +4; "Apply by {date} · select by {date}. With no applicants you can withdraw the budget at any time.
+Once someone has applied, the budget stays locked until the select-by date, so applicants know it's there."). Aside:
+"How freelancers will see it" (the live job card) and the problem list. Sticky bar: "{amount} leaves your wallet now and
+waits in the job's vault · balance after: {balance}. Your wallet asks twice: to lock the budget, then to save the public
+brief." + purple "Lock {amount} & publish" → wallet confirm → runPostJob ("Saving the public brief · 1 of N"); a failed
+brief shows "Save the brief again" (runPostJobBrief). Published: "Published · {amount} locked" + "Your job is on the
+board. Applications appear under My listings; you can select someone until {date}." + Go to my listing + View on
+Explorer.
+
+**H.18 Applicants (`/jobs/:job/applicants`, WebJobApplicants).** Business only (others: "Only the business that posted
+this job can see its applicants"). Dark pill "My listings". Header: state chip (Open · select by {date} / Selected ·
+waiting to accept / accept time over / Filled / Withdrawn), "Budget locked · {amount}" chip, title, "{N} milestones ·
+applications close(d) {date} · select by {date}", View public listing, Withdraw budget (disabled until
+rules.canWithdraw) with its reason line ("Withdraw opens after {select by} if you hire no one. People applied because
+the budget is locked, so it stays until then." etc.). Banners: "Waiting for {x} to accept · {countdown} left" + "The
+contract is created. When {x} accepts, the {amount} moves into it and work starts. If the time runs out, you can select
+someone else." + Open contract; "{x} didn't accept in time" (re-select); "Hired {x} · {amount} moved into the contract" +
+"The listing is filled. Other applicants now see "Not selected"." Applicants ("Applicants · N", Sort Newest first / Most
+contracts completed): avatar, handle, "applied {date}", tag Selected / Hired / Not selected, pitch, track-record facts
+(N contracts completed, X of Y submitted on time, N refunds, Worked with you before, or New on N.E.D), Select (purple).
+Footer line: "Track records are counted from contracts on Solana, not ratings. Pitches are public. N.E.D does not vet or
+rank applicants." Select sheet: "Select {x}?" / "This creates a contract with your brief and these deadlines, counted
+from now:" with each milestone's submit-by and review-by, then the three bullets (budget moves at accept; accept within
+48 h (2 min on devnet); the wallet confirms the contract, its encrypted brief and the contract key for both) and Cancel
+/ "Create contract & select" → runSelectJob.
