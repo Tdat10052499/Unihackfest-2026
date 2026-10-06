@@ -1,5 +1,6 @@
 import './polyfill.ts'; // Buffer before anything that loads web3.js
 import './config.ts'; // configureCore before the first query
+import './styles/fonts.css'; // self-hosted, no Google request (P4)
 import './styles/global.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
