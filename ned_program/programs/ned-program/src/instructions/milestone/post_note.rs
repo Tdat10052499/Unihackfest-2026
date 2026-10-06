@@ -8,7 +8,8 @@ use crate::state::*;
 /// One part of an encrypted note (v1.1, program-spec row 13). `data` is ciphertext made by the app
 /// (XChaCha20-Poly1305, key only in the invite link); the program never reads it and changes no state.
 /// Brief (kind 0): the client, while the fund is Created, milestone 0.
-/// Delivery (kind 1): the freelancer, for a Submitted milestone.
+/// Delivery (kind 1): the freelancer, for a Submitted, Disputed or Released milestone (v1.3, D27).
+/// Review (kind 3, v1.3, D27): the client, for a Submitted or Disputed milestone.
 /// Key (kind 2, v1.2): either party, any state, milestone 0 — wraps of the contract key for registered devices.
 pub fn post_note_handler(ctx: Context<PostNote>, kind: u8, milestone: u8, part: u8, parts: u8, data: Vec<u8>) -> Result<()> {
     let fund = &ctx.accounts.fund;
@@ -17,10 +18,20 @@ pub fn post_note_handler(ctx: Context<PostNote>, kind: u8, milestone: u8, part: 
     // Validate: who may post what, then the size and part rules
     let allowed = match kind {
         NOTE_KIND_BRIEF => author == fund.client && fund.state == FundState::Created && milestone == 0,
+        // D27: first delivery, revised versions (Disputed) and the handover of final files (Released)
         NOTE_KIND_DELIVERY => {
             author == fund.freelancer
                 && milestone < fund.milestone_count
-                && fund.milestones[milestone as usize].status == MilestoneStatus::Submitted
+                && matches!(
+                    fund.milestones[milestone as usize].status,
+                    MilestoneStatus::Submitted | MilestoneStatus::Disputed | MilestoneStatus::Released
+                )
+        }
+        // D27: the client's review (unmet done-when points and the reason) of a Submitted or Disputed milestone
+        NOTE_KIND_REVIEW => {
+            author == fund.client
+                && milestone < fund.milestone_count
+                && matches!(fund.milestones[milestone as usize].status, MilestoneStatus::Submitted | MilestoneStatus::Disputed)
         }
         NOTE_KIND_KEY => (author == fund.client || author == fund.freelancer) && milestone == 0,
         _ => false,

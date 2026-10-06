@@ -148,3 +148,52 @@ pub struct DeviceKeyRemoved {
     pub key: [u8; 32],
     pub count: u8,
 }
+
+// ---- v1.3 Funded Jobs ----
+
+#[event]
+pub struct JobPosted {
+    pub job: Pubkey,
+    pub business: Pubkey,
+    pub job_id: u64,
+    pub category: u8,
+    pub total: u64,
+    pub apply_by: i64,
+    pub select_by: i64,
+    pub brief_hash: [u8; 32],
+}
+
+#[event]
+pub struct JobBriefPosted {
+    pub job: Pubkey,
+    pub part: u8,
+    pub parts: u8,
+    pub len: u16,
+}
+
+#[event]
+pub struct JobApplied {
+    pub job: Pubkey,
+    pub freelancer: Pubkey,
+    pub application_count: u16,
+}
+
+#[event]
+pub struct JobSelected {
+    pub job: Pubkey,
+    pub fund: Pubkey,
+    pub freelancer: Pubkey,
+}
+
+#[event]
+pub struct JobFilled {
+    pub job: Pubkey,
+    pub fund: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct JobWithdrawn {
+    pub job: Pubkey,
+    pub amount: u64,
+}

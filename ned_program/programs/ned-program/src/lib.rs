@@ -160,4 +160,50 @@ pub mod ned_program {
     ) -> Result<()> {
         accept_cancel_handler(ctx, expected_freelancer_amount, expected_unsettled)
     }
+
+    // =========================================================================
+    // 4. FUNDED JOBS (v1.3, funded-jobs-plan.md section 4, decision D25)
+    // =========================================================================
+
+    /// Publishes a job and locks its whole budget in the job vault
+    #[allow(clippy::too_many_arguments)]
+    pub fn post_job(
+        ctx: Context<PostJob>,
+        job_id: u64,
+        title: String,
+        summary: String,
+        category: u8,
+        skills: u64,
+        milestones: Vec<JobMilestoneInput>,
+        brief_hash: [u8; 32],
+        apply_by: i64,
+        select_by: i64,
+    ) -> Result<()> {
+        post_job_handler(ctx, job_id, title, summary, category, skills, milestones, brief_hash, apply_by, select_by)
+    }
+
+    /// One part of the job's plain-text brief (no state change), while the job is Open
+    pub fn post_job_brief(ctx: Context<PostJobBrief>, part: u8, parts: u8, data: Vec<u8>) -> Result<()> {
+        post_job_brief_handler(ctx, part, parts, data)
+    }
+
+    /// Applies to an open job with a public pitch (one application per person)
+    pub fn apply_job(ctx: Context<ApplyJob>, pitch: String) -> Result<()> {
+        apply_job_handler(ctx, pitch)
+    }
+
+    /// Binds the job to the contract just created for one applicant (same transaction, after create_fund)
+    pub fn select_job(ctx: Context<SelectJob>) -> Result<()> {
+        select_job_handler(ctx)
+    }
+
+    /// Moves the job budget into the accepted contract (same transaction, after accept)
+    pub fn lock_from_job(ctx: Context<LockFromJob>) -> Result<()> {
+        lock_from_job_handler(ctx)
+    }
+
+    /// Returns the budget to the business when no one was hired
+    pub fn withdraw_job(ctx: Context<WithdrawJob>) -> Result<()> {
+        withdraw_job_handler(ctx)
+    }
 }
