@@ -1,0 +1,29 @@
+# Code owners (UniHackFest 2026, team N.E.D)
+# GitHub asks these people to review any pull request that touches the paths below.
+# Rule (docs/05-legal/compliance-lead-tasks.md): anything judges or the public can see goes past the Compliance Lead.
+# Reviews become *required* only if the repo owner turns on "Require review from Code Owners" for main.
+
+# User-facing text in the mobile app
+/ned-wallet/app/                         @F4ol4n
+/ned-wallet/components/                  @F4ol4n
+/ned-wallet/locales/                     @F4ol4n
+/ned-wallet/stores/useNotificationStore.ts @F4ol4n
+/ned-wallet/stores/useConsentStore.ts    @F4ol4n
+/ned-wallet/services/onboarding.ts       @F4ol4n
+
+# User-facing text in the web Workspace
+/ned-workspace/src/pages/                @F4ol4n
+/ned-workspace/src/components/           @F4ol4n
+/ned-workspace/index.html                @F4ol4n
+/ned-workspace/vercel.json               @F4ol4n
+
+# Shared labels shown in both apps
+/packages/ned-core/src/milestone/view.ts @F4ol4n
+/packages/ned-core/src/milestone/records.ts @F4ol4n
+
+# Public docs and legal
+/README.md                               @F4ol4n
+/LICENSE                                 @F4ol4n
+/docs/05-legal/                          @F4ol4n
+/docs/08-research/                       @F4ol4n
+/docs/09-milestone-lock/product-spec.md  @F4ol4n
