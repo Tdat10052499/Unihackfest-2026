@@ -21,7 +21,7 @@ export const CATEGORY_LOOK: readonly { icon: HubIconName; ink: string; tint: str
 
 export const openJobsLabel = (n: number) => (n === 0 ? 'No open jobs yet' : n === 1 ? '1 open job' : `${n} open jobs`);
 
-export function CategoryTile({ category, count, selected = false }: { category: number; count: number; selected?: boolean }) {
+export function CategoryTile({ category, count, selected = false, loading = false }: { category: number; count: number; selected?: boolean; loading?: boolean }) {
   const cat = JOB_CATEGORIES[category];
   const look = CATEGORY_LOOK[category] ?? CATEGORY_LOOK[7];
   if (!cat) return null;
@@ -30,7 +30,7 @@ export function CategoryTile({ category, count, selected = false }: { category: 
     <Link
       to={`/jobs/find?${query}`}
       className={`${styles.tile} ${hub.liftSmall} ${selected ? styles.tileOn : ''}`}
-      aria-label={`${cat.label}, ${openJobsLabel(count)}`}
+      aria-label={loading ? cat.label : `${cat.label}, ${openJobsLabel(count)}`}
       aria-current={selected ? 'true' : undefined}
     >
       <span className={styles.tileIcon} style={{ background: look.tint }}>
@@ -38,7 +38,7 @@ export function CategoryTile({ category, count, selected = false }: { category: 
       </span>
       <span>
         <span className={styles.tileLabel}>{cat.label}</span>
-        <span className={`${styles.tileCount} ${count === 0 ? styles.tileEmpty : ''}`}>{openJobsLabel(count)}</span>
+        <span className={`${styles.tileCount} ${count === 0 ? styles.tileEmpty : ''}`}>{loading ? '…' : openJobsLabel(count)}</span>
       </span>
     </Link>
   );

@@ -80,7 +80,7 @@
 
 /* StepsBand (H.7) */
 .band { position: relative; max-width: 1040px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; border-radius: var(--hub-r-band); background: var(--hub-peach); overflow: hidden; }
-.bandSwirl { position: absolute; top: 0; height: 100%; }
+.bandSwirl { position: absolute; top: 0; height: 100%; width: 80px; }
 .bandSwirlLeft { left: -6px; }
 .bandSwirlRight { right: -6px; transform: scaleX(-1); }
 .steps { position: relative; margin: 0 auto; padding: 0 40px; max-width: 840px; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 18px; }
@@ -94,3 +94,10 @@
 .emptyIcon { width: 48px; height: 48px; border-radius: 14px; background: #fff; display: grid; place-items: center; color: var(--hub-purple-ink); }
 .emptyTitle { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
 .emptyBody { margin: 0; max-width: 420px; font-size: 14px; color: var(--hub-caption); }
+
+/* Narrow screens: the steps stack, so the side swirls would cover the text */
+@media (max-width: 640px) {
+  .band { padding: 24px 20px; }
+  .bandSwirl { display: none; }
+  .steps { padding: 0; }
+}
