@@ -219,6 +219,31 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
   - sau đó release, đóng hợp đồng; thêm một hợp đồng ngắn để chụp danh sách (đã đóng). Client test còn **11 USDC**, partner nhận 1.
 - **Chưa test tay (cần chủ dự án):** hai trình duyệt thật (Mia Chrome desktop, Vinh Safari iPhone) — tạo qua `/dev/milestone`, Vinh đọc brief và accept VND, Mia lock.
 
+**Baseline 06/10/2026 (`release/6oct`, prompts-6oct mục 0).**
+- **Branch:** `release/6oct` tạo từ `main` = `4b64b21` (Merge PR #36 `docs/funded-jobs-plan`), đã push lên origin. Chưa sửa gì.
+- **Công cụ:** anchor-cli 1.1.2 · solana-cli 3.1.10 (Agave) · node v24.10.0 · pnpm 11.24.0 · npm 11.6.1 · cargo/rustc 1.98.0.
+- **Cài đặt:** `pnpm install --frozen-lockfile` ở gốc repo: OK, lockfile không đổi.
+- **Kết quả (tất cả đạt, không có lỗi nào):**
+
+  | Bước | Kết quả |
+  | --- | --- |
+  | `anchor build` (ned_program) | OK, 0 cảnh báo |
+  | `cargo test` (ned_program) | 29 milestone + 10 identity + 4 helper + 1 lib = **44/44** |
+  | `packages/ned-core` test | **100/100** |
+  | `packages/ned-core` typecheck | không có `tsconfig` riêng; được typecheck qua hai app (bên dưới) |
+  | `ned-wallet` test | **26/26** |
+  | `ned-wallet` `tsc --noEmit` | 0 lỗi |
+  | `ned-workspace` test | **10/10** |
+  | `ned-workspace` `tsc --noEmit` | 0 lỗi |
+  | `ned-workspace` `npm run build` | OK (cảnh báo sẵn có: chunk chính > 500 kB) |
+  | `ned-wallet` web export (`/Unihackfest-2026`, GitHub Pages) | OK |
+  | `ned-workspace` `build:wallet` (app ở `/wallet`, W6) | OK, 49 giây |
+
+- **Tài liệu và board cần cho hôm nay (mục 4):**
+  - có: `funded-jobs-plan.md`, `delivery-review-updates.md`;
+  - **thiếu** (không có trên `main` lẫn mọi branch trên origin): `review-decision-plan.md`, `build-order-6oct.md`, `prompts-6oct.md`;
+  - **thiếu** cả 5 board: `WebJobs`, `WebJobsFind`, `WebJobDetail`, `WebJobPost`, `WebJobApplicants` (`docs/02-thiet-ke/canvas-v2/`).
+
 **D1 (04/10/2026): chạy end-to-end trên bản đã deploy.**
 - **Cách chạy:** PO chỉ có 1 tài khoản Google, nên PO đóng một vai bằng giao diện thật, vai còn lại chạy bằng script tạm (hai ví test, dùng chung các hàm của core). Đã chuyển 0.15 SOL từ ví deploy sang hai ví test (PO đồng ý).
 - **Công cụ:** `npm run milestone:status -- <hợp đồng | ví>` (chỉ đọc): trạng thái, vault, note brief/delivery/key, số thiết bị đã đăng ký.
