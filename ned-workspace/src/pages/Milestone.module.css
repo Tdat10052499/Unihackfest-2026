@@ -82,3 +82,28 @@
 .doneValue { font-weight: 600; text-align: right; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .doneSub { display: block; font-size: 12px; font-weight: 400; color: var(--caption); }
 .okDotWarn { background: var(--warning-bg) !important; }
+
+/* S7 review: side by side, versions, request sheet, final files */
+.sideBySide { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.versions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.version { height: 34px; padding: 0 12px; border: none; border-radius: var(--r-pill); background: var(--field); color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.versionOn { background: var(--ink); color: #fff; }
+.linkMain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.open { font-size: 13px; font-weight: 600; color: var(--link); white-space: nowrap; }
+.optional { margin-top: 12px; border-radius: var(--r-14); background: var(--row); padding: 10px 12px; }
+.optional summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.decide { display: flex; flex-direction: column; gap: 8px; }
+.secondaryBtn { height: 48px; border: none; border-radius: var(--r-pill); background: var(--field); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.secondaryBtn:hover { background: var(--hover-ground); }
+.secondaryBtn:disabled { cursor: not-allowed; opacity: 0.55; }
+.requestBox { padding: 12px 14px; border-radius: var(--r-14); background: var(--warning-bg); font-size: 13px; line-height: 1.5; }
+.requestTitle { font-weight: 700; color: var(--warning-ink); }
+.unmet { margin: 6px 0 0; padding-left: 18px; }
+.sheetBackdrop { position: fixed; inset: 0; z-index: 60; background: rgba(17, 17, 22, 0.42); display: grid; place-items: center; padding: 16px; }
+.sheet { width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 22px; border-radius: var(--r-20); background: var(--card); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 12px; }
+.sheetTitle { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.info { margin: 0; padding: 10px 12px; border-radius: var(--r-12); background: var(--info-bg); color: var(--info-ink); font-size: 13px; line-height: 1.5; }
+.sheetButtons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.finalResult { margin: 8px 0 0; font-size: 13px; font-weight: 600; }
+.finalOk { color: var(--success-ink); }
+.finalBad { color: var(--error-ink); }

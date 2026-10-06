@@ -12,6 +12,9 @@ import { Applicants } from './jobs/pages/Applicants.tsx';
 import { JobDetail } from './jobs/pages/JobDetail.tsx';
 import { PostJob } from './jobs/pages/PostJob.tsx';
 import { safeNext } from './lib/next.ts';
+
+// Dev only: fixture contract states for screenshots (S7); not in normal builds
+const StatesPage = import.meta.env.VITE_DEV_TOOLS === '1' ? lazy(() => import('./dev/StatesPage.tsx').then((m) => ({ default: m.StatesPage }))) : null;
 import { hasPendingInvite } from './hooks/keyStore.ts';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
@@ -86,6 +89,7 @@ export function App() {
           <Route path="contract/:fund/submit" element={lazyPage(<Submit />)} />
           <Route path="contract/:fund/review" element={lazyPage(<Review />)} />
           <Route path="new" element={lazyPage(<NewContract />)} />
+          {StatesPage ? <Route path="dev/states" element={<Suspense fallback={<Loading />}><StatesPage /></Suspense>} /> : null}
           <Route
             path="sign-in"
             element={

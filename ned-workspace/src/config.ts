@@ -15,6 +15,11 @@ export const env = {
  */
 export const FEATURES = {
   jobs: import.meta.env.VITE_FEATURE_JOBS !== 'false',
+  /**
+   * The dispute group of D27 (request changes, revised version, split, return to client, final files): on by default
+   * (review-decision-plan.md); VITE_FEATURE_DISPUTE=false turns every D27 control off.
+   */
+  dispute: import.meta.env.VITE_FEATURE_DISPUTE !== 'false',
 } as const;
 
 configureCore({

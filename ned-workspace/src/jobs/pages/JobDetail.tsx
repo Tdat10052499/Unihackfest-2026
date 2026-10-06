@@ -99,13 +99,7 @@ export function JobDetailView(p: JobDetailViewProps) {
   const { job } = p;
   const skills = listingSkills(job.skills);
   const b = p.brief?.status === 'ok' ? p.brief.brief : undefined;
-  // The job vault for the Explorer link (falls back to the listing if the address cannot be derived here)
-  let vault = job.address.toBase58();
-  try {
-    vault = jobVaultPda(job.address).toBase58();
-  } catch {
-    // keep the listing address
-  }
+  const vault = jobVaultPda(job.address).toBase58();
   return (
     <Shell>
       <div className={styles.cols}>

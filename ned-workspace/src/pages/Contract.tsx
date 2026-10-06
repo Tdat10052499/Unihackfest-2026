@@ -1,17 +1,21 @@
-// /contract/:fund — read-only summary (workspace-plan W2): state, other party, amounts in the money view, destination,
-// vault proof, the brief (ok / mismatch / noKey / missing, with "Paste the contract link"), milestones with chain-time
-// countdowns and deliveries, and the role's next step (submit / review pages arrive in W4). Nothing is signed here.
+// /contract/:fund (workspace-plan W2, S7): state, other party, amounts in the money view, destination, vault proof, the
+// brief (ok / mismatch / noKey / missing, with "Paste the contract link"), milestones with chain-time countdowns and a
+// Delivery line (U1), and the role's next step. Release now / Refund now (U4, both parties), Move locked budget (job
+// contracts) and the D27 controls (behind FEATURES.dispute) run here after the wallet panel's confirm sheet.
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { m } from 'motion/react';
-import { formatDeadline, formatUsdc } from '@ned/core/milestone/format.ts';
+import type { FundAccount } from '@ned/core/milestone/decode.ts';
+import { formatDeadline, formatUsdc, unitsFromUsdc } from '@ned/core/milestone/format.ts';
+import { unsettled } from '@ned/core/milestone/rules.ts';
 import type { FundView, MilestoneView } from '@ned/core/milestone/view.ts';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { Avatar } from '../components/Avatar.tsx';
 import { partyName } from '../components/ContractsTable.tsx';
 import { Icon } from '../components/icons.tsx';
 import { StatusChip } from '../components/StatusChip.tsx';
-import { env } from '../config.ts';
+import { env, FEATURES } from '../config.ts';
+import { useContractActions } from '../hooks/contractActions.ts';
 import { useRegion } from '../hooks/region.ts';
 import { useContractContent, type ContractContentState } from '../hooks/useContractContent.ts';
 import { isFundAddress, useFund } from '../hooks/useFund.ts';
@@ -30,6 +34,8 @@ export function Contract() {
     ...(content.content ? { content: content.content } : {}),
     ...(content.inviteLink ? { inviteLink: content.inviteLink } : {}),
   });
+  const raw = base.raw?.fund ?? null;
+  const actions = useContractActions(address, fund, raw);
 
   if (!isFundAddress(address) || base.missing) {
     return (
@@ -44,7 +50,7 @@ export function Contract() {
       </main>
     );
   }
-  if (!fund) {
+  if (!fund || !raw) {
     return (
       <main id="main" className={styles.page} aria-busy="true">
         <p className={styles.muted}>{base.error ? 'Could not read this contract. We try again every few seconds.' : 'Reading the contract from the chain…'}</p>
@@ -52,9 +58,24 @@ export function Contract() {
     );
   }
   // A third party (someone with the link, not client or freelancer) sees the contract but no next step
-  const raw = base.raw?.fund;
-  const isParty = Boolean(raw && walletAddress && (raw.client.toBase58() === walletAddress || raw.freelancer.toBase58() === walletAddress));
+  const isParty = Boolean(walletAddress && (raw.client.toBase58() === walletAddress || raw.freelancer.toBase58() === walletAddress));
+  return <ContractView fund={fund} raw={raw} content={content} vn={vn} isParty={isParty} p1={FEATURES.dispute} actions={actions} />;
+}
 
+export interface ContractViewProps {
+  fund: FundView;
+  raw: FundAccount;
+  content: ContractContentState;
+  vn: boolean;
+  isParty: boolean;
+  /** FEATURES.dispute: every D27 control */
+  p1: boolean;
+  actions: ContractActions;
+}
+type ContractActions = Pick<ReturnType<typeof useContractActions>, 'run' | 'busy' | 'status' | 'error'>;
+
+export function ContractView({ fund, raw, content, vn, isParty, p1, actions }: ContractViewProps) {
+  const [splitOpen, setSplitOpen] = useState(false);
   return (
     <m.main id="main" className={styles.page} variants={staggerParent} initial="hidden" animate="shown">
       <m.div variants={rise} custom={0} className={styles.top}>
@@ -71,7 +92,13 @@ export function Contract() {
         </span>
       </m.div>
 
-      {isParty ? <NextStep fund={fund} vn={vn} /> : null}
+      {isParty ? <NextStep fund={fund} actions={actions} /> : null}
+      {isParty && actions.error ? (
+        <p className={styles.error} role="alert">
+          {actions.error}
+        </p>
+      ) : null}
+      {isParty && p1 && fund.split ? <SplitBanner fund={fund} actions={actions} /> : null}
 
       <m.div variants={rise} custom={1} className={styles.party}>
         <Avatar seed={fund.counterparty.wallet} size={42} decorative />
@@ -110,7 +137,11 @@ export function Contract() {
           </a>
         ) : (
           <div className={styles.notFunded}>
-            {fund.state === 'created' ? 'Nothing is locked yet. The freelancer accepts first, then the client locks.' : 'Accepted. Nothing is locked until the client locks.'}
+            {fund.actions.includes('lockFromJob')
+              ? 'Accepted. The budget is still in the job; move it into this contract to start.'
+              : fund.state === 'created'
+                ? 'Nothing is locked yet. The freelancer accepts first, then the client locks.'
+                : 'Accepted. Nothing is locked until the client locks.'}
           </div>
         )}
       </m.div>
@@ -124,27 +155,33 @@ export function Contract() {
       </m.h2>
       {fund.milestones.map((ms) => (
         <m.div key={ms.index} variants={rise} custom={4}>
-          <Milestone ms={ms} vn={vn} />
+          <Milestone fund={fund} ms={ms} vn={vn} isParty={isParty} p1={p1} actions={actions} onSplit={() => setSplitOpen(true)} />
         </m.div>
       ))}
 
       <m.details variants={rise} custom={4} className={styles.card}>
         <summary style={{ cursor: 'pointer', fontWeight: 600 }}>How this contract works</summary>
         <ul className={styles.rules}>
-          <li>Each milestone is released when the client approves, or automatically when its review time ends.</li>
+          <li>Each milestone is released when the client accepts it. If the client does not review before the review deadline, anyone can release the milestone to the freelancer. Nothing happens by itself: someone presses Release now.</li>
           <li>If a submission deadline passes with nothing submitted, anyone can refund that milestone to the client.</li>
+          {p1 ? <li>The client can request changes before the review deadline. The amount then stays locked until both sides agree: the client accepts a revised version, the freelancer returns it, or both agree a split. Nobody outside the contract decides.</li> : null}
           <li>The money sits in a program vault. Nobody, including N.E.D, can move it any other way.</li>
         </ul>
         <a href={`${env.mobileOrigin}/disclosures`} target="_blank" rel="noreferrer">
           Disclosures
         </a>
       </m.details>
+      {splitOpen ? <SplitSheet fund={fund} raw={raw} onCancel={() => setSplitOpen(false)} onPropose={(units) => { setSplitOpen(false); void actions.run('proposeSplit', 0, units); }} /> : null}
     </m.main>
   );
 }
 
-/** The role's next step: submit and review have their pages (W4); the other steps open the contract in the wallet extension (W6) */
-function NextStep({ fund }: { fund: FundView; vn: boolean }) {
+const reviewHref = (fund: FundView, i: number) => `/contract/${fund.address}/review?i=${i}`;
+const submitHref = (fund: FundView, i: number, mode?: 'revision' | 'handover') => `/contract/${fund.address}/submit?i=${i}${mode ? `&mode=${mode}` : ''}`;
+
+/** The role's next step: submit / review / revision / handover have pages; Release now, Refund now and Move locked
+ * budget run here (wallet confirm first); accept, lock and close open the contract in the wallet extension (W6) */
+function NextStep({ fund, actions }: { fund: FundView; actions: ContractActions }) {
   const { openWalletAt } = useWalletPanel();
   const next = fund.nextAction;
   if (!next) {
@@ -153,29 +190,103 @@ function NextStep({ fund }: { fund: FundView; vn: boolean }) {
       <div className={styles.next}>
         <span className={styles.nextText}>
           <strong>Next · </strong>
-          {m0.countdown!.label.charAt(0).toUpperCase() + m0.countdown!.label.slice(1)}.
+          {m0.countdown!.label}.
         </span>
       </div>
     ) : null;
   }
-  const path = next.kind === 'submit' ? 'submit' : next.kind === 'approve' ? 'review' : null;
-  // The Vietnam view never offers client actions (D18); rules.ts already keeps them out of nextAction for a freelancer
+  const i = next.milestone ?? 0;
+  const page: Record<string, string> = {
+    submit: submitHref(fund, i),
+    approve: reviewHref(fund, i),
+    sendRevision: submitHref(fund, i, 'revision'),
+    handover: submitHref(fund, i, 'handover'),
+  };
+  const runsHere = next.kind === 'releaseNow' || next.kind === 'refundNow' || next.kind === 'lockFromJob' || next.kind === 'acceptSplit';
   return (
     <div className={styles.next}>
       <span className={styles.nextText}>
         <strong>Next · </strong>
-        {next.label}
-        {path ? '' : '. Do it in your wallet.'}
+        {next.detail ?? next.label}
+        {page[next.kind] || runsHere ? '' : '. Do it in your wallet.'}
       </span>
-      {path ? (
-        <Link to={`/contract/${fund.address}/${path}?i=${next.milestone ?? 0}`} className={styles.primary}>
-          {path === 'submit' ? 'Open delivery form' : 'Review delivery'}
+      {page[next.kind] ? (
+        <Link to={page[next.kind]} className={styles.primary}>
+          {next.kind === 'submit' ? 'Open delivery form' : next.kind === 'approve' ? 'Review delivery' : next.label}
         </Link>
+      ) : runsHere ? (
+        <button type="button" className={styles.primary} disabled={Boolean(actions.busy)} onClick={() => void actions.run(next.kind as 'releaseNow', i)}>
+          {actions.busy === next.kind ? actions.status || 'Working…' : next.label}
+        </button>
       ) : (
         <button type="button" className={styles.primary} onClick={() => openWalletAt(`/contracts/${fund.address}`)}>
           Open in wallet
         </button>
       )}
+    </div>
+  );
+}
+
+function SplitBanner({ fund, actions }: { fund: FundView; actions: ContractActions }) {
+  const split = fund.split!;
+  const other = partyName(fund);
+  const freelancer = fund.role === 'client' ? other : 'You';
+  const client = fund.role === 'client' ? 'you' : other;
+  return (
+    <div className={styles.split} role="status">
+      <span className={styles.splitText}>
+        <strong>{split.proposedByMe ? 'You proposed a split' : `${other} proposed a split`}</strong> · {freelancer} {freelancer === 'You' ? 'receive' : 'receives'}{' '}
+        {split.toFreelancerLabel}, {client} {client === 'you' ? 'get' : 'gets'} back {split.toClientLabel}. A split settles every milestone that is still open in this
+        contract, not only one.
+      </span>
+      {fund.actions.includes('acceptSplit') ? (
+        <button type="button" className={styles.primary} disabled={Boolean(actions.busy)} onClick={() => void actions.run('acceptSplit')}>
+          {actions.busy === 'acceptSplit' ? actions.status || 'Working…' : 'Accept split'}
+        </button>
+      ) : (
+        <span className={styles.muted}>Waiting for {other}</span>
+      )}
+    </div>
+  );
+}
+
+function SplitSheet({ fund, raw, onCancel, onPropose }: { fund: FundView; raw: FundAccount; onCancel(): void; onPropose(units: bigint): void }) {
+  const [value, setValue] = useState('');
+  const open = unsettled(raw);
+  const units = unitsFromUsdc(value);
+  const ok = units !== null && units >= 0n && units <= open;
+  const other = partyName(fund);
+  const freelancer = fund.role === 'client' ? other : 'You';
+  const client = fund.role === 'client' ? 'You' : other;
+  return (
+    <div className={styles.backdrop}>
+      <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="split-title">
+        <h2 id="split-title" className={styles.sheetTitle}>
+          Propose a split
+        </h2>
+        <p className={styles.bannerText}>A split settles every milestone that is still open in this contract, not only this one. Still locked: {formatUsdc(open)}.</p>
+        <label className={styles.bannerText} htmlFor="split-amount">
+          {freelancer === 'You' ? 'You receive' : `${freelancer} receives`} (USDC)
+        </label>
+        <input id="split-amount" className={styles.amountInput} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+        <div className={styles.sheetRow}>
+          <span>{freelancer === 'You' ? 'You receive' : `${freelancer} receives`}</span>
+          <strong className={styles.mono}>{ok ? formatUsdc(units!) : '—'}</strong>
+        </div>
+        <div className={styles.sheetRow}>
+          <span>{client === 'You' ? 'You get back' : `${client} gets back`}</span>
+          <strong className={styles.mono}>{ok ? formatUsdc(open - units!) : '—'}</strong>
+        </div>
+        {value && !ok ? <p className={styles.error}>Enter an amount from 0 to {formatUsdc(open)}.</p> : null}
+        <div className={styles.sheetButtons}>
+          <button type="button" className={styles.secondary} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className={styles.primary} disabled={!ok} onClick={() => onPropose(units!)}>
+            Propose split
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -263,8 +374,13 @@ function Brief({ fund, content }: { fund: FundView; content: ContractContentStat
   );
 }
 
-function Milestone({ ms, vn }: { ms: MilestoneView; vn: boolean }) {
+function Milestone({ fund, ms, vn, isParty, p1, actions, onSplit }: { fund: FundView; ms: MilestoneView; vn: boolean; isParty: boolean; p1: boolean; actions: ContractActions; onSplit(): void }) {
   const d = ms.delivery;
+  const other = partyName(fund);
+  const first = ms.history?.deliveries.find((x) => x.stage === 'first')?.content ?? d?.content;
+  const versions = ms.history?.deliveries.filter((x) => x.stage !== 'handover').length ?? 0;
+  // D18: the Vietnam view has no client actions
+  const anyone = isParty && !(vn && fund.role === 'client');
   return (
     <div role="group" aria-label={`Milestone ${ms.index + 1}`} className={styles.ms}>
       <div className={styles.msTop}>
@@ -294,8 +410,7 @@ function Milestone({ ms, vn }: { ms: MilestoneView; vn: boolean }) {
       </div>
       {ms.countdown ? (
         <div role="timer" className={styles.timer}>
-          <span>{ms.countdown.label.replace(/ in .*$/, '').replace(/ within .*$/, '')}</span>
-          <span className={styles.mono}>{ms.countdown.label.replace(/^.*?(in|within) /, '')}</span>
+          <span>{ms.countdown.label}</span>
         </div>
       ) : null}
       {ms.criteria?.length ? (
@@ -309,20 +424,30 @@ function Milestone({ ms, vn }: { ms: MilestoneView; vn: boolean }) {
         </ul>
       ) : null}
       {d ? (
-        <div className={styles.delivery}>
+        <div className={styles.deliveryLine} data-testid="delivery-line">
           <span>
-            Submitted {formatDeadline(d.submittedAt)} · {d.onTime ? 'on time' : 'late'}
-            {ms.evidence ? (
-              <>
-                {' '}
-                · fingerprint <span className={styles.mono}>{ms.evidence}</span>
-              </>
-            ) : null}
+            Submitted {formatDeadline(d.submittedAt)}
+            {first ? ` · ${countLabel(first.links.length, 'link')} · ${countLabel(first.files.length, 'file')}` : ''}
+            {versions > 1 ? ` · ${versions} versions` : ''}
+            {d.onTime ? '' : ' · late'}
           </span>
-          {d.matches ? (
-            <span className={styles.ok}>Same delivery that was submitted ✓ · {d.content?.links.length ?? 0} links</span>
-          ) : d.matches === false ? (
-            <span className={styles.muted}>The delivery is not readable on this computer yet.</span>
+          <Link to={reviewHref(fund, ms.index)} className={styles.deliveryLink}>
+            View delivery
+          </Link>
+        </div>
+      ) : null}
+      {p1 && isParty ? <D27Banner fund={fund} ms={ms} other={other} actions={actions} onSplit={onSplit} /> : null}
+      {anyone && (ms.actions.includes('releaseNow') || ms.actions.includes('refundNow')) ? (
+        <div className={styles.msActions}>
+          {ms.actions.includes('releaseNow') ? (
+            <button type="button" className={styles.primary} disabled={Boolean(actions.busy)} onClick={() => void actions.run('releaseNow', ms.index)}>
+              {actions.busy === 'releaseNow' ? actions.status || 'Working…' : 'Release now'}
+            </button>
+          ) : null}
+          {ms.actions.includes('refundNow') ? (
+            <button type="button" className={styles.secondary} disabled={Boolean(actions.busy)} onClick={() => void actions.run('refundNow', ms.index)}>
+              {actions.busy === 'refundNow' ? actions.status || 'Working…' : 'Refund now'}
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -330,3 +455,86 @@ function Milestone({ ms, vn }: { ms: MilestoneView; vn: boolean }) {
   );
 }
 
+const countLabel = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** D27 banners: changes requested (with the unmet points and reason), revised version, final files */
+function D27Banner({ fund, ms, other, actions, onSplit }: { fund: FundView; ms: MilestoneView; other: string; actions: ContractActions; onSplit(): void }) {
+  const review = ms.history?.reviews.at(-1);
+  const client = fund.role === 'client';
+  if (ms.status === 'disputed') {
+    const revised = ms.statusLabel.startsWith('Revised');
+    return (
+      <div className={styles.banner} data-testid="d27-banner">
+        <span className={styles.bannerTitle}>{ms.statusLabel}</span>
+        {review ? (
+          <>
+            {review.content.unmet.length ? (
+              <ul className={styles.unmet} aria-label="Not met">
+                {review.content.unmet.map((i) => (
+                  <li key={i}>{ms.criteria?.[i] ?? `Done-when point ${i + 1}`}</li>
+                ))}
+              </ul>
+            ) : null}
+            {review.content.reason ? <p className={styles.reason}>{review.content.reason}</p> : null}
+          </>
+        ) : null}
+        <p className={styles.bannerText}>{ms.statusLine}</p>
+        <div className={styles.bannerActions}>
+          {client && revised ? (
+            <Link to={reviewHref(fund, ms.index)} className={styles.primary}>
+              Review revised version
+            </Link>
+          ) : null}
+          {!client && ms.actions.includes('sendRevision') ? (
+            <Link to={submitHref(fund, ms.index, 'revision')} className={styles.primary}>
+              Send revised version
+            </Link>
+          ) : null}
+          {fund.actions.includes('proposeSplit') ? (
+            <button type="button" className={styles.secondary} onClick={onSplit}>
+              Propose a split
+            </button>
+          ) : null}
+          {fund.actions.includes('acceptSplit') ? (
+            <button type="button" className={styles.secondary} onClick={() => void actions.run('acceptSplit')}>
+              Accept split
+            </button>
+          ) : null}
+          {ms.actions.includes('concede') ? (
+            <button type="button" className={`${styles.secondary} ${styles.danger}`} disabled={Boolean(actions.busy)} onClick={() => void actions.run('concede', ms.index)}>
+              Return to client
+            </button>
+          ) : null}
+        </div>
+        {!client && !revised ? <p className={styles.bannerText}>{other} can accept a revised version, or you can both agree a split.</p> : null}
+      </div>
+    );
+  }
+  if (ms.status === 'released' && ms.history) {
+    const handed = ms.history.deliveries.some((x) => x.stage === 'handover');
+    return (
+      <div className={`${styles.banner} ${handed ? styles.bannerOk : styles.bannerInfo}`} data-testid="d27-banner">
+        <span className={styles.bannerTitle}>{ms.statusLabel}</span>
+        {client ? (
+          <p className={styles.bannerText}>
+            {handed ? 'Check them against the fingerprints committed at submit.' : `${other} shares the final files after release. You can check them against the fingerprints committed at submit.`}
+          </p>
+        ) : (
+          <p className={styles.bannerText}>Share the final files now. {other} can check them against the fingerprints you committed when you submitted.</p>
+        )}
+        <div className={styles.bannerActions}>
+          {client ? (
+            <Link to={reviewHref(fund, ms.index)} className={styles.secondary}>
+              {handed ? 'Check final files' : 'View delivery'}
+            </Link>
+          ) : ms.actions.includes('handover') ? (
+            <Link to={submitHref(fund, ms.index, 'handover')} className={handed ? styles.secondary : styles.primary}>
+              {handed ? 'Hand over again' : 'Hand over final files'}
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}

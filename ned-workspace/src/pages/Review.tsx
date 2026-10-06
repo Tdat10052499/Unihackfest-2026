@@ -1,25 +1,31 @@
-// /contract/:fund/review?i=<milestone> (WebReview board, workspace-plan W4): the delivery (note, links, files with
-// fingerprints), "On time" from submitted_at vs submit_by, the integrity block, "Drop a file to compare" (hashed
-// here, nothing uploaded), local "Done when" ticks, timeline and auto-release countdown. Release → wallet panel
-// confirm → core approve → released. Dispute is P1 and off in the Workspace (no button).
+// /contract/:fund/review?i=<milestone> (WebReview board; U1, U2, U4, D27, C4). Side by side: "What to check" (the
+// milestone's done-when points, local ticks) and "What {name} delivered" (link cards with the Fixed version badge, note,
+// optional file check, integrity line), with a version switcher when revisions exist. The client decides with Accept &
+// release or Request changes only (no Reject or Refund). The freelancer, and anyone after the decision, sees the same
+// page read-only; after release a "Final files" block checks dropped files against the committed fingerprints.
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { m } from 'motion/react';
 import { PublicKey } from '@solana/web3.js';
-import { describeActionError, runFundAction } from '@ned/core/actions.ts';
-import { deliveryEvidence } from '@ned/core/milestone/content.ts';
+import { describeActionError, ReviewNotSavedError, runFundAction, runPostReview, runRequestChanges } from '@ned/core/actions.ts';
+import { deliveryEvidence, type DeliveryDraft, type ReviewDraft } from '@ned/core/milestone/content.ts';
+import type { FundAccount } from '@ned/core/milestone/decode.ts';
 import { shortHash } from '@ned/core/milestone/evidence.ts';
 import { formatCountdown, formatDeadline, formatUsdc } from '@ned/core/milestone/format.ts';
-import { linkLabel } from '@ned/core/milestone/links.ts';
+import { isFixedVersion, linkLabel } from '@ned/core/milestone/links.ts';
+import type { DeliveryEntry } from '@ned/core/milestone/notes.ts';
 import { txExplorerUrl } from '@ned/core/milestone/records.ts';
-import { canApprove } from '@ned/core/milestone/rules.ts';
+import { canApprove, canRequestChanges } from '@ned/core/milestone/rules.ts';
+import { DISPUTED_STATUS_LINE, type FundView, type MilestoneView } from '@ned/core/milestone/view.ts';
 import { Avatar } from '../components/Avatar.tsx';
 import { partyName } from '../components/ContractsTable.tsx';
 import { FileDrop } from '../components/FileDrop.tsx';
 import { Icon } from '../components/icons.tsx';
 import { KeyMissing } from '../components/KeyMissing.tsx';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
+import { FEATURES } from '../config.ts';
 import { useActionEnv } from '../hooks/actions.ts';
+import type { ContractContentState } from '../hooks/useContractContent.ts';
 import { useMilestonePage } from '../hooks/useMilestonePage.ts';
 import { checkFile, formatSize, hashFile, MAX_FILE_BYTES, shortSha, type FileCheck } from '../lib/delivery.ts';
 import { rise, stateChange, staggerParent } from '../motion.ts';
@@ -32,13 +38,19 @@ const row = {
   exit: { opacity: 0, scale: 0.98, transition: { ...stateChange, duration: 0.22 } },
 };
 
-type Page = ReturnType<typeof useMilestonePage>;
+export const REQUEST_INFO = (name: string) =>
+  `The amount stays locked. It does not come back to you. ${name} can send a revised version. You can accept it, or you can both agree a split.`;
+export const NOT_READY = (name: string, deadline: number) =>
+  `Not ready? Tell ${name} before ${formatDeadline(deadline)}. If you don't review by then, this milestone can be released to them.`;
+
 type Released = { signature: string };
 
 export function Review() {
   const page = useMilestonePage();
-  const [released, setReleased] = useState<Released | null>(null);
   const { fund, ms, msRaw, raw, wallet, vn } = page;
+  const { confirm } = useWalletPanel();
+  const { env, status } = useActionEnv();
+  const [released, setReleased] = useState<Released | null>(null);
 
   if (page.missing) return <Message title="Contract not found" text="This contract does not exist on devnet, or it was closed." />;
   // Wait for the key and notes too, so the key and integrity blocks never flash and shift the page
@@ -49,15 +61,54 @@ export function Review() {
       </main>
     );
   }
-  if (released) return <Done page={page} released={released} />;
+  if (released) return <Done fund={fund} raw={raw} index={page.index} released={released} />;
   const back = `/contract/${fund.address}`;
-  if (fund.role !== 'client') return <Message title={`Review milestone ${page.index + 1}`} text="Only the client of this contract reviews its deliveries." back={back} />;
-  // D18: the Vietnam view has no client actions
-  if (vn) return <Message title={`Review milestone ${page.index + 1}`} text="Reviewing and releasing are client actions, which the Vietnam view does not offer. Switch the money view in the N.E.D app if you live outside Vietnam." back={back} />;
-  if (!canApprove(raw, new PublicKey(wallet), page.index)) {
-    return <Message title={`Review milestone ${page.index + 1}`} text={`Milestone ${page.index + 1} is ${ms.statusLabel.toLowerCase()}. There is nothing to review.`} back={back} />;
-  }
-  return <Form page={page} onReleased={setReleased} />;
+  const party = raw.client.toBase58() === wallet || raw.freelancer.toBase58() === wallet;
+  if (!party) return <Message title={`Milestone ${page.index + 1}`} text="Only the client and the freelancer of this contract see its deliveries." back={back} />;
+  if (msRaw.submittedAt === 0) return <Message title={`Milestone ${page.index + 1}`} text={`Milestone ${page.index + 1} has no delivery yet.`} back={back} />;
+
+  const other = partyName(fund);
+  const release = async (): Promise<void> => {
+    const amount = formatUsdc(msRaw.amount);
+    const partner = fund.destination?.kind === 'payoutPartner';
+    const ok = await confirm({
+      title: `Release ${amount}`,
+      rows: [
+        { label: 'Contract', value: fund.title },
+        { label: 'Milestone', value: `${page.index + 1}${ms.name ? ` · ${ms.name}` : ''}` },
+        { label: 'To', value: other, sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'Their N.E.D wallet' },
+        { label: 'Amount', value: amount, mono: true },
+        { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
+        { label: 'N.E.D fee', value: 'None during the pilot' },
+      ],
+      note: { tone: 'info', text: `This cannot be undone. The money leaves the contract vault for ${other} as soon as you confirm.` },
+      confirmLabel: 'Release',
+    });
+    if (!ok) throw new Error('cancelled');
+    const result = await runFundAction(env, page.address, 'approve', page.index);
+    await page.refresh();
+    setReleased({ signature: result.signature });
+  };
+  const requestChanges = async (review: ReviewDraft, retry: boolean) => {
+    if (retry) await runPostReview(env, page.address, page.index, review);
+    else await runRequestChanges(env, page.address, page.index, review);
+    await page.refresh();
+  };
+  return (
+    <ReviewView
+      fund={fund}
+      raw={raw}
+      index={page.index}
+      now={page.now}
+      vn={vn}
+      me={wallet}
+      content={page.content}
+      p1={FEATURES.dispute}
+      status={status}
+      onRelease={release}
+      onRequestChanges={requestChanges}
+    />
+  );
 }
 
 function Message({ title, text, back = '/' }: { title: string; text: string; back?: string }) {
@@ -76,303 +127,390 @@ function Message({ title, text, back = '/' }: { title: string; text: string; bac
   );
 }
 
-function Crumb({ page }: { page: Page }) {
-  return (
-    <nav aria-label="Breadcrumb" className={flow.crumb}>
-      <Link to="/">Workspace</Link> <span aria-hidden>/</span> <Link to={`/contract/${page.address}`}>{page.fund?.title}</Link> <span aria-hidden>/</span> Milestone{' '}
-      {page.index + 1}
-    </nav>
-  );
+export interface ReviewViewProps {
+  fund: FundView;
+  raw: FundAccount;
+  index: number;
+  now: number;
+  vn: boolean;
+  me: string;
+  content: Pick<ContractContentState, 'hasKey' | 'importKey' | 'contentStatus'>;
+  /** FEATURES.dispute: Request changes and the D27 parts */
+  p1: boolean;
+  status: string;
+  onRelease(): Promise<void>;
+  onRequestChanges(review: ReviewDraft, retry: boolean): Promise<void>;
 }
 
-function Form({ page, onReleased }: { page: Page; onReleased(r: Released): void }) {
-  const { now, content, index, raw } = page;
-  const fund = page.fund!;
-  const ms = page.ms!;
-  const msRaw = page.msRaw!;
-  const { confirm } = useWalletPanel();
-  const { env, status } = useActionEnv();
-  const [ticks, setTicks] = useState<Record<number, boolean>>({});
-  const [checks, setChecks] = useState<Record<number, FileCheck['kind']>>({});
-  const [dropNote, setDropNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
+export function ReviewView(p: ReviewViewProps) {
+  const { fund, raw, index, now } = p;
+  const ms = fund.milestones[index] as MilestoneView;
+  const msRaw = raw.milestones[index];
+  const me = new PublicKey(p.me);
+  const client = fund.role === 'client';
   const other = partyName(fund);
-  const delivery = ms.delivery?.content;
-  const matches = Boolean(ms.delivery?.matches);
-  const noKey = !content.hasKey;
+  // D18: the Vietnam view has no client actions
+  const canDecide = client && !p.vn && canApprove(raw, me, index);
+  const canRequest = canDecide && p.p1 && canRequestChanges(raw, me, index, now);
+  const versions: DeliveryEntry[] = (ms.history?.deliveries ?? []).filter((d) => d.stage !== 'handover');
+  const handovers = (ms.history?.deliveries ?? []).filter((d) => d.stage === 'handover');
+  const [version, setVersion] = useState(Math.max(0, versions.length - 1));
+  const shown: { content?: DeliveryDraft; entry?: DeliveryEntry } = versions[version] ? { content: versions[version].content, entry: versions[version] } : { content: ms.delivery?.content };
+  const isRevision = shown.entry?.stage === 'revision';
   const criteria = ms.criteria ?? [];
+  const [ticks, setTicks] = useState<Record<number, boolean>>({});
   const ticked = criteria.filter((_, i) => ticks[i]).length;
-  const submittedAt = msRaw.submittedAt;
-  const onTime = submittedAt > 0 && submittedAt <= msRaw.submitBy;
-  const left = msRaw.reviewBy - now;
-  const window = Math.max(1, msRaw.reviewBy - submittedAt);
-  const partner = fund.destination?.kind === 'payoutPartner';
+  const [sheet, setSheet] = useState(false);
+  const [busy, setBusy] = useState<'' | 'release' | 'request'>('');
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState<ReviewDraft | null>(null);
+  const review = ms.history?.reviews.at(-1);
   const amount = formatUsdc(msRaw.amount);
-
-  const compare = async (files: File[]) => {
-    setDropNote('');
-    const listed = delivery?.files ?? [];
-    for (const file of files) {
-      if (file.size > MAX_FILE_BYTES) {
-        setDropNote(`${file.name} is larger than 200 MB, so it cannot be one of the listed files.`);
-        continue;
-      }
-      const sha256 = await hashFile(file);
-      const result = checkFile({ name: file.name, sha256 }, listed);
-      if (result.kind === 'unknown') setDropNote(`${file.name} (${shortSha(sha256)}) is not one of the files ${other} listed.`);
-      else setChecks((c) => ({ ...c, [result.index]: result.kind }));
-    }
-  };
+  const partner = fund.destination?.kind === 'payoutPartner';
 
   const release = async () => {
     setError('');
-    const ok = await confirm({
-      title: `Release ${amount}`,
-      rows: [
-        { label: 'Contract', value: fund.title },
-        { label: 'Milestone', value: `${index + 1}${ms.name ? ` · ${ms.name}` : ''}` },
-        { label: 'To', value: other, sub: partner ? 'Through the payout partner, paid out in VND (simulated)' : 'Their N.E.D wallet' },
-        { label: 'Amount', value: amount, mono: true },
-        { label: 'Delivery', value: matches ? 'Same delivery that was submitted ✓' : 'Not checked', sub: `Fingerprint ${ms.evidence ?? '—'}` },
-        { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
-        { label: 'N.E.D fee', value: 'None during the pilot' },
-      ],
-      note: { tone: 'info', text: `This cannot be undone. The money leaves the contract vault for ${other} as soon as you confirm.` },
-      confirmLabel: 'Release',
-    });
-    if (!ok) return;
-    setBusy(true);
+    setBusy('release');
     try {
-      const result = await runFundAction(env, page.address, 'approve', index);
-      await page.refresh();
-      onReleased({ signature: result.signature });
+      await p.onRelease();
     } catch (err) {
+      if ((err as Error)?.message !== 'cancelled') setError(describeActionError(err));
+    } finally {
+      setBusy('');
+    }
+  };
+  const request = async (draft: ReviewDraft, again: boolean) => {
+    setError('');
+    setBusy('request');
+    try {
+      await p.onRequestChanges(draft, again);
+      setSheet(false);
+      setRetry(null);
+    } catch (err) {
+      if (err instanceof ReviewNotSavedError) {
+        setRetry(draft);
+        setSheet(false);
+      }
       setError(describeActionError(err));
     } finally {
-      setBusy(false);
+      setBusy('');
     }
   };
 
-  const timeline: { title: string; when: string; dot: string }[] = [
-    { title: 'Contract created · brief saved', when: raw ? formatDeadline(raw.createdAt) : '', dot: 'var(--accent)' },
-    { title: `${other} accepted${partner ? ' · VND payout' : ' · own wallet'}`, when: 'before the lock', dot: 'var(--accent)' },
-    { title: `You locked ${fund.totalLabel}`, when: 'money in the program vault', dot: 'var(--accent)' },
-    { title: `Milestone ${index + 1} submitted`, when: `${formatDeadline(submittedAt)} · ${onTime ? 'on time' : 'late'}`, dot: 'var(--info-dot)' },
-    { title: 'Review deadline', when: `${formatDeadline(msRaw.reviewBy)} · then anyone can release`, dot: '#c9c9d2' },
-  ];
+  const title = client ? (canDecide ? `Review milestone ${index + 1}` : `Milestone ${index + 1} · delivery`) : 'What you delivered';
+  const timer =
+    ms.status === 'submitted' && now <= ms.reviewBy
+      ? { warn: ms.reviewBy - now < 3_600, text: `Release opens in ${formatCountdown(ms.reviewBy + 1 - now)} if not reviewed` }
+      : { warn: ms.status === 'disputed' || ms.status === 'submitted', text: ms.statusLabel };
 
   return (
     <m.main id="main" className={flow.page} {...row}>
-      <Crumb page={page} />
+      <nav aria-label="Breadcrumb" className={flow.crumb}>
+        <Link to="/">Workspace</Link> <span aria-hidden>/</span> <Link to={`/contract/${fund.address}`}>{fund.title}</Link> <span aria-hidden>/</span> Milestone {index + 1}
+      </nav>
       <div className={flow.head}>
         <div>
-          <h1 className={flow.h1}>Review milestone {index + 1}</h1>
+          <h1 className={flow.h1}>{title}</h1>
           <div className={styles.sub}>
             {fund.title}
-            {ms.name ? ` · ${ms.name}` : ''} · by {other}
+            {ms.name ? ` · ${ms.name}` : ''} · {client ? `by ${other}` : `for ${other}`}
           </div>
         </div>
-        <span role="timer" className={`${styles.timer} ${left < window * 0.1 ? styles.timerWarn : styles.timerInfo}`}>
+        <span role="timer" className={`${styles.timer} ${timer.warn ? styles.timerWarn : styles.timerInfo}`}>
           <Icon name="release" size={14} />
-          {left > 0 ? (
-            <>
-              Auto-release in <strong>{formatCountdown(left)}</strong> unless you release it sooner
-            </>
-          ) : (
-            'Review time is over · anyone can release'
-          )}
+          {timer.text}
         </span>
       </div>
 
-      <div className={flow.grid}>
-        <m.div className={flow.main} variants={staggerParent} initial="hidden" animate="shown">
-          {noKey ? (
-            <m.div variants={rise} custom={0}>
-              <KeyMissing content={content} text="Open N.E.D on a device you used for this contract before, and this computer unlocks by itself. Or paste the contract link." />
-            </m.div>
-          ) : null}
-          <m.section variants={rise} custom={0} aria-labelledby="rv-del" className={flow.card} style={{ gap: 0 }}>
-            <div className={styles.from}>
-              <Avatar seed={fund.counterparty.wallet} size={40} decorative />
-              <div className={styles.fromText}>
-                <h2 id="rv-del" className={flow.h2}>
-                  Delivery from {other}
-                </h2>
-                <div className={flow.caption}>Submitted {formatDeadline(submittedAt)} · recorded by the chain clock</div>
-              </div>
-              <span className={onTime ? styles.onTime : styles.late}>
-                <Icon name={onTime ? 'check' : 'lock'} size={12} width={2.6} />
-                {onTime ? 'On time' : 'Late'} · deadline {formatDeadline(msRaw.submitBy)}
-              </span>
-            </div>
-            {delivery ? (
-              <>
-                {delivery.note ? <blockquote className={styles.quote}>{delivery.note}</blockquote> : null}
-                {delivery.links.length ? (
-                  <>
-                    <div className={styles.sectionLabel}>Links</div>
-                    <ul className={flow.list}>
-                      {delivery.links.map((url) => (
-                        <li key={url}>
-                          <a href={url} target="_blank" rel="noopener noreferrer" className={styles.linkCard}>
-                            <Icon name="external" size={14} color="var(--caption)" />
-                            <span className={styles.linkText}>
-                              <span className={styles.linkLabel}>{linkLabel(url)}</span>
-                              <span className={styles.linkUrl}>{url.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                            </span>
-                            <Icon name="chevronRight" size={14} color="var(--caption)" />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-                {delivery.files.length ? (
-                  <>
-                    <div className={styles.sectionLabel}>Files listed by {other}</div>
-                    <ul className={flow.list}>
-                      {delivery.files.map((f, i) => {
-                        const c = checks[i];
-                        return (
-                          <li key={`${f.sha256}-${i}`} className={flow.item} style={{ padding: '10px 12px' }}>
-                            <Icon name="contracts" size={14} color="var(--caption)" />
-                            <span className={styles.linkText}>
-                              <span className={styles.linkLabel}>{f.name}</span>
-                              <span className={flow.caption} style={{ fontSize: 12 }}>
-                                {formatSize(f.size)} · fingerprint <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
-                              </span>
-                            </span>
-                            <span aria-live="polite" className={`${styles.fileChip} ${c === 'same' ? styles.chipSame : c === 'different' ? styles.chipDiff : styles.chipIdle}`}>
-                              {c === 'same' ? 'Same file ✓' : c === 'different' ? 'Different file' : 'Not checked'}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    <FileDrop compact label={`Drop a file ${other} shared to check it is the same`} onFiles={(f) => void compare(f)} />
-                    {dropNote ? (
-                      <p className={flow.hint} role="status">
-                        {dropNote}
-                      </p>
-                    ) : null}
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <p className={flow.hint} style={{ marginTop: 12 }}>
-                {noKey ? 'Open N.E.D on a device you used for this contract before to unlock it here, or paste the contract link above.' : 'The delivery saved with this contract could not be read.'}
-              </p>
-            )}
-          </m.section>
+      {!p.content.hasKey ? (
+        <KeyMissing content={p.content as ContractContentState} text="Open N.E.D on a device you used for this contract before, and this computer unlocks by itself. Or paste the contract link." />
+      ) : null}
 
-          <m.section
-            variants={rise}
-            custom={1}
-            aria-labelledby="rv-int"
-            className={`${styles.integrity} ${noKey ? styles.intIdle : matches ? styles.intOk : styles.intBad}`}
-          >
-            <h2 id="rv-int" className={styles.intTitle}>
-              <Icon name={noKey ? 'lock' : matches ? 'check' : 'close'} size={18} width={2.6} />
-              {noKey ? 'Delivery not opened on this computer' : matches ? 'Same delivery that was submitted ✓' : 'Does not match what was submitted'}
-            </h2>
-            <p className={styles.intBody}>
-              {noKey
-                ? 'Unlock this computer (open N.E.D on a device you used before, or paste the contract link) to compare the delivery with the fingerprint saved on-chain.'
-                : matches
-                  ? `The links, file fingerprints and note match the fingerprint saved on-chain on ${formatDeadline(submittedAt)}. This proves the delivery is the one submitted; it cannot prove that what a link points to has not changed since, so prefer fixed-version links.`
-                  : `The delivery saved with the contract does not match the fingerprint saved on-chain at submit. Ask ${other} which version is final before you release.`}
-            </p>
-            <div className={styles.intGrid}>
-              <div>
-                <div className={styles.muted}>Saved on-chain at submit</div>
-                <div className={styles.intHash}>{ms.evidence ?? '—'}</div>
-              </div>
-              <div>
-                <div className={styles.muted}>This delivery now</div>
-                <div className={styles.intHash}>{delivery ? shortHash(deliveryEvidence(delivery)) : '—'}</div>
-              </div>
-            </div>
-          </m.section>
-
-          {criteria.length ? (
-            <m.section variants={rise} custom={2} aria-labelledby="rv-check" className={flow.card}>
-              <div>
-                <div className={flow.labelRow}>
-                  <h2 id="rv-check" className={flow.h2}>
-                    Done when…
-                  </h2>
-                  <span className={ticked === criteria.length ? styles.countOk : styles.countWarn}>
-                    {ticked} of {criteria.length} met
-                  </span>
-                </div>
-                <p className={flow.hint}>From your brief (fingerprint {fund.briefHash}). Ticks help you decide; they are not saved on-chain.</p>
-              </div>
-              {criteria.map((c, i) => (
-                <label key={c} className={styles.check}>
-                  <input type="checkbox" checked={Boolean(ticks[i])} onChange={() => setTicks({ ...ticks, [i]: !ticks[i] })} />
-                  <span>{c}</span>
-                </label>
-              ))}
-            </m.section>
-          ) : null}
-        </m.div>
-
-        <m.aside aria-label="Decide" className={flow.aside} variants={staggerParent} initial="hidden" animate="shown">
-          <m.div variants={rise} custom={1} className={flow.card} style={{ gap: 0 }}>
-            <div className={flow.caption}>Release for milestone {index + 1}</div>
-            <div className={styles.amountBig}>
-              {amount.replace(' USDC', '')}
-              <span className={styles.amountUnit}> USDC</span>
-            </div>
-            <div className={flow.caption}>{partner ? `To the payout partner for ${other} · paid out in VND (simulated)` : `To ${other}’s N.E.D wallet`}</div>
-          </m.div>
-          <m.div variants={rise} custom={2} className={flow.card} style={{ gap: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Timeline</div>
-            <ol className={styles.timeline}>
-              {timeline.map((t, i) => (
-                <li key={t.title} className={styles.tlItem}>
-                  <span className={styles.tlRail} aria-hidden>
-                    <span className={styles.tlDot} style={{ background: t.dot }} />
-                    {i < timeline.length - 1 ? <span className={styles.tlLine} /> : null}
-                  </span>
-                  <span className={styles.tlText}>
-                    <span className={styles.tlTitle}>{t.title}</span>
-                    <span className={styles.tlWhen}>{t.when}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </m.div>
-          <div className={flow.createBox}>
-            <button type="button" className={flow.create} onClick={() => void release()} disabled={busy}>
-              {busy ? status || 'Releasing…' : `Release ${amount}`}
+      {versions.length > 1 ? (
+        <div className={styles.versions} role="tablist" aria-label="Versions">
+          {versions.map((v, i) => (
+            <button key={v.signature} type="button" role="tab" aria-selected={version === i} className={`${styles.version} ${version === i ? styles.versionOn : ''}`} onClick={() => setVersion(i)}>
+              Version {i + 1}
+              {v.stage === 'revision' ? ' (revised)' : ''}
             </button>
-            {error ? (
-              <p className={flow.error} role="alert">
-                {error}
-              </p>
+          ))}
+        </div>
+      ) : null}
+
+      {review && (ms.status === 'disputed' || ms.status === 'submitted') ? (
+        <div className={styles.requestBox} data-testid="last-review">
+          <div className={styles.requestTitle}>{client ? 'Your request' : `${other} requested changes`} · {review.time ? formatDeadline(review.time) : ''}</div>
+          <ul className={styles.unmet}>
+            {review.content.unmet.map((i) => (
+              <li key={i}>{criteria[i] ?? `Done-when point ${i + 1}`}</li>
+            ))}
+          </ul>
+          {review.content.reason ? <p style={{ margin: '6px 0 0' }}>{review.content.reason}</p> : null}
+        </div>
+      ) : null}
+
+      <m.div className={styles.sideBySide} variants={staggerParent} initial="hidden" animate="shown">
+        <m.section variants={rise} custom={0} aria-labelledby="rv-check" className={flow.card}>
+          <div className={flow.labelRow}>
+            <h2 id="rv-check" className={flow.h2}>
+              What to check
+            </h2>
+            {criteria.length ? <span className={ticked === criteria.length ? styles.countOk : styles.countWarn}>{ticked} of {criteria.length} met</span> : null}
+          </div>
+          <p className={flow.hint}>The done-when points of the brief (fingerprint {fund.briefHash}). Ticks help you decide; they are not saved.</p>
+          {criteria.length ? (
+            criteria.map((c, i) => (
+              <label key={c} className={styles.check}>
+                <input type="checkbox" checked={Boolean(ticks[i])} onChange={() => setTicks({ ...ticks, [i]: !ticks[i] })} />
+                <span>{c}</span>
+              </label>
+            ))
+          ) : (
+            <p className={flow.hint}>{p.content.hasKey ? 'The brief has no done-when points for this milestone.' : 'Unlock this computer to read the brief.'}</p>
+          )}
+        </m.section>
+
+        <m.section variants={rise} custom={1} aria-labelledby="rv-del" className={flow.card}>
+          <div className={styles.from}>
+            <Avatar seed={client ? fund.counterparty.wallet : p.me} size={40} decorative />
+            <div className={styles.fromText}>
+              <h2 id="rv-del" className={flow.h2}>
+                {client ? `What ${other} delivered` : 'What you delivered'}
+              </h2>
+              <div className={flow.caption}>
+                {isRevision && shown.entry?.time ? `Revised version · sent ${formatDeadline(shown.entry.time)}` : `Submitted ${formatDeadline(msRaw.submittedAt)} · ${msRaw.submittedAt <= msRaw.submitBy ? 'on time' : 'late'}`}
+              </div>
+            </div>
+          </div>
+          <DeliveryBody delivery={shown.content} other={other} hasKey={p.content.hasKey} />
+          <Integrity ms={ms} delivery={shown.content} isRevision={isRevision} other={other} hasKey={p.content.hasKey} />
+        </m.section>
+      </m.div>
+
+      {ms.status === 'released' ? <FinalFiles first={versions[0]?.content ?? ms.delivery?.content} committedAt={msRaw.submittedAt} handovers={handovers} client={client} other={other} /> : null}
+
+      {canDecide ? (
+        <section aria-label="Decide" className={flow.card}>
+          <div className={flow.caption}>Release for milestone {index + 1}</div>
+          <div className={styles.amountBig}>
+            {amount.replace(' USDC', '')}
+            <span className={styles.amountUnit}> USDC</span>
+          </div>
+          <div className={flow.caption}>{partner ? `To the payout partner for ${other} · sent as VND (simulated)` : `To ${other}’s N.E.D wallet`}</div>
+          <div className={styles.decide}>
+            <button type="button" className={flow.create} onClick={() => void release()} disabled={Boolean(busy)}>
+              {busy === 'release' ? p.status || 'Releasing…' : 'Accept & release'}
+            </button>
+            {canRequest ? (
+              <button type="button" className={styles.secondaryBtn} onClick={() => setSheet(true)} disabled={Boolean(busy)}>
+                Request changes
+              </button>
+            ) : null}
+            {retry ? (
+              <button type="button" className={styles.secondaryBtn} onClick={() => void request(retry, true)} disabled={Boolean(busy)}>
+                Save the review again
+              </button>
             ) : null}
           </div>
-          <div className={styles.help}>
-            <strong>Need changes?</strong> Talk to {other} before {formatDeadline(msRaw.reviewBy)}. After that, anyone can release this milestone.
-          </div>
-        </m.aside>
-      </div>
+          {error ? (
+            <p className={flow.error} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <p className={flow.hint} data-testid="bottom-line">
+            {ms.status === 'disputed' ? DISPUTED_STATUS_LINE : NOT_READY(other, ms.reviewBy)}
+          </p>
+        </section>
+      ) : (
+        <p className={flow.hint} data-testid="bottom-line">
+          {ms.status === 'disputed'
+            ? DISPUTED_STATUS_LINE
+            : client && p.vn && ms.status === 'submitted'
+              ? 'Reviewing and releasing are client actions, which the Vietnam view does not offer.'
+              : `Milestone ${index + 1} · ${ms.statusLabel}.`}
+        </p>
+      )}
+
+      {sheet ? <RequestSheet criteria={criteria} other={other} busy={busy === 'request'} status={p.status} error={error} onCancel={() => setSheet(false)} onSubmit={(d) => void request(d, false)} /> : null}
     </m.main>
   );
 }
 
-function Done({ page, released }: { page: Page; released: Released }) {
-  const { fund, msRaw, index } = page;
-  if (!fund || !msRaw) return null;
+function DeliveryBody({ delivery, other, hasKey }: { delivery?: DeliveryDraft; other: string; hasKey: boolean }) {
+  const [checks, setChecks] = useState<Record<number, FileCheck['kind']>>({});
+  const [note, setNote] = useState('');
+  if (!delivery) {
+    return <p className={flow.hint} style={{ marginTop: 12 }}>{hasKey ? 'The delivery saved with this contract could not be read.' : 'Unlock this computer to read the delivery.'}</p>;
+  }
+  const compare = async (files: File[]) => {
+    setNote('');
+    for (const file of files) {
+      if (file.size > MAX_FILE_BYTES) {
+        setNote(`${file.name} is larger than 200 MB, so it cannot be one of the listed files.`);
+        continue;
+      }
+      const sha256 = await hashFile(file);
+      const result = checkFile({ name: file.name, sha256 }, delivery.files);
+      if (result.kind === 'unknown') setNote(`${file.name} (${shortSha(sha256)}) is not one of the files ${other} listed.`);
+      else setChecks((c) => ({ ...c, [result.index]: result.kind }));
+    }
+  };
+  return (
+    <>
+      {delivery.links.length ? (
+        <ul className={flow.list} style={{ marginTop: 12 }}>
+          {delivery.links.map((url) => (
+            <li key={url}>
+              <a href={url} target="_blank" rel="noopener noreferrer" className={styles.linkCard} data-testid="link-card">
+                <Icon name="external" size={14} color="var(--caption)" />
+                <span className={styles.linkMain}>
+                  <span className={styles.linkLabel}>
+                    {linkLabel(url)} {isFixedVersion(url) ? <span className={styles.fixed}>Fixed version</span> : null}
+                  </span>
+                  <span className={styles.linkUrl}>{url.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                </span>
+                <span className={styles.open}>Open</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {delivery.note ? <blockquote className={styles.quote}>{delivery.note}</blockquote> : null}
+      {delivery.files.length ? (
+        <details className={styles.optional}>
+          <summary>Optional · Check a file you received</summary>
+          <ul className={flow.list} style={{ marginTop: 10 }}>
+            {delivery.files.map((f, i) => (
+              <li key={`${f.sha256}-${i}`} className={flow.item} style={{ padding: '10px 12px' }}>
+                <Icon name="contracts" size={14} color="var(--caption)" />
+                <span className={styles.linkText}>
+                  <span className={styles.linkLabel}>{f.name}</span>
+                  <span className={flow.caption} style={{ fontSize: 12 }}>
+                    {formatSize(f.size)} · fingerprint <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
+                  </span>
+                </span>
+                {checks[i] ? (
+                  <span aria-live="polite" className={`${styles.fileChip} ${checks[i] === 'same' ? styles.chipSame : styles.chipDiff}`}>
+                    {checks[i] === 'same' ? 'Same file ✓' : 'Different file'}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <FileDrop compact label={`Drop a file ${other} shared to check it is the same`} onFiles={(f) => void compare(f)} />
+          {note ? (
+            <p className={flow.hint} role="status">
+              {note}
+            </p>
+          ) : null}
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+function Integrity({ ms, delivery, isRevision, other, hasKey }: { ms: MilestoneView; delivery?: DeliveryDraft; isRevision: boolean; other: string; hasKey: boolean }) {
+  if (!hasKey) return <p className={flow.hint} style={{ marginTop: 12 }}>DeliveryDraft not opened on this computer.</p>;
+  if (isRevision)
+    return (
+      <p className={flow.hint} style={{ marginTop: 12 }} data-testid="integrity">
+        Revised version, signed by {other} and timestamped on Solana. Only the first delivery has an on-chain fingerprint.
+      </p>
+    );
+  const matches = Boolean(ms.delivery?.matches);
+  return (
+    <p className={`${styles.finalResult} ${matches ? styles.finalOk : styles.finalBad}`} data-testid="integrity">
+      {matches ? 'Same delivery that was submitted ✓' : `Does not match what was submitted (fingerprint ${ms.evidence ?? '—'}, now ${delivery ? shortHash(deliveryEvidence(delivery)) : '—'}). Ask ${other} which version is final.`}
+    </p>
+  );
+}
+
+function FinalFiles({ first, committedAt, handovers, client, other }: { first?: DeliveryDraft; committedAt: number; handovers: DeliveryEntry[]; client: boolean; other: string }) {
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const check = async (files: File[]) => {
+    const file = files[0];
+    if (!file || !first) return;
+    const sha256 = await hashFile(file);
+    const hit = checkFile({ name: file.name, sha256 }, first.files);
+    setResult(hit.kind === 'same' ? { ok: true, text: `Matches the file committed on ${formatDeadline(committedAt)} ✓` } : { ok: false, text: 'Not one of the committed files' });
+  };
+  return (
+    <section aria-labelledby="rv-final" className={flow.card} data-testid="final-files">
+      <h2 id="rv-final" className={flow.h2}>
+        Final files
+      </h2>
+      {handovers.length ? (
+        handovers.map((h) => (
+          <div key={h.signature}>
+            <div className={flow.caption}>{h.time ? `Handed over ${formatDeadline(h.time)}` : 'Handed over'}</div>
+            <DeliveryBody delivery={h.content} other={other} hasKey />
+          </div>
+        ))
+      ) : (
+        <p className={flow.hint}>{client ? `${other} has not handed over the final files yet.` : 'Share the final files now from the contract page.'}</p>
+      )}
+      {client && first?.files.length ? (
+        <>
+          <FileDrop compact label="Check a file against the fingerprints committed at submit" multiple={false} onFiles={(f) => void check(f)} />
+          {result ? (
+            <p className={`${styles.finalResult} ${result.ok ? styles.finalOk : styles.finalBad}`} role="status">
+              {result.text}
+            </p>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function RequestSheet({ criteria, other, busy, status, error, onCancel, onSubmit }: { criteria: string[]; other: string; busy: boolean; status: string; error: string; onCancel(): void; onSubmit(d: ReviewDraft): void }) {
+  const [unmet, setUnmet] = useState<number[]>([]);
+  const [reason, setReason] = useState('');
+  const chars = [...reason.trim()].length;
+  const ok = unmet.length > 0 && chars <= 500;
+  return (
+    <div className={styles.sheetBackdrop}>
+      <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="rq-title">
+        <h2 id="rq-title" className={styles.sheetTitle}>
+          Request changes
+        </h2>
+        <p className={flow.hint}>Tick the done-when points that are not met. At least one is required.</p>
+        {criteria.map((c, i) => (
+          <label key={c} className={styles.check}>
+            <input type="checkbox" checked={unmet.includes(i)} onChange={() => setUnmet(unmet.includes(i) ? unmet.filter((x) => x !== i) : [...unmet, i])} />
+            <span>{c}</span>
+          </label>
+        ))}
+        <label className={flow.label} htmlFor="rq-reason">
+          Reason
+        </label>
+        <textarea id="rq-reason" className={flow.textarea} rows={4} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What is missing, and what would make it acceptable." />
+        <span className={chars > 500 ? flow.countOver : flow.count}>{chars}/500</span>
+        <p className={styles.info}>{REQUEST_INFO(other)}</p>
+        {error ? (
+          <p className={flow.error} role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className={styles.sheetButtons}>
+          <button type="button" className={flow.ghostBtn} onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+          <button type="button" className={flow.primaryBtn} disabled={!ok || busy} onClick={() => onSubmit({ unmet: [...unmet].sort((a, b) => a - b), reason })}>
+            {busy ? status || 'Sending…' : 'Request changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Done({ fund, raw, index, released }: { fund: FundView; raw: FundAccount; index: number; released: Released }) {
   const other = partyName(fund);
   const partner = fund.destination?.kind === 'payoutPartner';
   const next = fund.milestones.find((x) => x.status === 'pending' || x.status === 'submitted');
   return (
     <m.main id="main" className={flow.page} {...row}>
-      <Crumb page={page} />
       <div className={flow.created}>
         <div className={flow.createdMain}>
           <div className={flow.okDot} aria-hidden>
@@ -380,7 +518,7 @@ function Done({ page, released }: { page: Page; released: Released }) {
           </div>
           <h1 className={flow.createdTitle}>Milestone {index + 1} released</h1>
           <p className={flow.noticeText}>
-            {formatUsdc(msRaw.amount)} went from the contract to{' '}
+            {formatUsdc(raw.milestones[index].amount)} went from the contract to{' '}
             {partner ? `the payout partner for ${other}, who receives VND in a bank account (simulated in the demo).` : `${other}’s N.E.D wallet.`}
           </p>
           <div className={styles.rowsBox}>
@@ -401,9 +539,6 @@ function Done({ page, released }: { page: Page; released: Released }) {
             </a>
             <Link to={`/contract/${fund.address}`} className={flow.plainLink}>
               Back to the contract
-            </Link>
-            <Link to="/" className={flow.plainLink}>
-              Back to Workspace
             </Link>
           </div>
         </div>
