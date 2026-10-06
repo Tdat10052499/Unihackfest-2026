@@ -1,6 +1,6 @@
 # Design boards v2 (source of truth for screens)
 
-Exported on 3 Oct 2026 from the Design canvas "NED Wallet Design System" (claude.ai, version 104; web boards updated 4 Oct: Records page, wallet extension). Each `.dc.html` file is one artboard: **inline styles are the exact values** (colours, sizes, spacing, radii, shadows), the copy in the markup is the final English copy, and `renderVals()` holds sample data and the state logic (tweaks in `data-props`). Wrapper boards only import a base board with other props.
+Exported on 3 Oct 2026 from the Design canvas "NED Wallet Design System" (claude.ai, version 104; web boards updated 4 Oct: Records page, wallet extension; Jobs site boards added 6 Oct, canvas version 109). Each `.dc.html` file is one artboard: **inline styles are the exact values** (colours, sizes, spacing, radii, shadows), the copy in the markup is the final English copy, and `renderVals()` holds sample data and the state logic (tweaks in `data-props`). Wrapper boards only import a base board with other props.
 
 How to use them in code: rebuild each screen with `components/design` and the tokens in `constants/design.ts` / `constants/motion.ts` (build-plan B2). Do not copy the HTML into the app; do not use the sample data (amounts, names, hashes) outside tests. The motion and surface rules are on `MotionSurfaces.dc.html`.
 
@@ -26,6 +26,11 @@ How to use them in code: rebuild each screen with `components/design` and the to
 | `WebContractNew.dc.html` | Web · New contract: brief (client) | C2–C4 |  |
 | `WebSubmit.dc.html` | Web · Submit milestone (freelancer, VN view) | C2–C4 |  |
 | `WebReview.dc.html` | Web · Review delivery (client) | C2–C4 |  |
+| `WebJobs.dc.html` | Jobs site · Overview (hub landing) | S5 (D25, D28) | Hero with search, 3-step band, category tiles, featured jobs (first card dark), "Funded before anyone applies", dark footer; navbar Overview · Find jobs; profile menu (Open wallet, Go to Workspace) |
+| `WebJobsFind.dc.html` | Jobs site · Find jobs (search and filter) | S5 (D25, D28) | Category chips, tabs Open jobs / My applications / My listings, filter bar, grid of 9 with Show all |
+| `WebJobDetail.dc.html` | Jobs site · Job detail and apply | S6 | States open / applied / selected (tweak `state`) |
+| `WebJobPost.dc.html` | Jobs site · Post a job, budget locked (client) | S6 | One page, three sections, live card preview, sticky "Lock … & publish" |
+| `WebJobApplicants.dc.html` | Jobs site · Applicants and select (client) | S6 | States review / confirm / waiting / hired |
 | `ContractsList.dc.html` | Contracts — list (freelancer) | B4 |  |
 | `ContractsListMia.dc.html` | Contracts — list (client) | B4 | wrapper (props on the base board) |
 | `ContractNew1Freelancer.dc.html` | New contract 1 — Freelancer | B4 |  |

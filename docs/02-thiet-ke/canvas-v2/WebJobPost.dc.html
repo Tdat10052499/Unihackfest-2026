@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Post a job</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F7F4FB}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-nav{transition:background-color .15s ease}
+.ned-nav:hover{background:#EEEEF2}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-nav:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-stagger>*:nth-child(n+4){animation-delay:120ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@keyframes hb-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+.hb-pop{animation:hb-pop 200ms cubic-bezier(.16,1,.3,1) both;transform-origin:top right}
+.hb-mi:hover{background:#F6F4F9!important}
+.hb-nav:hover{color:#16161C!important}
+.hb-mi:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F7F4FB; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #EFE6FB">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+      <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #16161C">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Jobs</span>
+      </a>
+      <nav aria-label="Jobs" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 600">
+        <a href="WebJobs.dc.html" class="hb-nav" style="padding: 8px 0; color: #4B4B57; text-decoration: none">Overview</a>
+        <a href="WebJobsFind.dc.html" class="hb-nav" style="padding: 8px 0; color: #4B4B57; text-decoration: none">Find jobs</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @mia" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #FFFFFF; color: #16161C; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="mia" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@mia</span><span style="display: block; font-size: 11px; color: #5E5E6A">USDC wallet</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+          <div role="menu" aria-label="Account" class="hb-pop" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px); padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 24px 48px -20px rgba(17,17,22,0.35)">
+            <div style="padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F0F3">
+              <dc-import name="Avatar" seed="mia" size="40" hint-size="40px,40px"></dc-import>
+              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@mia</span><span style="display: block; font-size: 12px; color: #5E5E6A">USDC wallet</span></span>
+            </div>
+            <button role="menuitem" onClick="{{openWallet}}" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12l2 3M16 13.5h.01"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #5E5E6A">The N.E.D Wallet, as on your phone</span></span>
+            </button>
+            <a role="menuitem" href="WebWorkspace.dc.html" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #5E5E6A">Contracts, milestones and records</span></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+            </a>
+          </div>
+        </sc-if>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="mia" mode="app" start-screen="home" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 24px 24px 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <a href="WebJobsFind.dc.html" style="align-self: flex-start; height: 36px; padding: 0 12px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>Jobs</a>
+    <div>
+      <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px">Post a job</h1>
+      <div style="margin-top: 4px; font-size: 14px; color: #5E5E6A">Freelancers see your job with its budget already locked. You pick one applicant; that creates the contract.</div>
+    </div>
+
+    <sc-if value="{{published}}" hint-placeholder-val="{{ false }}">
+      <section class="ned-swap" aria-live="polite" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+        <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 16px; background: #E7F6EC; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+        <span style="flex: 1 1 280px"><span style="display: block; font-size: 18px; font-weight: 700">Published · {{totalLabel}} locked</span><span style="display: block; margin-top: 4px; font-size: 14px; color: #5E5E6A">Your job is on the board. Applications appear under My listings; you can select someone until {{selectLabel}}.</span></span>
+        <a href="WebJobApplicants.dc.html" style="height: 44px; padding: 0 18px; display: inline-flex; align-items: center; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Go to my listing</a>
+        <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener" style="height: 44px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; font-size: 14px; font-weight: 600; text-decoration: none">View on Explorer</a>
+      </section>
+    </sc-if>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <main class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section aria-labelledby="jp-1" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-direction: column; gap: 16px">
+          <h2 id="jp-1" style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700"><span style="width: 26px; height: 26px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 13px; display: flex; align-items: center; justify-content: center">1</span>About the job</h2>
+          <div>
+            <label for="jp-title" style="display: block; font-size: 14px; font-weight: 600">Title</label>
+            <input id="jp-title" value="{{title}}" onChange="{{onTitle}}" style="margin-top: 6px; width: 100%; height: 48px; padding: 0 14px; box-sizing: border-box; border: none; border-radius: 14px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px">
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; gap: 10px; font-size: 12px"><span style="color: #8A5300">Public on Solana. Don't put names or personal details here.</span><span style="{{titleCountStyle}}">{{titleBytes}} / 32</span></div>
+          </div>
+          <div>
+            <div id="jp-cat-l" style="font-size: 14px; font-weight: 600">Category</div>
+            <div role="radiogroup" aria-labelledby="jp-cat-l" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+                <button role="radio" aria-checked="{{c.sel}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div id="jp-sk-l" style="font-size: 14px; font-weight: 600">Skills <span style="font-weight: 400; color: #5E5E6A">· pick up to 3</span></div>
+            <div role="group" aria-labelledby="jp-sk-l" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{skills}}" as="s" hint-placeholder-count="4">
+                <button aria-pressed="{{s.sel}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <label for="jp-sum" style="display: block; font-size: 14px; font-weight: 600">Summary <span style="font-weight: 400; color: #5E5E6A">· shown on the job card</span></label>
+            <textarea id="jp-sum" rows="3" value="{{summary}}" onChange="{{onSummary}}" style="margin-top: 6px; width: 100%; box-sizing: border-box; padding: 12px 14px; border: none; border-radius: 14px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; line-height: 1.5; resize: vertical"></textarea>
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; gap: 10px; font-size: 12px"><span style="color: #5E5E6A">The full brief (scope, references, done-when points) is in step 2 and is public too.</span><span style="{{sumCountStyle}}">{{sumBytes}} / 160</span></div>
+          </div>
+          <div>
+            <label for="jp-scope" style="display: block; font-size: 14px; font-weight: 600">Scope</label>
+            <textarea id="jp-scope" rows="4" value="{{scope}}" onChange="{{onScope}}" style="margin-top: 6px; width: 100%; box-sizing: border-box; padding: 12px 14px; border: none; border-radius: 14px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 15px; line-height: 1.5; resize: vertical"></textarea>
+          </div>
+        </section>
+
+        <section aria-labelledby="jp-2" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-direction: column; gap: 14px">
+          <h2 id="jp-2" style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700"><span style="width: 26px; height: 26px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 13px; display: flex; align-items: center; justify-content: center">2</span>Work</h2>
+          <sc-for list="{{milestones}}" as="m" hint-placeholder-count="2">
+            <div style="padding: 16px; border-radius: 18px; background: #F7F7F9; display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px"><span style="font-size: 14px; font-weight: 700">Milestone {{m.n}}</span><sc-if value="{{m.canRemove}}" hint-placeholder-val="{{ true }}"><button onClick="{{m.remove}}" aria-label="Remove milestone {{m.n}}" style="height: 32px; padding: 0 10px; border: none; border-radius: 9999px; background: transparent; color: #5E5E6A; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Remove</button></sc-if></div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+                <label style="grid-column: 1 / -1; font-size: 13px; font-weight: 600">Name<input value="{{m.name}}" onChange="{{m.onName}}" style="margin-top: 6px; display: block; width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: none; border-radius: 12px; background: #FFFFFF; color: #111116; font-family: inherit; font-size: 14px"></label>
+                <label style="font-size: 13px; font-weight: 600">Amount (USDC)<input inputmode="decimal" value="{{m.amt}}" onChange="{{m.onAmt}}" style="margin-top: 6px; display: block; width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: none; border-radius: 12px; background: #FFFFFF; color: #111116; font-family: 'Space Mono', monospace; font-size: 14px"></label>
+                <label style="font-size: 13px; font-weight: 600">Due (days after you select)<input inputmode="numeric" value="{{m.due}}" onChange="{{m.onDue}}" style="margin-top: 6px; display: block; width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: none; border-radius: 12px; background: #FFFFFF; color: #111116; font-family: inherit; font-size: 14px"></label>
+                <label style="font-size: 13px; font-weight: 600">Days to review<input inputmode="numeric" value="{{m.review}}" onChange="{{m.onReview}}" style="margin-top: 6px; display: block; width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: none; border-radius: 12px; background: #FFFFFF; color: #111116; font-family: inherit; font-size: 14px"></label>
+                <label style="grid-column: 1 / -1; font-size: 13px; font-weight: 600">Done when <span style="font-weight: 400; color: #5E5E6A">· one point per line; you review against these</span><textarea rows="3" value="{{m.done}}" onChange="{{m.onDone}}" style="margin-top: 6px; display: block; width: 100%; box-sizing: border-box; padding: 10px 12px; border: none; border-radius: 12px; background: #FFFFFF; color: #111116; font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical"></textarea></label>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{canAdd}}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{addMs}}" style="align-self: flex-start; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add a milestone</button>
+          </sc-if>
+          <p style="margin: 0; font-size: 12px; color: #5E5E6A">1 to 5 milestones · up to 1,000 USDC per job in this demo. Write done-when points someone else could check.</p>
+        </section>
+
+        <section aria-labelledby="jp-3" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-direction: column; gap: 14px">
+          <h2 id="jp-3" style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700"><span style="width: 26px; height: 26px; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 13px; display: flex; align-items: center; justify-content: center">3</span>Timing</h2>
+          <div>
+            <div id="jp-ab" style="font-size: 14px; font-weight: 600">Applications close in</div>
+            <div role="radiogroup" aria-labelledby="jp-ab" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{applyOpts}}" as="o" hint-placeholder-count="3"><button role="radio" aria-checked="{{o.sel}}" onClick="{{o.pick}}" style="{{o.style}}">{{o.label}}</button></sc-for>
+            </div>
+          </div>
+          <div>
+            <div id="jp-sb" style="font-size: 14px; font-weight: 600">You select someone within</div>
+            <div role="radiogroup" aria-labelledby="jp-sb" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{selectOpts}}" as="o" hint-placeholder-count="3"><button role="radio" aria-checked="{{o.sel}}" onClick="{{o.pick}}" style="{{o.style}}">{{o.label}}</button></sc-for>
+            </div>
+          </div>
+          <div style="padding: 14px 16px; border-radius: 16px; background: #F7F7F9; font-size: 13px; line-height: 1.55; color: #3F3F49">Apply by <strong>{{applyLabel}}</strong> · select by <strong>{{selectLabel}}</strong>. With no applicants you can withdraw the budget at any time. Once someone has applied, the budget stays locked until the select-by date, so applicants know it's there.</div>
+        </section>
+      </main>
+
+      <aside aria-label="Preview" style="flex: 1 1 320px; max-width: 100%; position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">How freelancers will see it</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <dc-import name="Avatar" seed="mia" size="32" hint-size="32px,32px"></dc-import>
+            <span style="flex: 1; font-size: 13px; color: #5E5E6A"><span style="font-weight: 600; color: #3F3F49">@mia</span> · 3 contracts released</span>
+            <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Budget locked</span>
+          </div>
+          <div><div style="font-size: 17px; font-weight: 600">{{previewTitle}}</div><p style="margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: #3F3F49">{{previewSummary}}</p></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 12px; font-weight: 600">{{catLabel}}</span>
+            <sc-for list="{{pickedSkills}}" as="k" hint-placeholder-count="2"><span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F4F4F6; color: #3F3F49; font-size: 12px; font-weight: 600">{{k}}</span></sc-for>
+          </div>
+          <div style="padding-top: 12px; border-top: 1px solid #F0F0F3; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700">{{totalLabel}}</span>
+            <span style="color: #3F3F49">{{msLabel}}</span>
+            <span style="color: #3F3F49">Apply by {{applyLabel}}</span>
+          </div>
+        </div>
+        <sc-if value="{{hasProblems}}" hint-placeholder-val="{{ false }}">
+          <ul style="margin: 0; padding: 12px 16px 12px 32px; border-radius: 16px; background: #FFF5E1; color: #8A5300; font-size: 13px; line-height: 1.6">
+            <sc-for list="{{problems}}" as="p" hint-placeholder-count="1"><li>{{p}}</li></sc-for>
+          </ul>
+        </sc-if>
+      </aside>
+    </div>
+  </div>
+
+  <div style="position: sticky; bottom: 0; z-index: 20; background: rgba(255,255,255,0.94); box-shadow: 0 -1px 0 #F0F0F3, 0 -10px 24px -14px rgba(17,17,22,0.16)">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <span style="flex: 1 1 320px; font-size: 13px; line-height: 1.5; color: #3F3F49"><strong style="color: #111116">{{totalLabel}}</strong> leaves your wallet now and waits in the job's vault · balance after: {{balanceAfter}}. Your wallet asks twice: to lock the budget, then to save the public brief.</span>
+      <button onClick="{{publish}}" disabled="{{publishDisabled}}" style="{{publishStyle}}">{{publishLabel}}</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"published": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 2100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var p = props.published;
+    this.state = {
+      open: false, published: p === true || p === 'true',
+      title: 'Icon set, 24 icons', cat: 'design', skills: { 'Illustration': true, 'Figma': true },
+      summary: 'Outline icons for a wallet app, 24 px grid, SVG and PNG. Style guide attached to the brief.',
+      scope: 'We need 24 outline icons for a mobile wallet: send, receive, lock, release, refund and the tab bar. Our style guide and current screens are linked below.',
+      ms: [{ name: 'All 24 icons', amt: '15', due: '7', review: '2', done: 'All 24 icons on a 24 px grid, 2 px stroke\nSVG and PNG (1x, 2x) for each icon\nPreview shared as a watermarked sheet first' }],
+      applyDays: 3, selectDays: 5
+    };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var BAL = 40;
+    function blen(s) { try { return new TextEncoder().encode(s).length; } catch (e) { return s.length; } }
+    function pill(on) { return 'height: 36px; padding: 0 14px; border: none; border-radius: 9999px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ' + (on ? '#7B2FBE' : '#F4F4F6') + '; color: ' + (on ? '#FFFFFF' : '#3F3F49'); }
+    var CATS = [['design', 'Design'], ['dev', 'Development'], ['writing', 'Writing & Translation'], ['marketing', 'Marketing'], ['video', 'Video & Animation'], ['data', 'Data & AI'], ['admin', 'Admin & Support'], ['other', 'Other']];
+    var LABEL = {}; CATS.forEach(function (c) { LABEL[c[0]] = c[1]; });
+    var SKILLS = { design: ['Logo & brand', 'UI/UX', 'Illustration', 'Figma'], dev: ['Web front end', 'Back end', 'Mobile', 'Solana programs'], writing: ['English ↔ Vietnamese', 'Copywriting', 'Technical writing'], marketing: ['Social media', 'SEO'], video: ['Editing', 'Motion graphics'], data: ['Spreadsheets', 'Data labeling'], admin: ['Research', 'Customer support'], other: [] };
+    var picked = Object.keys(st.skills).filter(function (k) { return st.skills[k]; });
+    var total = st.ms.reduce(function (s, m) { var v = parseFloat(m.amt); return s + (isFinite(v) && v > 0 ? v : 0); }, 0);
+    var tb = blen(st.title), sb = blen(st.summary);
+    function day(n) { var d = 6 + n; return (d <= 31 ? d + ' Oct' : (d - 31) + ' Nov') + ', 18:00'; }
+    var applyLabel = day(st.applyDays), selectLabel = day(st.selectDays);
+    var problems = [];
+    if (!st.title.trim()) problems.push('Add a title.');
+    if (tb > 32) problems.push('Shorten the title to 32 bytes.');
+    if (!st.summary.trim()) problems.push('Add a summary for the job card.');
+    if (sb > 160) problems.push('Shorten the summary to 160 bytes.');
+    if (st.ms.some(function (m) { var v = parseFloat(m.amt); return !(v > 0); })) problems.push('Every milestone needs an amount above 0.');
+    if (st.ms.some(function (m) { return !m.done.trim(); })) problems.push('Every milestone needs at least one done-when point.');
+    if (total > 1000) problems.push('The demo allows up to 1,000 USDC per job.');
+    if (total > BAL) problems.push('Your wallet has ' + BAL.toFixed(2) + ' USDC.');
+    var bad = problems.length > 0 || st.published;
+    function setMs(i, key) { return function (e) { var x = st.ms.map(function (m) { return Object.assign({}, m); }); x[i][key] = e.target.value; self.setState({ ms: x }); }; }
+    function opts(cur, list, key) { return list.map(function (d) { var on = cur === d; return { label: d + ' days', sel: on ? 'true' : 'false', style: pill(on), pick: function () { var u = {}; u[key] = d; if (key === 'applyDays' && st.selectDays < d) u.selectDays = d; self.setState(u); } }; }); }
+    return {
+      open: st.open, openStr: st.open ? 'true' : 'false',
+      toggle: function () { self.setState({ open: !st.open, menu: false }); },
+      menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
+      toggleMenu: function () { self.setState({ menu: !st.menu, open: false }); },
+      openWallet: function () { self.setState({ menu: false, open: true }); }, close: function () { self.setState({ open: false }); },
+      published: st.published,
+      title: st.title, onTitle: function (e) { self.setState({ title: e.target.value }); },
+      titleBytes: String(tb), titleCountStyle: 'flex-shrink: 0; font-weight: 600; color: ' + (tb > 32 ? '#B42318' : '#5E5E6A'),
+      cats: CATS.map(function (c) { var on = st.cat === c[0]; return { label: c[1], sel: on ? 'true' : 'false', style: pill(on), pick: function () { self.setState({ cat: c[0], skills: {} }); } }; }),
+      skills: SKILLS[st.cat].map(function (s) { var on = !!st.skills[s]; return { label: s, sel: on ? 'true' : 'false', style: pill(on), pick: function () { if (!on && picked.length >= 3) return; var x = Object.assign({}, st.skills); x[s] = !on; self.setState({ skills: x }); } }; }),
+      summary: st.summary, onSummary: function (e) { self.setState({ summary: e.target.value }); },
+      sumBytes: String(sb), sumCountStyle: 'flex-shrink: 0; font-weight: 600; color: ' + (sb > 160 ? '#B42318' : '#5E5E6A'),
+      scope: st.scope, onScope: function (e) { self.setState({ scope: e.target.value }); },
+      milestones: st.ms.map(function (m, i) { return { n: String(i + 1), name: m.name, amt: m.amt, due: m.due, review: m.review, done: m.done, canRemove: st.ms.length > 1, onName: setMs(i, 'name'), onAmt: setMs(i, 'amt'), onDue: setMs(i, 'due'), onReview: setMs(i, 'review'), onDone: setMs(i, 'done'), remove: function () { self.setState({ ms: st.ms.filter(function (_, k) { return k !== i; }) }); } }; }),
+      canAdd: st.ms.length < 5,
+      addMs: function () { self.setState({ ms: st.ms.concat([{ name: '', amt: '', due: '14', review: '2', done: '' }]) }); },
+      applyOpts: opts(st.applyDays, [3, 7, 14], 'applyDays'),
+      selectOpts: opts(st.selectDays, [st.applyDays, st.applyDays + 2, st.applyDays + 4].filter(function (v, i, a) { return a.indexOf(v) === i; }), 'selectDays'),
+      applyLabel: applyLabel, selectLabel: selectLabel,
+      previewTitle: st.title || 'Your job title', previewSummary: st.summary || 'Your summary appears here.',
+      catLabel: LABEL[st.cat], pickedSkills: picked,
+      totalLabel: total.toFixed(2) + ' USDC', msLabel: st.ms.length === 1 ? '1 milestone' : st.ms.length + ' milestones',
+      balanceAfter: Math.max(0, BAL - total).toFixed(2) + ' USDC',
+      hasProblems: problems.length > 0 && !st.published, problems: problems,
+      publishDisabled: bad,
+      publishLabel: st.published ? 'Published' : 'Lock ' + total.toFixed(2) + ' USDC & publish',
+      publishStyle: 'height: 52px; padding: 0 24px; border: none; border-radius: 9999px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: ' + (bad ? 'not-allowed' : 'pointer') + '; background: ' + (bad ? '#E4E4EA' : '#7B2FBE') + '; color: ' + (bad ? '#6B6B76' : '#FFFFFF'),
+      publish: function () { if (!bad) self.setState({ published: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

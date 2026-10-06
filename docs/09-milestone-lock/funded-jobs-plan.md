@@ -164,6 +164,8 @@ Changes to existing files (small):
 
 ## 6. Workspace screens (`ned-workspace`, behind `FEATURES.jobs`)
 
+> **Updated by D28 (6 Oct):** the job board is its own site, "N.E.D Jobs", with its own layout inside `ned-workspace`: `/jobs` is the Overview (hub landing) and `/jobs/find` is the list with filters; the profile menu opens the wallet or goes to the Workspace. Boards: `WebJobs`, `WebJobsFind`. Prompts: [`prompts-6oct.md`](prompts-6oct.md) S5–S6.
+
 | Route | Who | Content |
 | --- | --- | --- |
 | `/jobs` | Everyone, signed in | Search box, category tabs, filter panel and sort (section 6.1). Tabs **Open jobs** / **My applications** (and **My listings** for non-Vietnam view). Card: title, summary, category and up to 3 skill chips, applicant count, total (USDC; ≈ VND estimate in the Vietnam view), milestone count, "Apply by" countdown, chip **Budget locked** linking the job vault on Explorer, business @username |

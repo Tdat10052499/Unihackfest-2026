@@ -10,6 +10,8 @@
 | [`review-decision-plan.md`](review-decision-plan.md) (D27) | Accept or Request changes, revisions, split, return, handover |
 | [`../05-legal/compliance-fix-list.md`](../05-legal/compliance-fix-list.md) and [`../05-legal/compliance-fix-list-review.md`](../05-legal/compliance-fix-list-review.md) | P0: S1–S3, C1–C5, V1–V2, P1–P4, R1–R2, D1–D4; A1–A12 |
 
+> **6 Oct, later:** for one person running the steps in order, use [`prompts-6oct.md`](prompts-6oct.md) (S0–S16). It follows this file and adds D28 (the Jobs site layout). The prompts below stay for parallel work.
+
 The J, U and K prompts in those files remain the **specs**. The prompts **below** are the ones to paste: they are grouped by file, so two people never edit the same file at once.
 
 ## 0. Ground rules
