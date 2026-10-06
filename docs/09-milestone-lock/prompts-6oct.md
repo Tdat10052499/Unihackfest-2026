@@ -414,3 +414,73 @@ Do not deploy before the PO says go in this session.
 Done when: main has the merge, both live sites show the new build, the live checks pass, and the progress log has the
 final row.
 ```
+
+## Appendix H · N.E.D Jobs hub spec (taken from the WebJobs and WebJobsFind boards)
+
+Added on 6 Oct 2026 for S5. The S5 prompt referred to this appendix before it existed; the PO chose to take it from
+the boards `docs/02-thiet-ke/canvas-v2/WebJobs.dc.html` and `WebJobsFind.dc.html`. If a board and this appendix
+disagree, fix both. Code: `ned-workspace/src/jobs/` (`hub.module.css`, `JobsLayout.tsx`, `ProfileMenu.tsx`,
+`components/`). Screenshots: `docs/02-thiet-ke/screenshots/s5-jobs-shell/`.
+
+**H.1 Colours.** Ink `#16161C`, ink-2 `#3F3F49`, ink-3 `#4B4B57`, caption `#5E5E6A`, muted `#8A8A96`. Page `#FFFFFF`;
+lavender (header, hero) `#EFE6FB` with `#DCC9F7` / `#D0B7F3` for the hero circles; peach band `#FFE4CF` (its caption
+`#5C4636`); cream section `#FFF1E6`; soft `#F6F4F9`; row line `#F0F0F3`. Dark (featured card, footer) `#16161C`, footer
+line `#2A2A33`, footer text `#D7D7DE`, footer caption `#A9A9B4`. Purple `#7B2FBE` (hover and ink `#6A22B0`). Chip tones
+(background / ink): info `#EEEFFE`/`#3730A3`, purple `#F2EAFB`/`#6A22B0`, success `#E7F6EC`/`#127A3A`, neutral
+`#EFEFF3`/`#4B4B57`, warning `#FFF5E1`/`#8A5300`. Category ink / tint, in taxonomy order: Design `#7B2FBE`/`#F2EAFB`,
+Development `#C2410C`/`#FFE4CF`, Writing & Translation `#127A3A`/`#E7F6EC`, Marketing `#B4235A`/`#FCE7EF`, Video &
+Animation `#3730A3`/`#EEEFFE`, Data & AI `#0E7490`/`#E0F4F8`, Admin & Support `#8A5300`/`#FFF5E1`, Other
+`#4B4B57`/`#EFEFF3`.
+
+**H.2 Radii and shadows.** Chips 9999 px, buttons 12 px (small 10 px), category tiles 18 px, cards 20 px, bands 24 px,
+menu 18 px. No borders on surfaces: card shadow `0 1px 2px rgba(17,17,22,.04), 0 6px 16px -6px rgba(17,17,22,.10)`;
+featured dark card `0 18px 36px -18px rgba(17,17,22,.55)`; menu `0 2px 6px rgba(17,17,22,.06), 0 24px 48px -20px
+rgba(17,17,22,.35)`; search box `0 2px 4px rgba(17,17,22,.04), 0 18px 40px -18px rgba(76,23,130,.35)`. The outline
+button is an inset 1.5 px ink shadow, not a border.
+
+**H.3 Type and spacing.** Space Grotesk for headings (h1 `clamp(40px, 5.4vw, 64px)`, -2 px tracking; h2 34 px, -1 px;
+card title 19 px), Inter for text (15 px body, 13–12 px small), Space Mono for amounts (20 px on cards). Content width
+1,200 px with a 24 px gutter; grid gap 16 px (cards) and 14 px (tiles); sections 56–80 px apart.
+
+**H.4 Motion.** The `src/motion.ts` curves (`cubic-bezier(.2,0,0,1)`, out `cubic-bezier(.16,1,.3,1)`). Hub-only:
+*float* (decoration, 6 px up and down over 6 s; the second variant 7 s with a 1.2 s delay) and *lift* (hover on cards
+−3 px, on tiles −2 px, 220 ms, with a deeper shadow). The menu pops in over 200 ms (scale .97 → 1, 6 px drop).
+Everything stops under `prefers-reduced-motion`.
+
+**H.5 Navbar.** Lavender bar, 1,200 px wide: dark "N.E.D" mark + "Jobs" → `/jobs`; tabs **Overview** (`/jobs`) and
+**Find jobs** (`/jobs/find`), the active tab in purple ink with a 2 px purple underline; spacer; white "Devnet · test
+money" chip; **Post a job** (purple, arrow-up icon → `/jobs/new`) only for a signed-in wallet outside the Vietnam view;
+the profile button (white pill: avatar 34 px, @handle, view line, chevron). Signed out, the button reads **Sign in** →
+`/sign-in?next=<path and query>` (only a path on this site is followed after sign-in).
+
+**H.6 Profile menu.** 290 px, under the button: header (avatar 40 px, @handle, "Vietnam view · VND" or "USDC wallet");
+**Open wallet** ("The N.E.D Wallet, as on your phone"; opens the wallet extension of D23); **Go to Workspace**
+("Contracts, milestones and records", → `/`, external-arrow icon). Escape and a click outside close it and focus
+returns to the button; arrow keys, Home and End move between the items.
+
+**H.7 Steps band.** Peach band, 24 px radius, two black swirls at the sides, three steps with a ringed icon.
+Freelancer (also every Vietnam view): Find a funded job / Budget locked, checkable on Explorer · Apply with a short
+pitch / Public, up to 280 bytes · Accept and deliver / Receive VND per milestone. Client: Post and lock the budget / One
+page, three short steps · Pick one applicant / That creates the contract · Release per milestone / After you accept
+the work.
+
+**H.8 Category tile.** White, 18 px radius, icon 44 px on the category tint, label 15 px, count line ("No open jobs
+yet", "1 open job", "N open jobs"); selected = 2 px inset purple ring; one link to Find jobs with `cat=<id>`.
+
+**H.9 Job card.** One link to `/jobs/:job`, 22 px padding, 14 px gap: title (+ "Applied" info chip or "Your job"
+purple chip); meta row (category, time to deliver, milestones); up to 3 skill chips; amount (Space Mono 20 px; "≈ …
+VND (estimate)" with "$… · estimate" under it in the Vietnam view) and the green **Budget locked** chip; footer above a
+hair line: business avatar and @handle, "Apply by {date} · N applicants" ("Applications closed" after the date), call
+to action ("Apply now", "View" or "Manage"; outlined, white on the dark card). The first card of Featured jobs is the
+dark variant.
+
+**H.10 Buttons.** Dark = browse or navigate ("Search", "Find more jobs"); purple = an action that goes to the wallet
+("Post a job", "Apply", "Lock budget & publish"); outline = secondary ("See your records").
+
+**H.11 Footer.** Dark: purple "N.E.D" mark + "Jobs" and the line "Jobs with budgets locked on Solana. N.E.D does not
+choose, vet or employ anyone, holds no funds and charges no fee in this version."; columns Jobs (Find jobs; Post a job
+outside the Vietnam view), Workspace (Overview; Records when signed in), Legal (Disclosures; Terms and Privacy come in
+S9); a note line. Vietnam view: "Devnet demo with test money. Listings, budgets and applications are read from Solana;
+N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.
+Your pitch is public on Solana." Otherwise: "Devnet demo with test money. Listings, budgets and applications are read
+from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared."
