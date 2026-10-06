@@ -65,7 +65,7 @@ describe('Submit page (U2, U5, U6)', () => {
     expect(makeWatermark).toHaveBeenCalledWith(expect.any(Blob), 'Logo refresh', FUND);
     expect(download.mock.calls[0][1]).toBe('logo-preview.png');
     expect(submitButton().disabled).toBe(false);
-    expect(screen.getByText(/the checked preview/)).toBeTruthy();
+    expect(screen.getAllByText(/the checked preview/).length).toBeGreaterThan(0);
   });
 
   it('the override tick opens Submit without a preview', () => {

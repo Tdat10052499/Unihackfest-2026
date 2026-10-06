@@ -161,6 +161,7 @@ export function ReviewView(p: ReviewViewProps) {
   const [ticks, setTicks] = useState<Record<number, boolean>>({});
   const ticked = criteria.filter((_, i) => ticks[i]).length;
   const [sheet, setSheet] = useState(false);
+  const { ensureConsent } = useWalletPanel();
   const [busy, setBusy] = useState<'' | 'release' | 'request'>('');
   const [error, setError] = useState('');
   const [retry, setRetry] = useState<ReviewDraft | null>(null);
@@ -302,7 +303,7 @@ export function ReviewView(p: ReviewViewProps) {
               {busy === 'release' ? p.status || 'Releasing…' : 'Accept & release'}
             </button>
             {canRequest ? (
-              <button type="button" className={styles.secondaryBtn} onClick={() => setSheet(true)} disabled={Boolean(busy)}>
+              <button type="button" className={styles.secondaryBtn} onClick={() => ensureConsent() && setSheet(true)} disabled={Boolean(busy)}>
                 Request changes
               </button>
             ) : null}

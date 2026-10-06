@@ -3,6 +3,7 @@ import { m } from 'motion/react';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import { PhoneIcon } from '../components/icons.tsx';
 import { rise, screen, staggerParent } from '../motion.ts';
+import { LegalLinks } from '../components/LegalLinks.tsx';
 import styles from './SignIn.module.css';
 
 const CARDS = [
@@ -21,7 +22,7 @@ const CARDS = [
   {
     role: 'Client',
     title: 'Review and release',
-    text: 'Check the delivery against the brief, then release. If you do nothing by the review deadline, it releases on its own.',
+    text: 'Check the delivery against the brief, then release. If you do not review by the review deadline, anyone can release it to the freelancer.',
     icon: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
   },
 ];
@@ -78,6 +79,7 @@ export function SignIn() {
         Devnet pilot · test money only. N.E.D holds no funds and charges no fee during the pilot. In the Vietnam view, earnings arrive in VND through a payout
         partner (simulated in the demo).
       </p>
+      <LegalLinks className={styles.disclaimer} />
     </m.main>
   );
 }

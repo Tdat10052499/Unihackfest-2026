@@ -1,0 +1,25 @@
+.anchor { position: relative; }
+.bell {
+  position: relative; width: 44px; height: 44px; border: none; border-radius: var(--r-pill); background: var(--field); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer;
+}
+.bell:hover { background: var(--hover-ground); }
+.bell[aria-expanded='true'] { background: var(--tint); }
+.onLight { background: #fff; }
+.badge {
+  position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;
+}
+.panel {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 45; width: 360px; max-width: calc(100vw - 32px); max-height: min(520px, 70vh);
+  overflow: auto; box-sizing: border-box; padding: 8px; border-radius: var(--r-20); background: var(--card); box-shadow: var(--shadow-pop);
+}
+.head { padding: 10px 12px; font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.group { padding: 8px 12px 4px; font-size: 12px; font-weight: 700; color: var(--caption); text-transform: uppercase; letter-spacing: 0.04em; }
+.item { display: block; padding: 10px 12px; border-radius: var(--r-14); color: var(--ink); text-decoration: none; }
+.item:hover, .item:focus-visible { background: var(--row); }
+.title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
+.message { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.time { display: block; margin-top: 4px; font-size: 12px; color: var(--caption); }
+.empty { padding: 24px 16px; text-align: center; font-size: 14px; color: var(--caption); }

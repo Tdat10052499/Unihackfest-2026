@@ -5,7 +5,10 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { PANEL_ID } from '../components/TopBar.tsx';
+import { ConsentGate } from '../components/ConsentGate.tsx';
 import { DeviceKeyGate } from '../components/DeviceKeyGate.tsx';
+import { LEGAL_LINKS } from '../components/LegalLinks.tsx';
+import { NotificationBell } from '../components/NotificationBell.tsx';
 import { RegionPrompt } from '../components/RegionPrompt.tsx';
 import { WalletExtension } from '../components/WalletExtension.tsx';
 import { WalletPanel } from '../components/WalletPanel.tsx';
@@ -73,6 +76,7 @@ export function JobsLayout() {
               <HubIcon name="arrowUp" size={15} />
             </HubButton>
           ) : null}
+          {wallet ? <NotificationBell onLight /> : null}
           <div className={hub.anchor}>
             {wallet && name ? (
               <ProfileMenu
@@ -110,6 +114,7 @@ export function JobsLayout() {
       <RegionPrompt />
       {/* Key sync (D22): a selected applicant reads the contract brief through this computer's device key */}
       <DeviceKeyGate />
+      <ConsentGate className="consent-gate" />
       <AnimatePresence mode="wait" initial={false}>
         <m.main
           id="main"
@@ -169,9 +174,11 @@ function JobsFooter({ vn, signedIn }: { vn: boolean; signedIn: boolean }) {
         </nav>
         <nav aria-label="Legal" className={hub.footerCol}>
           <span className={hub.footerHead}>Legal</span>
-          <a href="/wallet/disclosures" className={hub.footerLink}>
-            Disclosures
-          </a>
+          {LEGAL_LINKS.map((l) => (
+            <a key={l.href} href={l.href} className={hub.footerLink}>
+              {l.label}
+            </a>
+          ))}
         </nav>
       </div>
       <div className={`${hub.container} ${hub.footerNote}`}>{vn ? FOOT.vn : FOOT.intl}</div>

@@ -5,7 +5,9 @@ import { AnimatePresence, m } from 'motion/react';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { PhoneGate, useNarrowScreen } from './PhoneGate.tsx';
 import { RegionPrompt } from './RegionPrompt.tsx';
+import { ConsentGate } from './ConsentGate.tsx';
 import { DeviceKeyGate } from './DeviceKeyGate.tsx';
+import { LegalLinks } from './LegalLinks.tsx';
 import { TopBar } from './TopBar.tsx';
 
 export function Layout() {
@@ -20,6 +22,7 @@ export function Layout() {
       <TopBar />
       <RegionPrompt />
       <DeviceKeyGate />
+      <ConsentGate className="consent-gate" />
       <AnimatePresence mode="wait" initial={false}>
         <m.div
           key={location.pathname}
@@ -30,6 +33,10 @@ export function Layout() {
           {outlet}
         </m.div>
       </AnimatePresence>
+      <footer className="ws-footer">
+        <span>N.E.D Workspace · devnet pilot, test money only</span>
+        <LegalLinks />
+      </footer>
     </>
   );
 }

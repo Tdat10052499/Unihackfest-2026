@@ -107,7 +107,7 @@ export function withdrawReason(job: JobListingAccount, now: number, name: (w: st
 export function ApplicantsView(p: ApplicantsViewProps) {
   const { job } = p;
   const { env, status } = useActionEnv();
-  const { confirm } = useWalletPanel();
+  const { confirm, ensureConsent } = useWalletPanel();
   const queryClient = useQueryClient();
   const [sort, setSort] = useState<'new' | 'record'>('new');
   const [choosing, setChoosing] = useState<string | null>(null);
@@ -281,7 +281,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
                   </div>
                 </div>
                 <div>
-                  <HubButton variant={canPick ? 'purple' : 'outline'} disabled={!canPick || busy} onClick={() => setChoosing(w)}>
+                  <HubButton variant={canPick ? 'purple' : 'outline'} disabled={!canPick || busy} onClick={() => ensureConsent() && setChoosing(w)}>
                     {isChosen ? (job.state === 'Filled' ? 'Hired' : over ? 'Select again' : 'Selected') : 'Select'}
                   </HubButton>
                 </div>

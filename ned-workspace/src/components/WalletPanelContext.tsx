@@ -2,6 +2,8 @@
 // (workspace-plan section 3): the panel shows the request like a wallet extension's approve window, and the promise
 // resolves true on Confirm, false on Cancel, Escape, a click outside or closing the panel.
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useAuthOptional } from '../auth/AuthProvider.tsx';
+import { hasConsent } from '../hooks/consent.ts';
 
 export interface ConfirmRow {
   label: string;
@@ -41,6 +43,11 @@ interface WalletPanelValue {
   clearPendingPath(): void;
   /** Opens the extension at an app route, e.g. openWalletAt('/settings') or openWalletAt(`/contracts/${fund}`) */
   openWalletAt(path: string): void;
+  /**
+   * P4: true when the signed-in wallet has a valid consent; otherwise opens the wallet panel at /consent and returns
+   * false. confirm() calls it first, so every signing action waits for consent.
+   */
+  ensureConsent(): boolean;
 }
 
 const WalletPanelContext = createContext<WalletPanelValue | null>(null);
@@ -55,6 +62,7 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
   /** The control that asked for the confirm ("Create contract", "Release…"): focus goes back there afterwards */
   const opener = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const wallet = useAuthOptional()?.walletAddress ?? null;
 
   const answer = useCallback((ok: boolean) => {
     const resolve = pending.current;
@@ -87,7 +95,15 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
   const clearPendingPath = useCallback(() => setPendingPath(null), []);
   const toggle = useCallback(() => setOpen(!open), [open, setOpen]);
 
+  const ensureConsent = useCallback(() => {
+    if (!wallet || hasConsent(wallet)) return true;
+    openWalletAt('/consent');
+    return false;
+  }, [wallet, openWalletAt]);
+
   const confirm = useCallback((next: ConfirmRequest) => {
+    // P4: no signing action before consent; the panel opens at /consent instead
+    if (!ensureConsent()) return Promise.resolve(false);
     pending.current?.(false); // one request at a time
     opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     return new Promise<boolean>((resolve) => {
@@ -95,11 +111,11 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
       setRequest(next);
       setOpenState(true);
     });
-  }, []);
+  }, [ensureConsent]);
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, triggerRef, request, confirm, answer, walletMounted, walletRoute, setWalletRoute, pendingPath, clearPendingPath, openWalletAt }),
-    [open, setOpen, toggle, request, confirm, answer, walletMounted, walletRoute, pendingPath, clearPendingPath, openWalletAt]
+    () => ({ open, setOpen, toggle, triggerRef, request, confirm, answer, walletMounted, walletRoute, setWalletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent }),
+    [open, setOpen, toggle, request, confirm, answer, walletMounted, walletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent]
   );
   return <WalletPanelContext.Provider value={value}>{children}</WalletPanelContext.Provider>;
 }
