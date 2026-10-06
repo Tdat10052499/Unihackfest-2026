@@ -58,34 +58,41 @@ Add files `state/job.rs`, `instructions/job/{mod,post_job,post_job_brief,apply_j
 | `JOB_PITCH_MAX_LEN` | 280 | Bytes of UTF-8; public on-chain |
 | `JOB_ACCEPT_WINDOW_SECS` | 120 | Devnet value; launch 48 h \[Assumption\] |
 | `JOB_DEADLINE_SLACK_SECS` | 300 | Allowed gap between the template and the absolute deadlines at select time |
+| `JOB_CATEGORY_COUNT` | 8 | Must equal the category list in `@ned/core` `jobs/taxonomy.ts` |
+| `JOB_SUMMARY_MAX_LEN` | 160 | Bytes of UTF-8; public on-chain |
 
 Reuse `MAX_MILESTONES`, `MAX_CONTRACT_AMOUNT`, `MIN_WORK_WINDOW_SECS`, `MIN_REVIEW_WINDOW_SECS`, `TITLE_MAX_LEN`, `NOTE_MAX_LEN`, `NOTE_MAX_PARTS`, `USDC_MINT`.
 
 ### 4.2 Accounts (field order is fixed; offsets include the 8-byte discriminator)
 
-`JobListing`: 407 bytes.
+`JobListing`: 576 bytes (6 Oct, updated for search and filter: `category`, `skills` and `summary` added).
 
 | Offset | Field | Type | Note |
 | --- | --- | --- | --- |
 | 8 | `version` | u8 | 1 |
 | 9 | `state` | `JobState` (u8) | `Open`, `Selected`, `Filled`, `Withdrawn`. memcmp "open jobs" |
 | 10 | `business` | Pubkey | memcmp "my listings" |
-| 42 | `mint` | Pubkey | USDC |
-| 74 | `job_id` | u64 | |
-| 82 | `created_at` | i64 | |
-| 90 | `apply_by` | i64 | Last time to apply |
-| 98 | `select_by` | i64 | Last time to select; withdraw opens after it |
-| 106 | `total` | u64 | Sum of the template amounts |
-| 114 | `milestone_count` | u8 | 1–5 |
-| 115 | `milestones` | `[JobMilestone; 5]` | Each 24 bytes: `amount: u64`, `work_secs: i64` (due this long after select), `review_secs: i64` |
-| 235 | `title` | `[u8; 32]` | UTF-8, zero-padded |
-| 267 | `brief_hash` | `[u8; 32]` | SHA-256 of the canonical brief JSON (same `canonicalBrief` as contracts) |
-| 299 | `selected` | Pubkey | Default until `select_job` |
-| 331 | `selected_at` | i64 | |
-| 339 | `fund` | Pubkey | The contract created at select; memcmp "job of this contract" |
-| 371 | `application_count` | u16 | |
-| 373 | `bump`, `vault_bump` | u8, u8 | |
-| 375 | `_reserved` | `[u8; 32]` | |
+| 42 | `category` | u8 | Index into the category list in `@ned/core` `jobs/taxonomy.ts` (< `JOB_CATEGORY_COUNT`). memcmp "jobs in this category" |
+| 43 | `skills` | u64 | Bitmask of up to 64 skills from the same taxonomy; filtered in the browser |
+| 51 | `mint` | Pubkey | USDC |
+| 83 | `job_id` | u64 | |
+| 91 | `created_at` | i64 | Sort "Newest" |
+| 99 | `apply_by` | i64 | Last time to apply; sort "Apply by soonest" |
+| 107 | `select_by` | i64 | Last time to select; withdraw opens after it |
+| 115 | `total` | u64 | Sum of the template amounts; budget filter and sort |
+| 123 | `milestone_count` | u8 | 1–5 |
+| 124 | `milestones` | `[JobMilestone; 5]` | Each 24 bytes: `amount: u64`, `work_secs: i64` (due this long after select), `review_secs: i64` |
+| 244 | `title` | `[u8; 32]` | UTF-8, zero-padded; searched |
+| 276 | `summary` | `[u8; 160]` | UTF-8, zero-padded; the card text; searched. Not part of the brief hash |
+| 436 | `brief_hash` | `[u8; 32]` | SHA-256 of the canonical brief JSON (same `canonicalBrief` as contracts) |
+| 468 | `selected` | Pubkey | Default until `select_job` |
+| 500 | `selected_at` | i64 | |
+| 508 | `fund` | Pubkey | The contract created at select; memcmp "job of this contract" |
+| 540 | `application_count` | u16 | Shown on cards |
+| 542 | `bump`, `vault_bump` | u8, u8 | |
+| 544 | `_reserved` | `[u8; 32]` | |
+
+Rent for 576 bytes is about 0.0049 SOL, paid by the business and not returned in v1.3 (the listing stays as a record) \[Inference: standard rent formula\].
 
 `JobApplication`: 364 bytes.
 
@@ -99,13 +106,13 @@ Reuse `MAX_MILESTONES`, `MAX_CONTRACT_AMOUNT`, `MIN_WORK_WINDOW_SECS`, `MIN_REVI
 | 83 | `pitch` | `[u8; 280]` |
 | 363 | `bump` | u8 |
 
-Add `const _: () = assert!(...SPACE == 407 / 364)` as `shared_fund.rs` does.
+Add `const _: () = assert!(...SPACE == 576 / 364)` as `shared_fund.rs` does.
 
 ### 4.3 Instructions
 
 | Instruction | Signer(s) | Checks | Effect |
 | --- | --- | --- | --- |
-| `post_job(job_id, title, milestones: Vec<JobMilestoneInput>, brief_hash, apply_by, select_by)` | `business`, `payer` | brief hash non-zero; 1–5 milestones; each amount > 0, `work_secs ≥ MIN_WORK_WINDOW_SECS`, `review_secs ≥ MIN_REVIEW_WINDOW_SECS`; total ≤ `MAX_CONTRACT_AMOUNT`; title ≤ 32 bytes; `now < apply_by ≤ select_by` | Init listing + job vault; `transfer_checked` total from the business ATA to the job vault; state `Open`; event `JobPosted` |
+| `post_job(job_id, title, summary, category, skills, milestones: Vec<JobMilestoneInput>, brief_hash, apply_by, select_by)` | `business`, `payer` | brief hash non-zero; `category < JOB_CATEGORY_COUNT`; summary 1–160 bytes; 1–5 milestones; each amount > 0, `work_secs ≥ MIN_WORK_WINDOW_SECS`, `review_secs ≥ MIN_REVIEW_WINDOW_SECS`; total ≤ `MAX_CONTRACT_AMOUNT`; title ≤ 32 bytes; `now < apply_by ≤ select_by` | Init listing + job vault; `transfer_checked` total from the business ATA to the job vault; state `Open`; event `JobPosted` |
 | `post_job_brief(part, parts, data)` | `business` | state `Open`; `1 ≤ data.len() ≤ NOTE_MAX_LEN`; `part < parts ≤ NOTE_MAX_PARTS` | No state change; event `JobBriefPosted`. The app reads the **plain-text** brief back from the transaction, like `post_note` |
 | `apply_job(pitch: String)` | `freelancer` (pays rent) | state `Open`; `now ≤ apply_by`; freelancer ≠ business; pitch ≤ 280 bytes | Init `JobApplication` (a second application by the same person fails at init); `application_count += 1`; event `JobApplied` |
 | `select_job()` | `business` | Listing `Open`, or `Selected` with `now > selected_at + JOB_ACCEPT_WINDOW_SECS`; `now ≤ select_by`. `fund`: state `Created`, `client == business`, `mint == listing.mint`, `brief_hash == listing.brief_hash`, same milestone count; per milestone same amount, `review_by − submit_by == review_secs`, `submit_by ≥ now + work_secs − JOB_DEADLINE_SLACK_SECS`. `application` = PDA `[JOB_APP_SEED, job, fund.freelancer]` exists | `selected = fund.freelancer`, `selected_at = now`, `fund = fund.key()`, state `Selected`; event `JobSelected`. Sent **in the same transaction, after `create_fund`** |
@@ -118,12 +125,12 @@ If a job contract is `Accepted` but not `Funded` (for example, accepted from an 
 
 ### 4.4 Errors (append to `errors.rs`, never renumber)
 
-`JobNotOpen`, `ApplyClosed`, `SelectClosed`, `AcceptWindowOpen`, `JobFundMismatch`, `NotSelected`, `WithdrawTooEarly`, `PitchTooLong`, `InvalidJobDeadlines`.
+`JobNotOpen`, `ApplyClosed`, `SelectClosed`, `AcceptWindowOpen`, `JobFundMismatch`, `NotSelected`, `WithdrawTooEarly`, `PitchTooLong`, `InvalidJobDeadlines`, `InvalidCategory`, `SummaryTooLong`.
 
 ### 4.5 Tests (`tests/jobs.rs`, same harness as `tests/milestone.rs`)
 
 1. Happy path: post → brief → apply ×2 → select B → accept (PayoutPartner) + lock_from_job → submit → approve; partner receives the amount; listing `Filled`; job vault closed.
-2. `post_job` refuses: zero hash, 0 or 6 milestones, total over the cap, `apply_by > select_by`, short work window.
+2. `post_job` refuses: category 8, an empty or 161-byte summary, zero hash, 0 or 6 milestones, total over the cap, `apply_by > select_by`, short work window.
 3. `apply_job` refuses: after `apply_by`, the business itself, a second application, a 281-byte pitch.
 4. `select_job` refuses: a non-applicant, a fund with another amount / brief hash / shorter review window, a re-select inside the accept window; allows a re-select after it.
 5. `lock_from_job` refuses: a fund that is not `listing.fund`, a fund still `Created`; and an `accept` + `lock_from_job` transaction where the lock fails leaves the fund `Created` (atomic).
@@ -141,9 +148,11 @@ New folder `packages/ned-core/src/jobs/` (export from `index.ts`):
 | File | Content |
 | --- | --- |
 | `layout.ts`, `pda.ts`, `decode.ts` | Sizes and offsets of section 4.2; `jobPda`, `jobVaultPda`, `jobAppPda`; decoders via the IDL coder |
-| `queries.ts` | `listOpenJobs()` (memcmp discriminator + state `Open` at 9); `listMyJobs(business)` (10); `listApplicants(job)` (9); `listMyApplications(freelancer)` (41); `jobForFund(fund)` (339) |
+| `queries.ts` | `listOpenJobs({ category? })` (memcmp discriminator + state `Open` at 9, plus `category` at 42 when given); `listMyJobs(business)` (10); `listApplicants(job)` (9); `listMyApplications(freelancer)` (41); `jobForFund(fund)` (508) |
 | `brief.ts` | `buildJobBriefTxs` (plain-text parts of `canonicalBrief`), `fetchJobBrief(job)` with `getSignaturesForAddress(job)`, skips failed transactions, joins parts, checks the hash → status `ok` / `mismatch` / `missing` |
 | `actions.ts` | `runPostJob(env, draft)`: validate, `post_job`, then the brief parts. `runApplyJob(env, job, pitch)`. `runSelectJob(env, job, freelancer)`: reads the listing and its public brief, builds absolute deadlines (`submit_by = now + work_secs`, `review_by = submit_by + review_secs`), then calls `runCreate` with one extra instruction `select_job` after `create_fund`. `runWithdrawJob(env, job)` |
+| `taxonomy.ts` | 8 categories and up to 64 skills (section 6.1). Append only: never reorder or reuse an index, because listings store the numbers |
+| `search.ts` | `filterJobs(jobs, filters)` and `sortJobs` (pure functions, unit-tested): text match on title + summary (case- and accent-insensitive), skills (any selected), budget range, max duration, milestone count, "Apply by within", hide jobs I applied to; `filtersFromQuery` / `filtersToQuery` for the URL |
 | `rules.ts` | `canApply`, `canSelect`, `canWithdraw`, mirrored from section 4.3, for disabling buttons |
 
 Changes to existing files (small):
@@ -157,11 +166,43 @@ Changes to existing files (small):
 
 | Route | Who | Content |
 | --- | --- | --- |
-| `/jobs` | Everyone, signed in | Tabs **Open jobs** / **My applications** (and **My listings** for non-Vietnam view). Card: title, total (USDC; ≈ VND estimate in the Vietnam view), milestone count, "Apply by" countdown, chip **Budget locked** linking the job vault on Explorer, business @username |
+| `/jobs` | Everyone, signed in | Search box, category tabs, filter panel and sort (section 6.1). Tabs **Open jobs** / **My applications** (and **My listings** for non-Vietnam view). Card: title, summary, category and up to 3 skill chips, applicant count, total (USDC; ≈ VND estimate in the Vietnam view), milestone count, "Apply by" countdown, chip **Budget locked** linking the job vault on Explorer, business @username |
 | `/jobs/:job` | Everyone | Public brief with "Brief verified" (hash check) or a warning; milestone template ("Due 3 days after you're selected"); deadlines; Apply form with the pitch and the line "Public on Solana. Don't put names or personal details here."; my status |
-| `/jobs/new` | Non-Vietnam view only | Reuse the `NewContract` editor without the freelancer field; add work days per milestone, "Apply by", "Select by". Last step **Lock budget & publish** (one wallet confirmation for `post_job`, then the brief parts) |
+| `/jobs/new` | Non-Vietnam view only | One page, three short sections (section 6.2). Reuse the `NewContract` editor without the freelancer field; add category, skills, summary, work days per milestone, "Apply by", "Select by". Last step **Lock budget & publish** (one wallet confirmation for `post_job`, then the brief parts) |
 | `/jobs/:job/applicants` | The business | Applicants: @username, pitch, applied time, a short track record (contracts settled as freelancer, from `listFunds`). **Select** → confirmation sheet → `runSelectJob`; then a link to the new contract |
 | — | The business | On `/jobs` My listings: state chip (Open / Selected / Filled / Withdrawn) and **Withdraw budget** when `canWithdraw` |
+
+### 6.1 Search and filter (no off-chain data)
+
+Every value a freelancer searches or filters on is stored **in the listing account**, so one `getProgramAccounts` call returns everything the board needs. No server, no database, no search index.
+
+| Control | Where it runs | Source field |
+| --- | --- | --- |
+| Category tabs: All · Design · Development · Writing & Translation · Marketing · Video & Animation · Data & AI · Admin & Support · Other | RPC (memcmp at offset 42) | `category` |
+| Search box ("Search jobs") | Browser | `title` + `summary`, case- and accent-insensitive |
+| Skills (multi-select chips within the category) | Browser | `skills` bitmask, "any of the selected" |
+| Budget (min–max, in USDC; the Vietnam view shows the ≈ VND range) | Browser | `total` |
+| Duration ("Up to 1 week / 2 weeks / 1 month") | Browser | longest `work_secs` |
+| Milestones (1 / 2–3 / 4–5) | Browser | `milestone_count` |
+| "Apply by within 24 h" | Browser | `apply_by` |
+| "Hide jobs I applied to" | Browser + RPC (my applications, memcmp at 41) | `JobApplication` |
+| Sort: Newest · Apply by soonest · Budget high to low | Browser | `created_at`, `apply_by`, `total` |
+
+- **The URL holds the filters** (`/jobs?q=logo&cat=design&skills=figma,branding&min=10&max=100&sort=new`): shareable, bookmarkable, and nothing is saved anywhere.
+- Results update as the user types (debounce 150 ms); the list refreshes from the chain every 30 s and on focus.
+- Empty result: "No open jobs match these filters." with **Clear filters**.
+- Scale: loading every open listing into the browser works for hundreds to about two thousand listings \[Inference\]; past that, an indexer reads the same accounts (roadmap phase 3), and the board code keeps the same filters.
+
+**Taxonomy (`@ned/core` `jobs/taxonomy.ts`)**: 8 categories (indices 0–7, as listed above) and about 40 skills to start, grouped by category (for example Design: Logo & brand, UI/UX, Illustration, Figma; Development: Web front end, Back end, Mobile, Solana programs; Writing & Translation: English ↔ Vietnamese, Copywriting, Technical writing). Append only.
+
+### 6.2 Keep it simple
+
+| Who | Steps | Rules |
+| --- | --- | --- |
+| Business: post | **1 page, 3 sections**, one wallet confirmation: **About the job** (title, category, skills, summary with a 160-byte counter) → **Work** (milestones: name, amount, "Due N days after you select someone", review days, done-when points) → **Timing** (Apply by and Select by, with presets 3 / 7 / 14 days). A sticky bar shows "Lock 10 USDC & publish" | The amount on the button is the amount that leaves the wallet. Under the summary: "Public on Solana. Don't put names or personal details here." |
+| Freelancer: find and apply | **Board → job → Apply**: 2 clicks and one wallet confirmation | The Apply box stays on the job page (no new page); after applying, the card shows **Applied** |
+| Business: hire | **Applicants → Select → confirm** | The confirmation states the contract that will be created and "The budget moves into the contract when they accept" |
+| Both | Status always in one chip: Open · Applied · Selected · Hired · Closed | Wallet confirmations only where money or a record changes |
 
 Add **Jobs** to `WorkspaceNav`. Motion and surfaces as in the rest of the Workspace (no borders, shadow S1, tokens from `motion.ts`). The selected freelancer sees the contract in **Contracts** and in the wallet panel, as for any invite.
 
@@ -223,7 +264,7 @@ constants.rs, errors.rs, events.rs) and tests/milestone.rs.
 Task: add Funded Jobs to ned_program exactly as funded-jobs-plan.md section 4 says.
 - New files only: state/job.rs, instructions/job/*.rs; register them in mod.rs files and lib.rs (new section "4. FUNDED JOBS").
 - Do not change any existing instruction, account, error number or event. Append errors and events at the end.
-- Account sizes 407 and 364 with compile-time asserts; offsets as in section 4.2 (write a test that checks them).
+- post_job takes title, summary, category and skills as in section 4.3. Account sizes 576 and 364 with compile-time asserts; offsets as in section 4.2 (write a test that checks them).
 - select_job and lock_from_job must work inside the same transaction as create_fund / accept.
 - Reuse common.rs helpers (used, check_work_window). Never use vault.amount for transfers.
 - Tests: tests/jobs.rs with every case of section 4.5; run the whole suite.
@@ -239,7 +280,8 @@ Done when: cargo test passes (old and new), program-spec updated, IDL copied, pr
 Read CLAUDE.md, funded-jobs-plan.md sections 4–5, packages/ned-core/src/{actions.ts,milestone/client.ts,milestone/notes.ts,
 milestone/queries.ts,milestone/content.ts,milestone/decode.ts,milestone/layout.ts,milestone/pda.ts,milestone/records.ts}.
 
-Task: add packages/ned-core/src/jobs/ (layout, pda, decode, queries, brief, actions, rules) as in section 5, exported from index.ts.
+Task: add packages/ned-core/src/jobs/ (layout, pda, decode, queries, brief, actions, rules, taxonomy, search) as in section 5 and 6.1, exported from index.ts.
+- search.ts is pure and fully unit-tested (text, skills, budget, duration, milestones, apply-by, hide-applied, sorts, URL round trip).
 - The job brief is plain text: canonicalBrief(title, draft) split into NOTE_MAX_LEN parts with post_job_brief; fetchJobBrief reads
   them back like fetchNotes (skip failed transactions, latest complete set wins) and checks the hash against the listing.
 - runPostJob validates like rules.validateDraft (no freelancer field) and refuses in the Vietnam view (pass region in).
@@ -255,7 +297,8 @@ Read CLAUDE.md, funded-jobs-plan.md sections 2, 6 and 7, workspace-plan.md, buil
 ned-workspace/src/{App.tsx,components/WorkspaceNav.tsx,pages/Contracts.tsx,pages/Contract.tsx,hooks/queries.ts,hooks/region.ts,motion.ts}.
 
 Task: add FEATURES.jobs (default true in dev, read from config) and the routes /jobs and /jobs/:job.
-- /jobs: tabs Open jobs / My applications / My listings (My listings hidden in the Vietnam view). Cards per section 6.
+- /jobs: search box, category tabs, filter panel (a sheet on narrow screens) and sort exactly as section 6.1; filters live in the URL
+  query, nothing is stored. Tabs Open jobs / My applications / My listings (My listings hidden in the Vietnam view). Cards per section 6.
 - /jobs/:job: public brief with "Brief verified" or a warning, milestone template, deadlines, Apply form (pitch ≤ 280 bytes, counter,
   the line "Public on Solana. Don't put names or personal details here."), my status.
 - Until J2 lands, code against the jobs/ types from the plan with a local mock; switch to @ned/core when it is merged.
@@ -269,8 +312,9 @@ Branch: feat/jobs-web. Done when: typecheck, tests and build pass; screenshots o
 ```
 Read funded-jobs-plan.md sections 4.3 and 6, ned-workspace/src/pages/NewContract.tsx and lib/newContract.ts.
 
-Task: /jobs/new (non-Vietnam view only; redirect the Vietnam view to /jobs) reusing the NewContract editor without the freelancer
-field, plus work days per milestone, Apply by, Select by. Final step "Lock budget & publish" → runPostJob, with progress for the
+Task: /jobs/new (non-Vietnam view only; redirect the Vietnam view to /jobs) as one page with the three sections of section 6.2,
+reusing the NewContract editor without the freelancer field, plus category, skills, summary (160-byte counter), work days per
+milestone, Apply by, Select by. Final step "Lock budget & publish" → runPostJob, with progress for the
 brief parts and a retry for a failed brief part. My listings tab: state chips, applicant count, "Withdraw budget" when
 rules.canWithdraw, with a confirmation sheet that states the amount going back.
 Branch: feat/jobs-web. Done when: a job can be posted and withdrawn on devnet from the Workspace; tests and build pass.
