@@ -43,11 +43,11 @@ afterEach(cleanup);
 describe('P4 consent', () => {
   it('reads the phone app record: valid, withdrawn, old version', () => {
     expect(hasConsent(WALLET)).toBe(false);
-    consent({ acceptedAt: 1, scope: ['email'], version: 1 });
+    consent({ acceptedAt: 1, scope: ['email'], version: 2 });
     expect(hasConsent(WALLET)).toBe(true);
-    consent({ acceptedAt: 1, scope: ['email'], version: 1, withdrawnAt: 2 });
+    consent({ acceptedAt: 1, scope: ['email'], version: 2, withdrawnAt: 2 });
     expect(hasConsent(WALLET)).toBe(false);
-    consent({ acceptedAt: 1, scope: ['email'], version: 0 });
+    consent({ acceptedAt: 1, scope: ['email'], version: 1 });
     expect(hasConsent(WALLET)).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe('P4 consent', () => {
     });
     expect(ok).toBe(false);
     expect(screen.getByText('/consent')).toBeTruthy();
-    consent({ acceptedAt: 1, scope: ['email'], version: 1 });
+    consent({ acceptedAt: 1, scope: ['email'], version: 2 });
     let promise: Promise<boolean> | null = null;
     act(() => {
       promise = api!.confirm({ title: 'Create contract', rows: [], confirmLabel: 'Create' });
@@ -79,7 +79,7 @@ describe('P4 consent', () => {
     expect(screen.getByTestId('consent-gate').textContent).toContain(CONSENT_NEEDED);
     expect(sessionStorage.getItem(`ned.consentAsked.${WALLET}`)).toBe('1');
     cleanup();
-    consent({ acceptedAt: 1, scope: ['email'], version: 1 });
+    consent({ acceptedAt: 1, scope: ['email'], version: 2 });
     wrap(<ConsentGate />);
     expect(screen.queryByTestId('consent-gate')).toBeNull();
     cleanup();

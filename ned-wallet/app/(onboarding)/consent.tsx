@@ -10,7 +10,21 @@ import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/
 import { fonts, palette, radius, space } from '../../constants/design';
 
 /** What the consent covers (stored with the log) */
-export const CONSENT_SCOPE = ['google-account-name', 'email', 'wallet-address', 'login-provider-dynamic-us'];
+export const CONSENT_SCOPE = [
+  'google-account-name',
+  'email',
+  'wallet-address',
+  'login-provider-dynamic-us',
+  'username-onchain',
+  'phone-hash-onchain-optional',
+  'device-key-onchain',
+  'encrypted-contract-content-onchain',
+  'rpc-helius-us',
+];
+
+/** P2 (compliance fix list): the exact checkbox text of consent version 2 */
+export const CONSENT_TEXT =
+  'I agree that N.E.D processes my Google account name, email and wallet address to run my account, that my login is handled by Dynamic in the United States, and that blockchain data is read through Helius. I understand that my @username, wallet address, device key, contract titles and encrypted contract content are written to Solana, where they are public or permanent and cannot be deleted. If I add a phone number, a hash of it is written there too. I can withdraw consent in Settings.';
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 
@@ -34,6 +48,10 @@ export default function ConsentScreen() {
     ['Email', user?.email ?? '—'],
     ['Wallet address', walletAddress ? short(walletAddress) : '—', true],
     ['Login provider', 'Dynamic · United States'],
+    ['Username', 'Public on Solana'],
+    ['Phone number hash', 'Optional, public on Solana'],
+    ['Device key', 'Public key on Solana'],
+    ['Blockchain data', 'Read through Helius (US)'],
   ];
 
   return (
@@ -66,14 +84,19 @@ export default function ConsentScreen() {
           style={[styles.box, checked && styles.boxOn]}
         >
           <View style={[styles.tick, checked && styles.tickOn]}>{checked ? <Feather name="check" size={16} color={palette.onAccent} /> : null}</View>
-          <Text style={styles.boxText}>
-            I agree that N.E.D processes my Google account name, email and wallet address to run my account, and that my
-            login is handled by Dynamic in the United States. I can withdraw consent in Settings.
-          </Text>
+          <Text style={styles.boxText}>{CONSENT_TEXT}</Text>
         </Pressable>
 
         <Text style={styles.note}>
-          Not ticked by default. You can read the Terms, Privacy Policy and{' '}
+          Not ticked by default. You can read the{' '}
+          <Text style={styles.link} onPress={() => router.push('/terms')} accessibilityRole="link">
+            Terms
+          </Text>
+          ,{' '}
+          <Text style={styles.link} onPress={() => router.push('/privacy')} accessibilityRole="link">
+            Privacy Policy
+          </Text>{' '}
+          and{' '}
           <Text style={styles.link} onPress={() => router.push('/disclosures')} accessibilityRole="link">
             Disclosures
           </Text>{' '}

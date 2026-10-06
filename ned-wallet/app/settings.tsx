@@ -141,10 +141,19 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.section} accessibilityRole="header">
+          Help
+        </Text>
+        <View style={styles.card}>
+          <LinkRow title="Before you submit" value="Guide" onPress={() => router.push('/help')} />
+        </View>
+
+        <Text style={styles.section} accessibilityRole="header">
           Privacy & legal
         </Text>
         <View style={styles.card}>
           <LinkRow title="Consent: view or withdraw" value={consent ? 'Given' : 'Not given'} valueColor={consent ? status.success.ink : status.warning.ink} onPress={() => setSheet('consent')} />
+          <LinkRow title="Terms of use" onPress={() => router.push('/terms')} divider />
+          <LinkRow title="Privacy Policy" onPress={() => router.push('/privacy')} divider />
           <LinkRow title="Disclosures" onPress={() => router.push('/disclosures')} divider />
           <View style={[styles.row, styles.divider]}>
             <Text style={[styles.rowTitle, styles.flex]}>Version {version}</Text>
@@ -161,11 +170,11 @@ export default function SettingsScreen() {
       <Sheet visible={sheet === 'consent'} onClose={() => setSheet(null)} title="Your consent">
         <Text style={styles.sheetText}>
           {consent
-            ? `Given on ${new Date(consent.acceptedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. N.E.D processes your Google account name, email and wallet address to run your account; your login is handled by Dynamic in the United States.`
+            ? `Given on ${new Date(consent.acceptedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. N.E.D processes your Google account name, email and wallet address to run your account; your login is handled by Dynamic in the United States and blockchain data is read through Helius. Your @username, wallet address, device key and contract data are on Solana and cannot be deleted.`
             : 'No consent is recorded on this device.'}
         </Text>
         <Text style={[styles.sheetText, styles.sheetGap]}>
-          Withdrawing signs you out. Your contracts stay on Solana; you are asked for consent again when you sign in.
+          Withdrawing signs you out. Your contracts stay on Solana; you are asked for consent again when you sign in. A record of when you gave and withdrew consent stays on this device.
         </Text>
         {consent ? <Button title="Withdraw consent" variant="destructiveSoft" loading={leaving} onPress={() => void withdrawConsent()} style={styles.sheetButton} /> : null}
         <Button title="Close" variant="secondary" onPress={() => setSheet(null)} style={styles.sheetButtonSmall} />

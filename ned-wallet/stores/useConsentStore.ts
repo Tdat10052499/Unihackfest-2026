@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const CONSENT_STORAGE_KEY = '@ned_consent_v1';
 /** Bump when the consent text changes; an older version counts as no consent */
-export const CONSENT_VERSION = 1;
+export const CONSENT_VERSION = 2;
 
 export interface ConsentRecord {
   /** unix ms */

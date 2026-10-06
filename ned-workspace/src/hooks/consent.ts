@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react';
 
 export const CONSENT_STORAGE_KEY = '@ned_consent_v1';
 /** Must equal CONSENT_VERSION in ned-wallet/stores/useConsentStore.ts */
-export const CONSENT_VERSION = 1;
+export const CONSENT_VERSION = 2;
 
 interface ConsentRecord {
   acceptedAt: number;

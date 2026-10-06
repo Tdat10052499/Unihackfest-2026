@@ -27,7 +27,8 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
 // (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
 // 'c': the invite link route decides itself (it keeps the #k= fragment for after sign-in)
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c']);
+// terms, privacy, disclosures: readable before sign-in and before consent (P3; the Workspace footers link here)
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c', 'terms', 'privacy', 'disclosures']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -198,6 +199,9 @@ export default function RootLayout() {
                       <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
                       <Stack.Screen name="disclosures" options={{ headerShown: false }} />
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
+                      <Stack.Screen name="terms" options={{ headerShown: false }} />
+                      <Stack.Screen name="privacy" options={{ headerShown: false }} />
+                      <Stack.Screen name="help" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
                       <Stack.Screen name="receive" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />
