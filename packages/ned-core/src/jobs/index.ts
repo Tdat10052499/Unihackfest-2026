@@ -5,6 +5,8 @@ export * from './decode.ts';
 export * from './queries.ts';
 export * from './brief.ts';
 export * from './rules.ts';
+export * from './client.ts';
 export * from './actions.ts';
 export * from './taxonomy.ts';
 export * from './search.ts';
+export * from './events.ts';

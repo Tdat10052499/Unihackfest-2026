@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { hashBytes, type BriefDraft } from '../../milestone/content.ts';
 import { buildJobBriefTxs, completeBriefSets, fetchJobBrief, jobBriefBytes, jobBriefParts, readJobBrief, type JobBriefRecord } from '../brief.ts';
-import { buildApplyJobIx } from '../actions.ts';
+import { buildApplyJobIx } from '../client.ts';
 import { BUSINESS, FREELANCER, JOB_ADDRESS } from './fixture.ts';
 
 const DRAFT: BriefDraft = {

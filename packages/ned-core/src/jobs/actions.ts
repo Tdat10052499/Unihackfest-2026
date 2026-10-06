@@ -1,27 +1,28 @@
 // Job actions (funded-jobs-plan.md section 5): fresh listing read → rules.ts check → build → sign → send → confirm.
-// Same pipeline as ../actions.ts (runBuilt). runSelectJob and the accept wiring come in S4.
-import { PublicKey, Transaction, type TransactionInstruction } from '@solana/web3.js';
-import idl from '../idl/ned_program.json' with { type: 'json' };
-import { runBuilt, NOT_NOW, type ActionEnv } from '../actions.ts';
+// Same pipeline as ../actions.ts (runBuilt). The accept side (accept + lock_from_job) is in ../actions.ts runAccept.
+import { PublicKey, Transaction } from '@solana/web3.js';
+import { runBuilt, runCreate, runFundAction, NOT_NOW, type ActionEnv } from '../actions.ts';
 import { ata, createAtaIdempotentIx } from '../chain/ata.ts';
 import { fetchUsdcUnits } from '../chain/balance.ts';
 import { UserFacingError } from '../chain/errors.ts';
-import { buildIx, encodeIx, toBN } from '../chain/idl.ts';
 import { sendAndConfirm } from '../chain/send.ts';
-import { getConnection, getProgramId } from '../config.ts';
-import { TOKEN_PROGRAM_ID, USDC_DEVNET_MINT } from '../constants.ts';
+import { getConnection } from '../config.ts';
+import { USDC_DEVNET_MINT } from '../constants.ts';
 import { equalBytes, hashBytes, type BriefDraft } from '../milestone/content.ts';
-import { coder } from '../milestone/decode.ts';
-import { formatUsdc, unitsFromUsdc } from '../milestone/format.ts';
+import { formatUsdc } from '../milestone/format.ts';
 import { TOKEN_ACCOUNT_SIZE } from '../milestone/layout.ts';
 import type { Region } from '../milestone/view.ts';
-import { buildJobBriefTxs, jobBriefBytes } from './brief.ts';
+import { buildJobBriefTxs, fetchJobBrief, jobBriefBytes } from './brief.ts';
 import type { JobListingAccount } from './decode.ts';
 import { JOB_APPLICATION_SIZE, JOB_LISTING_SIZE } from './layout.ts';
-import { jobAppPda, jobPda, jobVaultPda } from './pda.ts';
+import * as milestoneClient from '../milestone/client.ts';
+import { fundPda } from '../milestone/pda.ts';
+import { getFund } from '../milestone/queries.ts';
+import * as milestoneRules from '../milestone/rules.ts';
+import { buildApplyJobIx, buildPostJobIx, buildSelectJobIx, buildWithdrawJobIx } from './client.ts';
+import { jobAppPda } from './pda.ts';
 import { getApplication, getJob } from './queries.ts';
-import { assertJobDraft, canApply, canWithdraw, jobDraftTotal, pitchProblem, type JobDraft } from './rules.ts';
-import { skillsMask } from './taxonomy.ts';
+import { assertJobDraft, canApply, canSelect, canWithdraw, jobDraftTotal, pitchProblem, type JobDraft } from './rules.ts';
 
 export const POST_JOB_VN_REFUSED = 'Posting a job is not available in the Vietnam view.';
 
@@ -33,36 +34,6 @@ export class JobBriefNotSavedError extends UserFacingError {
     this.job = job;
   }
 }
-
-const jobIx = (name: string, accounts: Record<string, PublicKey>, args: Record<string, unknown> = {}): TransactionInstruction =>
-  buildIx(idl, getProgramId(), name, { token_program: TOKEN_PROGRAM_ID, ...accounts }, encodeIx(coder, name, args));
-
-/** post_job instruction for a validated draft (accounts and Borsh args from the IDL) */
-export function buildPostJobIx(p: { business: PublicKey; jobId: bigint; draft: JobDraft; briefHash: Uint8Array; payer?: PublicKey }): { ix: TransactionInstruction; job: PublicKey } {
-  const job = jobPda(p.business, p.jobId);
-  const ix = jobIx(
-    'post_job',
-    { business: p.business, payer: p.payer ?? p.business, job, job_vault: jobVaultPda(job), business_token: ata(USDC_DEVNET_MINT, p.business) },
-    {
-      job_id: toBN(p.jobId),
-      title: p.draft.title.trim(),
-      summary: p.draft.summary.trim(),
-      category: p.draft.category,
-      skills: toBN(skillsMask(p.draft.skills)),
-      milestones: p.draft.milestones.map((m) => ({ amount: toBN(unitsFromUsdc(m.amountUsdc) ?? 0n), work_secs: toBN(m.workSecs), review_secs: toBN(m.reviewSecs) })),
-      brief_hash: Array.from(p.briefHash),
-      apply_by: toBN(p.draft.applyBy),
-      select_by: toBN(p.draft.selectBy),
-    }
-  );
-  return { ix, job };
-}
-
-export const buildApplyJobIx = (job: PublicKey, freelancer: PublicKey, pitch: string) =>
-  jobIx('apply_job', { job, application: jobAppPda(job, freelancer), freelancer }, { pitch: pitch.trim() });
-
-export const buildWithdrawJobIx = (job: PublicKey, business: PublicKey) =>
-  jobIx('withdraw_job', { job, business, job_vault: jobVaultPda(job), business_token: ata(USDC_DEVNET_MINT, business) });
 
 /** Fresh read of a listing (never act on a stale poll result) */
 export async function readJob(address: string | undefined, env: ActionEnv): Promise<JobListingAccount> {
@@ -155,3 +126,52 @@ export function runWithdrawJob(env: ActionEnv, address: string | undefined) {
   });
 }
 
+/** Base units → a plain decimal string unitsFromUsdc reads back exactly (no thousands separator, 6 decimals) */
+const plainUsdc = (units: bigint) => `${units / 1_000_000n}.${(units % 1_000_000n).toString().padStart(6, '0')}`;
+
+/**
+ * "Select" on the Applicants page: create_fund for the applicant with the listing's title, public brief and
+ * template (absolute deadlines from chain time: submit_by = now + work_secs, review_by = submit_by + review_secs),
+ * and select_job in the same transaction. The contract key, brief notes and key wraps are the normal runCreate path.
+ * On a re-select (the first person did not accept in time), the previous contract is closed in the same transaction,
+ * or first on its own when the three do not fit in one transaction, so it can never be accepted later.
+ */
+export async function runSelectJob(env: ActionEnv, address: string | undefined, freelancer: string) {
+  const { walletAddress } = env.signer;
+  if (!walletAddress) throw new UserFacingError('Sign in first.');
+  const connection = env.connection ?? getConnection();
+  const me = new PublicKey(walletAddress);
+  const job = await readJob(address, env);
+  const now = await env.now();
+  if (!canSelect(job, me, now)) throw new UserFacingError(NOT_NOW);
+  const applicant = new PublicKey(freelancer);
+  if (!(await getApplication(job.address, applicant, connection))) throw new UserFacingError('This person has not applied to this job.');
+  const brief = await fetchJobBrief(job, connection);
+  if (brief.status !== 'ok' || !brief.brief) throw new UserFacingError('The public brief of this job is missing or does not match. Save the brief again first.');
+  const draft = {
+    freelancer,
+    title: job.title,
+    milestones: job.milestones.map((t) => ({ amountUsdc: plainUsdc(t.amount), submitBy: now + t.workSecs, reviewSeconds: t.reviewSecs })),
+    brief: { scope: brief.brief.scope, references: brief.brief.references, milestones: brief.brief.milestones },
+  };
+  if (!equalBytes(hashBytes(jobBriefBytes(job.title, draft.brief)), job.briefHash)) throw new UserFacingError('The public brief of this job does not match. Save the brief again first.');
+
+  // The contract address is only known inside runCreate; select_job needs it, so fix the fund ID here
+  const fundId = BigInt(Date.now());
+  const fund = fundPda(me, fundId);
+  const select = buildSelectJobIx(job.address, me, fund, applicant);
+
+  const previous = job.state === 'Selected' && job.fund ? await getFund(job.fund, connection) : null;
+  const closable = previous && milestoneRules.canClose(previous, me) && previous.state !== 'Settled' ? previous : null;
+  const before = closable ? (await milestoneClient.buildClose({ fund: closable, creator: me }, connection)).tx.instructions : [];
+  let closeSignature: string | undefined;
+  let result: Awaited<ReturnType<typeof runCreate>>;
+  try {
+    result = await runCreate(env, draft, { before, after: [select], fundId });
+  } catch (err) {
+    if (!before.length || !String((err as Error)?.message).includes('too large')) throw err;
+    closeSignature = (await runFundAction(env, closable!.address.toBase58(), 'close')).signature;
+    result = await runCreate(env, draft, { after: [select], fundId });
+  }
+  return { ...result, job: job.address.toBase58(), ...(closeSignature ? { closeSignature } : {}) };
+}

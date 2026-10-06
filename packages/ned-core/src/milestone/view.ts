@@ -3,7 +3,7 @@ import { shortAddress } from '../identity/resolveCore.ts';
 import type { FundAccount, MilestoneAccount } from './decode.ts';
 import type { DeliveryDraft } from './content.ts';
 import { shortHash } from './evidence.ts';
-import type { ContentStatus, ContractContent } from './notes.ts';
+import { handoverSent, revisionAfterLatestReview, type ContentStatus, type ContractContent, type MilestoneHistory } from './notes.ts';
 import { formatCountdown, formatDeadline, formatUsdc, vndEstimate } from './format.ts';
 import { vaultPda } from './pda.ts';
 import * as rules from './rules.ts';
@@ -16,7 +16,12 @@ export type Region = 'vn' | 'intl';
 export type ChipTone = 'info' | 'accent' | 'warning' | 'success' | 'neutral';
 export type ActionKind =
   | 'accept' | 'lock' | 'submit' | 'approve' | 'releaseNow' | 'refundNow'
-  | 'close' | 'dispute' | 'concede' | 'proposeSplit' | 'acceptSplit';
+  | 'close' | 'dispute' | 'concede' | 'proposeSplit' | 'acceptSplit'
+  // D27: request changes = dispute + review note (or a review note alone on a Disputed milestone); a revised version
+  // and the final-files handover are delivery notes
+  | 'requestChanges' | 'sendRevision' | 'handover'
+  // Funded Jobs: move the job's locked budget into this contract (lock_from_job)
+  | 'lockFromJob';
 
 export interface MilestoneView {
   index: number;
@@ -29,7 +34,11 @@ export interface MilestoneView {
   status: 'pending' | 'submitted' | 'disputed' | 'released' | 'refunded' | 'cancelled';
   statusLabel: string;
   tone: ChipTone;
-  /** e.g. "auto-release in 0:42" */
+  /** A second line under the status (D27: while changes are requested) */
+  statusLine?: string;
+  /** Vietnam view, released through the payout partner: the simulated-VND note */
+  releasedNote?: string;
+  /** e.g. "Release opens in 0:42 if not reviewed" */
   countdown?: { to: number; label: string };
   /** what *this* user may do now (rules.ts) */
   actions: ActionKind[];
@@ -39,6 +48,8 @@ export interface MilestoneView {
   name?: string;
   criteria?: string[];
   delivery?: { content?: DeliveryDraft; matches?: boolean; submittedAt: number; onTime: boolean };
+  /** D27: every delivery (first, revisions, handover) and review of this milestone, oldest first */
+  history?: MilestoneHistory;
 }
 
 export interface FundView {
@@ -54,7 +65,7 @@ export interface FundView {
   statusLabel: string;
   tone: ChipTone;
   milestones: MilestoneView[];
-  nextAction?: { kind: ActionKind; milestone?: number; label: string };
+  nextAction?: { kind: ActionKind; milestone?: number; label: string; detail?: string };
   needsMyAction: boolean;
   /** work window passed before lock */
   tooLate: boolean;
@@ -81,9 +92,18 @@ export interface ViewOptions {
   names?: Record<string, string>;
   /** Show P1 actions (dispute, concede, split). Default false; ned-wallet passes FEATURES.dispute */
   p1?: boolean;
+  /**
+   * The job listing whose `fund` is this contract (jobs/queries jobForFund), when there is one. A job contract never
+   * offers the normal Lock: its budget is already locked in the job and moves with lock_from_job.
+   */
+  job?: { address: string; state: 'Open' | 'Selected' | 'Filled' | 'Withdrawn' };
 }
 
-export const RELEASED_TO_PARTNER = 'Released to payout partner · VND payout simulated in this demo';
+export const RELEASED_TO_PARTNER = 'Released to payout partner · VND transfer simulated in this demo';
+/** D27: shown to both sides while a milestone is Disputed */
+export const DISPUTED_STATUS_LINE = 'No deadline while changes are requested. The amount stays locked until you both agree.';
+export const REVIEW_TIME_OVER = 'Review time over · ready to release';
+export const releaseOpensIn = (left: string) => `Release opens in ${left} if not reviewed`;
 const explorer = (address: string) => `https://explorer.solana.com/address/${address}?cluster=devnet`;
 
 export function toFundView(fund: FundAccount, me: string, region: Region, now: number, opts: ViewOptions = {}): FundView {
@@ -121,32 +141,44 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
         if (fund.state === 'Funded' && now <= m.submitBy) {
           countdown = { to: m.submitBy, label: `submit within ${formatCountdown(m.submitBy - now)}` };
         } else if (fund.state === 'Funded') {
-          // ContractDetail board "submitMissed": anyone can refund now
-          statusLabel = 'Submission deadline passed';
+          // ContractDetail board "submitMissed": anyone can refund now (U4: both sides see it)
+          statusLabel = role === 'client' ? 'Submission deadline passed · can be refunded to you' : 'Submission deadline passed · can be refunded to the client';
           tone = 'warning';
         }
         break;
       case 'Submitted': {
         if (now > m.reviewBy) {
-          // Open issue 3 (owner wording, B4a): the review time is over and anyone can release
-          statusLabel = role === 'client' ? 'Review time is over · anyone can release' : 'Ready to release';
+          // U4: the review time is over; anyone can release, nothing happens by itself. Same label for both sides
+          statusLabel = REVIEW_TIME_OVER;
           tone = 'success';
           break;
         }
         const left = formatCountdown(m.reviewBy + 1 - now);
         statusLabel = role === 'client'
-          ? `Submitted · review by ${formatDeadline(m.reviewBy)} · auto-release in ${left}`
+          ? `Submitted · review by ${formatDeadline(m.reviewBy)} · ${releaseOpensIn(left)}`
           : 'Submitted · in review';
         tone = 'warning';
-        countdown = { to: m.reviewBy + 1, label: `auto-release in ${left}` };
+        countdown = { to: m.reviewBy + 1, label: releaseOpensIn(left) };
         break;
       }
-      case 'Disputed':
-        statusLabel = 'Disputed · auto-release paused';
+      case 'Disputed': {
+        // D27 labels (review-decision-plan section 3)
+        const revised = revisionAfterLatestReview(opts.content?.history[m.index]);
+        statusLabel = role === 'client'
+          ? revised ? 'Revised version received · review it' : `Changes requested · waiting for ${otherName}`
+          : revised ? `Revised version sent · waiting for ${otherName}` : 'Changes requested · send a revised version';
         tone = 'warning';
         break;
+      }
       case 'Released':
-        statusLabel = region === 'vn' && viaPartner ? RELEASED_TO_PARTNER : 'Released';
+        if (opts.content) {
+          const handed = handoverSent(opts.content.history[m.index]);
+          statusLabel = role === 'client'
+            ? handed ? 'Final files received' : 'Released · waiting for final files'
+            : handed ? 'Final files handed over' : 'Released · hand over the final files';
+        } else {
+          statusLabel = region === 'vn' && viaPartner ? RELEASED_TO_PARTNER : 'Released';
+        }
         tone = 'success';
         break;
       case 'Refunded':
@@ -165,9 +197,13 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
     if (rules.canRefund(fund, m.index, now)) actions.push('refundNow');
     if (p1 && rules.canDispute(fund, me, m.index, now)) actions.push('dispute');
     if (p1 && rules.canConcede(fund, me, m.index)) actions.push('concede');
+    if (p1 && rules.canRequestChanges(fund, me, m.index, now)) actions.push('requestChanges');
+    if (p1 && rules.canSendRevision(fund, me, m.index)) actions.push('sendRevision');
+    if (rules.canHandover(fund, me, m.index)) actions.push('handover');
     const evidence = shortHash(m.evidence);
     const briefMilestone = opts.content?.brief?.milestones[m.index];
     const delivered = opts.content?.deliveries[m.index];
+    const history = opts.content?.history?.[m.index];
     return {
       index: m.index,
       amountUnits: m.amount,
@@ -177,6 +213,8 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
       status: m.status.toLowerCase() as MilestoneView['status'],
       statusLabel,
       tone,
+      ...(m.status === 'Disputed' ? { statusLine: DISPUTED_STATUS_LINE } : {}),
+      ...(m.status === 'Released' && region === 'vn' && viaPartner ? { releasedNote: RELEASED_TO_PARTNER } : {}),
       ...(countdown ? { countdown } : {}),
       actions,
       ...(evidence ? { evidence } : {}),
@@ -191,6 +229,7 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
             },
           }
         : {}),
+      ...(history ? { history } : {}),
     };
   };
   const milestones = fund.milestones.map(milestoneView);
@@ -208,7 +247,9 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
   // ---- fund-level actions ----
   const actions: ActionKind[] = [];
   if (rules.canAccept(fund, me, now)) actions.push('accept');
-  if (rules.canLock(fund, me, now)) actions.push('lock');
+  // A job contract never offers the normal Lock (the budget would leave the business wallet twice)
+  if (!opts.job && rules.canLock(fund, me, now)) actions.push('lock');
+  if (opts.job?.state === 'Selected' && fund.state === 'Accepted' && rules.workWindowOk(fund.milestones, now)) actions.push('lockFromJob');
   if (rules.canClose(fund, me)) actions.push('close');
   if (p1 && rules.canProposeSplit(fund, me)) actions.push('proposeSplit');
   if (p1 && rules.canAcceptSplit(fund, me)) actions.push('acceptSplit');
@@ -230,17 +271,39 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
   if (actions.includes('acceptSplit')) nextAction = { kind: 'acceptSplit', label: 'Review the proposed split' };
   else if (actions.includes('accept')) nextAction = { kind: 'accept', label: 'Accept and choose where your earnings go' };
   else if (actions.includes('lock')) nextAction = { kind: 'lock', label: `Lock ${amount(fund.total)}` };
+  else if (actions.includes('lockFromJob')) nextAction = { kind: 'lockFromJob', label: 'Move locked budget' };
   else {
     for (const m of milestones) {
+      const revised = revisionAfterLatestReview(m.history);
       const kind: ActionKind | undefined =
-        m.actions.includes('approve') ? 'approve'
+        // U4: when the review time is over, both roles get Release now as the primary action (before Approve)
+        m.actions.includes('releaseNow') ? 'releaseNow'
+        : m.actions.includes('approve') && (m.status !== 'disputed' || revised) ? 'approve'
         : m.actions.includes('submit') ? 'submit'
-        : role === 'freelancer' && m.actions.includes('releaseNow') ? 'releaseNow'
         : role === 'client' && m.actions.includes('refundNow') ? 'refundNow'
+        : m.actions.includes('sendRevision') && !revised ? 'sendRevision'
+        : m.status === 'released' && opts.content && m.actions.includes('handover') && !handoverSent(m.history) ? 'handover'
         : undefined;
+      if (kind === 'releaseNow') {
+        nextAction = {
+          kind,
+          milestone: m.index,
+          label: 'Release now',
+          detail: role === 'client'
+            ? `You didn't review by ${formatDeadline(m.reviewBy)}. This milestone can now be released to ${otherName}. Anyone can do this, including you.`
+            : 'Review time is over. Release your earnings now.',
+        };
+        break;
+      }
       if (kind) {
-        const verb = { approve: 'Approve', submit: 'Submit', releaseNow: 'Release', refundNow: 'Refund' }[kind as 'approve'];
-        nextAction = { kind, milestone: m.index, label: `${verb} ${n(m.index)}` };
+        const label = {
+          approve: `Approve ${n(m.index)}`,
+          submit: `Submit ${n(m.index)}`,
+          refundNow: 'Refund now',
+          sendRevision: 'Send a revised version',
+          handover: 'Hand over the final files',
+        }[kind as 'approve'];
+        nextAction = { kind, milestone: m.index, label };
         break;
       }
     }
