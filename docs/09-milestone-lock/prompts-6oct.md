@@ -517,3 +517,28 @@ released milestone by milestone after the work is accepted." Reasons: Budget loc
 No fee from N.E.D · Release only accepted work (Vietnam view: Receive earnings in VND). Buttons: client "Post a job" →
 `/jobs/new`, otherwise "Browse open jobs" → `/jobs/find`; outline "See your records" opens the wallet extension at
 `/records` (the Workspace has no `/records` page; signed out it goes to `/sign-in?next=/jobs`).
+
+**H.15 Find jobs.** (The S5c prompt calls this H.13.) Lavender title band: h1 "Find jobs", sub-line "Every job here has
+its whole budget locked on Solana. Filter by field, skill, budget and time to deliver.", category chips All + the 8
+with live counts (the open jobs that pass every other filter; the selected chip is dark). Heading row: "Open jobs" or
+"<Category> jobs" / "Every budget below is already locked on Solana."; "My applications" / "Where each of your
+applications stands."; "My listings" / "Jobs you posted and what happened to each budget."; tabs Open jobs · My
+applications · My listings with counts (My listings hidden in the Vietnam view; signed out, the two My tabs show "Sign
+in to see your applications / listings" with Sign in → `/sign-in?next=<this URL>`). Filter bar (white, 18 px radius):
+search "Search title, summary, skills" (writes `q` to the URL 150 ms after typing), Category, Skill (the category's
+skills), Budget (Under 20 USDC · 20 – 50 USDC · Over 50 USDC; Vietnam view: Under ≈ 520,000 VND · ≈ 520,000 – 1,301,000
+VND · Over ≈ 1,301,000 VND; stored as `min`/`max` in whole USDC), Time to deliver (Up to 1 week / 2 weeks / 1 month),
+Milestones (1 / 2–3 / 4–5), Sort (Newest · Apply by soonest · Budget: high to low); ticks "Apply by within 24 h" and
+"Hide jobs I applied to"; the count "N open jobs" (+ " match" when a filter is on); Clear (keeps the sort); Copy link
+("Link copied"). Results: job cards (H.9, the first dark), 9 at a time, "Show all N jobs" / "Show fewer jobs". No
+match: "No open jobs match these filters." / "Try another category or a wider budget." (or, with no open job at all,
+"No job is open right now. New jobs show up here as soon as a business locks a budget.") and Clear filters. URL:
+`filtersToQuery` order plus `tab=applied|listings`; nothing is stored.
+Rows (avatar, title, meta, amount with its second line, status chip, action): My applications — Selected · accept now
+(success; "Review & accept" purple → the contract), Applied (info; View job), Not selected yet (another applicant is
+selected), Not selected (filled by someone else), Hired (purple; Open contract), Closed (withdrawn). My listings — Open
+(success; "N applicants · select by … · posted …", "locked in the job", Review applicants, purple when there are
+applicants), Selected (info; "Selected @x · accept by …"), Filled (purple; "Hired @x · contract created", "moved into the
+contract", Open contract), Withdrawn (neutral; "budget returned", "returned to you", View record → the listing). Empty:
+"You haven't applied to a job yet." / "Every open job shows its locked budget, so the money is there before you apply."
+and "You haven't posted a job yet." / "Post a job: lock its budget and publish it."
