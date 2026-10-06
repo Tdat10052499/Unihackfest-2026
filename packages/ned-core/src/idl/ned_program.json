@@ -370,6 +370,96 @@
       ]
     },
     {
+      "name": "apply_job",
+      "docs": [
+        "Applies to an open job with a public pitch (one application per person)"
+      ],
+      "discriminator": [
+        10,
+        21,
+        107,
+        176,
+        41,
+        146,
+        33,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "JobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.job_id",
+                "account": "JobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "application",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  97,
+                  112,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              },
+              {
+                "kind": "account",
+                "path": "freelancer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "freelancer",
+          "docs": [
+            "Pays the rent of the application"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pitch",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "approve",
       "docs": [
         "Client approves a submitted (or disputed) milestone: release to the destination"
@@ -1362,6 +1452,472 @@
       "args": []
     },
     {
+      "name": "lock_from_job",
+      "docs": [
+        "Moves the job budget into the accepted contract (same transaction, after accept)"
+      ],
+      "discriminator": [
+        162,
+        207,
+        102,
+        181,
+        220,
+        17,
+        10,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "JobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.job_id",
+                "account": "JobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fund",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "SharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fund_id",
+                "account": "SharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "job_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business",
+          "writable": true,
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "business_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "caller",
+          "docs": [
+            "Anyone (the freelancer in practice)"
+          ],
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "job",
+            "fund"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "post_job",
+      "docs": [
+        "Publishes a job and locks its whole budget in the job vault"
+      ],
+      "discriminator": [
+        34,
+        208,
+        58,
+        248,
+        129,
+        234,
+        179,
+        211
+      ],
+      "accounts": [
+        {
+          "name": "business",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the rent of the listing and the job vault (may be the business)"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "arg",
+                "path": "job_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "job_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "job_id",
+          "type": "u64"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "summary",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "u8"
+        },
+        {
+          "name": "skills",
+          "type": "u64"
+        },
+        {
+          "name": "milestones",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "JobMilestoneInput"
+              }
+            }
+          }
+        },
+        {
+          "name": "brief_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apply_by",
+          "type": "i64"
+        },
+        {
+          "name": "select_by",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "post_job_brief",
+      "docs": [
+        "One part of the job's plain-text brief (no state change), while the job is Open"
+      ],
+      "discriminator": [
+        70,
+        181,
+        108,
+        250,
+        44,
+        60,
+        41,
+        67
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "docs": [
+            "Read-only: listed so the brief can be found with getSignaturesForAddress(job)"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "JobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.job_id",
+                "account": "JobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business",
+          "signer": true,
+          "relations": [
+            "job"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "part",
+          "type": "u8"
+        },
+        {
+          "name": "parts",
+          "type": "u8"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "post_note",
       "docs": [
         "Posts one part of an encrypted brief (client, while Created), delivery (freelancer, Submitted milestone) or,",
@@ -1853,6 +2409,112 @@
       ]
     },
     {
+      "name": "select_job",
+      "docs": [
+        "Binds the job to the contract just created for one applicant (same transaction, after create_fund)"
+      ],
+      "discriminator": [
+        45,
+        235,
+        61,
+        40,
+        98,
+        181,
+        176,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "JobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.job_id",
+                "account": "JobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business",
+          "signer": true,
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "fund",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fund.creator",
+                "account": "SharedFund"
+              },
+              {
+                "kind": "account",
+                "path": "fund.fund_id",
+                "account": "SharedFund"
+              }
+            ]
+          }
+        },
+        {
+          "name": "application",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  97,
+                  112,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              },
+              {
+                "kind": "account",
+                "path": "fund.freelancer",
+                "account": "SharedFund"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "submit",
       "docs": [
         "Freelancer marks a milestone delivered; `evidence` = SHA-256 of the canonical delivery JSON (never all zero)"
@@ -2119,6 +2781,152 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "withdraw_job",
+      "docs": [
+        "Returns the budget to the business when no one was hired"
+      ],
+      "discriminator": [
+        98,
+        181,
+        227,
+        136,
+        207,
+        104,
+        184,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "JobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.job_id",
+                "account": "JobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "job_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -2133,6 +2941,32 @@
         152,
         47,
         126
+      ]
+    },
+    {
+      "name": "JobApplication",
+      "discriminator": [
+        114,
+        250,
+        212,
+        242,
+        162,
+        108,
+        58,
+        20
+      ]
+    },
+    {
+      "name": "JobListing",
+      "discriminator": [
+        231,
+        56,
+        185,
+        45,
+        167,
+        183,
+        167,
+        150
       ]
     },
     {
@@ -2291,6 +3125,84 @@
         92,
         62,
         82
+      ]
+    },
+    {
+      "name": "JobApplied",
+      "discriminator": [
+        98,
+        51,
+        246,
+        33,
+        85,
+        196,
+        124,
+        246
+      ]
+    },
+    {
+      "name": "JobBriefPosted",
+      "discriminator": [
+        41,
+        241,
+        121,
+        68,
+        66,
+        21,
+        255,
+        230
+      ]
+    },
+    {
+      "name": "JobFilled",
+      "discriminator": [
+        102,
+        38,
+        182,
+        222,
+        58,
+        203,
+        28,
+        179
+      ]
+    },
+    {
+      "name": "JobPosted",
+      "discriminator": [
+        18,
+        171,
+        12,
+        141,
+        212,
+        169,
+        183,
+        52
+      ]
+    },
+    {
+      "name": "JobSelected",
+      "discriminator": [
+        26,
+        227,
+        180,
+        210,
+        10,
+        251,
+        184,
+        64
+      ]
+    },
+    {
+      "name": "JobWithdrawn",
+      "discriminator": [
+        114,
+        138,
+        114,
+        231,
+        67,
+        107,
+        180,
+        51
       ]
     },
     {
@@ -2634,6 +3546,61 @@
       "code": 6041,
       "name": "InvalidDeviceKey",
       "msg": "The device key is not valid."
+    },
+    {
+      "code": 6042,
+      "name": "JobNotOpen",
+      "msg": "This job is not open."
+    },
+    {
+      "code": 6043,
+      "name": "ApplyClosed",
+      "msg": "Applications for this job are closed."
+    },
+    {
+      "code": 6044,
+      "name": "SelectClosed",
+      "msg": "The time to select an applicant has passed."
+    },
+    {
+      "code": 6045,
+      "name": "AcceptWindowOpen",
+      "msg": "The selected freelancer can still accept. Try again after the accept window."
+    },
+    {
+      "code": 6046,
+      "name": "JobFundMismatch",
+      "msg": "This contract does not match the job."
+    },
+    {
+      "code": 6047,
+      "name": "NotSelected",
+      "msg": "No applicant is selected for this job, or this is not the selected contract."
+    },
+    {
+      "code": 6048,
+      "name": "WithdrawTooEarly",
+      "msg": "The budget cannot be withdrawn yet."
+    },
+    {
+      "code": 6049,
+      "name": "PitchTooLong",
+      "msg": "The pitch is longer than 280 bytes."
+    },
+    {
+      "code": 6050,
+      "name": "InvalidJobDeadlines",
+      "msg": "The job deadlines are not valid."
+    },
+    {
+      "code": 6051,
+      "name": "InvalidCategory",
+      "msg": "The job category is not valid."
+    },
+    {
+      "code": 6052,
+      "name": "SummaryTooLong",
+      "msg": "The job summary must be 1 to 160 bytes."
     }
   ],
   "types": [
@@ -2901,6 +3868,451 @@
           },
           {
             "name": "Settled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobApplication",
+      "docs": [
+        "PDA [JOB_APP_SEED, job, freelancer]; 364 bytes with the discriminator. One per person per job."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "job",
+            "docs": [
+              "memcmp \"applicants of a job\" (offset 9)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancer",
+            "docs": [
+              "memcmp \"my applications\" (offset 41)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "pitch_len",
+            "type": "u16"
+          },
+          {
+            "name": "pitch",
+            "docs": [
+              "UTF-8, zero-padded; public"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                280
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobApplied",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancer",
+            "type": "pubkey"
+          },
+          {
+            "name": "application_count",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobBriefPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "part",
+            "type": "u8"
+          },
+          {
+            "name": "parts",
+            "type": "u8"
+          },
+          {
+            "name": "len",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobFilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobListing",
+      "docs": [
+        "PDA [JOB_SEED, business, job_id.to_le_bytes()]; 576 bytes with the discriminator"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "state",
+            "docs": [
+              "memcmp \"open jobs\" (offset 9)"
+            ],
+            "type": {
+              "defined": {
+                "name": "JobState"
+              }
+            }
+          },
+          {
+            "name": "business",
+            "docs": [
+              "memcmp \"my listings\" (offset 10)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "category",
+            "docs": [
+              "Index into the @ned/core taxonomy (< JOB_CATEGORY_COUNT); memcmp \"jobs in this category\" (offset 42)"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "skills",
+            "docs": [
+              "Bitmask of up to 64 skills from the same taxonomy (filtered in the browser)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "apply_by",
+            "docs": [
+              "Last time to apply"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "select_by",
+            "docs": [
+              "Last time to select; withdraw opens after it"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "total",
+            "docs": [
+              "Sum of the template amounts; the job vault holds exactly this (plus any donation)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "milestone_count",
+            "type": "u8"
+          },
+          {
+            "name": "milestones",
+            "docs": [
+              "MAX_MILESTONES slots (literal so the IDL gets a plain array length); slots >= milestone_count stay zeroed"
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "JobMilestone"
+                  }
+                },
+                5
+              ]
+            }
+          },
+          {
+            "name": "title",
+            "docs": [
+              "UTF-8, zero-padded; searched"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "summary",
+            "docs": [
+              "UTF-8, zero-padded; the card text; not part of the brief hash"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                160
+              ]
+            }
+          },
+          {
+            "name": "brief_hash",
+            "docs": [
+              "SHA-256 of the canonical brief JSON (same canonicalBrief as contracts); never all zero"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "selected",
+            "docs": [
+              "Default until select_job"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "selected_at",
+            "type": "i64"
+          },
+          {
+            "name": "fund",
+            "docs": [
+              "The contract created at select; memcmp \"job of this contract\" (offset 508)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "application_count",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "_reserved",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobMilestone",
+      "docs": [
+        "One milestone of the job template (24 bytes). The contract's absolute deadlines are set at select time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "work_secs",
+            "docs": [
+              "The submission deadline is this long after select"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "review_secs",
+            "docs": [
+              "review_by − submit_by of the contract milestone"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobMilestoneInput",
+      "docs": [
+        "`post_job` argument (24 bytes)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "work_secs",
+            "type": "i64"
+          },
+          {
+            "name": "review_secs",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "business",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "category",
+            "type": "u8"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "apply_by",
+            "type": "i64"
+          },
+          {
+            "name": "select_by",
+            "type": "i64"
+          },
+          {
+            "name": "brief_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobSelected",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "fund",
+            "type": "pubkey"
+          },
+          {
+            "name": "freelancer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Selected"
+          },
+          {
+            "name": "Filled"
+          },
+          {
+            "name": "Withdrawn"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
           }
         ]
       }
