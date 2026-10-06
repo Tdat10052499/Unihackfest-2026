@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — Job detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F7F4FB}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-nav{transition:background-color .15s ease}
+.ned-nav:hover{background:#EEEEF2}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-nav:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-stagger>*:nth-child(n+5){animation-delay:160ms}
+.ned-swap{animation:ned-rise 320ms var(--ned-ease-out) both}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@keyframes hb-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+.hb-pop{animation:hb-pop 200ms cubic-bezier(.16,1,.3,1) both;transform-origin:top right}
+.hb-mi:hover{background:#F6F4F9!important}
+.hb-nav:hover{color:#16161C!important}
+.hb-mi:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #F7F4FB; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #EFE6FB">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+      <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #16161C">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Jobs</span>
+      </a>
+      <nav aria-label="Jobs" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 600">
+        <a href="WebJobs.dc.html" class="hb-nav" style="padding: 8px 0; color: #4B4B57; text-decoration: none">Overview</a>
+        <a href="WebJobsFind.dc.html" aria-current="page" class="hb-nav" style="padding: 8px 0; color: #6A22B0; box-shadow: inset 0 -2px 0 #7B2FBE; text-decoration: none">Find jobs</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #FFFFFF; color: #16161C; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+          <div role="menu" aria-label="Account" class="hb-pop" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px); padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 24px 48px -20px rgba(17,17,22,0.35)">
+            <div style="padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F0F3">
+              <dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import>
+              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@{{handle}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{walletSub}}</span></span>
+            </div>
+            <button role="menuitem" onClick="{{openWallet}}" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12l2 3M16 13.5h.01"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #5E5E6A">The N.E.D Wallet, as on your phone</span></span>
+            </button>
+            <a role="menuitem" href="WebWorkspace.dc.html" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #5E5E6A">Contracts, milestones and records</span></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+            </a>
+          </div>
+        </sc-if>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="app" start-screen="home" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <a href="WebJobsFind.dc.html" style="align-self: flex-start; height: 36px; padding: 0 12px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>All jobs</a>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <main class="ned-stagger" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section aria-labelledby="jd-title" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-size: 12px; font-weight: 600">Design</span>
+            <span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F4F4F6; color: #3F3F49; font-size: 12px; font-weight: 600">Logo &amp; brand</span>
+            <span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F4F4F6; color: #3F3F49; font-size: 12px; font-weight: 600">Illustration</span>
+          </div>
+          <h1 id="jd-title" style="margin: 14px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.8px">Logo refresh for a coffee brand</h1>
+          <p style="margin: 8px 0 0; font-size: 16px; line-height: 1.55; color: #3F3F49">A cleaner wordmark and a small cup icon. Two rounds: concepts, then final files after release.</p>
+          <div style="margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px">
+            <span style="display: inline-flex; align-items: center; gap: 10px"><dc-import name="Avatar" seed="orbit_cafe" size="32" hint-size="32px,32px"></dc-import><span style="font-size: 14px"><span style="font-weight: 600">@orbit_cafe</span><span style="color: #5E5E6A"> · posted 6 Oct</span></span></span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 12px; font-weight: 600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Brief verified · matches its fingerprint on Solana</span>
+          </div>
+        </section>
+
+        <section aria-labelledby="jd-scope" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+          <h2 id="jd-scope" style="margin: 0; font-size: 18px; font-weight: 700">Scope</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #3F3F49">We roast and sell coffee in two small shops. The current logo is hard to read on cups and on a phone screen. Keep the warm brown tone; the cup icon should work alone at 32 px. References: our menu board and the two cafés we like, linked in the brief.</p>
+          <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px">
+            <span style="height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; background: #F4F4F6; font-size: 13px; font-weight: 600; color: #3F3F49"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>Menu board photo</span>
+            <span style="height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; background: #F4F4F6; font-size: 13px; font-weight: 600; color: #3F3F49"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>Two cafés we like</span>
+          </div>
+        </section>
+
+        <section aria-labelledby="jd-ms" style="padding: 24px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><h2 id="jd-ms" style="margin: 0; font-size: 18px; font-weight: 700">Milestones</h2><span style="font-size: 13px; color: #5E5E6A">Each milestone is released after the client accepts it</span></div>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px">
+            <sc-for list="{{milestones}}" as="m" hint-placeholder-count="2">
+              <div style="padding: 16px 18px; border-radius: 18px; background: #F7F7F9">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px">
+                  <span style="width: 28px; height: 28px; border-radius: 9999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #6A22B0; flex-shrink: 0">{{m.n}}</span>
+                  <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{m.name}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #5E5E6A">{{m.when}}</span></span>
+                  <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">{{m.money}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{m.moneySub}}</span></span>
+                </div>
+                <div style="margin: 12px 0 0 40px; font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">Done when</div>
+                <ul style="margin: 6px 0 0 40px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+                  <sc-for list="{{m.done}}" as="d" hint-placeholder-count="3">
+                    <li style="display: flex; gap: 8px; font-size: 14px; line-height: 1.45; color: #3F3F49"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>{{d}}</li>
+                  </sc-for>
+                </ul>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+          <section aria-labelledby="jd-proof" style="padding: 22px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+            <div style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; background: #E7F6EC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg></span><h2 id="jd-proof" style="margin: 0; font-size: 16px; font-weight: 700">Budget locked</h2></div>
+            <div style="margin-top: 12px; font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700">{{total}}</div>
+            <div style="margin-top: 2px; font-size: 12px; color: #5E5E6A">{{totalSub}}</div>
+            <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: #3F3F49">Locked in a program vault on Solana when the job was posted. It moves into your contract when you accept. It goes back to @orbit_cafe only if nobody is hired.</p>
+            <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener" style="margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none">View the vault on Explorer<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+          </section>
+          <section aria-labelledby="jd-rec" style="padding: 22px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+            <div style="display: flex; align-items: center; gap: 10px"><dc-import name="Avatar" seed="orbit_cafe" size="36" hint-size="36px,36px"></dc-import><h2 id="jd-rec" style="margin: 0; font-size: 16px; font-weight: 700">@orbit_cafe on N.E.D</h2></div>
+            <dl style="margin: 12px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 14px">
+              <dt style="color: #5E5E6A">Contracts released</dt><dd style="margin: 0; font-weight: 600; text-align: right">6</dd>
+              <dt style="color: #5E5E6A">Reviewed before the deadline</dt><dd style="margin: 0; font-weight: 600; text-align: right">6 of 6</dd>
+              <dt style="color: #5E5E6A">Changes requested</dt><dd style="margin: 0; font-weight: 600; text-align: right">1</dd>
+              <dt style="color: #5E5E6A">Milestones still locked by a request</dt><dd style="margin: 0; font-weight: 600; text-align: right">0</dd>
+              <dt style="color: #5E5E6A">First contract</dt><dd style="margin: 0; font-weight: 600; text-align: right">Sep 2026</dd>
+            </dl>
+            <p style="margin: 10px 0 0; font-size: 12px; color: #5E5E6A">Counted from contracts on Solana. Not a rating.</p>
+          </section>
+        </div>
+      </main>
+
+      <aside aria-label="Apply" style="flex: 1 1 320px; max-width: 100%; position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px">
+        <div style="padding: 22px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.05), 0 14px 28px -12px rgba(17,17,22,0.16)">
+          <div style="font-size: 13px; color: #5E5E6A">Budget</div>
+          <div style="margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700">{{total}}</div>
+          <div style="margin-top: 2px; font-size: 12px; color: #5E5E6A">{{totalSub}}</div>
+          <dl style="margin: 14px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px">
+            <dt style="color: #5E5E6A">Apply by</dt><dd style="margin: 0; font-weight: 600; text-align: right">9 Oct, 18:00 · 2 days left</dd>
+            <dt style="color: #5E5E6A">Client selects by</dt><dd style="margin: 0; font-weight: 600; text-align: right">11 Oct, 18:00</dd>
+            <dt style="color: #5E5E6A">If selected, accept within</dt><dd style="margin: 0; font-weight: 600; text-align: right">48 h (2 min on devnet)</dd>
+            <dt style="color: #5E5E6A">Applicants</dt><dd style="margin: 0; font-weight: 600; text-align: right">{{applicants}}</dd>
+          </dl>
+
+          <sc-if value="{{isOpen}}" hint-placeholder-val="{{ true }}">
+            <div class="ned-swap" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #F0F0F3">
+              <label for="jd-pitch" style="display: block; font-size: 14px; font-weight: 600">Your pitch</label>
+              <textarea id="jd-pitch" rows="5" value="{{pitch}}" onChange="{{onPitch}}" placeholder="Why you fit this job, and one link to similar work." style="margin-top: 8px; width: 100%; box-sizing: border-box; padding: 12px 14px; border: none; border-radius: 14px; background: #F4F4F6; color: #111116; font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical"></textarea>
+              <div style="margin-top: 6px; display: flex; justify-content: space-between; gap: 10px; font-size: 12px">
+                <span style="color: #8A5300">Public on Solana. Don't put names or personal details here.</span>
+                <span style="{{countStyle}}">{{bytes}} / 280</span>
+              </div>
+              <button onClick="{{apply}}" disabled="{{applyDisabled}}" style="{{applyStyle}}">Apply</button>
+              <p style="margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: #5E5E6A">{{payoutNote}} One wallet confirmation; the network fee is test SOL on devnet.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isApplied}}" hint-placeholder-val="{{ false }}">
+            <div class="ned-swap" style="margin-top: 16px; padding: 16px; border-radius: 16px; background: #EEEFFE">
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #3730A3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Applied · today, 10:24</div>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: #3F3F49">@orbit_cafe selects by 11 Oct, 18:00. You'll get a notification if you're selected.</p>
+              <div style="margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; font-size: 13px; line-height: 1.5; color: #3F3F49">{{shownPitch}}</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isSelected}}" hint-placeholder-val="{{ false }}">
+            <div class="ned-swap" style="margin-top: 16px; padding: 16px; border-radius: 16px; background: #E7F6EC">
+              <div style="font-size: 15px; font-weight: 700; color: #127A3A">You were selected</div>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: #3F3F49">@orbit_cafe created your contract with this brief. Accept within 1 day 23 h. When you accept, the locked budget moves into your contract and you can start.</p>
+              <button onClick="{{toggle}}" style="margin-top: 12px; width: 100%; height: 48px; border: none; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Review &amp; accept in wallet</button>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding: 18px 20px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+          <h2 style="margin: 0; font-size: 14px; font-weight: 700">How it works</h2>
+          <ol style="margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+              <li style="display: flex; gap: 10px; font-size: 13px; line-height: 1.45; color: #3F3F49"><span style="{{s.dot}}">{{s.n}}</span><span><span style="display: block; font-weight: 600; color: #111116">{{s.title}}</span>{{s.sub}}</span></li>
+            </sc-for>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["vinh", "mia"], "default": "vinh"}, "state": {"editor": "enum", "options": ["open", "applied", "selected"], "default": "open"}, "$preview": {"width": 1440, "height": 1700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var s = props.state;
+    this.state = { open: false, step: (s === 'applied' || s === 'selected') ? s : 'open', pitch: '' };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var vn = (this.props.who ?? 'vinh') === 'vinh';
+    var RATE = 26019.5;
+    function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
+    function money(usd) { return vn ? vnd(usd) : usd.toFixed(2) + ' USDC'; }
+    function sub(usd) { return vn ? '$' + usd.toFixed(2) + ' · estimate' : 'test USDC on devnet'; }
+    var bytes = 0;
+    try { bytes = new TextEncoder().encode(st.pitch).length; } catch (e) { bytes = st.pitch.length; }
+    var over = bytes > 280, empty = st.pitch.trim().length === 0;
+    var STEP = [['Apply', 'A short public pitch.'], ['Get selected', '@orbit_cafe picks one applicant and creates the contract.'], ['Accept', vn ? 'Choose VND to your bank. The budget moves into your contract.' : 'Choose where earnings go. The budget moves into your contract.'], ['Submit each milestone', 'Share a watermarked preview first; final files after release.'], ['Released', 'After the client accepts, or when review time ends.']];
+    var reached = st.step === 'open' ? 0 : st.step === 'applied' ? 1 : 2;
+    return {
+      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
+      total: money(20), totalSub: sub(20),
+      applicants: st.step === 'open' ? '4' : '5',
+      milestones: [
+        { n: 1, name: 'Two logo concepts', when: 'Due 3 days after you are selected · 2 days to review', money: money(8), moneySub: sub(8), done: ['Two distinct wordmark directions, each with the cup icon', 'Shown on light and dark backgrounds and at 32 px', 'Shared as watermarked previews'] },
+        { n: 2, name: 'Final logo files', when: 'Due 7 days after you are selected · 2 days to review', money: money(12), moneySub: sub(12), done: ['The chosen direction, refined with one round of changes', 'SVG and PNG (1x, 2x), plus a one-page usage sheet', 'Final files handed over after release'] }
+      ],
+      isOpen: st.step === 'open', isApplied: st.step === 'applied', isSelected: st.step === 'selected',
+      pitch: st.pitch, onPitch: function (e) { self.setState({ pitch: e.target.value }); },
+      bytes: String(bytes), countStyle: 'flex-shrink: 0; font-weight: 600; color: ' + (over ? '#B42318' : '#5E5E6A'),
+      applyDisabled: over || empty,
+      applyStyle: 'margin-top: 14px; width: 100%; height: 48px; border: none; border-radius: 9999px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: ' + (over || empty ? 'not-allowed' : 'pointer') + '; background: ' + (over || empty ? '#E4E4EA' : '#7B2FBE') + '; color: ' + (over || empty ? '#6B6B76' : '#FFFFFF'),
+      apply: function () { if (!over && !empty) self.setState({ step: 'applied' }); },
+      shownPitch: st.pitch.trim() || 'I design small-business brands; logo work for two Hanoi cafés is on my portfolio link.',
+      payoutNote: vn ? 'If you are hired, you choose VND to your bank when you accept (through a payout partner, simulated in this demo).' : 'If you are hired, you choose where earnings go when you accept.',
+      steps: STEP.map(function (s, i) { var done = i < reached, now = i === reached; return { n: String(i + 1), title: s[0], sub: s[1], dot: 'width: 24px; height: 24px; flex-shrink: 0; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: ' + (done ? '#7B2FBE' : now ? '#F2EAFB' : '#F4F4F6') + '; color: ' + (done ? '#FFFFFF' : now ? '#6A22B0' : '#5E5E6A') }; }),
+      open: st.open, openStr: st.open ? 'true' : 'false',
+      toggle: function () { self.setState({ open: !st.open, menu: false }); },
+      menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
+      toggleMenu: function () { self.setState({ menu: !st.menu, open: false }); },
+      openWallet: function () { self.setState({ menu: false, open: true }); },
+      close: function () { self.setState({ open: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

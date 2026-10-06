@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Jobs — Overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#FFFFFF}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.hb-nav{position:relative;transition:color .15s ease}
+.hb-nav:hover{color:#111116!important}
+.hb-card{transition:box-shadow 220ms cubic-bezier(.2,0,0,1),transform 220ms cubic-bezier(.2,0,0,1)}
+.hb-card:hover{transform:translate3d(0,-3px,0);box-shadow:0 2px 4px rgba(17,17,22,0.05),0 18px 34px -14px rgba(17,17,22,0.22)!important}
+.hb-tile{transition:box-shadow 220ms cubic-bezier(.2,0,0,1),transform 220ms cubic-bezier(.2,0,0,1)}
+.hb-tile:hover{transform:translate3d(0,-2px,0);box-shadow:0 2px 4px rgba(17,17,22,0.05),0 14px 28px -12px rgba(17,17,22,0.18)!important}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.hb-card:focus-visible,.hb-tile:focus-visible,.hb-nav:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:3px}
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes ned-fade{from{opacity:0}to{opacity:1}}
+@keyframes ned-rise{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:none}}
+@keyframes hb-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-6px,0)}}
+.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
+.hb-rise{animation:ned-rise 420ms var(--ned-ease-out) both}
+.hb-rise-2{animation:ned-rise 420ms var(--ned-ease-out) 80ms both}
+.hb-rise-3{animation:ned-rise 420ms var(--ned-ease-out) 160ms both}
+.hb-float{animation:hb-float 6s ease-in-out infinite}
+.hb-float-2{animation:hb-float 7s ease-in-out 1.2s infinite}
+.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
+.ned-stagger>*:nth-child(2){animation-delay:40ms}
+.ned-stagger>*:nth-child(3){animation-delay:80ms}
+.ned-stagger>*:nth-child(4){animation-delay:120ms}
+.ned-stagger>*:nth-child(5){animation-delay:160ms}
+.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus{outline:none;box-shadow:0 0 0 3px rgba(123,47,190,.22)!important}
+input[type=checkbox]{accent-color:#7B2FBE}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@keyframes hb-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+.hb-pop{animation:hb-pop 200ms cubic-bezier(.16,1,.3,1) both;transform-origin:top right}
+.hb-mi:hover{background:#F6F4F9!important}
+.hb-nav:hover{color:#16161C!important}
+.hb-mi:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+</style>
+</helmet>
+<div class="ned-screen" style="min-height: 100vh; background: #FFFFFF; color: #16161C; font-family: 'Inter', system-ui, sans-serif">
+
+  <!-- Header -->
+  <header style="position: relative; z-index: 30; background: #EFE6FB">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+      <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #16161C">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Jobs</span>
+      </a>
+      <nav aria-label="Jobs" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 600">
+        <a href="WebJobs.dc.html" aria-current="page" class="hb-nav" style="padding: 8px 0; color: #6A22B0; box-shadow: inset 0 -2px 0 #7B2FBE; text-decoration: none">Overview</a>
+        <a href="WebJobsFind.dc.html" class="hb-nav" style="padding: 8px 0; color: #4B4B57; text-decoration: none">Find jobs</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ true }}"><a href="WebJobPost.dc.html" style="height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #7B2FBE; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Post a job<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></a></sc-if>
+      <div style="position: relative">
+        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #FFFFFF; color: #16161C; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+          <div role="menu" aria-label="Account" class="hb-pop" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px); padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 24px 48px -20px rgba(17,17,22,0.35)">
+            <div style="padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F0F3">
+              <dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import>
+              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@{{handle}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{walletSub}}</span></span>
+            </div>
+            <button role="menuitem" onClick="{{openWallet}}" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12l2 3M16 13.5h.01"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #5E5E6A">The N.E.D Wallet, as on your phone</span></span>
+            </button>
+            <a role="menuitem" href="WebWorkspace.dc.html" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #5E5E6A">Contracts, milestones and records</span></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+            </a>
+          </div>
+        </sc-if>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="app" start-screen="home" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section aria-labelledby="hb-h1" style="background: #EFE6FB; overflow: hidden">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 40px 24px 64px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 40px">
+      <div class="hb-rise" style="flex: 1 1 460px; min-width: 0">
+        <span style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 9999px; background: #FFFFFF; font-size: 13px; font-weight: 600; color: #6A22B0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Every budget is locked before the job is posted</span>
+        <h1 id="hb-h1" style="margin: 18px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 5.4vw, 64px); line-height: 1.04; font-weight: 700; letter-spacing: -2px">{{heroTitle}}</h1>
+        <p style="margin: 16px 0 0; max-width: 470px; font-size: 16px; line-height: 1.6; color: #3F3F49">{{heroSub}}</p>
+        <form onSubmit="{{searchSubmit}}" role="search" style="margin-top: 26px; max-width: 560px; padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(17,17,22,0.04), 0 18px 40px -18px rgba(76,23,130,0.35); display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px">
+          <label style="flex: 1 1 180px; padding: 6px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 700; color: #16161C">Keyword<input type="search" value="{{q}}" onChange="{{onQ}}" placeholder="Logo, Framer, translation…" style="height: 28px; padding: 0; border: none; background: transparent; color: #16161C; font-family: inherit; font-size: 14px; font-weight: 500; box-shadow: none!important"></label>
+          <span aria-hidden="true" style="width: 1px; margin: 10px 0; background: #ECECF1"></span>
+          <label style="flex: 1 1 150px; padding: 6px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 700; color: #16161C">Category<select value="{{cat}}" onChange="{{onCat}}" style="height: 28px; padding: 0; border: none; background: transparent; color: #16161C; font-family: inherit; font-size: 14px; font-weight: 500; box-shadow: none!important">
+            <sc-for list="{{catOptions}}" as="o" hint-placeholder-count="9"><option value="{{o.value}}">{{o.label}}</option></sc-for>
+          </select></label>
+          <a href="WebJobsFind.dc.html" style="height: 52px; padding: 0 22px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #16161C; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>Search</a>
+        </form>
+        <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #4B4B57">
+          <span style="font-weight: 600">Popular:</span>
+          <sc-for list="{{popular}}" as="p" hint-placeholder-count="4"><a href="WebJobsFind.dc.html" style="height: 30px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 9999px; background: rgba(255,255,255,0.7); color: #3F3F49; font-size: 13px; font-weight: 600; text-decoration: none">{{p.label}}</a></sc-for>
+        </div>
+      </div>
+
+      <div class="hb-rise-2" aria-hidden="true" style="flex: 1 1 440px; min-width: 0; display: flex; justify-content: center">
+        <div style="position: relative; width: 100%; max-width: 480px; aspect-ratio: 1 / 1">
+          <svg viewBox="0 0 480 480" style="position: absolute; inset: 0; width: 100%; height: 100%">
+            <circle cx="240" cy="250" r="178" fill="#DCC9F7"></circle>
+            <circle cx="240" cy="250" r="128" fill="#D0B7F3"></circle>
+            <path d="M40 300C120 120 330 60 440 170" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path>
+            <path d="M70 140C190 210 300 420 450 360" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path>
+          </svg>
+          <span class="hb-float" style="position: absolute; left: 6%; top: 52%; width: 46px; height: 46px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -8px rgba(17,17,22,0.25)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.6 7.6"></path></svg></span>
+          <span class="hb-float-2" style="position: absolute; left: 22%; top: 16%; width: 42px; height: 42px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -8px rgba(17,17,22,0.25)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#E5582E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"></path></svg></span>
+          <span class="hb-float" style="position: absolute; right: 4%; top: 30%; width: 44px; height: 44px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -8px rgba(17,17,22,0.25)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"></path></svg></span>
+          <span class="hb-float-2" style="position: absolute; right: 14%; bottom: 8%; width: 42px; height: 42px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -8px rgba(17,17,22,0.25)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3730A3"><path d="M8 5v14l11-7z"></path></svg></span>
+
+          <div style="position: absolute; left: 50%; top: 52%; width: 72%; max-width: 300px; transform: translate(-50%, -50%) rotate(-3deg); padding: 18px; box-sizing: border-box; border-radius: 22px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(17,17,22,0.05), 0 28px 50px -22px rgba(76,23,130,0.45)">
+            <div style="display: flex; align-items: center; gap: 8px"><dc-import name="Avatar" seed="orbit_cafe" size="28" hint-size="28px,28px"></dc-import><span style="font-size: 12px; font-weight: 600; color: #4B4B57">@orbit_cafe</span><span style="margin-left: auto; height: 22px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 11px; font-weight: 700">Budget locked</span></div>
+            <div style="margin-top: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.2">Logo refresh for a coffee brand</div>
+            <div style="margin-top: 6px; font-size: 12px; color: #5E5E6A">Design · 2 milestones · up to 1 week</div>
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #F0F0F3; display: flex; align-items: center; justify-content: space-between"><span style="font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700">{{heroMoney}}</span><span style="height: 32px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; background: #7B2FBE; color: #FFFFFF; font-size: 12px; font-weight: 600">Apply</span></div>
+          </div>
+
+          <div class="hb-float" style="position: absolute; left: 0; top: 4%; padding: 12px 14px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 10px 24px -12px rgba(17,17,22,0.3)">
+            <div style="font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700">{{lockedTotal}}</div>
+            <div style="margin-top: 2px; font-size: 11px; color: #5E5E6A">locked in {{openCount}} open jobs</div>
+            <div style="margin-top: 8px; height: 30px; display: flex; align-items: flex-end; gap: 4px">
+              <sc-for list="{{bars}}" as="b" hint-placeholder-count="10"><span style="{{b}}"></span></sc-for>
+            </div>
+          </div>
+          <div class="hb-float-2" style="position: absolute; right: 0; bottom: 18%; padding: 10px 12px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 8px; box-shadow: 0 10px 24px -12px rgba(17,17,22,0.3)">
+            <span style="width: 26px; height: 26px; border-radius: 8px; background: #EEEFFE; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3730A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+            <span style="font-size: 12px; font-weight: 600">{{appsTotal}} applications on open jobs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Steps band -->
+  <section aria-label="How it works" style="padding: 0 24px; margin-top: -28px; position: relative; z-index: 2">
+    <div class="hb-rise-3" style="position: relative; max-width: 1040px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; border-radius: 24px; background: #FFE4CF; overflow: hidden">
+      <svg aria-hidden="true" viewBox="0 0 80 140" style="position: absolute; left: -6px; top: 0; height: 100%"><path d="M10 -10C60 30 0 80 50 150" fill="none" stroke="#16161C" stroke-width="12" stroke-linecap="round"></path><path d="M-10 10C30 40 -10 90 30 150" fill="none" stroke="#16161C" stroke-width="5" stroke-linecap="round"></path></svg>
+      <svg aria-hidden="true" viewBox="0 0 80 140" style="position: absolute; right: -6px; top: 0; height: 100%; transform: scaleX(-1)"><path d="M10 -10C60 30 0 80 50 150" fill="none" stroke="#16161C" stroke-width="12" stroke-linecap="round"></path><path d="M-10 10C30 40 -10 90 30 150" fill="none" stroke="#16161C" stroke-width="5" stroke-linecap="round"></path></svg>
+      <ol style="position: relative; margin: 0 auto; padding: 0 40px; max-width: 840px; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 18px">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+          <li style="flex: 1 1 180px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+            <span style="width: 52px; height: 52px; border-radius: 9999px; border: 1.5px dashed #16161C; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16161C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.icon}}"></path></svg></span>
+            <span style="font-size: 15px; font-weight: 600">{{s.title}}</span>
+            <span style="margin-top: -6px; font-size: 12px; color: #5C4636">{{s.sub}}</span>
+          </li>
+        </sc-for>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section aria-labelledby="hb-cat" style="max-width: 1040px; margin: 0 auto; padding: 72px 24px 24px; box-sizing: border-box">
+    <h2 id="hb-cat" style="margin: 0; text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -1px">Choose your field</h2>
+    <p style="margin: 8px 0 0; text-align: center; font-size: 15px; color: #5E5E6A">Open jobs with locked budgets, by category.</p>
+    <div class="ned-stagger" style="margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px">
+      <sc-for list="{{catTiles}}" as="c" hint-placeholder-count="8">
+        <a href="WebJobsFind.dc.html" class="hb-tile" aria-label="{{c.aria}}" style="{{c.style}}">
+          <span style="{{c.iconBox}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.icon}}"></path></svg></span>
+          <span><span style="display: block; font-size: 15px; font-weight: 600">{{c.label}}</span><span style="{{c.subStyle}}">{{c.count}}</span></span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- Featured -->
+  <section id="featured" aria-labelledby="hb-feat" style="margin-top: 48px; background: #FFF1E6">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 56px 24px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+      <div style="text-align: center">
+        <h2 id="hb-feat" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -1px">Featured jobs</h2>
+        <p style="margin: 8px 0 0; font-size: 15px; color: #5C4636">The newest jobs, each with its budget already locked. Find jobs lists every job, with filters.</p>
+      </div>
+      <div class="ned-stagger" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+            <sc-for list="{{jobs}}" as="j" hint-placeholder-count="6">
+              <a href="WebJobDetail.dc.html" class="hb-card" aria-label="{{j.aria}}" style="{{j.cardStyle}}">
+                <div style="display: flex; align-items: flex-start; gap: 10px">
+                  <span style="flex: 1; min-width: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.3px">{{j.title}}</span>
+                  <sc-if value="{{j.hasMine}}" hint-placeholder-val="{{ false }}"><span style="{{j.mineChip}}">{{j.mine}}</span></sc-if>
+                </div>
+                <div style="{{j.metaStyle}}">
+                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>{{j.catLabel}}</span>
+                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{j.durLabel}}</span>
+                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{j.msLabel}}</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px">
+                  <sc-for list="{{j.skills}}" as="k" hint-placeholder-count="2"><span style="{{j.skillStyle}}">{{k}}</span></sc-for>
+                </div>
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+                  <span><span style="display: block; font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700">{{j.money}}</span><span style="{{j.subStyle}}">{{j.moneySub}}</span></span>
+                  <span style="{{j.lockStyle}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Budget locked</span>
+                </div>
+                <div style="{{j.footStyle}}">
+                  <dc-import name="Avatar" seed="{{j.biz}}" size="34" hint-size="34px,34px"></dc-import>
+                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 600">@{{j.biz}}</span><span style="{{j.subStyle}}">Apply by {{j.applyBy}} · {{j.applicants}}</span></span>
+                  <span style="{{j.ctaStyle}}">{{j.cta}}</span>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+      <a href="WebJobsFind.dc.html" style="align-self: center; height: 48px; padding: 0 24px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Find more jobs<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+    </div>
+  </section>
+
+  <!-- Why -->
+  <section aria-labelledby="hb-why" style="max-width: 1200px; margin: 0 auto; padding: 80px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 48px">
+    <div aria-hidden="true" style="flex: 1 1 420px; min-width: 0; display: flex; justify-content: center">
+      <div style="position: relative; width: 100%; max-width: 440px; padding: 36px 28px; box-sizing: border-box; border-radius: 28px; background: #EFE6FB">
+        <div style="padding: 18px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(17,17,22,0.05), 0 24px 44px -22px rgba(76,23,130,0.4)">
+          <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Logo refresh</span><span style="font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{whyMoney}}</span></div>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #F6F4F9"><span style="width: 24px; height: 24px; border-radius: 9999px; background: #16A34A; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex: 1; font-size: 13px; font-weight: 600">1 · Two logo concepts</span><span style="font-size: 12px; font-weight: 600; color: #127A3A">Released</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #F6F4F9"><span style="width: 24px; height: 24px; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg></span><span style="flex: 1; font-size: 13px; font-weight: 600">2 · Final logo files</span><span style="font-size: 12px; font-weight: 600; color: #6A22B0">Locked</span></div>
+          </div>
+        </div>
+        <div class="hb-float" style="position: absolute; left: -14px; bottom: -16px; height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 10px 24px -12px rgba(17,17,22,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#127A3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg>Checkable on Solana Explorer</div>
+      </div>
+    </div>
+    <div style="flex: 1 1 420px; min-width: 0">
+      <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 14px; background: #7B2FBE; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+      <h2 id="hb-why" style="margin: 18px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 38px; line-height: 1.1; font-weight: 700; letter-spacing: -1.2px">Funded before anyone applies</h2>
+      <p style="margin: 14px 0 0; max-width: 480px; font-size: 15px; line-height: 1.65; color: #3F3F49">A business can only post a job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is released milestone by milestone after the work is accepted.</p>
+      <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px">
+        <sc-for list="{{whys}}" as="w" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+            <span style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 10px; background: #FFE4CF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A4A12" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{w.icon}}"></path></svg></span>
+            <span style="font-size: 14px; font-weight: 600">{{w.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px">
+        <a href="{{whyPrimaryHref}}" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">{{whyPrimary}}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+        <a href="WebRecords.dc.html" style="height: 48px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 12px; background: #FFFFFF; color: #16161C; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: inset 0 0 0 1.5px #16161C">See your records</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: #16161C; color: #D7D7DE">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 48px 24px 28px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 32px 48px">
+      <div style="flex: 2 1 280px">
+        <div style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #FFFFFF">Jobs</span></div>
+        <p style="margin: 14px 0 0; max-width: 360px; font-size: 13px; line-height: 1.6; color: #A9A9B4">Jobs with budgets locked on Solana. N.E.D does not choose, vet or employ anyone, holds no funds and charges no fee in this version.</p>
+      </div>
+      <nav aria-label="Jobs" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Jobs</span><a href="WebJobsFind.dc.html" style="color: #D7D7DE; text-decoration: none">Find jobs</a><a href="WebJobPost.dc.html" style="color: #D7D7DE; text-decoration: none">Post a job</a></nav>
+      <nav aria-label="Workspace links" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Workspace</span><a href="WebWorkspace.dc.html" style="color: #D7D7DE; text-decoration: none">Overview</a><a href="WebRecords.dc.html" style="color: #D7D7DE; text-decoration: none">Records</a></nav>
+      <nav aria-label="Legal" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Legal</span><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Terms</a><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Privacy</a><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Disclosures</a></nav>
+    </div>
+    <div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px 28px; box-sizing: border-box; border-top: 1px solid #2A2A33; font-size: 12px; line-height: 1.6; color: #8F8F9B">{{foot}}</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["vinh", "mia"], "default": "vinh"}, "tab": {"editor": "enum", "options": ["open", "applied", "listings"], "default": "open"}, "$preview": {"width": 1440, "height": 3500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var t = props.tab;
+    this.state = { open: false, tab: (t === 'applied' || t === 'listings') ? t : 'open', q: '', cat: 'all', skill: 'any', budget: 'any', dur: 'any', ms: 'any', soon: false, hideApplied: false, sort: 'new', copied: false, showAll: false };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var vn = (this.props.who ?? 'vinh') === 'vinh';
+    var RATE = 26019.5;
+    function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
+    function money(usd) { return vn ? vnd(usd) : usd.toFixed(2) + ' USDC'; }
+    function moneySub(usd) { return vn ? '$' + usd.toFixed(2) + ' · estimate' : 'test USDC, locked'; }
+    function fold(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd'); }
+    var TONE = { info: ['#EEEFFE', '#3730A3'], purple: ['#F2EAFB', '#6A22B0'], success: ['#E7F6EC', '#127A3A'], neutral: ['#EFEFF3', '#4B4B57'] };
+    function chip(t) { var c = TONE[t]; return 'display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1]; }
+    function cta(primary) { return 'height: 38px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; background: ' + (primary ? '#7B2FBE' : '#FFFFFF') + '; color: ' + (primary ? '#FFFFFF' : '#16161C') + '; box-shadow: ' + (primary ? 'none' : 'inset 0 0 0 1.5px #16161C'); }
+    function sel(on) { return 'height: 44px; padding: 0 12px; border: none; border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: ' + (on ? '#F2EAFB' : '#F6F4F9') + '; color: ' + (on ? '#6A22B0' : '#3F3F49'); }
+
+    var CATS = [
+      ['design', 'Design', 'M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.6 7.6', '#7B2FBE', '#F2EAFB'],
+      ['dev', 'Development', 'm8 7-5 5 5 5M16 7l5 5-5 5', '#C2410C', '#FFE4CF'],
+      ['writing', 'Writing & Translation', 'M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5', '#127A3A', '#E7F6EC'],
+      ['marketing', 'Marketing', 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM16 8a5 5 0 0 1 0 8', '#B4235A', '#FCE7EF'],
+      ['video', 'Video & Animation', 'M4 6h12v12H4zM16 10l5-3v10l-5-3', '#3730A3', '#EEEFFE'],
+      ['data', 'Data & AI', 'M4 20V10M10 20V4M16 20v-7M22 20H2', '#0E7490', '#E0F4F8'],
+      ['admin', 'Admin & Support', 'M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H4zM17 14h3v5h-3z', '#8A5300', '#FFF5E1'],
+      ['other', 'Other', 'M5 12h.01M12 12h.01M19 12h.01', '#4B4B57', '#EFEFF3']
+    ];
+    var CATLABEL = { all: 'All categories' }; CATS.forEach(function (c) { CATLABEL[c[0]] = c[1]; });
+    var SKILLS = ['Logo & brand', 'UI/UX', 'Illustration', 'Figma', 'Web front end', 'Back end', 'Mobile', 'Solana programs', 'English ↔ Vietnamese', 'Copywriting', 'Social media', 'Motion graphics', 'Editing', 'Spreadsheets'];
+
+    var J = [
+      { id: 'logo', n: 10, biz: 'orbit_cafe', title: 'Logo refresh for a coffee brand', cat: 'design', skills: ['Logo & brand', 'Illustration'], summary: 'A cleaner wordmark and a small cup icon.', usd: 20, ms: 2, days: 7, applyBy: '9 Oct', h: 62, apps: 4 },
+      { id: 'icons', n: 9, biz: 'mia', title: 'Icon set, 24 icons', cat: 'design', skills: ['Illustration', 'Figma'], summary: 'Outline icons for a wallet app.', usd: 15, ms: 1, days: 7, applyBy: '10 Oct', h: 90, apps: 5, mine: 'Applied' },
+      { id: 'translate', n: 8, biz: 'mia', title: 'Translate app onboarding, EN → VI', cat: 'writing', skills: ['English ↔ Vietnamese'], summary: 'About 900 words across six screens.', usd: 15, ms: 1, days: 3, applyBy: 'tomorrow', h: 20, apps: 2 },
+      { id: 'framer', n: 7, biz: 'lumen_labs', title: 'Landing page in Framer', cat: 'design', skills: ['UI/UX', 'Figma'], summary: 'One-page site for a note-taking app.', usd: 60, ms: 3, days: 14, applyBy: '12 Oct', h: 140, apps: 7 },
+      { id: 'audit', n: 6, biz: 'pixel_harbor', title: 'Review a small Solana program', cat: 'dev', skills: ['Solana programs', 'Back end'], summary: 'Read an Anchor program and write up findings.', usd: 80, ms: 2, days: 14, applyBy: '11 Oct', h: 110, apps: 1 },
+      { id: 'video', n: 5, biz: 'fernway', title: '60-second explainer video', cat: 'video', skills: ['Motion graphics', 'Editing'], summary: 'Simple 2D motion with captions.', usd: 45, ms: 2, days: 14, applyBy: '13 Oct', h: 160, apps: 3 },
+      { id: 'rn', n: 4, biz: 'pixel_harbor', title: 'Mobile app bug fixes (React Native)', cat: 'dev', skills: ['Mobile', 'Web front end'], summary: 'Five known bugs with steps to reproduce.', usd: 50, ms: 2, days: 14, applyBy: '9 Oct', h: 58, apps: 3 },
+      { id: 'posts', n: 3, biz: 'lumen_labs', title: 'Four blog posts on remote work', cat: 'writing', skills: ['Copywriting'], summary: 'One post per milestone.', usd: 30, ms: 4, days: 30, applyBy: '14 Oct', h: 190, apps: 2 },
+      { id: 'sheet', n: 2, biz: 'tanaka_studio', title: 'Clean up a product spreadsheet', cat: 'data', skills: ['Spreadsheets'], summary: 'About 400 rows to tidy.', usd: 10, ms: 1, days: 3, applyBy: 'tomorrow', h: 22, apps: 0 },
+      { id: 'social', n: 1, biz: 'orbit_cafe', title: 'Social posts for a launch week', cat: 'marketing', skills: ['Social media'], summary: 'Seven square posts and captions.', usd: 12, ms: 1, days: 7, applyBy: '10 Oct', h: 80, apps: 1 }
+    ];
+    if (!vn) J.forEach(function (j) { j.mine = j.biz === 'mia' ? 'Your job' : null; });
+
+    function passes(j, ignoreCat) {
+      if (!ignoreCat && st.cat !== 'all' && j.cat !== st.cat) return false;
+      if (st.skill !== 'any' && j.skills.indexOf(st.skill) < 0) return false;
+      if (st.budget === 'lt20' && !(j.usd < 20)) return false;
+      if (st.budget === '20to50' && !(j.usd >= 20 && j.usd <= 50)) return false;
+      if (st.budget === 'gt50' && !(j.usd > 50)) return false;
+      if (st.dur !== 'any' && j.days > Number(st.dur)) return false;
+      if (st.ms === '1' && j.ms !== 1) return false;
+      if (st.ms === '2-3' && !(j.ms >= 2 && j.ms <= 3)) return false;
+      if (st.ms === '4-5' && !(j.ms >= 4)) return false;
+      if (st.soon && j.h > 24) return false;
+      if (st.hideApplied && j.mine === 'Applied') return false;
+      if (st.q.trim()) {
+        var hay = fold(j.title + ' ' + j.summary + ' ' + j.skills.join(' ') + ' ' + CATLABEL[j.cat]);
+        if (!fold(st.q).split(/\s+/).filter(Boolean).every(function (w) { return hay.indexOf(w) >= 0; })) return false;
+      }
+      return true;
+    }
+    var list = J.filter(function (j) { return passes(j, false); });
+    list.sort(function (a, b) { return st.sort === 'soon' ? a.h - b.h : st.sort === 'budget' ? b.usd - a.usd : b.n - a.n; });
+    var LIMIT = 6, shown = st.showAll ? list : list.slice(0, LIMIT);
+
+    var jobs = shown.map(function (j, i) {
+      var dark = i === 0;
+      var ink = dark ? '#FFFFFF' : '#16161C', soft = dark ? '#B9B9C4' : '#5E5E6A';
+      return {
+        biz: j.biz, title: j.title, catLabel: CATLABEL[j.cat], skills: j.skills,
+        money: money(j.usd), moneySub: moneySub(j.usd),
+        msLabel: j.ms === 1 ? '1 milestone' : j.ms + ' milestones',
+        durLabel: j.days <= 3 ? '3 days' : j.days <= 7 ? '1 week' : j.days <= 14 ? '2 weeks' : '1 month',
+        applyBy: j.applyBy, applicants: j.apps === 0 ? 'no applicants yet' : j.apps === 1 ? '1 applicant' : j.apps + ' applicants',
+        hasMine: !!j.mine, mine: j.mine || '', mineChip: chip(j.mine === 'Applied' ? 'info' : 'purple'),
+        cta: j.mine === 'Applied' ? 'View' : j.mine === 'Your job' ? 'Manage' : 'Apply now',
+        cardStyle: 'display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 20px; text-decoration: none; color: ' + ink + '; background: ' + (dark ? '#16161C' : '#FFFFFF') + '; box-shadow: ' + (dark ? '0 18px 36px -18px rgba(17,17,22,0.55)' : '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)'),
+        metaStyle: 'display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; font-weight: 500; color: ' + soft,
+        skillStyle: 'height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; font-size: 12px; font-weight: 600; background: ' + (dark ? 'rgba(255,255,255,0.10)' : '#F6F4F9') + '; color: ' + (dark ? '#E7E7EE' : '#3F3F49'),
+        subStyle: 'display: block; font-size: 11px; color: ' + soft,
+        lockStyle: 'display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ' + (dark ? 'rgba(74,222,128,0.16)' : '#E7F6EC') + '; color: ' + (dark ? '#86EFAC' : '#127A3A'),
+        footStyle: 'display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid ' + (dark ? 'rgba(255,255,255,0.12)' : '#F0F0F3'),
+        ctaStyle: 'height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 600; white-space: nowrap; background: ' + (dark ? '#FFFFFF' : 'transparent') + '; color: #16161C; box-shadow: ' + (dark ? 'none' : 'inset 0 0 0 1.5px #16161C'),
+        aria: j.title + ', ' + money(j.usd) + ', budget locked'
+      };
+    });
+
+    var appsRows = vn ? [
+      { seed: 'orbit_cafe', title: 'Poster for a tea shop', meta: '@orbit_cafe · selected 6 Oct, 10:12 · accept within 48 h', usd: 10, status: 'Selected · accept now', tone: 'success', href: 'WebJobDetail.dc.html', cta: 'Review & accept', primary: true },
+      { seed: 'mia', title: 'Icon set, 24 icons', meta: '@mia · applied 6 Oct, 08:40 · selects by 12 Oct', usd: 15, status: 'Applied', tone: 'info', href: 'WebJobDetail.dc.html', cta: 'View job', primary: false },
+      { seed: 'lumen_labs', title: 'Landing page in Framer (earlier listing)', meta: '@lumen_labs · applied 1 Oct · filled 4 Oct', usd: 60, status: 'Not selected', tone: 'neutral', href: 'WebJobDetail.dc.html', cta: 'View job', primary: false }
+    ] : [];
+    var listingRows = [
+      { seed: 'mia', title: 'Icon set, 24 icons', meta: '5 applicants · select by 12 Oct · posted 5 Oct', usd: 15, status: 'Open', tone: 'success', href: 'WebJobApplicants.dc.html', cta: 'Review applicants', primary: true, sub: 'locked in the job' },
+      { seed: 'mia', title: 'Translate app onboarding, EN → VI', meta: '2 applicants · apply by tomorrow, 09:00', usd: 15, status: 'Open', tone: 'success', href: 'WebJobApplicants.dc.html', cta: 'Review applicants', primary: false, sub: 'locked in the job' },
+      { seed: 'vinh', title: 'Logo refresh', meta: 'Hired @vinh · contract created 2 Oct', usd: 10, status: 'Filled', tone: 'purple', href: 'WebWorkspace.dc.html', cta: 'Open contract', primary: false, sub: 'moved into the contract' },
+      { seed: 'mia', title: 'Banner set', meta: 'No applicants · budget returned 1 Oct', usd: 8, status: 'Withdrawn', tone: 'neutral', href: 'WebRecords.dc.html', cta: 'View record', primary: false, sub: 'returned to you' }
+    ];
+    var tab = (!vn || st.tab !== 'listings') ? st.tab : 'open';
+    var rowsSrc = tab === 'applied' ? appsRows : tab === 'listings' ? listingRows : [];
+    var rows = rowsSrc.map(function (r) { return { seed: r.seed, title: r.title, meta: r.meta, money: money(r.usd), moneySub: r.sub || moneySub(r.usd), status: r.status, chip: chip(r.tone), href: r.href, cta: r.cta, ctaStyle: cta(r.primary) }; });
+
+    var total = J.reduce(function (s, j) { return s + j.usd; }, 0);
+    var maxUsd = 80;
+    var TABS = vn ? [['open', 'Open jobs', J.length], ['applied', 'My applications', appsRows.length]] : [['open', 'Open jobs', J.length], ['applied', 'My applications', 0], ['listings', 'My listings', listingRows.length]];
+    function opts(arr) { return arr.map(function (o) { return { value: o[0], label: o[1] }; }); }
+    function mkSel(label, key, arr) { return { label: label, value: st[key], style: sel(st[key] !== arr[0][0]), options: opts(arr), onChange: function (e) { var u = { copied: false, showAll: false }; u[key] = e.target.value; self.setState(u); } }; }
+    var filtersOn = st.q || st.cat !== 'all' || st.skill !== 'any' || st.budget !== 'any' || st.dur !== 'any' || st.ms !== 'any' || st.soon || st.hideApplied;
+
+    return {
+      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet', isClient: !vn,
+      heroTitle: vn ? 'Find work that is already funded' : 'Hire for work you can fund today',
+      heroSub: vn ? 'Every job here has its full budget locked on Solana before it is posted. Apply with a short pitch; if you are hired, you receive VND milestone by milestone.' : 'Browse what others post, or post your own job with its budget locked. Pick one applicant and the contract is created for you.',
+      heroMoney: money(20),
+      lockedTotal: money(total), openCount: String(J.length), appsTotal: String(J.reduce(function (s, j) { return s + j.apps; }, 0)),
+      bars: J.map(function (j) { return 'width: 6px; border-radius: 3px; background: ' + (j.usd >= 45 ? '#7B2FBE' : '#F4A261') + '; height: ' + Math.max(6, Math.round(j.usd / maxUsd * 30)) + 'px'; }),
+      q: st.q, onQ: function (e) { self.setState({ q: e.target.value, copied: false, showAll: false }); },
+      cat: st.cat, onCat: function (e) { self.setState({ cat: e.target.value, copied: false, showAll: false }); },
+      catOptions: [{ value: 'all', label: 'All categories' }].concat(CATS.map(function (c) { return { value: c[0], label: c[1] }; })),
+      searchSubmit: function (e) { if (e && e.preventDefault) e.preventDefault(); },
+      noop: function () {},
+      popular: ['Logo & brand', 'Figma', 'English ↔ Vietnamese', 'Solana programs'].map(function (s) { return { label: s, pick: function () { self.setState({ skill: s, tab: 'open', showAll: false, copied: false }); } }; }),
+      steps: (vn
+        ? [['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 8l-2 6-6 2 2-6z', 'Find a funded job', 'Budget locked, checkable on Explorer'], ['M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16zM13.5 6.5l4 4', 'Apply with a short pitch', 'Public, up to 280 bytes'], ['M5 12.5l4.5 4.5L19 7.5', 'Accept and deliver', 'Receive VND per milestone']]
+        : [['M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', 'Post and lock the budget', 'One page, three short steps'], ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM19 8v6M22 11h-6', 'Pick one applicant', 'That creates the contract'], ['M5 12.5l4.5 4.5L19 7.5', 'Release per milestone', 'After you accept the work']]
+      ).map(function (s) { return { icon: s[0], title: s[1], sub: s[2] }; }),
+      catTiles: CATS.map(function (c) {
+        var n = J.filter(function (j) { return j.cat === c[0]; }).length, on = st.cat === c[0];
+        return { label: c[1], count: n === 0 ? 'No open jobs yet' : n === 1 ? '1 open job' : n + ' open jobs', icon: c[2], ink: c[3], aria: c[1] + ', ' + n + ' open jobs',
+          iconBox: 'width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: ' + c[4],
+          subStyle: 'display: block; margin-top: 3px; font-size: 12px; color: ' + (n === 0 ? '#8A8A96' : '#5E5E6A'),
+          style: 'display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 18px; text-decoration: none; color: #16161C; background: #FFFFFF; box-shadow: ' + (on ? 'inset 0 0 0 2px #7B2FBE, 0 6px 16px -6px rgba(17,17,22,0.10)' : '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)'),
+          pick: function () { self.setState({ cat: on ? 'all' : c[0], tab: 'open', showAll: false, copied: false }); } };
+      }),
+      boardTitle: tab === 'applied' ? 'My applications' : tab === 'listings' ? 'My listings' : (st.cat === 'all' ? 'Open jobs' : CATLABEL[st.cat] + ' jobs'),
+      boardSub: tab === 'open' ? 'Every budget below is already locked on Solana.' : tab === 'applied' ? 'Where each of your applications stands.' : 'Jobs you posted and what happened to each budget.',
+      tabs: TABS.map(function (t) { var on = tab === t[0]; return { label: t[1], count: String(t[2]), sel: on ? 'true' : 'false', pick: function () { self.setState({ tab: t[0] }); },
+        style: 'height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: ' + (on ? '#16161C' : 'transparent') + '; color: ' + (on ? '#FFFFFF' : '#4B4B57'),
+        countStyle: 'min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 11px; font-weight: 700; background: ' + (on ? 'rgba(255,255,255,0.18)' : '#EFEFF3') + '; color: ' + (on ? '#FFFFFF' : '#4B4B57') }; }),
+      isBoard: tab === 'open', isList: tab !== 'open',
+      selects: [
+        mkSel('Category', 'cat', [['all', 'All categories']].concat(CATS.map(function (c) { return [c[0], c[1]]; }))),
+        mkSel('Skill', 'skill', [['any', 'Any skill']].concat(SKILLS.map(function (s) { return [s, s]; }))),
+        mkSel('Budget', 'budget', vn ? [['any', 'Any budget'], ['lt20', 'Under ≈ 520,000 VND'], ['20to50', '≈ 520,000 – 1,300,000 VND'], ['gt50', 'Over ≈ 1,300,000 VND']] : [['any', 'Any budget'], ['lt20', 'Under 20 USDC'], ['20to50', '20 – 50 USDC'], ['gt50', 'Over 50 USDC']]),
+        mkSel('Time to deliver', 'dur', [['any', 'Any duration'], ['7', 'Up to 1 week'], ['14', 'Up to 2 weeks'], ['31', 'Up to 1 month']]),
+        mkSel('Milestones', 'ms', [['any', 'Any milestones'], ['1', '1 milestone'], ['2-3', '2–3 milestones'], ['4-5', '4–5 milestones']]),
+        mkSel('Sort', 'sort', [['new', 'Newest'], ['soon', 'Apply by soonest'], ['budget', 'Budget: high to low']])
+      ],
+      soon: st.soon, toggleSoon: function () { self.setState({ soon: !st.soon, copied: false, showAll: false }); },
+      hideApplied: st.hideApplied, toggleHide: function () { self.setState({ hideApplied: !st.hideApplied, copied: false, showAll: false }); },
+      clearAll: function () { self.setState({ q: '', cat: 'all', skill: 'any', budget: 'any', dur: 'any', ms: 'any', soon: false, hideApplied: false, copied: false, showAll: false }); },
+      countLabel: (list.length === 1 ? '1 open job' : list.length + ' open jobs') + (filtersOn ? ' match' : ''),
+      copyLabel: st.copied ? 'Link copied' : 'Copy link', copyLink: function () { self.setState({ copied: true }); },
+      jobs: jobs, noJobs: list.length === 0,
+      hasMore: list.length > LIMIT, moreLabel: st.showAll ? 'Show fewer jobs' : 'Show all ' + list.length + ' jobs', showMore: function () { self.setState({ showAll: !st.showAll }); },
+      rows: rows, noRows: rows.length === 0,
+      whyMoney: money(20),
+      whys: [
+        { icon: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', label: 'Budget locked first' },
+        { icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2', label: 'Track record from Solana' },
+        { icon: 'M12 3v18M17 7.5a4 4 0 0 0-4-2.5h-1.5a3.5 3.5 0 0 0 0 7h1a3.5 3.5 0 0 1 0 7H11a4 4 0 0 1-4-2.5', label: 'No fee from N.E.D' },
+        { icon: vn ? 'M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z' : 'M12 3 5 6v6c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6z', label: vn ? 'Receive earnings in VND' : 'Release only accepted work' }
+      ],
+      whyPrimary: vn ? 'Browse open jobs' : 'Post a job', whyPrimaryHref: vn ? 'WebJobsFind.dc.html' : 'WebJobPost.dc.html',
+      foot: vn ? 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated. Your pitch is public on Solana.' : 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared.',
+      open: st.open, openStr: st.open ? 'true' : 'false',
+      toggle: function () { self.setState({ open: !st.open, menu: false }); },
+      menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
+      toggleMenu: function () { self.setState({ menu: !st.menu, open: false }); },
+      openWallet: function () { self.setState({ menu: false, open: true }); },
+      close: function () { self.setState({ open: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

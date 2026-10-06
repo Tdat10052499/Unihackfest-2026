@@ -164,6 +164,8 @@ Changes to existing files (small):
 
 ## 6. Workspace screens (`ned-workspace`, behind `FEATURES.jobs`)
 
+> **Updated by D28 (6 Oct):** the job board is its own site, "N.E.D Jobs", with its own layout inside `ned-workspace`: `/jobs` is the Overview (hub landing) and `/jobs/find` is the list with filters; the profile menu opens the wallet or goes to the Workspace. Boards: `WebJobs`, `WebJobsFind`. Prompts: [`prompts-6oct.md`](prompts-6oct.md) S5–S6.
+
 | Route | Who | Content |
 | --- | --- | --- |
 | `/jobs` | Everyone, signed in | Search box, category tabs, filter panel and sort (section 6.1). Tabs **Open jobs** / **My applications** (and **My listings** for non-Vietnam view). Card: title, summary, category and up to 3 skill chips, applicant count, total (USDC; ≈ VND estimate in the Vietnam view), milestone count, "Apply by" countdown, chip **Budget locked** linking the job vault on Explorer, business @username |
@@ -219,6 +221,8 @@ Faucet limit: 20 devnet USDC per address every 2 hours \[Verified in 08-research
 5. Continue with the existing demo (submit → approve → release).
 
 ## 8. Schedule for today, owners and cut line
+
+> **Superseded on 6 Oct** by [`build-order-6oct.md`](build-order-6oct.md): every change ships today in gated steps, without clock times. The table below is kept for reference.
 
 | Time | Dev A (program + core) | Dev B (Workspace) | PO / CL / Design |
 | --- | --- | --- | --- |
