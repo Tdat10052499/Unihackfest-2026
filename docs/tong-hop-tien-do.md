@@ -173,6 +173,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | D1 chạy end-to-end (1 tài khoản Google + script) + sửa lỗi | `fix/d1-e2e`, `fix/d1-ux` | `6ef66ac`, `d4f27c6`, `0963632`, sửa UX + docs |
 | D22 key sync Plan C (chương trình v1.2, core, hai app) | `feat/p1-program-v1-2`, `feat/p2-core-key-sync`, `feat/s0-key-check` | `08ea7fd`, `065aeef`, `6851698`, `53e6b7a` |
 | S0 baseline 06/10 (`release/6oct`): tất cả test/typecheck/build đạt; lint `ned-wallet` đã lỗi từ trước (11 lỗi) | `release/6oct` | `da14040` + docs |
+| S1 program v1.3 (Funded Jobs + note D27): `JobListing` 576 B, `JobApplication` 364 B, 6 lệnh `job`, `post_note` kind 1 thêm Disputed/Released, kind 3 review; `tests/jobs.rs` 10 test (54/54 đạt); program-spec mục 10; IDL đã copy. **Chưa deploy**: .so 661.424 B > tài khoản 528.464 B → cần `extend` ≥ 132.960 B (đề xuất 140.000 B ≈ 0,974 SOL) | `release/6oct` | `f02a0c5`, `2e77cf1` + docs |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
