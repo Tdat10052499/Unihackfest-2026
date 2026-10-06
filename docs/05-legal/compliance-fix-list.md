@@ -49,7 +49,7 @@
 | F8 | P1 | Design | Design status doc still shows a 0.25% fee and "Network fee free" | 8 Oct |
 | F9 | P1 | CL | Review the copy in the separate landing-page repo | 8 Oct |
 | F10 | P1 | CL | Log Due and Nium replies (D5); none recorded | 7 Oct |
-| F11 | P1 | Dev | Move upgrade authority to Squads at freeze (already planned) | 9 Oct |
+| F11 | P1 | PO + CL | Say clearly who holds upgrade authority (deploy wallet through 10 Oct; Squads before mainnet) | 8 Oct |
 
 ---
 
@@ -236,7 +236,7 @@ Word table: `docs/09-milestone-lock/product-spec.md` §6. Use: lock, release, re
 ### D2 · The Q&A answers do not match the current build (owner: CL)
 | Q | Now says | Change to |
 | --- | --- | --- |
-| 2 Who holds the money? | "No N.E.D key can move it." | "The program does. No N.E.D key can move locked funds. Until the freeze the team can still upgrade the program; on 9 Oct the upgrade authority moves to a multisig." |
+| 2 Who holds the money? | "No N.E.D key can move it." | "The program does. No N.E.D key can move locked funds. Until the final our deploy wallet can still upgrade the program so we can fix bugs; before mainnet that moves to a multisig or the program is made immutable." |
 | 4 Personal data | addresses and hashes only | Add: "Briefs and deliveries are stored encrypted on Solana; only the two parties hold the key. Contract titles and device public keys are public." |
 | 7 Client never reviews | "unless the client opened a dispute in time" | "After the review deadline anyone can release it to the freelancer. Disputes are switched off in this demo." (unless disputes are turned on) |
 | 8 They disagree | "Funds stay locked; mutual cancel…" | "In this demo they can agree a split with a mutual cancel. A neutral reviewer is on the roadmap." |
@@ -264,7 +264,7 @@ D10 thresholds: go if ≥ 30% have lost money to a client and ≥ 30% say client
 | F8 | `docs/02-thiet-ke/trang-thai-thiet-ke.md` §6/§8 | Still says "N.E.D fee 0.25%" and "Network fee free". → Add a "superseded for fees: no fee in v1 (D2)" banner. |
 | F9 | landing-page repo (D21) | Not covered by this review. → Send CL the text and the link before it goes public. |
 | F10 | Compliance Hub | No Due or Nium reply is logged (D5). → PO forwards replies; CL logs them. If none, the pitch says "partners contacted 2 Oct, no reply yet". |
-| F11 | program upgrade authority | Planned for 9 Oct (spec §7). → Do it after the last deploy and record the multisig address in the README. |
+| F11 | program upgrade authority (`ned-research-and-compliance.md` security checklist, day plan 9 Oct) | The plan keeps upgrade authority on the deploy wallet through 10 Oct so bugs can be fixed on the day; a Squads multisig or an immutable program comes before mainnet. → Nothing to move at freeze, but the README, deck and Q&A 2 must say this plainly; never claim "nobody can change the program". (Corrected 6 Oct: an earlier version of this list said "move to Squads on 9 Oct".) |
 
 Optional clarity: `ned-wallet/app/disclosures.tsx:17` "No licensed partner is connected in this demo." → "No payout partner is connected in this demo." (true either way, but simpler).
 
