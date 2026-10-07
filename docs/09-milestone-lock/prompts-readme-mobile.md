@@ -6,14 +6,14 @@
 
 The PO decided on 7 Oct that **the phone app is the main product**. The Workspace, N.E.D Jobs and the future landing page support it. The README is rewritten in that order: it opens with "The N.E.D app" and a gallery of eight phone screens, and the other parts move to "Around the app". The repository has no screenshots of the current phone screens: the old `assets/images/home.png`, `analytics.png`, `scan.png` and `auth.png` show the earlier wallet. The session that wrote the README could not reach devnet, so M1 captures the screens on a team computer, then applies the README patch.
 
-Patch: `ned-readme-mobile.patch` (README only). Do not push it before the eight images exist, or the README shows broken images.
+**Update 8 Oct:** the main `README.md` is already on `main` with the app first. Its phone gallery is inside an HTML comment (`<!-- PHONE-GALLERY … PHONE-GALLERY -->`), so nothing is broken. M1 only has to add the images and remove the two comment lines. There is no separate README for the app: this is the repository's main README.
 
 ## M1 · Capture the phone screens and publish the README
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main: git switch main && git pull --ff-only origin main).
-Read: docs/09-milestone-lock/prompts-readme-mobile.md, the README patch ned-readme-mobile.patch (the "The N.E.D app" table lists the
-eight file names and captions), ned-wallet/app/dev/{home-preview,contract-preview}.tsx (read-only previews for a public wallet,
+Read: docs/09-milestone-lock/prompts-readme-mobile.md, README.md (the commented "The N.E.D app" gallery lists the eight file
+names and captions), ned-wallet/app/dev/{home-preview,contract-preview}.tsx (read-only previews for a public wallet,
 FEATURES.devTools builds only), docs/09-milestone-lock/final-pitch.md §3 (demo accounts and contracts).
 Task:
 1. Data. Use the team's demo accounts on devnet: Person A (client, USDC wallet) and Person B (freelancer, Vietnam view).
@@ -49,7 +49,8 @@ Task:
    Keep the raw captures out of the repo. Check every image:
    - the Vietnam-view screens show no "USDC" and no SOL amount (rule A4);
    - no screen shows a personal e-mail or phone number.
-5. git am ned-readme-mobile.patch. Check that every image path in README.md exists:
+5. In README.md, delete the two comment lines around the phone gallery (the line starting "<!-- PHONE-GALLERY" and the
+   line "PHONE-GALLERY -->"). Check that every image path in README.md exists:
    grep -o 'docs/02-thiet-ke/screenshots/[^"]*' README.md | xargs ls
 6. Commit the images and the README together (docs: phone screenshots and README with the app first), and push.
 Done when: the eight framed images and the README are on main; the README renders on GitHub with no broken image;
