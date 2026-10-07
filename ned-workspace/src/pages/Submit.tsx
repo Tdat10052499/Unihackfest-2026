@@ -130,7 +130,10 @@ export function Submit() {
         mode === 'submit'
           ? { label: 'Delivery fingerprint', value: summary.fingerprint, sub: 'Saved on-chain with the chain clock', mono: true }
           : { label: 'Saved as', value: 'An encrypted note', sub: 'Signed by you and timestamped on Solana' },
-        { label: 'Network fee', value: '~0.000005 SOL per transaction', sub: 'devnet test SOL' },
+        // A4: no SOL amount in the Vietnam view
+        page.vn
+          ? { label: 'Network fee', value: 'Test SOL on devnet', sub: 'it has no value' }
+          : { label: 'Network fee', value: '~0.000005 SOL per transaction', sub: 'devnet test SOL' },
         { label: 'N.E.D fee', value: 'None during the pilot' },
       ],
       note: {

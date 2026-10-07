@@ -282,8 +282,9 @@ function ApplyCard(p: JobDetailViewProps) {
       rows: [
         { label: 'Job', value: job.title },
         { label: 'Your pitch', value: `${bytes} bytes`, sub: 'Public on Solana' },
-        ...(rent ? [{ label: 'Account rent', value: rent, sub: 'Kept by your application record' }] : []),
-        { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
+        // A4: the Vietnam view shows no SOL amount
+        ...(rent ? [{ label: 'Account rent', value: p.vn ? 'Test SOL on devnet' : rent, sub: 'Kept by your application record' }] : []),
+        p.vn ? { label: 'Network fee', value: 'Test SOL on devnet', sub: 'it has no value' } : { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
         { label: 'N.E.D fee', value: 'None during the pilot' },
       ],
       note: { tone: 'purple', text: 'Nothing is locked from your wallet. If you are selected, the business creates the contract and you accept it.' },
