@@ -1,16 +1,19 @@
-// Job card (appendix H.9). The whole card is one link to /jobs/:job. Light by default; `dark` is the featured card
-// (the first one on Overview). Anatomy: title (+ "Applied" / "Your job" chip), meta row (category, time to deliver,
-// milestones), up to 3 skills, amount + "Budget locked", footer (business, apply by, applicants, call to action).
+// Job card v4 (prompts-hub-v4.md V6.5, V7) and the list-view JobRow. The whole card is one link to /jobs/:job.
+// Card: category dot and "Category · Up to …", the "Applied" / "Your job" chip, the green "Locked" chip; title (18/600,
+// never the display font); summary; skill pills; footer with the business, "Apply by … · N applicants", the amount
+// (Space Mono, "≈ … VND" in the Vietnam view) and the milestone count. Lifts on hover and reveals on scroll (.rv).
+// `dark` is the v3 featured card, kept until H2 rebuilds the Overview.
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { JobListingAccount } from '@ned/core/jobs/decode.ts';
 import { categoryLabel, listingSkills } from '@ned/core/jobs/taxonomy.ts';
 import { formatDeadline } from '@ned/core/milestone/format.ts';
 import { Avatar } from '../../components/Avatar.tsx';
 import { shortAddress } from '../../lib/format.ts';
-import hub from '../hub.module.css';
+import { CATEGORY_LOOK } from './categoryLook.ts';
 import { BudgetLockedChip, Chip } from './Chip.tsx';
 import { HubIcon } from './HubIcon.tsx';
-import { moneyLabel, MoneyText } from './MoneyText.tsx';
+import { moneyLabel } from './MoneyText.tsx';
 import styles from './components.module.css';
 
 const HOUR = 3_600;
@@ -27,6 +30,7 @@ export function durationLabel(seconds: number): string {
 }
 
 export const applicantsLabel = (n: number) => (n === 0 ? 'no applicants yet' : n === 1 ? '1 applicant' : `${n} applicants`);
+export const milestonesLabel = (n: number) => (n === 1 ? '1 milestone' : `${n} milestones`);
 
 export type JobMine = 'applied' | 'own' | null;
 
@@ -42,32 +46,50 @@ export interface JobCardProps {
   preview?: boolean;
 }
 
-export function JobCard({ job, vn, now, dark = false, businessName, mine = null, preview = false }: JobCardProps) {
+/** The words both views share */
+function cardFacts(job: JobListingAccount, now: number, businessName?: string) {
   const business = job.business.toBase58();
-  const name = businessName ?? shortAddress(business);
   const longest = Math.max(0, ...job.milestones.map((m) => m.workSecs));
-  const skills = listingSkills(job.skills).slice(0, 3);
   const closed = now > job.applyBy;
-  const cta = mine === 'applied' ? 'View' : mine === 'own' ? 'Manage' : closed ? 'View' : 'Apply now';
+  return {
+    business,
+    name: businessName ?? shortAddress(business),
+    category: categoryLabel(job.category),
+    ink: (CATEGORY_LOOK[job.category] ?? CATEGORY_LOOK[CATEGORY_LOOK.length - 1]).ink,
+    upTo: `Up to ${durationLabel(longest)}`,
+    applyBy: closed ? 'Applications closed' : `Apply by ${formatDeadline(job.applyBy)}`,
+    applicants: applicantsLabel(job.applicationCount),
+    milestones: milestonesLabel(job.milestoneCount),
+  };
+}
+
+const MineChip = ({ mine }: { mine: JobMine }) =>
+  mine === 'applied' ? (
+    <Chip tone="info" small>
+      Applied
+    </Chip>
+  ) : mine === 'own' ? (
+    <Chip tone="purple" small>
+      Your job
+    </Chip>
+  ) : null;
+
+export function JobCard({ job, vn, now, dark = false, businessName, mine = null, preview = false }: JobCardProps) {
+  const f = cardFacts(job, now, businessName);
+  const skills = listingSkills(job.skills).slice(0, 3);
   const body = (
     <>
       <div className={styles.cardTop}>
-        <span className={styles.cardTitle}>{job.title}</span>
-        {mine === 'applied' ? <Chip tone="info">Applied</Chip> : mine === 'own' ? <Chip tone="purple">Your job</Chip> : null}
+        <span className={styles.catDot} style={{ background: f.ink }} aria-hidden />
+        <span className={styles.cardCat}>
+          {f.category} · {f.upTo}
+        </span>
+        <MineChip mine={mine} />
+        <BudgetLockedChip short onDark={dark} />
       </div>
-      <div className={styles.cardMeta}>
-        <span className={styles.metaItem}>
-          <HubIcon name="briefcase" size={13} />
-          {categoryLabel(job.category)}
-        </span>
-        <span className={styles.metaItem}>
-          <HubIcon name="clock" size={13} />
-          {durationLabel(longest)}
-        </span>
-        <span className={styles.metaItem}>
-          <HubIcon name="check" size={13} />
-          {job.milestoneCount === 1 ? '1 milestone' : `${job.milestoneCount} milestones`}
-        </span>
+      <div>
+        <h3 className={styles.cardTitle}>{job.title}</h3>
+        {job.summary ? <p className={styles.cardSummary}>{job.summary}</p> : null}
       </div>
       {skills.length ? (
         <div className={styles.skills}>
@@ -78,38 +100,78 @@ export function JobCard({ job, vn, now, dark = false, businessName, mine = null,
           ))}
         </div>
       ) : null}
-      <div className={styles.cardMoney}>
-        <MoneyText units={job.total} vn={vn} sub="test USDC, locked" />
-        <BudgetLockedChip onDark={dark} />
-      </div>
       <div className={styles.cardFoot}>
-        <Avatar seed={business} size={34} decorative />
+        <Avatar seed={f.business} size={30} decorative />
         <span className={styles.cardWho}>
-          <span className={styles.cardBiz}>{name}</span>
+          <span className={styles.cardBiz}>{f.name}</span>
           <span className={styles.cardSub}>
-            {closed ? 'Applications closed' : `Apply by ${formatDeadline(job.applyBy)}`} · {applicantsLabel(job.applicationCount)}
+            {f.applyBy} · {f.applicants}
           </span>
         </span>
-        <span className={styles.cardCta} aria-hidden>
-          {cta}
+        <span className={styles.cardAmount}>
+          <span className={styles.cardMoney}>{moneyLabel(job.total, vn)}</span>
+          <span className={styles.cardMs}>{f.milestones}</span>
         </span>
       </div>
     </>
   );
+  const cls = `${styles.card} ${dark ? styles.cardDark : ''}`;
   if (preview)
     return (
-      <div className={`${styles.card} ${dark ? styles.cardDark : ''}`} data-testid="job-card-preview">
+      <div className={cls} data-testid="job-card-preview">
         {body}
       </div>
     );
   return (
     <Link
       to={`/jobs/${job.address.toBase58()}`}
-      className={`${styles.card} ${dark ? styles.cardDark : ''} ${hub.lift}`}
+      className={`${cls} hb-lift rv`}
       aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
       data-testid="job-card"
     >
       {body}
     </Link>
   );
+}
+
+/** List view (V6.5): one row inside a hairline box; put rows in a JobRowList */
+export function JobRow({ job, vn, now, businessName, mine = null }: Omit<JobCardProps, 'dark' | 'preview'>) {
+  const f = cardFacts(job, now, businessName);
+  return (
+    <Link
+      to={`/jobs/${job.address.toBase58()}`}
+      className={styles.row}
+      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
+      data-testid="job-row"
+    >
+      <Avatar seed={f.business} size={38} decorative />
+      <span className={styles.rowMain}>
+        <span className={styles.rowTitle}>
+          {job.title} <MineChip mine={mine} />
+        </span>
+        <span className={styles.rowMeta}>
+          {f.name} · {f.category} · {f.upTo} · {f.milestones}
+        </span>
+      </span>
+      <span className={styles.rowWhen}>
+        {f.applyBy}
+        <br />
+        {f.applicants}
+      </span>
+      <span className={styles.rowMoney}>
+        <span className={styles.rowAmount}>{moneyLabel(job.total, vn)}</span>
+        <span className={styles.rowLocked}>
+          <HubIcon name="lock" size={11} width={2.6} />
+          Budget locked
+        </span>
+      </span>
+      <span className={`hb-arrow ${styles.rowArrow}`}>
+        <HubIcon name="external" size={16} />
+      </span>
+    </Link>
+  );
+}
+
+export function JobRowList({ children }: { children: ReactNode }) {
+  return <div className={styles.rowList}>{children}</div>;
 }

@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { Keypair } from '@solana/web3.js';
 import type { JobListingAccount } from '@ned/core/jobs/decode.ts';
 import { skillsMask } from '@ned/core/jobs/taxonomy.ts';
-import { JobCard, durationLabel } from '../components/JobCard.tsx';
+import { JobCard, JobRow, durationLabel } from '../components/JobCard.tsx';
 import { MoneyText } from '../components/MoneyText.tsx';
 import { ProfileMenu, viewLabelFor } from '../ProfileMenu.tsx';
 import { safeNext } from '../../lib/next.ts';
@@ -56,25 +56,36 @@ describe('MoneyText', () => {
 });
 
 describe('JobCard', () => {
-  it('is one link to /jobs/:job with the anatomy of H.9 (USDC view)', () => {
+  it('is one link to /jobs/:job with the anatomy of V6.5 (USDC view)', () => {
     inRouter(<JobCard job={job} vn={false} now={T0} businessName="@orbit_cafe" />);
     const card = screen.getByRole('link');
     expect(card.getAttribute('href')).toBe(`/jobs/${address.toBase58()}`);
     expect(card.getAttribute('aria-label')).toBe('Logo refresh for a coffee brand, 10.00 USDC, budget locked');
-    for (const text of ['Design', '1 week', '2 milestones', 'Logo & brand', 'Figma', '10.00 USDC', 'Budget locked', '@orbit_cafe', '4 applicants', 'Apply now'])
+    expect(card.className).toContain('hb-lift');
+    expect(card.className).toContain('rv');
+    expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('Logo refresh for a coffee brand');
+    for (const text of ['Design · Up to 1 week', 'Locked', 'A cleaner wordmark.', 'Logo & brand', 'Figma', '@orbit_cafe', 'Apply by', '4 applicants', '10.00 USDC', '2 milestones'])
       expect(card.textContent).toContain(text);
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  it('Vietnam view: ≈ VND and the estimate line, never USDC; dark featured variant and "Applied"', () => {
+  it('Vietnam view: ≈ VND, never USDC; dark featured variant and "Applied"', () => {
     inRouter(<JobCard job={job} vn now={T0} dark mine="applied" />);
     const card = screen.getByRole('link');
     expect(card.textContent).toContain('≈ 260,000 VND (estimate)');
-    expect(card.textContent).toContain('$10.00 · estimate');
+    expect(card.getAttribute('aria-label')).toContain('≈ 260,000 VND (estimate)');
     expect(card.textContent).not.toContain('USDC');
     expect(card.textContent).toContain('Applied');
-    expect(card.textContent).toContain('View');
     expect(card.className).toContain('cardDark');
+  });
+
+  it('JobRow: the list view row, ≈ VND in the Vietnam view', () => {
+    inRouter(<JobRow job={job} vn now={T0} businessName="@orbit_cafe" />);
+    const row = screen.getByTestId('job-row');
+    expect(row.getAttribute('href')).toBe(`/jobs/${address.toBase58()}`);
+    for (const text of ['Logo refresh for a coffee brand', '@orbit_cafe · Design · Up to 1 week · 2 milestones', '4 applicants', '≈ 260,000 VND (estimate)', 'Budget locked'])
+      expect(row.textContent).toContain(text);
+    expect(row.textContent).not.toContain('USDC');
   });
 
   it('closed applications and short devnet windows', () => {

@@ -35,7 +35,7 @@ const show = (url: string, over: Partial<FindViewProps> = {}) =>
       </Routes>
     </MemoryRouter>
   );
-const titles = () => screen.queryAllByTestId('job-card').map((c) => c.querySelector('span')?.textContent);
+const titles = () => screen.queryAllByTestId('job-card').map((c) => c.querySelector('h3')?.textContent);
 
 describe('URL state', () => {
   it('filters, sort and tab round-trip through the query', () => {

@@ -51,6 +51,22 @@ export const popover: Variants = {
   exit: { opacity: 0, y: -6, scale: 0.97, transition: { duration: DURATION.popover * EXIT_RATIO, ease: EASE } },
 };
 
+/** Jobs hub v4 (prompts-hub-v4.md V3): load and interaction timings in ms; the CSS lives in jobs/motion.css */
+export const HUB_MS = {
+  pageFade: 240,
+  rise: 520,
+  riseStagger: 90,
+  pop: 200,
+  sheet: 360,
+  countUp: 1400,
+  autoAdvance: 6000,
+} as const;
+/** Scroll spy line of the Legal page, in px from the top */
+export const HUB_SPY_OFFSET = 170;
+
+/** easeOutCubic for the hub counters */
+export const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+
 export const stateChange: Transition = { duration: DURATION.stateChange, ease: EASE_OUT };
 
 /**

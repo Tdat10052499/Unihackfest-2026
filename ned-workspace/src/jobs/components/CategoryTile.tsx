@@ -3,23 +3,13 @@
 import { Link } from 'react-router';
 import { JOB_CATEGORIES } from '@ned/core/jobs/taxonomy.ts';
 import { filtersToQuery } from '@ned/core/jobs/search.ts';
-import { HubIcon, type HubIconName } from './HubIcon.tsx';
+import { HubIcon } from './HubIcon.tsx';
+import { CATEGORY_LOOK, openJobsLabel } from './categoryLook.ts';
+
+export { CATEGORY_LOOK, openJobsLabel };
 import hub from '../hub.module.css';
 import styles from './components.module.css';
 
-/** Icon, ink and tint per category index (taxonomy order) */
-export const CATEGORY_LOOK: readonly { icon: HubIconName; ink: string; tint: string }[] = [
-  { icon: 'design', ink: '#7B2FBE', tint: '#F2EAFB' },
-  { icon: 'development', ink: '#C2410C', tint: '#FFE4CF' },
-  { icon: 'writing', ink: '#127A3A', tint: '#E7F6EC' },
-  { icon: 'marketing', ink: '#B4235A', tint: '#FCE7EF' },
-  { icon: 'video', ink: '#3730A3', tint: '#EEEFFE' },
-  { icon: 'data', ink: '#0E7490', tint: '#E0F4F8' },
-  { icon: 'admin', ink: '#8A5300', tint: '#FFF5E1' },
-  { icon: 'other', ink: '#4B4B57', tint: '#EFEFF3' },
-];
-
-export const openJobsLabel = (n: number) => (n === 0 ? 'No open jobs yet' : n === 1 ? '1 open job' : `${n} open jobs`);
 
 export function CategoryTile({ category, count, selected = false, loading = false }: { category: number; count: number; selected?: boolean; loading?: boolean }) {
   const cat = JOB_CATEGORIES[category];

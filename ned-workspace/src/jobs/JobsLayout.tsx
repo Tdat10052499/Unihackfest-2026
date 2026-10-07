@@ -1,6 +1,9 @@
-// N.E.D Jobs site frame (D28; boards WebJobs, WebJobsFind; appendix H.5, H.6, H.11): lavender navbar, the page,
-// dark footer. Its own route tree under /jobs, sharing sign-in, the wallet extension (D23) and @ned/core with the
-// Workspace. Readable signed out; "Post a job" only for a signed-in wallet outside the Vietnam view (D18).
+// N.E.D Jobs site frame v4 (D28; prompts-hub-v4.md V4, V9; boards WebJobs, WebJobsFind, WebJobsLegal): a white
+// sticky header that gains a shadow and shrinks on scroll (.hb-hdr / .hb-hdr-in), the page, and the night footer
+// (with the CTA band on the Overview). Its own route tree under /jobs, sharing sign-in, the wallet extension (D23) and
+// @ned/core with the Workspace. Readable signed out; "Post a job" only for a signed-in wallet outside the Vietnam view
+// (D18). Legal is reached from the footer only, never the navbar.
+import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '../auth/AuthProvider.tsx';
@@ -20,8 +23,9 @@ import { shortAddress } from '../lib/format.ts';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { HubButton } from './components/HubButton.tsx';
 import { HubIcon } from './components/HubIcon.tsx';
-import { ProfileMenu, viewLabelFor } from './ProfileMenu.tsx';
+import { ProfileMenu, viewLabelFor, type ProfileMenuProps } from './ProfileMenu.tsx';
 import hub from './hub.module.css';
+import './motion.css';
 
 /** The signed-in wallet and its money view, for every Jobs page */
 export function useHubViewer() {
@@ -32,85 +36,62 @@ export function useHubViewer() {
   return { wallet, signedIn: Boolean(wallet), vn: region === 'vn', name: wallet ? (username ? `@${username}` : shortAddress(wallet)) : null, status };
 }
 
+/** V9 disclaimer line per view (board WebJobs) */
 export const FOOT = {
-  vn: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated. Your pitch is public on Solana.',
-  intl: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared.',
+  vn: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.',
+  intl: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing.',
 };
+
+/** V9 CTA band, Overview only */
+export const CTA = {
+  client: ['Hire with the money on the table, ', 'and no fee from N.E.D'],
+  other: ['Work with the money on the table, ', 'and no fee from N.E.D'],
+  checks: ['Budget locked before posting', 'Checkable on Solana Explorer'],
+  text: 'N.E.D holds no funds and charges no fee in this version. The money waits in the program until the work is accepted or a deadline passes.',
+} as const;
+
+/** Footer labels for the legal pages; the links stay on LEGAL_LINKS (/wallet/…) until H4 adds /jobs/legal */
+const FOOT_LEGAL = ['Terms of use', 'Privacy', 'Disclosures'] as const;
 
 export function JobsLayout() {
   const location = useLocation();
   const { wallet, signedIn, vn, name, status } = useHubViewer();
   const { open, setOpen, triggerRef, request, walletMounted, openWalletAt } = useWalletPanel();
   const next = encodeURIComponent(`${location.pathname}${location.search}`);
-  const tab = ({ isActive }: { isActive: boolean }) => `${hub.tab} ${isActive ? hub.tabActive : ''}`;
 
   return (
-    <div className={hub.hub}>
+    <div className={`${hub.hub} hb-root`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className={hub.header}>
-        <div className={`${hub.container} ${hub.headerInner}`}>
-          <Link to="/jobs" className={hub.brand} aria-label="N.E.D Jobs, overview">
-            <span className={hub.mark} aria-hidden>
-              N.E.D
-            </span>
-            <span className={hub.brandWord}>Jobs</span>
-          </Link>
-          <nav aria-label="Jobs" className={hub.tabs}>
-            <NavLink to="/jobs" end className={tab}>
-              Overview
-            </NavLink>
-            <NavLink to="/jobs/find" className={tab}>
-              Find jobs
-            </NavLink>
-          </nav>
-          <div className={hub.spacer} />
-          <span className={hub.devnet}>
-            <span className={hub.devnetDot} aria-hidden />
-            Devnet · test money
-          </span>
-          {signedIn && !vn ? (
-            <HubButton variant="purple" to="/jobs/new">
-              Post a job
-              <HubIcon name="arrowUp" size={15} />
-            </HubButton>
-          ) : null}
-          {wallet ? <NotificationBell onLight /> : null}
-          <div className={hub.anchor}>
-            {wallet && name ? (
-              <ProfileMenu
-                wallet={wallet}
-                name={name}
-                viewLabel={viewLabelFor(vn)}
-                buttonRef={(el) => {
-                  triggerRef.current = el;
-                }}
-                onMenuOpen={() => setOpen(false)}
-                onOpenWallet={() => openWalletAt('/')}
-              />
-            ) : (
-              <Link to={`/sign-in?next=${next}`} className={hub.profile} style={{ padding: '0 18px', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                {status === 'setting-up' || status === 'initializing' ? 'Opening your wallet…' : 'Sign in'}
-              </Link>
-            )}
-            <AnimatePresence>
-              {open && request && (
-                <m.div
-                  key="backdrop"
-                  className={panelStyles.backdrop}
-                  aria-hidden
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { duration: DURATION.backdrop, ease: EASE } }}
-                  exit={{ opacity: 0, transition: { duration: DURATION.backdrop * EXIT_RATIO, ease: EASE } }}
-                />
-              )}
-            </AnimatePresence>
-            {wallet && walletMounted ? <WalletExtension wallet={wallet} id={PANEL_ID} /> : null}
-            <AnimatePresence>{open && request && <WalletPanel key="panel" id={`${PANEL_ID}-confirm`} />}</AnimatePresence>
-          </div>
-        </div>
-      </header>
+      <JobsHeader
+        wallet={wallet}
+        name={name}
+        vn={vn}
+        status={status}
+        next={next}
+        onOpenWallet={() => openWalletAt('/')}
+        onMenuOpen={() => setOpen(false)}
+        buttonRef={(el) => {
+          triggerRef.current = el;
+        }}
+        bell={wallet ? <NotificationBell onLight /> : null}
+      >
+        <AnimatePresence>
+          {open && request && (
+            <m.div
+              key="backdrop"
+              className={panelStyles.backdrop}
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: DURATION.backdrop, ease: EASE } }}
+              exit={{ opacity: 0, transition: { duration: DURATION.backdrop * EXIT_RATIO, ease: EASE } }}
+            />
+          )}
+        </AnimatePresence>
+        {wallet && walletMounted ? <WalletExtension wallet={wallet} id={PANEL_ID} /> : null}
+        <AnimatePresence>{open && request && <WalletPanel key="panel" id={`${PANEL_ID}-confirm`} />}</AnimatePresence>
+      </JobsHeader>
       <RegionPrompt />
       {/* Key sync (D22): a selected applicant reads the contract brief through this computer's device key */}
       <DeviceKeyGate />
@@ -127,61 +108,149 @@ export function JobsLayout() {
           <Outlet />
         </m.main>
       </AnimatePresence>
-      <JobsFooter vn={vn} signedIn={signedIn} />
+      <JobsFooter vn={vn} client={signedIn && !vn} cta={location.pathname === '/jobs'} />
     </div>
   );
 }
 
-function JobsFooter({ vn, signedIn }: { vn: boolean; signedIn: boolean }) {
-  const { openWalletAt } = useWalletPanel();
+export interface JobsHeaderProps {
+  wallet: string | null;
+  name: string | null;
+  vn: boolean;
+  status: string;
+  /** The current page, URL-encoded, for /sign-in?next= */
+  next: string;
+  onOpenWallet(): void;
+  onMenuOpen?(): void;
+  buttonRef?: ProfileMenuProps['buttonRef'];
+  bell?: ReactNode;
+  /** The wallet extension and confirm panel, anchored under the profile button */
+  children?: ReactNode;
+}
+
+/** V4 header: logo, Overview · Find jobs (never Legal), Devnet chip, Post a job (client), Sign in or the profile menu */
+export function JobsHeader({ wallet, name, vn, status, next, onOpenWallet, onMenuOpen, buttonRef, bell, children }: JobsHeaderProps) {
+  const tab = ({ isActive }: { isActive: boolean }) => `${hub.tab} ${isActive ? hub.tabActive : ''}`;
+  return (
+    <header className={`${hub.header} hb-hdr`}>
+      <div className={`${hub.container} ${hub.headerInner} hb-hdr-in`}>
+        <Link to="/jobs" className={hub.brand} aria-label="N.E.D Jobs, overview">
+          <span className={hub.mark} aria-hidden>
+            N.E.D
+          </span>
+          <span className={hub.brandWord}>Jobs</span>
+        </Link>
+        <nav aria-label="Jobs" className={hub.tabs}>
+          <NavLink to="/jobs" end className={tab}>
+            Overview
+          </NavLink>
+          <NavLink to="/jobs/find" className={tab}>
+            Find jobs
+          </NavLink>
+        </nav>
+        <div className={hub.spacer} />
+        <span className={hub.devnet}>
+          <span className={hub.devnetDot} aria-hidden />
+          Devnet · test money
+        </span>
+        {wallet && !vn ? (
+          <HubButton variant="purple" to="/jobs/new" arrow style={{ height: 42 }}>
+            Post a job
+          </HubButton>
+        ) : null}
+        {bell}
+        <div className={hub.anchor}>
+          {wallet && name ? (
+            <ProfileMenu wallet={wallet} name={name} viewLabel={viewLabelFor(vn)} buttonRef={buttonRef} onMenuOpen={onMenuOpen} onOpenWallet={onOpenWallet} />
+          ) : (
+            <Link to={`/sign-in?next=${next}`} className={hub.signIn}>
+              {status === 'setting-up' || status === 'initializing' ? 'Opening your wallet…' : 'Sign in'}
+            </Link>
+          )}
+          {children}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function JobsFooter({ vn, client, cta = false }: { vn: boolean; client: boolean; cta?: boolean }) {
+  const heading = client ? CTA.client : CTA.other;
   return (
     <footer className={hub.footer}>
-      <div className={`${hub.container} ${hub.footerTop}`}>
-        <div className={hub.footerBrand}>
-          <div className={hub.brand}>
+      {cta ? (
+        <div className={`${hub.container} ${hub.cta} rv`} data-testid="cta-band">
+          <div className={hub.ctaMain}>
+            <h2 className={hub.ctaTitle}>
+              {heading[0]}
+              <span className={hub.ctaTone}>{heading[1]}</span>
+            </h2>
+            <div className={hub.ctaChecks}>
+              {CTA.checks.map((c) => (
+                <span key={c} className={hub.ctaCheck}>
+                  <span className={hub.ctaDot} aria-hidden>
+                    <HubIcon name="check" size={10} width={3.4} />
+                  </span>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className={hub.ctaSide}>
+            <p className={hub.ctaText}>{CTA.text}</p>
+            <div className={hub.ctaButtons}>
+              <HubButton variant="white" to="/jobs/find" arrow>
+                Find jobs
+              </HubButton>
+              {client ? (
+                <HubButton variant="purple" to="/jobs/new">
+                  Post a job
+                </HubButton>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div className={hub.container}>
+        <div className={hub.footRow} style={cta ? undefined : { boxShadow: 'none' }}>
+          <Link to="/jobs" className={hub.brand} aria-label="N.E.D Jobs, overview">
             <span className={`${hub.mark} ${hub.markPurple}`} aria-hidden>
               N.E.D
             </span>
-            <span className={hub.brandWord} style={{ color: '#fff' }}>
-              Jobs
-            </span>
-          </div>
-          <p className={hub.footerAbout}>
-            Jobs with budgets locked on Solana. N.E.D does not choose, vet or employ anyone, holds no funds and charges no fee in this version.
-          </p>
-        </div>
-        <nav aria-label="Jobs links" className={hub.footerCol}>
-          <span className={hub.footerHead}>Jobs</span>
-          <Link to="/jobs/find" className={hub.footerLink}>
-            Find jobs
+            <span className={hub.brandWord}>Jobs</span>
           </Link>
-          {vn ? null : (
-            <Link to="/jobs/new" className={hub.footerLink}>
-              Post a job
+          <nav aria-label="Footer" className={hub.footNav}>
+            <Link to="/jobs" className={`${hub.footLink} hb-ul`}>
+              Overview
             </Link>
-          )}
-        </nav>
-        <nav aria-label="Workspace links" className={hub.footerCol}>
-          <span className={hub.footerHead}>Workspace</span>
-          <Link to="/" className={hub.footerLink}>
-            Overview
-          </Link>
-          {signedIn ? (
-            <button type="button" className={hub.footerLink} onClick={() => openWalletAt('/records')}>
-              Records
-            </button>
-          ) : null}
-        </nav>
-        <nav aria-label="Legal" className={hub.footerCol}>
-          <span className={hub.footerHead}>Legal</span>
-          {LEGAL_LINKS.map((l) => (
-            <a key={l.href} href={l.href} className={hub.footerLink}>
-              {l.label}
+            <Link to="/jobs/find" className={`${hub.footLink} hb-ul`}>
+              Find jobs
+            </Link>
+            {vn ? null : (
+              <Link to="/jobs/new" className={`${hub.footLink} hb-ul`}>
+                Post a job
+              </Link>
+            )}
+            <Link to="/" className={`${hub.footLink} hb-ul`}>
+              Workspace
+            </Link>
+            <a href={LEGAL_LINKS[0].href} className={`${hub.footLink} hb-ul`}>
+              Legal
             </a>
-          ))}
-        </nav>
+          </nav>
+          <span className={hub.footStudent}>Student project · UniHackFest 2026</span>
+        </div>
+        <div className={hub.footBottom}>
+          <span className={hub.footNote}>{vn ? FOOT.vn : FOOT.intl}</span>
+          <nav aria-label="Legal" className={hub.footLegal}>
+            {LEGAL_LINKS.map((l, i) => (
+              <a key={l.href} href={l.href} className="hb-ul">
+                {FOOT_LEGAL[i]}
+              </a>
+            ))}
+          </nav>
+        </div>
       </div>
-      <div className={`${hub.container} ${hub.footerNote}`}>{vn ? FOOT.vn : FOOT.intl}</div>
     </footer>
   );
 }
