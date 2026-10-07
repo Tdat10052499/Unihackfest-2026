@@ -1,58 +1,173 @@
-// /jobs — Overview of N.E.D Jobs (WebJobs board; appendix H.12–H.14). Every number comes from the open listings read
-// from Solana: their count, the sum of their locked budgets, their applicant counts and their categories.
+// /jobs — Overview of N.E.D Jobs v4 (board WebJobs; prompts-hub-v4.md V5). Every number comes from the open listings
+// read from Solana: their count, the sum of their locked budgets, their applicant counts, their categories and the
+// newest four with their milestone plans. Readable signed out. Sections, top to bottom: the dusk hero card with its
+// notch of live counters (V5.1), trust heading and category circles (V5.2), the six rules (V5.3), the featured split
+// (V5.4) and the auto-advancing How-it-works showcase (V5.5); the layout adds the footer with the CTA band (V9).
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { JobListingAccount } from '@ned/core/jobs/decode.ts';
 import { filtersToQuery } from '@ned/core/jobs/search.ts';
 import { categoryLabel, JOB_CATEGORIES } from '@ned/core/jobs/taxonomy.ts';
+import { formatDeadline, usdcFromUnits } from '@ned/core/milestone/format.ts';
 import { Avatar } from '../../components/Avatar.tsx';
-import { useWalletPanel } from '../../components/WalletPanelContext.tsx';
 import { useChainTime } from '../../hooks/useChainTime.ts';
 import { shortAddress } from '../../lib/format.ts';
+import { CATEGORY_LOOK, openJobsLabel } from '../components/categoryLook.ts';
 import { BudgetLockedChip } from '../components/Chip.tsx';
-import { CategoryTile } from '../components/CategoryTile.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon, type HubIconName } from '../components/HubIcon.tsx';
-import { durationLabel, JobCard, type JobMine } from '../components/JobCard.tsx';
+import { applicantsLabel } from '../components/JobCard.tsx';
 import { moneyLabel } from '../components/MoneyText.tsx';
+import { Reveal } from '../components/Reveal.tsx';
 import { SectionHeading } from '../components/SectionHeading.tsx';
-import { StepsBand } from '../components/StepsBand.tsx';
-import { useAppliedJobs, useDisplayNames, useOpenJobs } from '../hooks.ts';
+import { StatCounter } from '../components/StatCounter.tsx';
+import { useDisplayNames, useOpenJobs } from '../hooks.ts';
 import { useHubViewer } from '../JobsLayout.tsx';
-import { overviewStats } from '../overview.ts';
+import { spanLabel } from '../labels.ts';
+import { useAutoAdvance } from '../motion.ts';
+import { lockedStatLabel, overviewStats, type OverviewStats } from '../overview.ts';
 import hub from '../hub.module.css';
 import styles from './Overview.module.css';
 
-/** Popular skills under the search box (taxonomy ids) */
-export const POPULAR_SKILLS = [
-  { id: 'logo-brand', label: 'Logo & brand' },
-  { id: 'figma', label: 'Figma' },
-  { id: 'en-vi', label: 'English ↔ Vietnamese' },
-  { id: 'solana', label: 'Solana programs' },
-];
+export type OverviewAudience = 'guest' | 'vn' | 'client';
 
-export const COPY = {
-  freelancer: {
-    title: 'Find work that is already funded',
-    sub: 'Every job here has its full budget locked on Solana before it is posted. Apply with a short pitch; if you are hired, you receive VND milestone by milestone.',
+/** V5.1 hero copy per view (board renderVals: guest, Vietnam view, client) */
+export const HERO: Record<OverviewAudience, { title: [string, string]; sub: string; link: { label: string; to: string } }> = {
+  guest: {
+    title: ['Work that is', 'already funded'],
+    sub: 'Every job here has its full budget locked on Solana before it is posted. If you are hired, you receive your earnings milestone by milestone.',
+    link: { label: 'How it works', to: '#hb-how' },
+  },
+  vn: {
+    title: ['Work that is', 'already funded'],
+    sub: 'Every job here has its full budget locked on Solana before it is posted. If you are hired, you receive VND milestone by milestone.',
+    link: { label: 'How it works', to: '#hb-how' },
   },
   client: {
-    title: 'Hire for work you can fund today',
-    sub: 'Browse what others post, or post your own job with its budget locked. Pick one applicant and the contract is created for you.',
+    title: ['Hire with the', 'budget on the table'],
+    sub: 'Post a job with its whole budget locked, pick one applicant, and release each milestone after you accept the work.',
+    link: { label: 'Post a job', to: '/jobs/new' },
   },
 };
+
+export const TRUST_TEXT =
+  'A business can only post a job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is released milestone by milestone after the work is accepted.';
+
+/** V5.3 */
+export const RULES: { icon: HubIconName; title: string; text: string }[] = [
+  { icon: 'lock', title: 'Budget locked first', text: 'A business can post a job only by locking its whole budget in the program. Anyone can check it on Explorer.' },
+  { icon: 'check', title: 'Released per milestone', text: 'Each milestone is released after the client accepts the work, or when the review time ends.' },
+  { icon: 'undo', title: 'Request changes, not refunds', text: 'A client who refuses a delivery names what is missing. The amount stays locked; it never goes back alone.' },
+  { icon: 'eye', title: 'Preview first, final files after', text: 'Share a watermarked preview to be reviewed. Hand over the final files after release, checked against their fingerprints.' },
+  { icon: 'bank', title: 'VND for freelancers in Vietnam', text: 'Choose VND to your bank when you accept, and never hold USDC. The payout partner is simulated in this demo.' },
+  { icon: 'data', title: 'Track record from Solana', text: 'Completed contracts and on-time submissions are counted from the chain. No ratings that can be bought.' },
+];
+
+/** The Vietnam view never names USDC (section 0): the VND rule says "crypto", as the Terms do */
+export const rulesFor = (vn: boolean) => (vn ? RULES.map((r) => ({ ...r, text: r.text.replace('never hold USDC', 'never hold crypto') })) : RULES);
+
+export interface HowStep {
+  role: string;
+  title: string;
+  text: string;
+  note: string;
+  mockLabel: string;
+  mockTitle: string;
+  rows: [string, string][];
+  button: string;
+  /** purple on-chain button, or the green "Released" state */
+  onChain: boolean;
+}
+
+/**
+ * V5.5 steps. The mock amounts are fixed examples; the Vietnam view shows them as ≈ VND and never mentions USDC
+ * (section 0: the Vietnam view shows no USDC).
+ */
+export function howSteps(vn: boolean): HowStep[] {
+  const m = (usdc: bigint) => moneyLabel(usdc * 1_000_000n, vn);
+  return [
+    {
+      role: 'Business',
+      title: 'Post and lock the budget',
+      text: 'Write the brief, split it into milestones and lock the whole budget. The job appears with a "Budget locked" badge anyone can check on Explorer.',
+      note: 'One page, one wallet confirmation to lock, one to save the public brief.',
+      mockLabel: 'Post a job',
+      mockTitle: 'Icon set, 24 icons',
+      rows: [
+        ['1 milestone', m(15n)],
+        ['Apply by', '10 Oct'],
+      ],
+      button: vn ? 'Lock the budget & publish' : 'Lock 15.00 USDC & publish',
+      onChain: true,
+    },
+    {
+      role: 'Freelancer',
+      title: 'Apply with a short pitch',
+      text: "Read the verified brief and the business's track record, then apply with up to 280 bytes. Your pitch is public on Solana, so keep personal details out.",
+      note: 'One wallet confirmation; the network fee is test SOL on devnet.',
+      mockLabel: 'Job detail',
+      mockTitle: 'Logo refresh for a coffee brand',
+      rows: [
+        ['Budget', `${m(20n)} locked`],
+        ['Applicants', '4'],
+      ],
+      button: 'Apply',
+      onChain: true,
+    },
+    {
+      role: 'Business',
+      title: 'Select one applicant',
+      text: 'Compare pitches and track records counted from Solana. Selecting someone creates a Milestone Lock contract with your brief and real deadlines.',
+      note: 'If the person does not accept in time, you can select someone else.',
+      mockLabel: 'Applicants',
+      mockTitle: 'Select @linh?',
+      rows: [
+        ['Contracts completed', '5'],
+        ['Submitted on time', '5 of 5'],
+      ],
+      button: 'Create contract & select',
+      onChain: true,
+    },
+    {
+      role: 'Freelancer',
+      title: 'Accept and start',
+      text: 'Choose where earnings go: your own wallet, or VND to your bank through a payout partner. When you accept, the locked budget moves into your contract in the same transaction.',
+      note: 'In this demo the payout partner is simulated.',
+      mockLabel: 'Accept',
+      mockTitle: 'Where should your earnings go?',
+      rows: vn ? [['VND to my bank account', 'Selected']] : [
+        ['VND to my bank account', 'Selected'],
+        ['My own wallet (USDC)', ''],
+      ],
+      button: 'Accept & start',
+      onChain: true,
+    },
+    {
+      role: 'Both',
+      title: 'Deliver, review, release',
+      text: 'Share a watermarked preview for each milestone. The client accepts and releases, or requests changes; the money never goes back on a refusal. Final files follow the release.',
+      note: 'If the client does not review in time, anyone can release the milestone.',
+      mockLabel: 'Milestone 1',
+      mockTitle: 'Two logo concepts',
+      rows: [
+        ['Status', 'Released'],
+        ['Sent to', 'Payout partner'],
+      ],
+      button: 'Released',
+      onChain: false,
+    },
+  ];
+}
 
 export const ERROR_TEXT = "Couldn't read jobs from Solana. Try again.";
 
 export function Overview() {
   const viewer = useHubViewer();
   const jobs = useOpenJobs();
-  const applied = useAppliedJobs(viewer.wallet);
   const now = useChainTime();
   const businesses = (jobs.data ?? []).slice(0, 12).map((j) => j.business.toBase58());
   const names = useDisplayNames(businesses).data ?? {};
-  const { openWalletAt } = useWalletPanel();
   return (
     <OverviewView
       jobs={jobs.data ?? null}
@@ -62,11 +177,8 @@ export function Overview() {
       vn={viewer.vn}
       client={viewer.signedIn && !viewer.vn}
       signedIn={viewer.signedIn}
-      me={viewer.wallet}
-      applied={applied.data}
       names={names}
       now={now}
-      onRecords={() => openWalletAt('/records')}
     />
   );
 }
@@ -76,299 +188,435 @@ export interface OverviewViewProps {
   loading: boolean;
   error: boolean;
   onRetry(): void;
+  /** Money in ≈ VND (the Vietnam view) */
   vn: boolean;
   /** Client copy and actions: signed in, outside the Vietnam view */
   client: boolean;
   signedIn: boolean;
-  me: string | null;
-  applied?: ReadonlySet<string>;
   names: Record<string, string>;
   now: number;
-  onRecords(): void;
 }
 
 export function OverviewView(p: OverviewViewProps) {
   const stats = overviewStats(p.jobs ?? []);
-  const ready = p.jobs !== null;
+  const ready = p.jobs !== null && !p.loading;
+  // Signed in and not a client means the Vietnam view (client = signed in outside it)
+  const audience: OverviewAudience = p.client ? 'client' : p.signedIn ? 'vn' : 'guest';
   const name = (j: JobListingAccount) => p.names[j.business.toBase58()] ?? shortAddress(j.business.toBase58());
-  const mine = (j: JobListingAccount): JobMine =>
-    p.me && j.business.toBase58() === p.me ? 'own' : p.applied?.has(j.address.toBase58()) ? 'applied' : null;
-  const copy = p.client ? COPY.client : COPY.freelancer;
-
   return (
     <>
-      <Hero {...p} stats={stats} ready={ready} copy={copy} businessName={stats.newest ? name(stats.newest) : ''} />
-      <div className={`${styles.stepsWrap} ${styles.rise3}`}>
-        <StepsBand role={p.client ? 'client' : 'freelancer'} />
-      </div>
-
-      <section aria-labelledby="hub-cat" className={styles.section}>
-        <SectionHeading id="hub-cat" center title="Choose your field" sub="Open jobs with locked budgets, by category." />
-        <div className={styles.tiles}>
-          {JOB_CATEGORIES.map((c) => (
-            <CategoryTile key={c.id} category={c.index} count={stats.byCategory[c.index]} loading={!ready} />
-          ))}
+      <Hero {...p} stats={stats} ready={ready} audience={audience} />
+      {p.error ? (
+        <div className={`${hub.container} ${styles.errorWrap}`}>
+          <div className={styles.error} role="alert">
+            {ERROR_TEXT}
+            <HubButton variant="white" size="small" onClick={p.onRetry}>
+              <HubIcon name="refresh" size={14} />
+              Retry
+            </HubButton>
+          </div>
         </div>
-      </section>
-
-      <section id="featured" aria-labelledby="hub-feat" className={styles.featured}>
-        <div className={`${hub.container} ${styles.featuredInner}`}>
-          <SectionHeading
-            id="hub-feat"
-            center
-            title="Featured jobs"
-            sub={<span className={styles.featuredSub}>The newest jobs, each with its budget already locked. Find jobs lists every job, with filters.</span>}
-          />
-          {p.error ? (
-            <div className={styles.error} role="alert">
-              {ERROR_TEXT}
-              <HubButton variant="outline" size="small" onClick={p.onRetry}>
-                <HubIcon name="refresh" size={14} />
-                Retry
-              </HubButton>
-            </div>
-          ) : p.loading || !ready ? (
-            <div className={styles.grid} aria-busy="true" aria-label="Loading jobs">
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className={`${styles.skeleton} ${i === 0 ? styles.skeletonDark : ''}`} data-testid="job-skeleton" />
-              ))}
-            </div>
-          ) : stats.featured.length ? (
-            <div className={styles.grid}>
-              {stats.featured.map((j, i) => (
-                <JobCard key={j.address.toBase58()} job={j} vn={p.vn} now={p.now} dark={i === 0} businessName={name(j)} mine={mine(j)} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No open jobs yet"
-              body={p.client ? 'Post the first one: lock a budget and publish it.' : 'New jobs show up here as soon as a business locks a budget.'}
-              action={p.client ? <HubButton variant="dark" to="/jobs/new">Post a job</HubButton> : undefined}
-            />
-          )}
-          <HubButton variant="dark" size="large" to="/jobs/find" className={styles.more}>
-            Find more jobs
-            <HubIcon name="arrowRight" size={15} />
-          </HubButton>
-        </div>
-      </section>
-
-      <Why client={p.client} vn={p.vn} signedIn={p.signedIn} onRecords={p.onRecords} />
+      ) : null}
+      <Trust stats={stats} ready={ready} />
+      <Rules vn={p.vn} />
+      <Featured {...p} stats={stats} ready={ready} name={name} />
+      <HowItWorks vn={p.vn} />
     </>
   );
 }
 
-function Hero(p: OverviewViewProps & { stats: ReturnType<typeof overviewStats>; ready: boolean; copy: { title: string; sub: string }; businessName: string }) {
+/* ---- V5.1 hero ---- */
+
+function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; audience: OverviewAudience }) {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
-  const [cat, setCat] = useState('');
+  const copy = HERO[p.audience];
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const query = filtersToQuery({ q, ...(cat ? { cat } : {}) });
+    const query = filtersToQuery({ q });
     navigate(query ? `/jobs/find?${query}` : '/jobs/find');
   };
-  const { stats } = p;
-  const newest = stats.newest;
-  const longest = newest ? Math.max(0, ...newest.milestones.map((m) => m.workSecs)) : 0;
-  const floats: { icon: HubIconName; color: string; style: React.CSSProperties; cls: string }[] = [
-    { icon: 'design', color: '#7B2FBE', style: { left: '6%', top: '52%' }, cls: hub.float },
-    { icon: 'development', color: '#E5582E', style: { left: '22%', top: '16%' }, cls: hub.float2 },
-    { icon: 'writing', color: '#127A3A', style: { right: '4%', top: '30%' }, cls: hub.float },
-    { icon: 'video', color: '#3730A3', style: { right: '14%', bottom: '8%' }, cls: hub.float2 },
-  ];
+  const newest = p.stats.newest;
+  const lockedUsdc = Number(usdcFromUnits(p.stats.lockedUnits));
   return (
-    <section aria-labelledby="hub-h1" className={styles.hero}>
-      <div className={`${hub.container} ${styles.heroInner}`}>
-        <div className={`${styles.heroText} ${styles.rise}`}>
-          <span className={styles.eyebrow}>
-            <HubIcon name="lock" size={14} width={2.4} />
-            Every budget is locked before the job is posted
-          </span>
-          <h1 id="hub-h1" className={styles.h1}>
-            {p.copy.title}
-          </h1>
-          <p className={styles.lead}>{p.copy.sub}</p>
-          <form role="search" aria-label="Search jobs" className={styles.search} onSubmit={submit}>
-            <label className={styles.field}>
-              Keyword
-              <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Logo, Framer, translation…" />
-            </label>
-            <span aria-hidden className={styles.searchRule} />
-            <label className={`${styles.field} ${styles.fieldNarrow}`}>
-              Category
-              <select value={cat} onChange={(e) => setCat(e.target.value)}>
-                <option value="">All categories</option>
-                {JOB_CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <HubButton variant="dark" size="large" type="submit">
-              <HubIcon name="search" size={16} width={2.4} />
-              Search
-            </HubButton>
-          </form>
-          <div className={styles.popular}>
-            <span className={styles.popularLabel}>Popular:</span>
-            {POPULAR_SKILLS.map((s) => (
-              <Link key={s.id} to={`/jobs/find?${filtersToQuery({ skills: [s.id] })}`} className={styles.popularLink}>
-                {s.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+    <section aria-labelledby="hb-h1" className={`${hub.container} ${styles.heroWrap}`}>
+      <div className={styles.heroFrame}>
+        <div className={`${styles.hero} rv-scale`} data-testid="hero">
+          <svg aria-hidden className={`${styles.layer} px-sky`} viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="hb-sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#120C22" />
+                <stop offset="0.42" stopColor="#3A1F62" />
+                <stop offset="0.68" stopColor="#8E4A8C" />
+                <stop offset="0.84" stopColor="#E0866C" />
+                <stop offset="1" stopColor="#F5C07A" />
+              </linearGradient>
+              <radialGradient id="hb-sun" cx="0.74" cy="0.7" r="0.42">
+                <stop offset="0" stopColor="#FFE2B0" stopOpacity="0.95" />
+                <stop offset="0.35" stopColor="#F7A86F" stopOpacity="0.45" />
+                <stop offset="1" stopColor="#F7A86F" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <rect width="1200" height="640" fill="url(#hb-sky)" />
+            <rect width="1200" height="640" fill="url(#hb-sun)" />
+            <g fill="#FFFFFF" opacity="0.55">
+              {[
+                [120, 80, 1.2],
+                [260, 140, 1],
+                [430, 60, 1.4],
+                [610, 110, 1],
+                [760, 50, 1.2],
+                [980, 90, 1],
+                [1110, 150, 1.3],
+                [340, 210, 0.9],
+                [860, 190, 0.9],
+              ].map(([cx, cy, r]) => (
+                <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} />
+              ))}
+            </g>
+          </svg>
+          <svg aria-hidden className={`${styles.layer} px-1`} viewBox="0 0 1200 640" preserveAspectRatio="xMidYMax slice">
+            <path d="M0 430C200 380 380 425 560 395S900 352 1200 398V640H0Z" fill="#5B2E7A" opacity="0.9" />
+          </svg>
+          <svg aria-hidden className={`${styles.layer} px-2`} viewBox="0 0 1200 640" preserveAspectRatio="xMidYMax slice">
+            <path d="M0 486C170 452 410 506 640 472S1010 440 1200 474V640H0Z" fill="#3B1D58" />
+          </svg>
+          <svg aria-hidden className={`${styles.layer} px-3`} viewBox="0 0 1200 640" preserveAspectRatio="xMidYMax slice">
+            <path d="M0 548C240 512 520 566 770 532S1090 520 1200 548V640H0Z" fill="#1F102D" />
+            <path
+              d="M60 600l6-34M78 604l-4-30M96 600l8-28M300 610l4-36M318 606l-6-28M700 612l5-32M716 608l-3-26M1000 606l6-30M1018 610l-4-34"
+              stroke="#2E1842"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div aria-hidden className={styles.heroShade} />
 
-        <div className={`${styles.art} ${styles.rise2}`} aria-hidden>
-          <div className={styles.artBox}>
-            <svg viewBox="0 0 480 480" className={styles.artSvg}>
-              <circle cx="240" cy="250" r="178" fill="#DCC9F7" />
-              <circle cx="240" cy="250" r="128" fill="#D0B7F3" />
-              <path d="M40 300C120 120 330 60 440 170" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
-              <path d="M70 140C190 210 300 420 450 360" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            {floats.map((f) => (
-              <span key={f.icon} className={`${styles.floatIcon} ${f.cls}`} style={f.style}>
-                <HubIcon name={f.icon} size={20} width={2} color={f.color} />
-              </span>
-            ))}
-            <div className={styles.heroCard} data-testid="hero-card">
-              {newest ? (
-                <>
-                  <div className={styles.heroCardTop}>
-                    <Avatar seed={newest.business.toBase58()} size={28} decorative />
-                    <span className={styles.heroCardBiz}>{p.businessName}</span>
-                    <span className={styles.heroCardChip}>
-                      <BudgetLockedChip />
-                    </span>
-                  </div>
-                  <div className={styles.heroCardTitle}>{newest.title}</div>
-                  <div className={styles.heroCardMeta}>
-                    {categoryLabel(newest.category)} · {newest.milestoneCount === 1 ? '1 milestone' : `${newest.milestoneCount} milestones`} · up to {durationLabel(longest)}
-                  </div>
-                  <div className={styles.heroCardFoot}>
-                    <span className={styles.heroCardMoney}>{moneyLabel(newest.total, p.vn)}</span>
-                    <span className={styles.heroCardApply}>Apply</span>
-                  </div>
-                </>
+          <div className={styles.heroText}>
+            <span className={`${styles.eyebrow} hb-in`}>
+              <span className={styles.eyebrowDot} aria-hidden />
+              Jobs with budgets locked on Solana
+            </span>
+            <h1 id="hb-h1" className={`${styles.h1} hb-in-2`}>
+              {copy.title[0]}
+              <br />
+              {copy.title[1]}
+            </h1>
+            <p className={`${styles.heroSub} hb-in-3`}>{copy.sub}</p>
+            <form role="search" aria-label="Search jobs" className={`${styles.search} hb-in-4`} onSubmit={submit}>
+              <HubIcon name="search" size={17} color="rgba(255,255,255,0.8)" />
+              <label className={styles.searchField}>
+                <span className="visually-hidden">Search jobs</span>
+                <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search logo, Framer, translation…" />
+              </label>
+              <button type="submit" className={styles.searchButton}>
+                Search
+                <span className="hb-arrow" style={{ display: 'inline-flex' }}>
+                  <HubIcon name="external" size={14} />
+                </span>
+              </button>
+            </form>
+            <div className={`${styles.heroLinks} hb-in-4`}>
+              <Link to="/jobs/find" className="hb-ul">
+                Find jobs
+                <span className="hb-arrow">
+                  <HubIcon name="external" size={14} />
+                </span>
+              </Link>
+              {copy.link.to.startsWith('#') ? (
+                <a href={copy.link.to} className="hb-ul">
+                  {copy.link.label}
+                  <span className="hb-arrow">
+                    <HubIcon name="external" size={14} />
+                  </span>
+                </a>
               ) : (
-                <>
-                  <div className={styles.heroCardTop}>
-                    <span className={styles.heroCardChip}>
-                      <BudgetLockedChip />
-                    </span>
-                  </div>
-                  <div className={styles.heroCardTitle}>{p.ready ? 'No open jobs yet' : 'Reading jobs from Solana…'}</div>
-                  <div className={styles.heroCardMeta}>The newest open job shows here.</div>
-                </>
+                <Link to={copy.link.to} className="hb-ul">
+                  {copy.link.label}
+                  <span className="hb-arrow">
+                    <HubIcon name="external" size={14} />
+                  </span>
+                </Link>
               )}
             </div>
-            <div className={`${styles.statCard} ${hub.float}`} data-testid="locked-card">
-              <div className={styles.statMoney}>{p.ready ? moneyLabel(stats.lockedUnits, p.vn) : '…'}</div>
-              <div className={styles.statLabel}>locked in {p.ready ? stats.openCount : '…'} open {stats.openCount === 1 ? 'job' : 'jobs'}</div>
-              {stats.bars.length ? (
-                <div className={styles.bars}>
-                  {stats.bars.map((b, i) => (
-                    <span key={i} className={`${styles.bar} ${b.high ? styles.barHigh : ''}`} style={{ height: b.height }} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <div className={`${styles.appsCard} ${hub.float2}`} data-testid="apps-card">
-              <span className={styles.appsIcon}>
-                <HubIcon name="check" size={14} width={2.4} />
-              </span>
-              {p.ready ? stats.applications : '…'} {stats.applications === 1 ? 'application' : 'applications'} on open jobs
-            </div>
           </div>
+
+          {newest ? (
+            <Link
+              to={`/jobs/${newest.address.toBase58()}`}
+              className={`${styles.glass} hb-float hb-in-3`}
+              data-testid="glass-card"
+              aria-label={`Newest funded job: ${newest.title}, ${moneyLabel(newest.total, p.vn)}`}
+            >
+              <span className={styles.glassThumb}>
+                <span className={styles.glassChip}>
+                  <HubIcon name="lock" size={11} width={2.6} />
+                  Budget locked
+                </span>
+                <span className={styles.glassMoney}>{moneyLabel(newest.total, p.vn)}</span>
+              </span>
+              <span className={styles.glassLabel}>Newest funded job</span>
+              <span className={styles.glassTitle}>
+                <span>{newest.title}</span>
+                <span className="hb-arrow">
+                  <HubIcon name="external" size={14} />
+                </span>
+              </span>
+            </Link>
+          ) : null}
+        </div>
+
+        <div className={styles.notch} data-testid="notch">
+          <span className={`${styles.corner} ${styles.cornerTop}`} aria-hidden />
+          <span className={`${styles.corner} ${styles.cornerLeft}`} aria-hidden />
+          {p.ready ? (
+            <>
+              <StatCounter value={lockedUsdc} format={(n) => lockedStatLabel(n, p.vn)} label="locked in open jobs, read from Solana now" />
+              <StatCounter value={p.stats.openCount} label="open jobs, each with its budget already locked" />
+              <StatCounter value={p.stats.applications} label="applications on open jobs" />
+            </>
+          ) : (
+            [0, 1, 2].map((i) => (
+              <div key={i} className={styles.statSkeleton} data-testid="stat-skeleton" aria-hidden>
+                <span />
+                <span />
+              </div>
+            ))
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-const REASONS = (vn: boolean): { icon: HubIconName; label: string }[] => [
-  { icon: 'lock', label: 'Budget locked first' },
-  { icon: 'data', label: 'Track record from Solana' },
-  { icon: 'dollar', label: 'No fee from N.E.D' },
-  vn ? { icon: 'cash', label: 'Receive earnings in VND' } : { icon: 'shieldPlain', label: 'Release only accepted work' },
-];
+/* ---- V5.2 trust and category circles ---- */
 
-function Why({ client, vn, signedIn, onRecords }: { client: boolean; vn: boolean; signedIn: boolean; onRecords(): void }) {
+function Trust({ stats, ready }: { stats: OverviewStats; ready: boolean }) {
   return (
-    <section aria-labelledby="hub-why" className={`${hub.container} ${styles.why}`}>
-      <div className={styles.whyArt} aria-hidden>
-        <div className={styles.whyBox}>
-          <div className={styles.whyCard}>
-            <div className={styles.whyCardHead}>Your contract</div>
-            <div className={styles.whyRows}>
-              <div className={styles.whyRow}>
-                <span className={styles.whyDot} style={{ background: '#16A34A' }}>
-                  <HubIcon name="check" size={12} width={3} />
+    <section aria-labelledby="hb-trust" className={`${hub.container} ${styles.trust}`}>
+      <Reveal className={styles.trustHead}>
+        <div className={styles.trustTitle}>
+          <SectionHeading id="hb-trust" title="Funded first, " tone="so both sides can start with trust" />
+        </div>
+        <p className={styles.trustText}>{TRUST_TEXT}</p>
+      </Reveal>
+      <Reveal className={styles.circles} role="list" aria-label="Browse by field">
+        {JOB_CATEGORIES.map((c, i) => {
+          const look = CATEGORY_LOOK[c.index] ?? CATEGORY_LOOK[CATEGORY_LOOK.length - 1];
+          const n = stats.byCategory[c.index] ?? 0;
+          const count = ready ? openJobsLabel(n) : '…';
+          return (
+            <Link
+              key={c.id}
+              role="listitem"
+              to={`/jobs/find?${filtersToQuery({ cat: c.id })}`}
+              className={`${styles.circle} ${i === 0 ? styles.circleFirst : ''} hb-lift`}
+              aria-label={`${c.label}, ${count}`}
+            >
+              <HubIcon name={look.icon} size={22} width={2} color={look.ink} />
+              <span className={styles.circleLabel}>{c.label}</span>
+              <span className={styles.circleCount}>{count}</span>
+            </Link>
+          );
+        })}
+      </Reveal>
+    </section>
+  );
+}
+
+/* ---- V5.3 rules ---- */
+
+function Rules({ vn }: { vn: boolean }) {
+  return (
+    <section aria-labelledby="hb-rules" className={styles.rules}>
+      <div className={`${hub.container} ${styles.rulesInner}`}>
+        <Reveal className={styles.rulesHead}>
+          <SectionHeading id="hb-rules" center title="Same rules for every job, " tone="written into the program" />
+        </Reveal>
+        <Reveal className={styles.rulesGrid}>
+          {rulesFor(vn).map((r) => (
+            <div key={r.title} className={styles.rule}>
+              <span className={styles.ruleIcon} aria-hidden>
+                <HubIcon name={r.icon} size={17} width={2.1} />
+              </span>
+              <h3 className={styles.ruleTitle}>{r.title}</h3>
+              <p className={styles.ruleText}>{r.text}</p>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---- V5.4 featured split ---- */
+
+function Featured(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; name(j: JobListingAccount): string }) {
+  const [pick, setPick] = useState(0);
+  const feats = p.stats.featured;
+  const job = feats[pick] ?? feats[0] ?? null;
+  return (
+    <section aria-labelledby="hb-feat" className={`${hub.container} ${styles.featured}`}>
+      <Reveal kind="x" className={styles.featLeft}>
+        <SectionHeading id="hb-feat" title="Featured jobs, " tone="for every kind of skill" />
+        <HubButton variant="purple" to="/jobs/find" arrow className={styles.featFind} style={{ height: 42 }}>
+          Find jobs
+        </HubButton>
+        <div className={styles.featGrid}>
+          {!p.ready
+            ? [0, 1, 2, 3].map((i) => <div key={i} className={styles.featSkeleton} data-testid="job-skeleton" />)
+            : feats.map((j, i) => (
+                <Link
+                  key={j.address.toBase58()}
+                  to={`/jobs/${j.address.toBase58()}`}
+                  className={`${styles.featCard} ${i === pick ? styles.featOn : ''} hb-lift`}
+                  onMouseEnter={() => setPick(i)}
+                  onFocus={() => setPick(i)}
+                  data-testid="featured-card"
+                  aria-current={i === pick ? 'true' : undefined}
+                >
+                  <span className={styles.featN}>0{i + 1}</span>
+                  <span className={styles.featTitle}>{j.title}</span>
+                  <span className={styles.featMeta}>
+                    {categoryLabel(j.category)} · {moneyLabel(j.total, p.vn)}
+                  </span>
+                  <span className={`${styles.featMore} hb-ul`}>View details</span>
+                </Link>
+              ))}
+        </div>
+        {p.ready && !feats.length ? (
+          <EmptyState
+            title="No open jobs yet"
+            body={p.client ? 'Post the first one: lock a budget and publish it.' : 'New jobs show up here as soon as a business locks a budget.'}
+            action={p.client ? <HubButton variant="dark" to="/jobs/new">Post a job</HubButton> : undefined}
+          />
+        ) : null}
+      </Reveal>
+      <Reveal className={styles.preview} aria-live="polite">
+        <svg aria-hidden className={styles.layer} viewBox="0 0 600 520" preserveAspectRatio="xMidYMax slice">
+          <path d="M0 330C120 300 260 340 380 312S540 290 600 306V520H0Z" fill="#3B1D58" opacity="0.8" />
+          <path d="M0 392C160 362 330 410 470 380S580 370 600 384V520H0Z" fill="#1F102D" />
+        </svg>
+        {job ? (
+          <div className={styles.previewPanel} data-testid="featured-preview" key={job.address.toBase58()}>
+            <div className={`${styles.previewTop} hb-in`}>
+              <Avatar seed={job.business.toBase58()} size={30} decorative />
+              <span className={styles.previewWho}>
+                {p.name(job)} · {categoryLabel(job.category)}
+              </span>
+              <BudgetLockedChip />
+            </div>
+            <div className={styles.previewTitle}>{job.title}</div>
+            <div className={styles.plan}>
+              {job.milestones.slice(0, 3).map((m) => (
+                <div key={m.index} className={styles.planRow}>
+                  <span className={styles.planN}>{m.index + 1}</span>
+                  <span className={styles.planText}>
+                    <span className={styles.planName}>Milestone {m.index + 1}</span>
+                    <span className={styles.planDue}>Due {spanLabel(m.workSecs)} after selection</span>
+                  </span>
+                  <span className={styles.planMoney}>{moneyLabel(m.amount, p.vn)}</span>
+                </div>
+              ))}
+            </div>
+            <div className={styles.previewFoot}>
+              <span>
+                <span className={styles.previewMoney}>{moneyLabel(job.total, p.vn)}</span>
+                <span className={styles.previewSub}>
+                  {p.now > job.applyBy ? 'Applications closed' : `Apply by ${formatDeadline(job.applyBy)}`} · {applicantsLabel(job.applicationCount)}
                 </span>
-                <span className={styles.whyRowText}>1 · First milestone</span>
-                <span style={{ fontSize: 12, color: '#127A3A' }}>Released</span>
-              </div>
-              <div className={styles.whyRow}>
-                <span className={styles.whyDot} style={{ background: '#7B2FBE' }}>
-                  <HubIcon name="lock" size={12} width={2.6} />
-                </span>
-                <span className={styles.whyRowText}>2 · Final files</span>
-                <span style={{ fontSize: 12, color: '#6A22B0' }}>Locked</span>
-              </div>
+              </span>
+              <HubButton variant="purple" to={`/jobs/${job.address.toBase58()}`} arrow style={{ height: 42 }}>
+                Apply
+              </HubButton>
             </div>
           </div>
-          <div className={`${styles.whyBadge} ${hub.float}`}>
-            <HubIcon name="shield" size={15} color="#127A3A" />
-            Checkable on Solana Explorer
+        ) : null}
+      </Reveal>
+    </section>
+  );
+}
+
+/* ---- V5.5 how it works ---- */
+
+function HowItWorks({ vn }: { vn: boolean }) {
+  const steps = howSteps(vn);
+  const [hover, setHover] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const paused = hover || focus;
+  const { index, select, round } = useAutoAdvance(steps.length, undefined, paused);
+  const s = steps[index];
+  return (
+    <section id="hb-how" aria-labelledby="hb-how-title" className={`${hub.container} ${styles.how}`}>
+      <Reveal className={styles.howHead}>
+        <SectionHeading id="hb-how-title" center title="See how a job runs, " tone="step by step" />
+      </Reveal>
+      <Reveal
+        className={styles.showcase}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onFocus={() => setFocus(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocus(false);
+        }}
+        data-testid="showcase"
+      >
+        <div className={styles.showRow} id="hb-how-panel" role="tabpanel" aria-labelledby={`hb-how-tab-${index}`}>
+          <div className={`${styles.showText} hb-in`} key={`t${index}`}>
+            <span className={styles.showRole}>{s.role}</span>
+            <h3 className={styles.showTitle}>{s.title}</h3>
+            <p className={styles.showBody}>{s.text}</p>
+            <div className={styles.showNote}>{s.note}</div>
+          </div>
+          <div className={styles.showArt} aria-hidden>
+            <div className={`${styles.mock} hb-in`} key={`m${index}`}>
+              <div className={styles.mockLabel}>{s.mockLabel}</div>
+              <div className={styles.mockTitle}>{s.mockTitle}</div>
+              <div className={styles.mockRows}>
+                {s.rows.map(([a, b]) => (
+                  <div key={a} className={styles.mockRow}>
+                    <span>{a}</span>
+                    <span className={styles.mockValue}>{b}</span>
+                  </div>
+                ))}
+              </div>
+              <div className={`${styles.mockButton} ${s.onChain ? '' : styles.mockDone}`}>{s.button}</div>
+            </div>
           </div>
         </div>
-      </div>
-      <div className={styles.whyText}>
-        <span className={styles.whyMark} aria-hidden>
-          <HubIcon name="lock" size={20} />
-        </span>
-        <h2 id="hub-why" className={styles.whyH2}>
-          Funded before anyone applies
-        </h2>
-        <p className={styles.whyLead}>
-          A business can only post a job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is released
-          milestone by milestone after the work is accepted.
-        </p>
-        <ul className={styles.reasons}>
-          {REASONS(vn).map((r) => (
-            <li key={r.label} className={styles.reason}>
-              <span className={styles.reasonIcon} aria-hidden>
-                <HubIcon name={r.icon} size={16} />
-              </span>
-              {r.label}
-            </li>
-          ))}
-        </ul>
-        <div className={styles.whyButtons}>
-          {client ? (
-            <HubButton variant="dark" to="/jobs/new">
-              Post a job
-              <HubIcon name="arrowRight" size={15} />
-            </HubButton>
-          ) : (
-            <HubButton variant="dark" to="/jobs/find">
-              Browse open jobs
-              <HubIcon name="arrowRight" size={15} />
-            </HubButton>
-          )}
-          {signedIn ? (
-            <HubButton variant="outline" onClick={onRecords}>
-              See your records
-            </HubButton>
-          ) : (
-            <HubButton variant="outline" to="/sign-in?next=%2Fjobs">
-              See your records
-            </HubButton>
-          )}
+        <div role="tablist" aria-label="Steps" className={styles.tabs}>
+          {steps.map((x, i) => {
+            const on = i === index;
+            return (
+              <button
+                key={x.title}
+                id={`hb-how-tab-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                aria-controls="hb-how-panel"
+                tabIndex={on ? 0 : -1}
+                className={`${styles.tab} ${on ? styles.tabOn : ''}`}
+                onClick={() => select(i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const next = (i + (e.key === 'ArrowRight' ? 1 : -1) + steps.length) % steps.length;
+                    select(next);
+                    document.getElementById(`hb-how-tab-${next}`)?.focus();
+                  }
+                }}
+              >
+                <span className={styles.tabN}>0{i + 1}</span>
+                <span className={styles.tabLabel}>{x.title}</span>
+                <span className={styles.track} aria-hidden>
+                  {on ? <span key={`${index}-${round}`} className={`${styles.fill} hb-fill ${paused ? 'hb-paused' : ''}`} data-testid="tab-fill" /> : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

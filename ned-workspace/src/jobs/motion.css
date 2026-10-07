@@ -1,0 +1,76 @@
+/* N.E.D Jobs motion v4 (prompts-hub-v4.md V3; the helmet <style> of the WebJobs, WebJobsFind and WebJobsLegal
+   boards). Plain global classes so pages can add them by name. Curves are the src/motion.ts ones.
+   - Entry and interaction effects run everywhere.
+   - Scroll-driven effects run only inside @supports (animation-timeline: view()); where scroll timelines are missing
+     (Safari, Firefox) nothing is hidden: the classes do nothing and the content stays fully visible.
+   - prefers-reduced-motion: every animation and transition inside the hub is off. */
+.hb-root {
+  --hb-ease: cubic-bezier(0.2, 0, 0, 1);
+  --hb-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hb-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hb-rise { from { opacity: 0; transform: translate3d(0, 16px, 0); } to { opacity: 1; transform: none; } }
+@keyframes hb-pop { from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes hb-sheet { from { transform: translate3d(100%, 0, 0); } to { transform: none; } }
+@keyframes hb-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -8px, 0); } }
+@keyframes hb-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Load and interaction */
+.hb-screen { animation: hb-fade 240ms var(--hb-ease) both; }
+.hb-in { animation: hb-rise 520ms var(--hb-ease-out) both; }
+.hb-in-2 { animation: hb-rise 520ms var(--hb-ease-out) 90ms both; }
+.hb-in-3 { animation: hb-rise 520ms var(--hb-ease-out) 180ms both; }
+.hb-in-4 { animation: hb-rise 520ms var(--hb-ease-out) 270ms both; }
+.hb-pop { animation: hb-pop 200ms var(--hb-ease-out) both; transform-origin: top right; }
+.hb-sheet { animation: hb-sheet 360ms var(--hb-ease-out) both; }
+.hb-backdrop { animation: hb-fade 240ms var(--hb-ease) both; }
+.hb-float { animation: hb-float 7s ease-in-out infinite; }
+.hb-fill { transform-origin: 0 50%; animation: hb-fill 6s linear both; }
+.hb-fill.hb-paused { animation-play-state: paused; }
+.hb-lift { transition: transform 260ms var(--hb-ease-out), box-shadow 260ms var(--hb-ease-out), background-color 200ms var(--hb-ease); }
+.hb-lift:hover {
+  transform: translate3d(0, -4px, 0);
+  box-shadow: 0 2px 4px rgba(17, 17, 22, 0.05), 0 22px 40px -20px rgba(17, 17, 22, 0.28) !important;
+}
+.hb-ul {
+  background-image: linear-gradient(currentColor, currentColor); background-size: 0 1px; background-repeat: no-repeat;
+  background-position: 0 100%; transition: background-size 260ms var(--hb-ease);
+}
+.hb-ul:hover { background-size: 100% 1px; }
+.hb-arrow { transition: transform 200ms var(--hb-ease); }
+a:hover .hb-arrow, button:hover .hb-arrow { transform: translate3d(2px, -2px, 0); }
+.hb-root a, .hb-root button { -webkit-tap-highlight-color: transparent; }
+.hb-root a:active, .hb-root button:active { transform: scale(0.98); }
+
+/* Scroll-driven */
+@supports (animation-timeline: view()) {
+  .rv { animation: hb-rv linear both; animation-timeline: view(); animation-range: entry 0% cover 26%; }
+  @keyframes hb-rv { from { opacity: 0; transform: translate3d(0, 36px, 0); } to { opacity: 1; transform: none; } }
+  .rv-x { animation: hb-rvx linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
+  @keyframes hb-rvx { from { opacity: 0; transform: translate3d(-28px, 0, 0); } to { opacity: 1; transform: none; } }
+  .rv-scale { animation: hb-rvs linear both; animation-timeline: view(); animation-range: entry 0% cover 34%; }
+  @keyframes hb-rvs { from { opacity: 0.4; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+  .hb-hdr { animation: hb-hdr linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+  @keyframes hb-hdr {
+    from { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+    to { box-shadow: 0 1px 0 #ececf0, 0 12px 30px -20px rgba(17, 17, 22, 0.3); background-color: rgba(255, 255, 255, 0.86); }
+  }
+  .hb-hdr-in { animation: hb-hdr-in linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+  @keyframes hb-hdr-in { from { padding-top: 18px; padding-bottom: 18px; } to { padding-top: 10px; padding-bottom: 10px; } }
+  .px-1 { animation: hb-px1 linear both; animation-timeline: scroll(root); animation-range: 0 800px; }
+  @keyframes hb-px1 { to { transform: translate3d(0, 26px, 0); } }
+  .px-2 { animation: hb-px2 linear both; animation-timeline: scroll(root); animation-range: 0 800px; }
+  @keyframes hb-px2 { to { transform: translate3d(0, 54px, 0); } }
+  .px-3 { animation: hb-px3 linear both; animation-timeline: scroll(root); animation-range: 0 800px; }
+  @keyframes hb-px3 { to { transform: translate3d(0, 90px, 0); } }
+  .px-sky { animation: hb-pxs linear both; animation-timeline: scroll(root); animation-range: 0 800px; }
+  @keyframes hb-pxs { to { transform: translate3d(0, -18px, 0) scale(1.04); } }
+  .hb-progress { transform-origin: 0 50%; animation: hb-grow linear both; animation-timeline: scroll(root); }
+  @keyframes hb-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-root *, .hb-root *::before, .hb-root *::after { animation: none !important; transition: none !important; }
+  .hb-root a:active, .hb-root button:active { transform: none; }
+}

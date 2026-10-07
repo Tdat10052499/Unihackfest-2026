@@ -15,6 +15,7 @@ import { safeNext } from './lib/next.ts';
 
 // Dev only: fixture contract states for screenshots (S7); not in normal builds
 const StatesPage = import.meta.env.VITE_DEV_TOOLS === '1' ? lazy(() => import('./dev/StatesPage.tsx').then((m) => ({ default: m.StatesPage }))) : null;
+const HubFrame = import.meta.env.VITE_DEV_TOOLS === '1' ? lazy(() => import('./dev/HubFrame.tsx').then((m) => ({ default: m.HubFrame }))) : null;
 import { hasPendingInvite } from './hooks/keyStore.ts';
 import { Contract } from './pages/Contract.tsx';
 import { Contracts } from './pages/Contracts.tsx';
@@ -70,6 +71,7 @@ export function App() {
       <PendingInvite />
       <Routes>
         <Route path="c/:fund" element={<InviteRouter />} />
+        {HubFrame ? <Route path="dev/hub" element={<Suspense fallback={<Loading />}><HubFrame /></Suspense>} /> : null}
         {FEATURES.jobs ? (
           // N.E.D Jobs (D28): its own layout; readable signed out. Static paths before :job.
           <Route path="jobs" element={<JobsLayout />}>
