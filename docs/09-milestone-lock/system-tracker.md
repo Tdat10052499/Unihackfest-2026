@@ -22,14 +22,14 @@
 | # | Invariant | Vì sao / nguồn |
 | --- | --- | --- |
 | I1 | Freelancer ở Việt Nam **không bao giờ nhận, giữ hay gửi USDC qua N.E.D**. Họ chỉ ký `accept`/`submit` bằng login wallet; phí mạng trên devnet là test SOL và không hiện số lượng (A4); trước launch có fee payer (D8) | NĐ 52/2024 Đ.3(11), 8(6); câu trả lời pháp lý số 1. "Chỉ ký có tính là sử dụng không" là câu hỏi luật sư Q6 |
-| I2 | **N.E.D không giữ tiền và không di chuyển được tiền đã lock** (contract vault và job vault đều là PDA của program) | Custody (NQ 05), FATF ¶67/¶70, D4 |
+| I2 | **N.E.D không giữ tiền; không có instruction nào cho N.E.D di chuyển tiền đã lock** (contract vault và job vault đều là PDA của program). Quyền upgrade vẫn ở deploy wallet tới hết final, đã disclose (S-3) | Custody (NQ 05), FATF ¶67/¶70, D4 |
 | I3 | **Không bên nào tự ý lấy tiền.** Tiền chỉ đi theo rule: client accept · hết review deadline (Release now) · hết submission deadline (Refund now) · freelancer tự trả lại (concede) · hai bên đồng ý split | D1, D11, D27 |
 | I4 | **Request changes không bao giờ hoàn tiền cho client.** Tiền vẫn lock cho tới khi hai bên đồng ý | D27 (chống "copy bài rồi đòi tiền") |
 | I5 | Đích nhận tiền được **chốt lúc freelancer accept**, không đổi được; Vietnam path chỉ vào địa chỉ partner trong allowlist | D7, D13 |
 | I6 🆕 | **Hết hạn thì bên không có lỗi thắng.** Không có tiền phạt; hậu quả là mất quyền phản đối (đã có: Release now, Refund now), cộng thêm record và cooldown (mục 7, chưa build) | **Đề xuất** 7 Oct (thay cho "confirm 2 phía + phạt tiền"), CL đồng ý, **chờ PO ở Q1**. Khi PO duyệt: thêm D29 vào decision log trong `README.md` rồi bỏ 🆕 |
 | I7 | **Không thu phí** trong v1; không có fee code | D2, NĐ 284/2026 Đ.7(4) |
 | I8 | `released + refunded + unsettled = total` cho mọi contract; job vault chuyển đúng số đã lưu | Có test |
-| I9 | Brief và delivery của **contract** được mã hoá, chỉ hai bên đọc; file không bao giờ bị upload, chỉ lưu fingerprint. (Brief của **job listing** là công khai, mục 10) | D15, D22, D26 |
+| I9 | Brief và delivery của **contract** được mã hoá; khoá chỉ ở thiết bị đã đăng ký của hai bên và trong link mời (ai có link cũng đọc được, S-4), N.E.D không có khoá; file không bao giờ bị upload, chỉ lưu fingerprint. (Brief của **job listing** là công khai, mục 10) | D15, D22, D26 |
 | I10 | Vietnam view **không đăng job**, không tạo contract với vai trò client | D18, D25 |
 | I11 | N.E.D **không chọn, không thẩm định, không tuyển dụng** ai và không phải một bên của công việc | Terms (funded-jobs-plan §9) |
 | I12 | Mọi chữ trên UI theo word table (product-spec §6): lock, release, refund, receive earnings, request changes; không dùng pay/payment/escrow/safe/licensed partner/auto-release | Compliance, rule cuộc thi, D26 |
@@ -131,7 +131,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | Work window tối thiểu | Không cho tạo/accept/lock nếu còn quá ít thời gian | — | 60 s | vài giờ | ✅ |
 | `apply_by` / `select_by` (job) | Hết nhận đơn / business được withdraw | Business (nếu không chọn) | tuỳ | 3–7 ngày | ✅ |
 | Job accept window | Business được chọn người khác | Applicant được chọn nhưng không accept | 120 s | 48 h | ✅ (🆕 48 h launch) |
-| `submit_by` | **Refund now** mở cho anyone | Freelancer | +10 min | theo job | ✅ |
+| `submit_by` | **Refund now** mở cho anyone | Freelancer | +10 min (preset; contract B của demo gõ tay +5 min) | theo job | ✅ |
 | `review_by` | **Release now** mở cho anyone | Client | 60 s | **72 h** | ✅ (🆕 72 h default) |
 | Changes requested | **Không có deadline**; tiền lock tới khi hai bên đồng ý | — | — | Dispute timeout hoặc neutral reviewer | 🗺 (🆕 record "long hold", mục 7) |
 | Reminders 24 h / 1 h trước `submit_by` và `review_by` | Nhắc trong app | — | — | in-app; push 🗺 | 🆕 |
@@ -193,7 +193,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 | ID | Tình huống | Today | Solution | Status |
 | --- | --- | --- | --- | --- |
-| S-1 | **Lệch flag dispute:** Workspace bật (D27), mobile tắt (`ned-wallet/constants/features.ts:13`) | Mobile disclosure nói "No disputes in this demo" trong khi client trên Workspace request changes được; freelancer trên mobile không có nút gửi bản sửa / trả lại / split | Làm xong S13 (D27 trên mobile) và bật flag mobile, đồng thời đổi disclosure sang bản "No neutral arbiter"; tới lúc đó demo phần revision trên Workspace | 🔧 **P0** |
+| S-1 | **Lệch flag dispute:** Workspace bật (D27), mobile tắt (`ned-wallet/constants/features.ts:13`) | Disclosure đã sửa ngày 7 Oct (cả hai app hiện "No neutral arbiter", F8 trong `docs/05-legal/cl-review-7oct.md`). Còn lại: freelancer trên mobile không có nút gửi bản sửa / trả lại / split, client trên mobile không request changes được | Làm xong S13 (D27 trên mobile) và bật flag mobile, hoặc hiện "Open in Workspace to respond"; tới lúc đó demo phần revision trên Workspace | 🔧 **P0** (một phần) |
 | S-2 | Release / refund 2 lần, donation vào vault, sai mint | Program chặn, có test | — | ✅ |
 | S-3 | Team upgrade program khi đang có tiền lock | Có thể (deploy wallet tới 10/10) | Disclose; Squads multisig hoặc immutable trước mainnet | ✅ disclosed / 🗺 |
 | S-4 | Link mời bị lộ | Ai có link đọc được nội dung vĩnh viễn (không di chuyển được tiền) | Disclosed | ✅ |
@@ -298,7 +298,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Phone hash | Ô nhập đã **ẩn** trong onboarding (C3) | — | Record cũ vẫn ở trên chain |
 | Device public keys | Solana | Public | D22 |
 | Contract title, amounts, deadlines, hashes | Solana | Public | Hint "no personal data" ✅ |
-| Brief và delivery của contract, review notes | Solana, mã hoá | Hai bên | Không xoá được |
+| Brief và delivery của contract, review notes | Solana, mã hoá | Hai bên và người có link mời | Không xoá được; N.E.D không có khoá |
 | **Job listing: title, summary, brief, milestones, budget** | Solana, **plain text** | **Public** | Business không được đưa dữ liệu cá nhân vào; hint "Public on Solana" ✅ (`PostJob.tsx`) |
 | **Applications / pitch** | Solana, plain text | **Public** | Hint ✅ (F-10) |
 | Record của business (✅: contract đã release, milestone đã nhận, milestone đang bị request changes); reputation và lapse (🆕) | Tính từ dữ liệu trên chain | Public / bên kia | Ghi trong Privacy notice 🆕 |
@@ -358,6 +358,6 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Q3 | Review mặc định khi launch | 72 h | PO | 8 Oct | |
 | Q4 | S-1: bật D27 trên mobile trước freeze hay chỉ demo trên Workspace? | Bật nếu S13 xong trước 8 Oct 18:00; nếu không, mobile hiện "Open in Workspace to respond" và disclosure bản "No neutral arbiter" | PO | 8 Oct | |
 | Q5 | Record hiện cho ai | Bên kia của contract / người đang xem listing | CL | 8 Oct | |
-| Q6 | Câu hỏi chuyên gia mới: job board (Luật 74/2025, NĐ 352/2025, sàn TMĐT); record/cooldown | Thêm vào expert pack | CL | 8 Oct | |
+| Q6 | Câu hỏi chuyên gia mới: job board (Luật 74/2025, NĐ 352/2025, sàn TMĐT); record/cooldown | Thêm vào expert pack | CL | 8 Oct | Job board và lock không thời hạn đã thêm (câu 10, 11 trong `expert-check-pack.vi.md`, 7 Oct); record/cooldown chờ Q1 |
 | Q7 | Bond-based penalties | Roadmap, ngoài Việt Nam, cần luật sư | CL | sau final | |
 | Q8 | Q&A mới: "What stops a client from stalling?" và "Is this a job marketplace?" | D-5; câu trong funded-jobs-plan §9 | CL | 8 Oct | |
