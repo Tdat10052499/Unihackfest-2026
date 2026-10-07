@@ -15,7 +15,7 @@
 
 - [x] Both tracks: Best Product & Business + Best Technical Build (organisers' permission saved as proof)
 - [x] Straight to the final round
-- [x] English-only presentation and product
+- [x] Product (app, UI copy, README) in English; **pitch, slides and Q&A in Vietnamese only** (re-confirmed with the organisers on 7 Oct 2026; replaces "English-only presentation")
 - [x] No "Best AI Product" prize in the official rules
 - [ ] Final date and format (pitch length, Q&A length, Expo booth) — waiting for organisers
 
@@ -27,7 +27,7 @@
 - [x] Create the Compliance Hub (Google Doc) and share it with the team
 - [ ] Restrict Hub sharing to team members only (Chia sẻ → Hạn chế)
 - [ ] Copy missing tabs into the Hub: 04 Fix list, 09 Deadlines & sign-off, 10 Evidence
-- [ ] Save organisers' confirmations (both tracks, English, final round) in Tab 10 Evidence
+- [ ] Save organisers' confirmations (both tracks, language rule of 7 Oct, final round) in Tab 10 Evidence
 - [ ] Send the team the role message: "send me anything before it's shown to judges"
 
 ## Step 2 — Learn the five laws (Học 5 quy định) · 2/10
