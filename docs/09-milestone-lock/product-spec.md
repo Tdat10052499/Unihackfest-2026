@@ -4,7 +4,7 @@ Status: **build spec, frozen for coding on 3 Oct 2026** (review fixes R1–R12 i
 
 ## 1. The product in one sentence
 
-**A foreign client locks USDC per milestone in a Solana program before work starts; when a milestone is approved, or the review deadline passes without a dispute, the program releases it to the destination the freelancer chose: their own wallet abroad, or a licensed payout partner that pays a freelancer in Vietnam in VND.**
+**A foreign client locks USDC per milestone in a Solana program before work starts; when the client accepts a milestone, or anyone presses Release now after the review deadline (unless the client requested changes in time), the program releases it to the destination the freelancer chose: their own wallet abroad, or a payout partner (candidates: Due, Nium; simulated in the demo) that would pay a freelancer in Vietnam in VND.**
 
 Pitch line: *"Freelancers receive their earnings, locked by code."*
 
@@ -24,13 +24,13 @@ Pitch line: *"Freelancers receive their earnings, locked by code."*
 2. **Accept and choose where earnings go (freelancer).** "USDC to my N.E.D wallet" (international) or "VND to my Vietnamese bank account through a payout partner" (Vietnam). The freelancer never types an address: the app fills in their own wallet, or the allowlisted partner address plus a recipient reference (demo: SHA-256 of a made-up recipient ID such as `demo-vinh-001`; at launch, the ID the partner issues after KYC). The destination is written on-chain and cannot change afterwards. The freelancer reads the brief first; `accept` carries the brief hash they saw, so it fails if the brief differs.
 3. **Lock (client).** The client sees the destination type and locks the full amount. The freelancer sees "Locked" before starting work.
 4. **Submit (freelancer).** Marks a milestone delivered, before its deadline (the program checks chain time). The delivery is links (prefer fixed versions: a Figma version, a Git commit), file fingerprints (files stay on the freelancer's computer and are shared through the links) and a note. The SHA-256 of the delivery is the on-chain evidence; the delivery itself goes to the client as an encrypted note. The client sees "On time", the delivery, and whether it still matches the evidence.
-5. **Approve (client), or auto-release.** Approval releases that milestone. If the client does nothing by the review deadline, anyone can release it, unless the client opened a dispute in time.
+5. **Accept & release (client), or Release now.** The client's approval releases that milestone. If the client does nothing by the review deadline, anyone can press Release now, unless the client requested changes in time. Nothing releases by itself (D26).
 
 | Situation | Rule | Status |
 | --- | --- | --- |
 | Freelancer misses the submission deadline | Anyone can refund that milestone to the client | Fixed |
 | Client does not review by the review deadline | Anyone can release it to the destination, unless disputed in time | Fixed (decision D1) |
-| Client disputes (before the review deadline) | Auto-release stops. The milestone settles when the client approves, the freelancer concedes (refund to the client), or both agree a split (`propose_cancel` / `accept_cancel`) | P1, ships as one group. No neutral arbiter in v1: a client can block auto-release by disputing, and the freelancer can then only wait, negotiate or concede. Say so |
+| Client requests changes (`dispute` + review note, before the review deadline) | Release now stops and the amount stays locked; no deadline runs. The milestone settles when the client accepts a revised version, the freelancer returns it (`concede`, refund to the client), or both agree a split (`propose_cancel` / `accept_cancel`) | Shipped (D27) in the Workspace; the phone app cannot respond yet (S-1). No neutral arbiter in v1: a client can hold the amount by requesting changes, and the freelancer can then revise, negotiate or return it. Say so |
 | Client wants to cancel before delivery | Only with the freelancer's agreement (same cancel pair) | P1 |
 | Nobody locked yet | Client can close the contract; rent returned | Fixed |
 | Too little time left | `accept` and `lock` fail if less than the minimum work window (60 s on devnet, 24 h at launch \[Assumption\]) remains before the first submission deadline; the client closes and creates a new contract | Fixed |
@@ -40,7 +40,7 @@ Pitch line: *"Freelancers receive their earnings, locked by code."*
 ### 4.1 What the Vietnam freelancer sees
 
 - Amounts as **"≈ 520,000 VND (estimate)"** next to USD (20 USDC in the demo). Use a fixed rate constant `DEMO_USD_VND_RATE` with its date (26,019.5 VND on 2 Oct 2026, Wise mid-market \[Verified in 08-research\]). Update the constant on demo day; no backend.
-- After release, a status line: **"Released to payout partner · VND payout simulated in this demo"**. Do not fake timed "processing" or "received" steps.
+- After release, a status line: **"Released to payout partner · VND transfer simulated in this demo"**. Do not fake timed "processing" or "received" steps.
 - No USDC balance, swap, xStocks, Earn or dApp browser. Contract screens and income record only.
 
 ### 4.2 How the app knows the user is in Vietnam
@@ -75,7 +75,7 @@ Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor bu
 ### 5.1 Brief and delivery content (decision D15)
 
 - No backend (D4): content is stored as `post_note` ciphertext in transactions that reference the fund; only hashes are in the account.
-- Each contract has a random content key made by the client's app. It travels only in the invite-link fragment (`#k=`), which browsers do not send to servers. Anyone holding the link can read the brief and the delivery, never move money. Say so in Disclosures.
+- Each contract has a random content key made by the client's app. It travels in the invite-link fragment (`#k=`), which browsers do not send to servers, and, since D22, as wraps for every registered device of both parties. N.E.D never has the key. Anyone holding the link can read the brief and the delivery, never move money. Say so in Disclosures.
 - A device without the key shows the money state and the hashes, and asks the user to open the invite link on that device.
 - To move to another device, a party uses "Copy contract link" on the contract screen, or pastes the link in the Workspace. "Same delivery that was submitted ✓" proves only that the delivery note equals the on-chain evidence, not that the content behind a link is unchanged; ask freelancers for fixed-version links.
 - The Vietnam view never shows "New contract" or client actions (decision D18).
@@ -86,21 +86,25 @@ This table replaces `07-strategy-v3` §11.3 and the word lists in `08-research`.
 
 | Use | Never |
 | --- | --- |
-| lock, release, refund, receive earnings, transfer, record, contract, milestone | pay / payment / thanh toán (for USDC), escrow (in UI), ký quỹ, deposit, invest, yield, interest, safe / an toàn, guaranteed, scam-free, tax-compliant, first, zero fees, credit score |
-| "candidate payout partners (Due, Nium), simulated in the demo" | "our partner", "licensed Vietnamese crypto partner" |
+| lock, release, refund, receive earnings, request changes, Release now, transfer, record, contract, milestone | pay / payment / thanh toán (for USDC), escrow (in UI), ký quỹ, deposit, invest, yield, interest, safe / an toàn, guaranteed, scam-free, tax-compliant, first, zero fees, credit score, auto-release (D26), "not a payment service" |
+| "candidate payout partners (Due, Nium), simulated in the demo" | "our partner", "licensed partner", "licensed Vietnamese crypto partner" |
+| "no instruction lets N.E.D move locked funds" | "nobody can move the funds" (the deploy wallet still holds the upgrade authority) |
+| "the Vietnam user never receives, holds or sends USDC" | "the Vietnam user never touches crypto" (A4) |
 | "devnet, test money" | any live-money claim |
 
 The word "escrow" may appear only in technical docs and in answers to judges who use it first.
 
 ## 7. Demo script (under 2 minutes, two browsers)
 
+> **7 Oct:** the stage version is [`final-pitch.md`](final-pitch.md) §2–3 (Person A / Person B, Vietnamese script, Workspace for both roles, accept and lock in the wallet panel). The steps below are the original plan and keep the setup facts.
+
 Amounts are small because the Circle faucet gives 20 devnet USDC per address every 2 hours \[Verified in 08-research\].
 
 1. Mia (client, Singapore) creates "Landing page design": 2 milestones × 10 USDC.
 2. Vinh (freelancer, Vietnam view) accepts and chooses "VND to my bank account".
 3. Mia locks 20 devnet USDC; Vinh's screen shows "≈ 520,000 VND locked (estimate)".
-4. Vinh submits milestone 1; Mia approves; the status shows "Released to payout partner · VND payout simulated in this demo".
-5. Open contract B by deep link. The team prepared it **in the app, with Mia's and Vinh's own logins**, 15 minutes before the pitch: 1 milestone × 10 USDC, submission deadline **create time + 5 minutes** (so `accept` and `lock` still have the 60 s work window), review deadline 60 s after that. Vinh accepted, Mia locked, Vinh submitted. Its review deadline has passed, so anyone presses Release.
+4. Vinh submits milestone 1; Mia accepts and releases; the status shows "Released to payout partner · VND transfer simulated in this demo".
+5. Open contract B by deep link. The team prepared it **in the app, with Mia's and Vinh's own logins**, 15 minutes before the pitch: 1 milestone × 10 USDC, submission deadline **create time + 5 minutes** (so `accept` and `lock` still have the 60 s work window), review deadline 60 s after that. Vinh accepted, Mia locked, Vinh submitted. Its review deadline has passed, so anyone presses Release now.
 6. Open the explorer: the vault is owned by the program, not by N.E.D.
 
 The embedded logins cannot be scripted, so no script signs as Mia or Vinh. Script in `ned-wallet/scripts/`: `recycle-demo-usdc` sends the USDC that reached `DEMO_PAYOUT_PARTNER` back to Mia's address (the partner keypair is a local file, outside the repo). Mia needs **30 USDC** on stage day (10 for contract B, then 20 for contract A): two faucet claims at least 2 hours apart the day before, or recycled USDC. Give Vinh devnet SOL. Rehearse the 15-minute preparation of contract B at least once.
@@ -111,4 +115,4 @@ Cut in this order if late: Blink link → the P1 group `dispute`, `concede`, `pr
 
 ## 9. Disclosures (app footer, deck, booth)
 
-Devnet, test money only · no KYC yet · disputes have no neutral arbiter (if shipped) · in the Vietnam path the freelancer relies on the payout partner after release · phone numbers not OTP-verified and the phone hash can be brute-forced · program not audited · payout partner simulated · network fees use test SOL · Circle can freeze USDC addresses · not legal, tax or financial advice.
+Devnet, test money only · no KYC yet · no neutral arbiter: a request for changes keeps the amount locked until both sides agree · the team's deploy wallet can still upgrade the program until the final · in the Vietnam path the freelancer relies on the payout partner after release · phone numbers not OTP-verified and the phone hash can be brute-forced · program not audited · payout partner simulated · network fees use test SOL · Circle can freeze USDC addresses · not legal, tax or financial advice.
