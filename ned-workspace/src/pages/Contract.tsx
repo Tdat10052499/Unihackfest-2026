@@ -165,7 +165,7 @@ export function ContractView({ fund, raw, content, vn, isParty, p1, actions }: C
           <li>Each milestone is released when the client accepts it. If the client does not review before the review deadline, anyone can release the milestone to the freelancer. Nothing happens by itself: someone presses Release now.</li>
           <li>If a submission deadline passes with nothing submitted, anyone can refund that milestone to the client.</li>
           {p1 ? <li>The client can request changes before the review deadline. The amount then stays locked until both sides agree: the client accepts a revised version, the freelancer returns it, or both agree a split. Nobody outside the contract decides.</li> : null}
-          <li>The money sits in a program vault. Nobody, including N.E.D, can move it any other way.</li>
+          <li>The money sits in a program vault. No instruction lets anyone, including N.E.D, move it any other way. Until the final, the team can still upgrade the program (see Disclosures).</li>
         </ul>
         <a href={`${env.mobileOrigin}/disclosures`} target="_blank" rel="noreferrer">
           Disclosures
