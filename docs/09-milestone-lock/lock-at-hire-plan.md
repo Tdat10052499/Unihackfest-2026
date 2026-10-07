@@ -64,6 +64,8 @@ All changes are backward compatible: every v1.3 listing and every v1.3 client ke
 
 ## 4. Order of work (Claude Code prompts)
 
+> **Use [`prompts-program-v14.md`](prompts-program-v14.md) (V0–V8).** It replaces L1–L4 below with smaller steps, stop points, the CL points R-1 to R-8 and copy of `docs/05-legal/pre-pitch-check-7oct.md` §9, and a rollback prompt. L1–L4 are kept for reference.
+
 Each prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, pull first, tests before each push. Run L1 → L4, then N1 → N3 from [`prompts-open-contract.md`](prompts-open-contract.md), with section 5 below applied.
 
 ### L1 · Program v1.4
