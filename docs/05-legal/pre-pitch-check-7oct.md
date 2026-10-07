@@ -262,3 +262,64 @@ CL will apply these once smoke Runs 1–4 are green. If the rollback is used, no
 ### 9.5 Still open from sections 3 and 8
 
 No code commit since `b7ca253`, so D1–D17, F-1 to F-14 and O1–O3 are unchanged. G1 moves into v1.4 (P6): CL will mark it fixed when L1–L2 are green.
+
+---
+
+## 10. PO sign-off and feedback (7 Oct, evening; `main` at `6ee564e`)
+
+**From:** PO (Hồ Du Tuấn Đạt). **Status:** sections 1–9 are **accepted**. The pitch team can build the slides and the speaker script from `final-pitch.md`, with the changes below. The section 9.4 lines are applied after V3–V4 are green on devnet.
+
+### 10.1 Already applied in this commit
+
+| # | Change | Where |
+| --- | --- | --- |
+| A-1 | **New name and logo:** "N.E.D · Network of Employment Deals". The product has two parts, **Milestone Lock** (contracts) and **N.E.D Jobs** (job board). Logo files: `assets/images/ned-logo.png` (square) and `ned-logo-banner.png` (wide). Slide 2 speech now starts "N.E.D, Network of Employment Deals. Với Milestone Lock, …" | `final-pitch.md` header and Slide 2 |
+| A-2 | **Compute units re-measured on v1.4 (V2):** the Slide 6 table now shows LiteSVM ranges from 10 runs. "dưới 20%" became **"dưới 25%"**. The highest is `post_job` at 49,173 (24.6%). Values above 40,000 already existed in v1.3, so the old line was not true. This answers the question in §5, so the CL does not need to decide it. | `final-pitch.md` Slide 6, `README.md` |
+| A-3 | **O1 README done** (`552c9da`) and refreshed with the V2 numbers: 67 tests, CU ranges, 789-byte select transaction. CL: please review the README copy; it is in your CODEOWNERS paths. | `README.md`, `final-pitch.md` §5 row 1 |
+
+### 10.2 Corrections to section 9
+
+- **R-4:** `JobFundMismatch` is **not** a new error; it exists since v1.3. The new errors are `JobNotFunded` and `JobAlreadyFunded`. Source count after V2: **29 instructions, 55 errors, 26 events, 67 tests**:
+  - lib 1, helpers 4, identity 10, jobs 23, milestone 29;
+  - the LiteSVM tests on the program are 62 (identity, jobs and milestone).
+- **R-2:** measured. `fund_job + create_fund + select_job` with 5 milestones and two compute-budget instructions is **789 bytes** out of 1,232. One transaction, no lookup table.
+- **§9.3 item 6:** "Find jobs, locked before you accept" reads as if the jobs were locked. Use **"Find jobs · budget locked before you accept"**, or just "Find jobs".
+- **§9.3 item 11:** accepted. V6 adds a test that **Publish stays disabled until the box is ticked**.
+
+### 10.3 Numbers on the slides: which set to use
+
+| If, at 8 Oct 18:00, … | Slides 5–7 say | Slide 4 says |
+| --- | --- | --- |
+| V3–V4 are green (v1.4 on devnet, smoke Runs 1–4) | 29 instructions · 55 errors · 26 events · 67 tests (62 LiteSVM) | §9.4 line: locked at posting or at selection, always before accept |
+| Not green (rollback V8) | 27 · 53 · 24 · 54 tests (49 LiteSVM) | v1.3 line: budget locked when the job is posted |
+
+The CU table (A-2) is true for both sets: v1.4 adds at most about 80 CU.
+
+### 10.4 Pitch and demo
+
+1. **Funded path in the live demo:** keep it. Show lock at hire **as evidence, not live**: the Explorer links of smoke Run 3 on Slide 4, plus a 10–15 s clip in the backup video (O6). This adds no demo risk.
+2. **Submit step (1:30):** keep the prepared final file on B's laptop (§8.3). Rehearse the Review scroll at 900 px.
+3. **Track and criteria:** resolved by §1 (the organisers confirmed the four final criteria for both tracks), so no business-model slide is added.
+4. **Words on stage:** say "so khớp fingerprint", "nhắc nhở", "khoá trước khi accept". Never say "xác minh file", "bắt buộc bàn giao", "mọi job đều có tiền".
+
+### 10.5 Order of work for 8 Oct (PO decision)
+
+| When | Work | Owner |
+| --- | --- | --- |
+| Morning | V3 (devnet upgrade: extend ≥ 14,576 B, PO "go") → V4 (IDL, smoke Runs 1–4) | Dev + PO |
+| Between the V steps | F-1 (mobile Submit dead end), D2 (Vietnam-view "+$150 USDC"), D1 ("released automatically") | Dev |
+| Before 12:00 | D6 team email; O2 LICENSE decision (MIT or no license; the README currently says "no license file yet") | PO |
+| Afternoon | V5 → V6 (with the §9.3 copy) → V7 (legal copy with CL ok, §9.4 pitch lines, final check) | Dev + CL |
+| By 18:00 | D3, D7, F-2 to F-6 in one wording commit | Dev |
+| Evening | CL re-check; two timed rehearsals with the final numbers (O8) | CL + presenters |
+
+Items not listed (other Medium and Low rows of §3, F-7 to F-14 except as above, G2) wait until after the freeze.
+
+### 10.6 Sign-off
+
+| Item | Decision |
+| --- | --- |
+| Sections 1–9 of this file | Accepted (PO, 7 Oct) |
+| D29 lock at hire | Go, with the rollback V8 at 8 Oct 18:00 |
+| Pitch content | Go: build slides from `final-pitch.md` + §10.3 |
+| Final sign-off | CL on 9 Oct after the walkthrough on the live app (§7) |

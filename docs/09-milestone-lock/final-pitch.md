@@ -1,4 +1,6 @@
-# N.E.D Milestone Lock: kịch bản thuyết trình vòng Final
+# N.E.D · Network of Employment Deals: kịch bản thuyết trình vòng Final
+
+> **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · Network of Employment Deals**, gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
 
 **Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.3 trên devnet · **Người soạn:** Compliance Lead
 **Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **3 phút**
@@ -69,7 +71,7 @@ Tốc độ nói: khoảng 3 âm tiết mỗi giây. Lời nói bên dưới đ�
   - *Người B ở Việt Nam không bao giờ nhận, giữ hay gửi USDC: nhận VND vào ngân hàng qua payout partner (mô phỏng trong demo)*
 
 **Lời nói**
-> "N.E.D Milestone Lock. Người A khoá USDC cho từng milestone trước khi bắt đầu làm, trong một vault do program sở hữu, không phải chúng tôi. Tiền chỉ đi theo luật viết trong code. Người B không bao giờ nhận USDC: payout partner ở nước ngoài chuyển VND vào ngân hàng. Trong demo, partner là mô phỏng."
+> "N.E.D, Network of Employment Deals. Với Milestone Lock, người A khoá USDC cho từng milestone trước khi bắt đầu làm, trong một vault do program sở hữu, không phải chúng tôi. Tiền chỉ đi theo luật viết trong code. Người B không bao giờ nhận USDC: payout partner ở nước ngoài chuyển VND vào ngân hàng. Trong demo, partner là mô phỏng."
 
 **Lưu ý:** không nói "B không bao giờ chạm vào crypto". Ví đăng nhập của B vẫn ký giao dịch và dùng test SOL trả phí mạng (A4), giám khảo thấy được điều đó trong app.
 
@@ -128,21 +130,21 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 - Stack: **Anchor 1.1.2 · SPL Token Interface · Circle devnet USDC · Dynamic (đăng nhập Google → ví MPC nhúng, không seed phrase)**
 - Bảng compute units:
 
-| Instruction | CU |
+| Instruction | CU (thấp nhất–cao nhất) |
 | --- | ---: |
-| `create_fund` (3 milestone) | 29,824 |
-| `lock` | 22,260 |
-| `approve` | 27,185 |
-| `release_after_review` | 27,355 |
-| `accept + lock_from_job` (1 transaction) | 36,411 |
-| `accept_cancel` (cao nhất) | 39,781 |
+| `create_fund` (3 milestone) | 24,142–33,142 |
+| `lock` | 22,482–28,482 |
+| `approve` | 22,907–31,938 |
+| `release_after_review` | 23,077–32,108 |
+| `accept + lock_from_job` (1 transaction) | 45,470–51,487 |
+| `post_job` (cao nhất) | 34,173–49,173 |
 
-- Dòng nguồn (chữ nhỏ): *LiteSVM 2/10 (program v1.0); dòng job: smoke run devnet 6/10 (v1.3)*. **Dev đo lại toàn bộ bảng trên v1.3 trước khi làm slide** (mục 5); nếu số đổi thì dùng số mới.
-- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 20% hạn mức mặc định 200,000 CU* (mức cao nhất 39,781 = 19,9%, sát ngưỡng: nếu đo lại trên v1.3 có lệnh vượt 40,000 CU thì đổi thành "dưới 25%" hoặc ghi số cao nhất)
+- Dòng nguồn (chữ nhỏ): *LiteSVM, program v1.4, 7/10, 10 lần chạy; khoảng dao động do keypair test ngẫu nhiên (mỗi lần tìm bump PDA thêm ~1,500 CU)*. Bảng cũ (v1.0, 2/10) không dùng nữa.
+- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 25% hạn mức mặc định 200,000 CU* (đo lại 7/10 bằng LiteSVM, 10 lần chạy: cao nhất `post_job` 49,173 = 24,6%; `lock_from_job` 45,045; `accept_cancel` 43,015. Các mức trên 40,000 đã có từ v1.3, nên câu "dưới 20%" cũ không còn đúng. Nguồn: `docs/tong-hop-tien-do.md`, dòng V2)
 - "IDL đăng on-chain" **chỉ đưa lên slide khi IDL v1.3 đã được đăng lại** (hiện bản on-chain là v1.1).
 
 **Lời nói**
-> "Chúng tôi dùng Token Interface với USDC devnet của Circle, nên đây là token SPL thật trên devnet, dù không có giá trị. Người dùng đăng nhập bằng Google và có ví MPC nhúng, không cần seed phrase. Mọi instruction đã đo đều dùng chưa tới 20% compute budget mặc định, và các lệnh ghép được vào một transaction."
+> "Chúng tôi dùng Token Interface với USDC devnet của Circle, nên đây là token SPL thật trên devnet, dù không có giá trị. Người dùng đăng nhập bằng Google và có ví MPC nhúng, không cần seed phrase. Mọi instruction đã đo đều dùng chưa tới một phần tư compute budget mặc định, và các lệnh ghép được vào một transaction."
 
 ### Slide 7: Bằng chứng build & khả năng chạy lại (3:50–4:10)
 
@@ -257,7 +259,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 | # | Việc | Owner | Hạn | Vì sao |
 | --- | --- | --- | --- | --- |
-| 1 | **Viết lại README**: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test, cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
+| 1 | ✅ **Xong 7/10 (`552c9da`, CL duyệt câu chữ):** README viết lại cho N.E.D · Network of Employment Deals, logo mới. Còn lại: sau V3–V4 cập nhật bảng Status (v1.4 trên devnet). Mô tả cũ: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test, cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
 | 2 | Thêm file **LICENSE** (README đang ghi MIT nhưng chưa có file) hoặc bỏ dòng đó | PO | 8 Oct | Tiêu chí 4 |
 | 3 | `jobs:smoke`: thêm tuỳ chọn bỏ qua bước so binary (ví dụ `--skip-binary-check`) để người ngoài chạy được | Dev | 8 Oct | Slide 7 |
 | 4 | Đo lại bảng compute units trên v1.3 (test `g15`, thêm `accept_cancel` và các lệnh job) | Dev | 8 Oct | Slide 6 dùng số của đúng bản đang chạy |

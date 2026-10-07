@@ -147,26 +147,32 @@ flowchart TB
 | Part | State |
 | --- | --- |
 | **Program on devnet** | **v1.3**: Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and Funded Jobs (`post_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 27 instructions, 53 errors, 24 events, 54 tests. Not audited. |
-| **Program v1.4** (lock at hire, D29) | Built and tested: 29 instructions, 55 errors, 26 events, **61/61 tests**. Adds `post_job_open` and `fund_job`, and the selected-applicant check in `lock_from_job`. Devnet upgrade pending (needs a 14,576-byte program extend). |
+| **Program v1.4** (lock at hire, D29) | Built and tested: 29 instructions, 55 errors, 26 events, **67/67 tests**. Adds `post_job_open` and `fund_job`, and the selected-applicant check in `lock_from_job`. Devnet upgrade pending (needs a 14,576-byte program extend). |
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages |
 | **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions and splits are **Workspace only** for now. |
 | **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
-| **Tests on `main`** | Program 61 (v1.4) · `@ned/core` 171 · wallet 38 · Workspace 22 (node) + 106 (Vitest). Last full run: `docs/tong-hop-tien-do.md` (rows V0, V1). |
+| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 171 · wallet 38 · Workspace 22 (node) + 106 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V2). |
 
-**Compute units** (from `docs/tong-hop-tien-do.md`; v1.4 figures are re-measured in step V2 of [`prompts-program-v14.md`](docs/09-milestone-lock/prompts-program-v14.md)):
+**Compute units:**
+- Measured with LiteSVM on v1.4, 7 Oct 2026, over 10 runs.
+- Each range is lowest–highest: test keypairs are random, and every extra PDA bump search costs about 1,500 CU.
+- Source: `docs/tong-hop-tien-do.md` and `program-spec.md` §11.5.
 
-| Instruction | CU | Source |
-| --- | ---: | --- |
-| `create_fund` (3 milestones) | 29,824 | LiteSVM, 2 Oct |
-| `lock` | 22,260 | LiteSVM, 2 Oct |
-| `approve` | 27,185 | LiteSVM, 2 Oct |
-| `release_after_review` | 27,355 | LiteSVM, 2 Oct |
-| `post_job` | 25,482 | devnet smoke, v1.3, 6 Oct |
-| `create_fund + select_job` (1 tx) | 36,594 | devnet smoke, v1.3, 6 Oct |
-| `accept + lock_from_job` (1 tx) | 36,411 | devnet smoke, v1.3, 6 Oct |
-| `accept_cancel` (highest measured) | 39,781 | LiteSVM, 2 Oct |
+| Instruction | CU |
+| --- | ---: |
+| `create_fund` (3 milestones) | 24,142–33,142 |
+| `lock` | 22,482–28,482 |
+| `approve` | 22,907–31,938 |
+| `release_after_review` | 23,077–32,108 |
+| `post_job` (2 milestones) | 34,173–49,173 |
+| `post_job_open` (2 milestones) | 26,120–36,620 |
+| `fund_job` | 21,154–24,154 |
+| `lock_from_job` | 37,545–45,045 |
+| `accept_cancel` | 35,515–43,015 |
 
-Every measured instruction uses less than 20% of the default 200,000 CU budget.
+Every instruction uses less than 25% of the default 200,000 CU budget; the highest measured is `post_job` at 49,173.
+
+**One-step selection fits in a transaction.** `fund_job + create_fund + select_job` with 5 milestones and two compute-budget instructions is 789 bytes, under the 1,232-byte limit.
 
 ---
 
