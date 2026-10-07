@@ -2,7 +2,7 @@
 
 **Owner:** Compliance Lead (Nguyễn Minh Chính, @F4ol4n) · **Checked against:** `main` at `ad1f01d` (H4 Legal page, H5 restyle and QA) · **Not legal advice.**
 
-**Status:** the shared legal copy is fixed and pushed (section 1). Section 2 lists what still needs the PO or a developer, with an owner and a date. The freeze is **8 Oct 18:00**.
+**Status:** the shared legal copy is fixed and pushed (section 1). Section 2 lists what still needs the PO or a developer, with an owner and a date. Cut line **8 Oct 18:00**; code freeze **9 Oct**. Section 4 adds the results of the full audit run later on 7 Oct.
 
 ---
 
@@ -53,3 +53,32 @@ Client-only and business-only sheets (Review, New contract, Post job, Applicants
   3. No send, receive, swap, post job or lock.
 - **Words:** follow the word table in `docs/09-milestone-lock/product-spec.md` §6. Do not name a regulated service category to say what N.E.D is not ("payment service", "money-transfer service", "escrow"). Say what the code does instead.
 - **The pitch is in Vietnamese** (organisers, 7 Oct); the app, the README and every UI string stay in English. Script: `docs/09-milestone-lock/final-pitch.md`.
+
+---
+
+## 4. Full audit, 7 Oct (code, documents, outside sources)
+
+Three checks ran against `main`: every technical claim of `final-pitch.md` against the code, every document against the others, and every outside fact against its source. Fixed in the same push:
+
+| # | Finding | Fix |
+| --- | --- | --- |
+| A1 | "No one at N.E.D can move locked funds" (Terms, F1) and "Nobody, including N.E.D, can move it" (Workspace contract page) overclaim: the deploy wallet still holds the upgrade authority, and an upgrade could change what the program does (F11) | "No instruction (in the program) lets anyone at N.E.D move locked funds"; new Disclosures line "The team can still upgrade the program" (13 lines now) |
+| A2 | Phone app review screen said "Auto-release in …" (D26 bans the word) | "Release now opens in …" |
+| A3 | Pitch: "B never touches crypto"; "only the two parties can read"; "only a fingerprint goes on-chain"; Release now with no exception for change requests; 54 "LiteSVM" tests; "every state change emits an event"; CU table presented as one measurement; "IDL on-chain"; "judges replay everything with three commands" | Reworded in `final-pitch.md`: "never receives, holds or sends USDC"; "N.E.D has no key"; fingerprint + encrypted content; exception added; "54 tests (49 LiteSVM)"; "every money change emits an event"; CU sources labelled and re-measure task; IDL only after re-upload; build + test in 2 commands and a devnet script with its prerequisites |
+| A4 | Demo script: accept and lock happen in the wallet panel ("Slide to accept / Slide to lock"), not on the Workspace page; Request changes cannot be shown after the release; narrow windows send the invite to the mobile build; one browser profile = one login; `/new` keeps nothing on reload | Demo table and runbook rewritten in `final-pitch.md` §2–3 |
+| A5 | 68% figure: the source says "had experienced not being paid", fieldwork Oct 2017, n = 1,602 across 4 countries (not Vietnam only); "at least once" is not in the source | Slide 1 and cheat sheet reworded |
+| A6 | Decree 52 does not name crypto; Decree 340 Art. 30(6)(d) could not be opened in an official text; Decree 284 Art. 7(4) also covers advertising; Law 109 says "not liable to PIT" | Wording fixed in pitch, cheat sheet, expert pack; do not quote Art. 30(6)(d) on stage |
+| A7 | `qa-cheatsheet.md` contradicted the pitch (wallet screening as built, "not offering a service", "disputes are off", v1.2) | Rewritten to match `final-pitch.md` §4 |
+| A8 | `product-spec.md`, decision log D11, `expert-check-pack.vi.md`, tracker S-1, `CLAUDE.md` (D1–D27) were stale on D26/D27, partner wording or the job board | Updated; expert pack adds questions 10 (job board, Law 74/2025) and 11 (open-ended lock) |
+
+Verified and unchanged: 27 instructions, 53 errors, 24 events; permissionless release and refund to fixed recipients; destination fixed at accept; request changes never refunds; budget locked at `post_job`; XChaCha20-Poly1305 + X25519/HKDF; `transfer_checked`; 1,000 USDC cap; 120 s accept window; USDC on Solana ≈ US$7.2 bn (DefiLlama, 7 Oct); faucet 20 USDC / 2 h; ≈ 520,000 VND for 20 USDC still holds (Wise 25,990 on 7 Oct); Due and Nium document USDC on Solana in and VND out separately (so "candidates, simulated" stays).
+
+New owner tasks (also in `final-pitch.md` §5):
+
+| # | Task | Owner | By |
+| --- | --- | --- | --- |
+| P11 | `jobs:smoke`: add an option to skip the binary comparison, so people outside the team can run it | Dev | 8 Oct |
+| P12 | Re-measure the compute-unit table on v1.3 (`g15`; add `accept_cancel` and the job instructions) | Dev | 8 Oct |
+| P13 | Re-upload the v1.3 IDL on-chain (the on-chain IDL is still v1.1) before saying "IDL on-chain" | Dev | 8 Oct |
+| P14 | `docs/08-research/ned-research-and-compliance.md`: status note, disputes, Q&A 2, 3, 6, 7, 8, the demo line and the Track 2 rubric name were stale | CL | done (7 Oct) |
+| P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines | CL | after deploy |
