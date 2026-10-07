@@ -258,6 +258,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | P6 | Khác gì các dự án khoá tiền khác trên Solana? | "Một số dự án devnet khác cũng release khi client im lặng, nên nhóm không nói mình là đầu tiên. Điểm N.E.D thêm vào: đường VND cho người ở Việt Nam, nơi nhận chốt lúc accept và chỉ là địa chỉ partner trong allowlist; yêu cầu chỉnh sửa không bao giờ hoàn tiền; brief mã hoá có dấu vân tay trên chain; và N.E.D Jobs khoá ngân sách trước khi freelancer accept, lúc đăng hoặc lúc chọn người." *(7/10, V7: sửa theo D29)* |
 | P7 | Nếu freelancer không bao giờ gửi file cuối thì sao? | "Trước khi đồng ý, client thấy danh sách file cuối kèm fingerprint. Sau khi release, client kiểm tra file tải về với danh sách đó và lưu biên nhận. Hiện chúng tôi chưa thể bắt buộc bàn giao; mã hoá file cuối và mở khoá cùng lúc với tiền nằm trong roadmap." *(thêm 7/10, F3)* |
 | P8 | Doanh nghiệp đăng job không có tiền thì sao? | "Thẻ job ghi rõ 'Locks when hired'. Program không cho chọn người khi tiền chưa vào vault, nên freelancer không bao giờ accept một việc chưa có tiền." *(thêm 7/10, V7, D29)* |
+| P9 | Client có thể tạo contract mà chưa chọn freelancer không? | "Hiện tại đăng việc mở thì dùng N.E.D Jobs (`/jobs/new`): chọn khoá tiền ngay hoặc khoá lúc chọn người, và freelancer luôn accept sau khi tiền đã khoá. Cho phép trang New contract đăng thẳng lên N.E.D Jobs là bước tiếp theo sau vòng final." (Roadmap, PO 7/10; không nói tính năng này đã có.) |
 
 ---
 

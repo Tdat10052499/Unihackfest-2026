@@ -2,6 +2,8 @@
 
 **Owner:** PO (Hồ Du Tuấn Đạt) · **Written:** 7 Oct 2026 · **Base:** `main` at `1e446ad` · **Builds on:** D25 (Funded Jobs), D28 (Jobs site)
 
+> **Status 7 Oct (after V7): deferred until after the final (PO).** Feature freeze started with V7, so N1–N3 are **roadmap**, not built. Why: three prompts (3–4 h), a new public-brief path that needs CL's tick box (pre-pitch-check §9.3 item 11) and a Workspace redeploy, for a flow the demo does not need: open listings already work from `/jobs/new` with Lock now / Lock when I hire (v1.4). On stage, say open listings are posted from **/jobs/new**; "New contract can publish to N.E.D Jobs" is roadmap. Run N1–N3 unchanged after the final.
+
 > **Update 7 Oct (evening), D29:** the PO decided to change the program so an open contract can lock **now** or **when the client hires** (program v1.4). Run L1–L4 of [`lock-at-hire-plan.md`](lock-at-hire-plan.md) first, then N1–N3 with the changes in its section 5. Decision 5 below becomes "locked at publish or at hire, always before the freelancer accepts".
 
 ## Why

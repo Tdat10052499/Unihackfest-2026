@@ -323,8 +323,8 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Revised version sent | "Revised version received · review it" | — | ✅ Workspace |
 | Review deadline passed | "Review time is over · Release now" | "Release now" | ✅ |
 | Released | "Released" | "Released · hand over the final files" | ✅ |
-| Final files due (24 h, 48 h sau release, chưa bàn giao) | — | "Final files for milestone {n} are due" | ✅ Workspace (F2) |
-| Final files handed over | "Final files received · milestone {n}" | — | ✅ Workspace (F2) |
+| Final files due (24 h, 48 h sau release, chưa bàn giao) | — | "Reminder: hand over the final files for milestone {n}" (F-10) | ✅ Workspace (F2) |
+| Final files handed over | "Final files shared · milestone {n}" (F-4) | — | ✅ Workspace (F2) |
 | Refunded | ✓ | ✓ | ✅ |
 | Reminders 24 h / 1 h | review | submit | 🆕 |
 | Warning / cooldown | ✓ | ✓ | 🆕 |
@@ -390,7 +390,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-25.V5 | Core v1.4: `unfunded` @544, `fundedOnly`, event `JobPostedOpen`/`JobFunded`, `runPostJob({ lockNow })`, `runSelectJob` thêm `fund_job`; `CORE_FEATURES.lockAtHire`; core 184 test | Dev | ✅ | — | Dòng V5 |
 | B-25.V6 | UI Workspace: Lock now / Lock when I hire trên `/jobs/new`, chip "Budget locked" / "Locks when hired", filter "Funded only", sheet "Select @x and lock X USDC"; Workspace 22 node + 123 Vitest, ví 38 | Dev | ✅ | — | Dòng V6 |
 | B-25.V7 | Docs và copy, final check: pre-pitch-check §9.4 vào `final-pitch.md`, `qa-cheatsheet.md`, `expert-check-pack.vi.md`, research; tracker, README; legal copy (`copy.ts`) với CL | CL + PO + Dev | 🔧 đang làm | 8 Oct 18:00 | CL kiểm tra lại số trên slide 4–7 và câu §9.3 trên app live |
-| B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🔧 chưa làm (7 Oct, V7) | 8 Oct | Sau L3 (V5–V6) |
+| B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🗺 **Roadmap sau final** (PO, 7 Oct sau V7: feature freeze; listing mở đã có ở `/jobs/new`) | Sau final | Chạy N1–N3 nguyên văn sau final |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |

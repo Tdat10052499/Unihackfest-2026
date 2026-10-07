@@ -81,7 +81,7 @@ New owner tasks (also in `final-pitch.md` §5):
 | P12 | Re-measure the compute-unit table on v1.3 (`g15`; add `accept_cancel` and the job instructions) | Dev | 8 Oct |
 | P13 | Re-upload the v1.3 IDL on-chain (the on-chain IDL is still v1.1) before saying "IDL on-chain" | Dev | 8 Oct |
 | P14 | `docs/08-research/ned-research-and-compliance.md`: status note, disputes, Q&A 2, 3, 6, 7, 8, the demo line and the Track 2 rubric name were stale | CL | Marked done earlier but the file had not changed since `af0b0f8`; **applied in the pre-pitch push (7 Oct)**, see section 5 |
-| P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines *(14 since v1.4, 7 Oct V7: "Some listings lock only when they hire" added after "Public on-chain")* | CL | after deploy · **Dev checked production 7 Oct (script render): Terms line present, 14 Disclosures lines in order, Job posting rules "Lock the budget now or when you hire"; screenshots `docs/02-thiet-ke/screenshots/v7-prod-legal/`. CL to confirm by eye** |
+| P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines *(14 since v1.4, 7 Oct V7: "Some listings lock only when they hire" added after "Public on-chain")* | CL | after deploy · **Dev checked production 7 Oct (script render): Terms line present, 14 Disclosures lines in order, Job posting rules "Lock the budget now or when you hire"; screenshots `docs/02-thiet-ke/screenshots/v7-prod-legal/`. CL to confirm by eye · **Closed 7 Oct: PO confirmed on the live site** |
 
 ---
 

@@ -66,7 +66,7 @@ Same two accounts. Prepare on B's computer three local files: `logo.svg`, `logo@
 
 ## B2. Request changes, then a revision with a changed list
 
-1. A: **Review** → right column **What you will receive after release** lists the 2 files; under the buttons "After release, N.E.D cannot make @B hand over the files. Check this list before you accept." 📷 → **Request changes** (tick a point or write the reason) → confirm.
+1. A: **Review** → right column **Final files @B promises to hand over after release** lists the 2 files; under the buttons "After release, N.E.D cannot make @B hand over the files. Check this list before you accept." 📷 → **Request changes** (tick a point or write the reason) → confirm.
 2. B: **Send revised version** → a new preview link; final files `logo.svg` and `logo@2x-v2.png` (the changed list) → **Send revised version** → confirm.
 
 ## B3. Accept (A)
@@ -78,11 +78,11 @@ Same two accounts. Prepare on B's computer three local files: `logo.svg`, `logo@
 
 1. Contract → **Hand over final files**. Without a link: "Add the link where @A can download the final files."
 2. Upload a zip or the files to Drive, share **Anyone with the link · Viewer**, paste the link.
-3. Choose `logo.svg` and `logo@2x.png` (the old export instead of the promised `logo@2x-v2.png`): the list shows **Same as promised**, **Missing**, **Extra**; **Hand over final files** asks "Explain what changed from the files you promised." Write a reason (10+ characters) → hand over → confirm. 📷
+3. Choose `logo.svg` and `logo@2x.png` (the old export instead of the promised `logo@2x-v2.png`): the list shows **Listed: same fingerprint**, **Missing**, **Extra**; **Hand over final files** asks "Explain what changed from the files you promised." Write a reason (10+ characters) → hand over → confirm. 📷
 
 ## B5. Download, check, receipt (A)
 
-1. Bell: "Final files received · milestone 1" → contract → **Files** → the card shows "Handed over … · for Version 2, accepted …", the reason, the chips. 📷
+1. Bell: "Final files shared · milestone 1" → contract → **Files** → the card shows "Hand-over link shared … · for Version 2, accepted …", the reason, the chips. 📷
 2. **Download** (a single Drive file downloads directly; a folder opens in a new tab).
 3. **Check your download**: drop `logo.svg` (expect **Same as promised before you accepted ✓**) and a file **named** `logo@2x-v2.png` with other content, for example `logo@2x.png` copied under that name (expect **Different from what was promised**: same name, other fingerprint). A file with a name that is not in the list shows **Not in the promised list**. 📷
 4. **Save receipt** → a file `ned-receipt-<8 characters>-m1.json` is saved; open it: contract, accepted version 2, promised list, hand-over, release signature, check results, "Built on the client's device. Not legal advice." 📷

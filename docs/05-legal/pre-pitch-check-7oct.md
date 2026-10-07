@@ -161,6 +161,10 @@ Checked again after the final-files commits F1–F2 (`7649cdb` … `0b808d1`) an
 | G1 `lock_from_job` applicant check | ~~Open, decision needed~~ **Fixed in v1.4 (V1, V3)**, 7 Oct | `lock_from_job` requires `fund.freelancer == job.selected` and the brief hash (`JobFundMismatch`) |
 | O1 README · O2 LICENSE · O3 Anchor CLI pin | **Open** | `README.md:81, 85` ("Updated 3 Oct", "17 instructions"); no `LICENSE`; `Anchor.toml` `[toolchain]` empty |
 
+**Wording pass, 7 Oct (after V7, PO asked Dev to apply every CL-written line; texts used as CL wrote them):**
+- **Done:** D1 (wallet: submit, contract page ×3, new contract, `ui.tsx`; plus A1 "No instruction in the program lets anyone at N.E.D move it" in the wallet rules), D3 (`copy.ts` Privacy + guide, Workspace Submit), D4 (Disclosures "public"), D5 (phone hash), D7 (Applicants), D8 (Overview rule, Job detail "Released"), D10 ("no N.E.D fee in this pilot", "runs no database"), D11 (apply note, funded listings; unfunded listings use §9.3 item 7), D13 (welcome), D15 (partner candidates + new Disclosures line "Residence is self-declared", list now **15 lines**), F-2 to F-6, F-8 to F-13, §10.2 Find heading "Find jobs · budget locked before you accept", Low: setup.tsx, VN release notice names the payout partner, "Brief matches its fingerprint on Solana" (no "verified"), and the F3 lines (guide + Terms) from the stash.
+- **Still open (not wording, or needs a decision):** D2 (Vietnam-view notification sync and `* 150`), D6 team email (PO), D12 consent v3 and D14 Privacy additions (CL + PO), D16 CSV column, D17 residence confirm, F-1 mobile Submit dead end, F-7 (PO + CL), F-14 tests, unused locale keys (no code uses them), the product name (§11).
+
 ### 8.2 New findings in F1–F2 (final files)
 
 The new copy has no banned words and no Vietnamese text. No new screen shows USDC or SOL in the Vietnam view. D27 is unchanged: release, Release now and "request changes never refunds" behave as before. Problems:
@@ -288,7 +292,7 @@ No code commit since `b7ca253`, so D1–D17, F-1 to F-14 and O1–O3 are unchang
   - the LiteSVM tests on the program are 62 (identity, jobs and milestone).
 - **R-2:** measured. `fund_job + create_fund + select_job` with 5 milestones and two compute-budget instructions is **789 bytes** out of 1,232. One transaction, no lookup table.
 - **§9.3 item 6:** "Find jobs, locked before you accept" reads as if the jobs were locked. Use **"Find jobs · budget locked before you accept"**, or just "Find jobs".
-- **§9.3 item 11:** accepted. V6 adds a test that **Publish stays disabled until the box is ticked**.
+- **§9.3 item 11:** accepted. V6 adds a test that **Publish stays disabled until the box is ticked**. *(7 Oct, after V7: N1–N3 are deferred until after the final (PO, feature freeze), so item 11 ships with N2 later; nothing on `/new` publishes to N.E.D Jobs now.)*
 
 ### 10.3 Numbers on the slides: which set to use
 
