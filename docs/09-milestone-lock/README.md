@@ -19,6 +19,7 @@
 | [`prompts-6oct.md`](prompts-6oct.md) | **Paste-ready Claude Code prompts S0–S16, run one after another** (6 Oct): replaces the prompts in `build-order-6oct.md` for a single person working in order | Developer, PO |
 | [`prompts-hub-v4.md`](prompts-hub-v4.md) | **Prompts H1–H5 to update the community hub UI to v4** (7 Oct, canvas version 113): Overview landing, Find jobs search, Legal page (footer only), restyle and QA; appendix V is the hub spec and supersedes appendix H of `prompts-6oct.md` | Developer, PO |
 | [`system-tracker.md`](system-tracker.md) | **System tracker** (7 Oct, CL; rà soát bởi PO): invariants, actors, vòng đời job và contract, workflow mẫu, timers, scenarios positive/negative, notification và data map, build tracker, open questions. Tóm tắt và theo dõi, không thay thế decision log | Cả team |
+| [`final-pitch.md`](final-pitch.md) | **Final pitch (7 Oct, CL):** 4:30 script mapped to the Track 2 rubric, 8 slides with English lines, demo runbook (Person A / Person B), Q&A split by owner, must-fix list before the final, resources and sources | Pitch team |
 
 **In one line:** a foreign client locks USDC per milestone in `ned_program`; on approval or after the review deadline it goes to the freelancer's own wallet (international) or to a payout partner that pays VND to a Vietnamese bank account (Vietnam, partner simulated in the demo). N.E.D holds nothing and charges nothing in v1.
 
