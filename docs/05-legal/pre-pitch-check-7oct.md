@@ -438,3 +438,38 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
 | Section 11 (name, README review) | Accepted; name = option A |
 | Slides 1–8 and the speaker script | **Go**, from `final-pitch.md` with the v1.4 number set |
 | Final CL sign-off | 9 Oct walkthrough on the live app (§7), unchanged |
+
+---
+
+## 13. PO update for the CL: what landed, what to check, what is still open (8 Oct; `main` at `98d23fa` + this commit)
+
+**From:** PO. **To:** CL. This is the last documentation commit before the slides. From here, only fixes and copy until the final.
+
+### 13.1 Landed since section 12
+
+| Commit | What | CL action |
+| --- | --- | --- |
+| `b9bc53a` | **Name "N.E.D · No Empty Deals"** and logo. Layout set by the PO: "No" starts at the left edge of the mark, "Deals" ends at the right edge of the "D", and the line is about 55% of the N.E.D height. Applied in the README and `final-pitch.md` with your caution line | None |
+| `880f14a`, `70eaf6f`, `a56e10f` | **Wording pass:** Dev applied your texts word for word. Covered: D1, D3–D5, D7, D8, D10, D11, D13, D15, F-2 to F-6, F-8 to F-13, the Find heading, and the F3 lines. Disclosures now have **15 lines**. N1–N3 are deferred until after the final | **Please check both code commits against §3 and §8.2 and confirm in the team chat.** Same rule as for `3cafdc7`: a PO note is not a CL ok |
+| This commit | **README with the phone app first.** "The N.E.D app" is the first section; the Workspace, N.E.D Jobs and the planned landing page move to "Around the app". The phone gallery stays in an HTML comment until prompt M1 adds the eight screenshots, so no broken images show. Records are not claimed to be in VND (D16 open). Only Terms, Privacy and Disclosures are said to be readable before sign-in | Review the README copy (CODEOWNERS) |
+
+### 13.2 Still open: by priority
+
+| # | Item | Why it matters before 10 Oct | Owner |
+| --- | --- | --- | --- |
+| 1 | **D2** Vietnam-view notification sync and the `* 150` SOL price | Breaks I1 on screen ("+$150 … USDC"). **High.** It is the only known place where the Vietnam view can show USDC | Dev, today |
+| 2 | **F-1** mobile Submit dead end | A judge who tries the phone cannot submit a Drive link. **High.** At least show "Submit from the Workspace on a computer to list your final files" with the button disabled | Dev, today |
+| 3 | **M1** phone screenshots for the README | The README now leads with the app | Dev / PO, today |
+| 4 | **D6** team email (`[team email]` on the live Legal page) | Looks unfinished | PO, today 12:00 |
+| 5 | **O2** license | The README says "no license file yet" | PO, today |
+| 6 | **F-7** fixed-version link exemption | Figma version links and Git commits can hand over the work before release. PO proposal: treat them as preview only and always require the promised list. Needs the CL's view | PO + CL |
+| 7 | D12 consent v3, D14 Privacy additions | Need a decision, and both demo accounts must consent again | CL + PO |
+| 8 | D16 CSV column, D17 residence confirm, F-14 tests | After the freeze is acceptable | Dev |
+
+### 13.3 Sign-off
+
+| Item | Status |
+| --- | --- |
+| Slides and speaker script | Go (§12.5), with the v1.4 numbers and the name "No Empty Deals" |
+| Wording pass | Waiting for the CL check (13.1) |
+| Final CL sign-off | 9 Oct walkthrough on the live app (§7), after items 1–2 above |
