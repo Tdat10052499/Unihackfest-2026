@@ -1,10 +1,16 @@
 // Dev only (VITE_DEV_TOOLS=1): the Jobs hub v4 frame (header, footer, motion) with a fixture viewer, for screenshots
-// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1][&page=overview|find][&state=loading|error|empty]. Nothing
+// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1][&page=overview|find|detail|applicants|post][&state=loading|error|empty]. Nothing
 // here signs or reads the chain; page=overview fills the real Overview view with the board's sample jobs.
 import { useSearchParams } from 'react-router';
 import { CLIENT } from './states.ts';
-import { HUB_JOBS, HUB_NAMES, HUB_NOW, hubMine } from './hubFixtures.ts';
+import { HUB_BRIEF, HUB_JOBS, HUB_NAMES, HUB_NOW, hubApplicants, hubMine } from './hubFixtures.ts';
 import { FindView } from '../jobs/pages/Find.tsx';
+import { JobDetailView } from '../jobs/pages/JobDetail.tsx';
+import { ApplicantsView } from '../jobs/pages/Applicants.tsx';
+import { PostJobForm } from '../jobs/pages/PostJob.tsx';
+import { Link } from 'react-router';
+import { HubIcon } from '../jobs/components/HubIcon.tsx';
+import job from '../jobs/pages/Job.module.css';
 import { FREELANCER } from './states.ts';
 import { OverviewView } from '../jobs/pages/Overview.tsx';
 import { FOOT, JobsFooter, JobsHeader } from '../jobs/JobsLayout.tsx';
@@ -23,7 +29,36 @@ export function HubFrame() {
   return (
     <div className={`${hub.hub} hb-root`}>
       <JobsHeader wallet={wallet} name={wallet ? (vn ? '@vinh' : '@mia') : null} vn={vn} status={wallet ? 'ready' : 'signed-out'} next="%2Fjobs" onOpenWallet={() => {}} />
-      {page === 'find' ? (
+      {page === 'detail' || page === 'applicants' || page === 'post' ? (
+        <main id="main" className={hub.main}>
+          {page === 'post' ? (
+            <PostJobForm wallet={me.toBase58()} name="@mia" />
+          ) : page === 'detail' ? (
+            // JobDetailView draws its own page, back pill and cards
+            <JobDetailView job={HUB_JOBS[9]} brief={HUB_BRIEF} application={null} records={[]} businessName="@orbit_cafe" now={HUB_NOW} vn={vn || as === 'guest'} me={wallet} />
+          ) : (
+            <div className={job.page}>
+              <div className={`${hub.container} ${job.pageInner}`}>
+                <Link to="/jobs/find" className={job.back}>
+                  <HubIcon name="arrowLeft" size={14} />
+                  My listings
+                </Link>
+                {
+                  <ApplicantsView
+                    job={{ ...HUB_JOBS[9], business: me }}
+                    applications={hubApplicants(HUB_JOBS[9].address)}
+                    names={HUB_NAMES}
+                    records={{}}
+                    briefOk
+                    now={HUB_NOW}
+                    me={me.toBase58()}
+                  />
+                }
+              </div>
+            </div>
+          )}
+        </main>
+      ) : page === 'find' ? (
         <main id="main" className={hub.main}>
           <FindView
             open={params.get('state') === 'loading' ? null : params.get('state') === 'empty' ? [] : HUB_JOBS}
