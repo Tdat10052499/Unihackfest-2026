@@ -1100,3 +1100,231 @@ fn v14_g1_a_recreated_contract_for_someone_else_cannot_take_the_budget() {
     assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 10 * USDC, "the budget stays in the job vault");
     assert_eq!(e.job(1).state, JobState::Selected);
 }
+
+// v1.4 self-review (V2): cases the first draft did not cover
+
+#[test]
+fn v14_fund_job_refused_on_filled_and_withdrawn_listings() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let mut p = post(1, 10 * USDC);
+    p.job_id = 2;
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    // Filled: funded at selection, then accepted and locked
+    let job = e.open_unfunded_with_two(1, 10 * USDC);
+    let b = e.b.pubkey();
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+    let (fund, _) = e.fund_and_select(job, 60, b, now).unwrap();
+    e.as_b(&[accept_partner(fund, &b), lock_from_ix(job, fund, &biz, &b, mint)]).unwrap();
+    assert_eq!(e.job(1).state, JobState::Filled);
+    let before = e.balance(&biz);
+    assert!(e.as_business(&[fund_ix(job, &biz, mint)]).is_err(), "fund_job on a Filled listing");
+    assert_eq!(e.balance(&biz), before);
+
+    // Withdrawn: an unfunded listing (job 2, posted first) withdrawn before anyone applied
+    let job2 = job_pda(&biz, 2);
+    e.as_business(&[withdraw_ix(job2, &biz, mint)]).unwrap();
+    assert_eq!(e.job(2).state, JobState::Withdrawn);
+    assert!(e.as_business(&[fund_ix(job2, &biz, mint)]).is_err(), "fund_job on a Withdrawn listing");
+    assert_eq!(e.balance(&biz), before);
+    assert_eq!(e.job(2).unfunded, 1, "nothing changed");
+}
+
+#[test]
+fn v14_withdraw_an_unfunded_listing_returns_a_donation_and_closes_the_vault() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let before = e.balance(&biz);
+    e.as_business(&[post_open_ix(&biz, mint, post(1, 10 * USDC))]).unwrap();
+    let job = job_pda(&biz, 1);
+    // Someone sends 1 USDC to the empty job vault
+    let vault = job_vault_pda(&job);
+    let mut data = e.svm.get_account(&vault).unwrap().data;
+    data[64..72].copy_from_slice(&USDC.to_le_bytes());
+    put_token_program_account(&mut e.svm, vault, data);
+    // A donation does not count as funding
+    assert_eq!(e.job(1).unfunded, 1);
+
+    let meta = e.as_business(&[withdraw_ix(job, &biz, mint)]).unwrap();
+    let w: JobWithdrawn = event(&meta);
+    assert_eq!(w.amount, 0, "the stored budget was never locked");
+    assert_eq!(e.balance(&biz), before + USDC, "the donation goes to the business");
+    assert!(closed(&e.svm, &vault));
+}
+
+#[test]
+fn v14_select_on_an_unfunded_listing_checks_state_and_select_by_first() {
+    let mut e = env();
+    let job = e.open_unfunded_with_two(1, 10 * USDC);
+    let b = e.b.pubkey();
+    // After select_by the error is SelectClosed, not JobNotFunded
+    let late = SELECT_BY + 1;
+    set_clock(&mut e.svm, late);
+    assert_err(e.select(job, 50, b, late), "SelectClosed");
+    // A withdrawn listing reports JobNotOpen
+    let (biz, mint) = (e.biz(), e.mint);
+    e.as_business(&[withdraw_ix(job, &biz, mint)]).unwrap();
+    assert_err(e.select(job, 51, b, late), "JobNotOpen");
+}
+
+#[test]
+fn v14_g1_a_recreated_contract_with_another_brief_cannot_take_the_budget() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let job = e.open_with_two(1, 10 * USDC);
+    let a = e.a.pubkey();
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+    let fund = e.select(job, 91, a, now).unwrap();
+
+    // Same address, same freelancer and amounts, another brief
+    e.as_business(&[close_fund_ix(fund, &biz, mint)]).unwrap();
+    let other = [8u8; 32];
+    assert_ne!(other, BRIEF);
+    e.as_business(&[create_for(&biz, mint, 91, a, &template(1, 10 * USDC), now, other)]).unwrap();
+    let accept = Instruction {
+        data: ned_program::instruction::Accept {
+            payout_kind: PayoutKind::PayoutPartner,
+            payout_destination: PAYOUT_PARTNERS[0],
+            payout_reference: PARTNER_REF,
+            expected_brief_hash: other,
+        }
+        .data(),
+        ..accept_partner(fund, &a)
+    };
+    assert_err(e.as_a(&[accept, lock_from_ix(job, fund, &biz, &a, mint)]), "JobFundMismatch");
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 10 * USDC);
+}
+
+/// CL R-2: the select transaction of a "locks when hired" listing with the longest title and 5 milestones, plus the
+/// two compute-budget instructions a wallet may add, must fit Solana's 1,232-byte limit.
+#[test]
+fn v14_fund_create_select_transaction_fits_1232_bytes() {
+    use solana_message::Message;
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let title = "W".repeat(32);
+    let mut p = post(5, 10 * USDC);
+    p.title = title.clone();
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    let job = job_pda(&biz, 1);
+    let b = e.b.pubkey();
+    e.as_b(&[apply_ix(job, &b, "Designer")]).unwrap();
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+
+    // create_fund as the app builds it: the job's title, the template with absolute deadlines
+    let fund_id = u64::MAX; // the app uses Date.now(); the u64 size is fixed either way
+    let mut create = create_for(&biz, mint, fund_id, b, &template(5, 10 * USDC), now, BRIEF);
+    let milestones = template(5, 10 * USDC)
+        .iter()
+        .map(|t| MilestoneInput { amount: t.amount, submit_by: now + t.work_secs, review_by: now + t.work_secs + t.review_secs })
+        .collect();
+    create.data = ned_program::instruction::CreateFund { fund_id, freelancer: b, title, milestones, brief_hash: BRIEF }.data();
+    let fund = fund_pda(&biz, fund_id);
+    let core = vec![fund_ix(job, &biz, mint), create, select_ix(job, &biz, fund, &b)];
+
+    // ComputeBudget: SetComputeUnitLimit (2, u32) and SetComputeUnitPrice (3, u64)
+    let budget: Pubkey = "ComputeBudget111111111111111111111111111111".parse().unwrap();
+    let mut limit = vec![2u8];
+    limit.extend_from_slice(&200_000u32.to_le_bytes());
+    let mut price = vec![3u8];
+    price.extend_from_slice(&1_000u64.to_le_bytes());
+    let mut with_budget = vec![Instruction { program_id: budget, accounts: vec![], data: limit }, Instruction { program_id: budget, accounts: vec![], data: price }];
+    with_budget.extend(core.iter().cloned());
+
+    let size = |ixs: &[Instruction]| {
+        let msg = Message::new(ixs, Some(&biz));
+        1 + 64 * msg.header.num_required_signatures as usize + msg.serialize().len()
+    };
+    let (plain, budgeted) = (size(&core), size(&with_budget));
+    println!("TX fund_job + create_fund + select_job: {plain} bytes; with compute budget: {budgeted} bytes (limit 1232)");
+    assert!(plain <= 1232 && budgeted <= 1232, "{plain} / {budgeted} bytes");
+
+    // And it runs as one transaction
+    let meta = e.as_business(&with_budget).unwrap();
+    cu("fund_job + create_fund + select_job (5 milestones)", &meta);
+    assert_eq!((e.job(1).state, e.job(1).unfunded), (JobState::Selected, 0));
+}
+
+/// Compute units of each top-level N.E.D instruction in a transaction, from the program logs
+fn cu_each(meta: &litesvm::types::TransactionMetadata) -> Vec<(String, u64)> {
+    let id = ned_program::ID.to_string();
+    let mut names = Vec::new();
+    let mut out = Vec::new();
+    for line in &meta.logs {
+        if let Some(name) = line.strip_prefix("Program log: Instruction: ") {
+            if !matches!(name, "Transfer" | "TransferChecked" | "InitializeAccount3" | "CloseAccount") {
+                names.push(name.to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix(&format!("Program {id} consumed ")) {
+            let units: u64 = rest.split(' ').next().unwrap().parse().unwrap();
+            out.push((names.get(out.len()).cloned().unwrap_or_default(), units));
+        }
+    }
+    out
+}
+
+/// V2 (pre-pitch-check §5, CL R-3): compute units of every job instruction on v1.4, one row per instruction
+#[test]
+fn v14_compute_units_per_job_instruction() {
+    let mut rows: Vec<(String, u64)> = Vec::new();
+    let mut push = |label: &str, meta: &litesvm::types::TransactionMetadata| {
+        let each = cu_each(meta);
+        let parts: Vec<String> = each.iter().map(|(n, u)| format!("{n} {u}")).collect();
+        println!("CU {label}: total {} = {}", meta.compute_units_consumed, parts.join(" + "));
+        rows.extend(each);
+    };
+
+    // Funded listing (v1.3 path), 2 milestones
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let meta = e.as_business(&[post_ix(&biz, mint, post(2, 10 * USDC))]).unwrap();
+    push("post_job (2 milestones)", &meta);
+    let job = job_pda(&biz, 1);
+    let (a, b) = (e.a.pubkey(), e.b.pubkey());
+    let meta = e.as_a(&[apply_ix(job, &a, "I build landing pages")]).unwrap();
+    push("apply_job", &meta);
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+    let tmpl = template(2, 10 * USDC);
+    let fund = fund_pda(&biz, 10);
+    let meta = e.as_business(&[create_for(&biz, mint, 10, a, &tmpl, now, BRIEF), select_ix(job, &biz, fund, &a)]).unwrap();
+    push("create_fund + select_job", &meta);
+    let meta = e.as_a(&[accept_partner(fund, &a), lock_from_ix(job, fund, &biz, &a, mint)]).unwrap();
+    push("accept + lock_from_job", &meta);
+
+    // Locks when hired, 2 milestones
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let meta = e.as_business(&[post_open_ix(&biz, mint, post(2, 10 * USDC))]).unwrap();
+    push("post_job_open (2 milestones)", &meta);
+    let job = job_pda(&biz, 1);
+    let b2 = e.b.pubkey();
+    e.as_b(&[apply_ix(job, &b2, "Designer")]).unwrap();
+    set_clock(&mut e.svm, now);
+    let (fund, meta) = e.fund_and_select(job, 11, b2, now).unwrap();
+    push("fund_job + create_fund + select_job", &meta);
+    let meta = e.as_b(&[accept_partner(fund, &b2), lock_from_ix(job, fund, &biz, &b2, mint)]).unwrap();
+    push("accept + lock_from_job (after fund_job)", &meta);
+
+    // Withdraw: funded and unfunded
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    e.as_business(&[post_ix(&biz, mint, post(2, 10 * USDC))]).unwrap();
+    let meta = e.as_business(&[withdraw_ix(job_pda(&biz, 1), &biz, mint)]).unwrap();
+    push("withdraw_job (funded)", &meta);
+    let mut p = post(2, 10 * USDC);
+    p.job_id = 2;
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    let meta = e.as_business(&[withdraw_ix(job_pda(&biz, 2), &biz, mint)]).unwrap();
+    push("withdraw_job (unfunded)", &meta);
+    let _ = b;
+
+    println!("\n| Instruction | Compute units |\n| --- | ---: |");
+    for (name, units) in &rows {
+        println!("| `{name}` | {units} |");
+        assert!(*units < 200_000, "{name} uses {units} CU");
+    }
+}
