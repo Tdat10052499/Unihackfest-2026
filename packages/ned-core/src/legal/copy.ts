@@ -38,6 +38,8 @@ export const PRIVACY: LegalSection[] = [
       'Helius: blockchain data (United States).',
       'Vercel and GitHub Pages: hosting. Their servers keep standard request logs (such as IP address and time).',
       'Solana devnet: public blockchain.',
+      // R3 (7 Oct): the preview frame in Review and Submit loads only after the click
+      'If you press Load preview, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.',
     ],
   },
   { title: 'Data on Solana is public or permanent', body: ['It cannot be deleted by anyone, including N.E.D.'] },

@@ -39,3 +39,8 @@ test('F11: the upgrade authority is disclosed, and no text says "no one at N.E.D
   const all = legalDocs(true).map((d) => text(d.sections)).join(' ');
   assert.doesNotMatch(all, /no one at N\.E\.D can move|Nobody, including N\.E\.D/i);
 });
+
+test('R3: the Privacy notice names the preview sites under "Where data goes"', () => {
+  const where = PRIVACY.find((s) => s.title === 'Where data goes')!;
+  assert.ok(where.body.includes('If you press Load preview, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.'));
+});
