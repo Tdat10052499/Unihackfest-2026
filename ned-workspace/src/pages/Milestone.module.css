@@ -128,3 +128,26 @@
 .guideTable thead th { background: var(--row); }
 .guideTable tbody tr + tr td { box-shadow: inset 0 1px 0 var(--divider); }
 .modeInfo { padding: 12px 14px; border-radius: var(--r-14); background: var(--info-bg); color: var(--info-ink); font-size: 14px; line-height: 1.5; }
+
+/* R2 review: two columns from 1024 px (delivery about 2/3, decision about 1/3 and sticky); one column below, in order */
+.reviewGrid { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.reviewMain { min-width: 0; }
+.reviewSide { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.reviewSide > [role='timer'] { align-self: flex-start; }
+@media (min-width: 1024px) {
+  .reviewGrid { grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); }
+  .reviewSide { position: sticky; top: 16px; }
+}
+.linkTabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.linkTab {
+  height: 34px; max-width: 100%; padding: 0 12px; border: none; border-radius: var(--r-pill); background: var(--field); color: var(--ink-2);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.linkTabOn { background: var(--ink); color: #fff; }
+.fileRow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; padding: 8px 2px; }
+.fileRow + .fileRow { box-shadow: inset 0 1px 0 var(--divider); }
+/* R2 submit: the required preview link and "This is what {name} will see" */
+.required { font-size: 13px; font-weight: 600; color: var(--warning-ink); }
+.seePreview { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.seeTitle { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.filesHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }

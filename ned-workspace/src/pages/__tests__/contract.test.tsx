@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { ReactNode } from 'react';
 import { WalletPanelProvider } from '../../components/WalletPanelContext.tsx';
 import { CLIENT, FREELANCER, SCENARIOS, scenarioView } from '../../dev/states.ts';
 import { confirmFor } from '../../hooks/contractActions.ts';
 import { ContractView } from '../Contract.tsx';
-import { NOT_READY, REQUEST_INFO, ReviewView } from '../Review.tsx';
+import { NO_POINTS, NOT_READY, REQUEST_INFO, ReviewView } from '../Review.tsx';
+import { BLANK_HINT, FRAME_SANDBOX, NOT_EMBEDDABLE } from '../../components/PreviewFrame.tsx';
 
 process.env.TZ = 'UTC';
 afterEach(cleanup);
@@ -126,20 +127,52 @@ function review(id: string, role: 'client' | 'freelancer', p1 = true) {
 }
 
 describe('Review page', () => {
-  it('side by side, link cards with Fixed version, optional file check, only Accept & release and Request changes', () => {
+  it('R2 layout: delivery with link tabs and the PreviewFrame, What to check, integrity, only Accept & release and Request changes', () => {
     review('submitted', 'client');
     expect(screen.getByRole('heading', { name: 'What to check' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'What @vinh delivered' })).toBeTruthy();
-    const cards = screen.getAllByTestId('link-card');
-    expect(cards[0].textContent).toContain('Fixed version');
-    expect(cards[1].textContent).not.toContain('Fixed version');
-    expect(screen.getByText('Optional · Check a file you received')).toBeTruthy();
+    expect(screen.getByText('on time')).toBeTruthy();
+    expect(within(screen.getByRole('tablist', { name: 'Links' })).getAllByRole('tab')).toHaveLength(2);
+    const frame = screen.getByTestId('preview-frame');
+    expect(frame.getAttribute('data-kind')).toBe('frame');
+    expect(frame.textContent).toContain('Figma');
+    expect(frame.textContent).toContain('Fixed version');
+    expect(within(frame).getByRole('link', { name: 'Open in a new tab ↗' }).getAttribute('href')).toBe('https://www.figma.com/file/abc/Logo?version-id=2214');
+    expect(frame.textContent).toContain(BLANK_HINT('@vinh'));
     expect(screen.getByTestId('integrity').textContent).toBe('Same delivery that was submitted ✓');
     const buttons = screen.getAllByRole('button').map((b) => b.textContent);
     expect(buttons).toContain('Accept & release');
     expect(buttons).toContain('Request changes');
     expect(buttons.some((t) => /Reject|Refund/.test(t ?? ''))).toBe(false);
     expect(screen.getByTestId('bottom-line').textContent).toBe(NOT_READY('@vinh', S('submitted').fund.milestones[0].reviewBy));
+  });
+
+  it('R2: nothing is requested from the preview site before "Load preview"; the click is remembered on the page', () => {
+    review('submitted', 'client');
+    expect(document.querySelector('iframe')).toBeNull();
+    expect(document.querySelector('img[referrerpolicy]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    const iframe = document.querySelector('iframe')!;
+    expect(iframe.getAttribute('src')).toBe(`https://www.figma.com/embed?embed_host=ned&url=${encodeURIComponent('https://www.figma.com/file/abc/Logo?version-id=2214')}`);
+    expect(iframe.getAttribute('title')).toBe('Preview of the delivery on Figma');
+    expect(iframe.getAttribute('sandbox')).toBe(FRAME_SANDBOX);
+    expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer');
+    expect(iframe.getAttribute('loading')).toBe('lazy');
+    // the second link is a Drive folder: not embeddable, a link card with the reason
+    fireEvent.click(within(screen.getByRole('tablist', { name: 'Links' })).getAllByRole('tab')[1]);
+    expect(screen.getByTestId('preview-frame').getAttribute('data-kind')).toBe('link');
+    expect(screen.getByText(NOT_EMBEDDABLE)).toBeTruthy();
+    fireEvent.click(within(screen.getByRole('tablist', { name: 'Links' })).getAllByRole('tab')[0]);
+    expect(document.querySelector('iframe')).toBeTruthy();
+  });
+
+  it('R2: review has no drop zone; listed files show name, size and a short fingerprint only', () => {
+    review('submitted', 'client');
+    expect(document.querySelector('input[type=file]')).toBeNull();
+    expect(screen.queryByText('Optional · Check a file you received')).toBeNull();
+    const files = screen.getByTestId('files-listed');
+    expect(files.textContent).toContain('Files listed (fingerprints only)');
+    expect(files.textContent).toContain('concepts-preview.png');
   });
 
   it('the Request changes sheet needs one unmet point and sends the review', () => {
@@ -176,5 +209,44 @@ describe('Review page', () => {
     review('submitted', 'client', false);
     expect(screen.queryByRole('button', { name: 'Request changes' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Accept & release' })).toBeTruthy();
+  });
+});
+
+describe('R2 request sheet without done-when points', () => {
+  it('no checklist; the reason is required: 9 characters stay disabled, 10 send', () => {
+    const s = S('submitted');
+    const fund = scenarioView(s, 'client', 'intl', true);
+    fund.milestones[0] = { ...fund.milestones[0], criteria: [] };
+    const send = vi.fn(async () => {});
+    wrap(<ReviewView fund={fund} raw={s.fund} index={0} now={s.now} vn={false} me={CLIENT.toBase58()} content={content} p1 status="" onRelease={async () => {}} onRequestChanges={send} />);
+    expect(screen.getByTestId('no-points').textContent).toBe(NO_POINTS);
+    fireEvent.click(screen.getByRole('button', { name: 'Request changes' }));
+    const sheet = screen.getByRole('dialog');
+    expect(sheet.textContent).toContain('Say what is missing and what would make it acceptable.');
+    expect(within(sheet).queryAllByRole('checkbox')).toHaveLength(0);
+    const go = within(sheet).getByRole('button', { name: 'Request changes' }) as HTMLButtonElement;
+    fireEvent.change(within(sheet).getByLabelText('Reason (required)'), { target: { value: '123456789' } });
+    expect(go.disabled).toBe(true);
+    expect(sheet.textContent).toContain('9/500');
+    fireEvent.change(within(sheet).getByLabelText('Reason (required)'), { target: { value: 'Add the dark version.' } });
+    expect(go.disabled).toBe(false);
+    fireEvent.click(go);
+    expect(send).toHaveBeenCalledWith({ unmet: [], reason: 'Add the dark version.' }, false);
+  });
+
+  it('a wallet error shows in the sheet, which stays open', async () => {
+    const s = S('submitted');
+    const send = vi.fn(async () => {
+      throw new Error('User rejected the request.');
+    });
+    wrap(<ReviewView fund={scenarioView(s, 'client', 'intl', true)} raw={s.fund} index={0} now={s.now} vn={false} me={CLIENT.toBase58()} content={content} p1 status="" onRelease={async () => {}} onRequestChanges={send} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Request changes' }));
+    const sheet = screen.getByRole('dialog');
+    fireEvent.click(within(sheet).getByLabelText('Readable at 32 px'));
+    await act(async () => {
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Request changes' }));
+    });
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toBeTruthy();
   });
 });
