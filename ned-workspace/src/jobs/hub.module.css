@@ -6,7 +6,8 @@
   --hub-ink: #16161c;
   --hub-ink-2: #3f3f49;
   --hub-muted: #6b6b76;     /* secondary text, inactive tabs */
-  --hub-subtle: #8a8a96;    /* captions, labels */
+  /* captions, labels: V1 says #8A8A96 (3.4:1 on white); H5 QA darkens it to reach 4.5:1 on white and #F5F5F7 */
+  --hub-subtle: #6e6e7a;
   --hub-tone-2: #9a9aa6;    /* second part of two-tone headings, display sizes only */
   --hub-line: #ececf0;      /* hairlines, grid gaps, inset card outline */
   --hub-hair: #f0f0f3;      /* hairlines inside a card or sheet */
