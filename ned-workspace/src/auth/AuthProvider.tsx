@@ -38,7 +38,8 @@ export interface AuthContextValue {
 }
 
 const NOT_CONFIGURED = 'Missing VITE_DYNAMIC_ENVIRONMENT_ID: add it to ned-workspace/.env.local and restart.';
-const AuthContext = createContext<AuthContextValue | null>(null);
+/** Exported for component tests that need a signed-in wallet */
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 // One promise, so the userChanged listener and the restore path never create the wallet twice
 let creatingWallet: Promise<void> | null = null;
@@ -200,6 +201,11 @@ function Unconfigured({ children }: { children: ReactNode }) {
     return { status: 'unconfigured', walletAddress: null, email: null, error: NOT_CONFIGURED, login: fail, logout: async () => {}, signTransaction: fail, signMessage: fail };
   }, []);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/** The auth value, or null outside <AuthProvider> (component tests render pages without it) */
+export function useAuthOptional(): AuthContextValue | null {
+  return useContext(AuthContext);
 }
 
 export function useAuth(): AuthContextValue {

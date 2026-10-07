@@ -65,7 +65,7 @@ export const CONSENT_SCREEN_READY = true;
 
 /**
  * Bước tiếp theo sau khi đăng nhập + có ví (non-ui-plan N11):
- *   chưa có ReverseRecord → fund (thiếu SOL) → consent → profile
+ *   chưa có ReverseRecord → consent (V2: trước mọi thứ) → fund (thiếu SOL, chạy âm thầm) → profile
  *   đã có ReverseRecord   → consent (nếu chưa đồng ý) → region (nếu chưa chọn) → home
  */
 export async function resolveOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
@@ -79,9 +79,11 @@ export async function resolveOnboarding(connection: Connection, wallet: string):
     migrateRegionFromMode(wallet);
     return { step: useRegionStore.getState().getRegion(wallet) ? 'home' : 'region', reverse };
   }
+  // V2 (compliance fix list): consent before anything that sends the wallet address to a third party (the faucet)
+  if (needsConsent) return { step: 'consent', reverse: null };
   const [balance, cost] = await Promise.all([connection.getBalance(owner, 'confirmed'), getSetupCost(connection)]);
   if (balance < cost.required) return { step: 'fund', reverse: null };
-  return { step: needsConsent ? 'consent' : 'profile', reverse: null };
+  return { step: 'profile', reverse: null };
 }
 
 /** Wallet mode chosen before regions existed → region ('simple' → 'vn', 'crypto' → 'intl'); never asks again */
@@ -95,7 +97,7 @@ function migrateRegionFromMode(wallet: string) {
   if (mode) useRegionStore.getState().setRegion(wallet, regionFromMode(mode));
 }
 
-/** Route for each step: welcome → setup → (fund) → consent → profile → residence → home */
+/** Route for each step: welcome → setup → consent → (fund) → profile → residence → home */
 export function onboardingRoute(step: OnboardingStep): '/home' | '/fund' | '/consent' | '/profile' | '/residence' {
   switch (step) {
     case 'home':

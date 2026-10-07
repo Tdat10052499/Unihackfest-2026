@@ -9,6 +9,19 @@ export const env = {
   workspaceOrigin: (import.meta.env.VITE_WORKSPACE_ORIGIN || DEFAULT_WORKSPACE_ORIGIN).replace(/\/+$/, ''),
 };
 
+/**
+ * Feature flags. `jobs` (D25/D28, the N.E.D Jobs site under /jobs): on by default; VITE_FEATURE_JOBS=false turns it
+ * off, and /jobs/* then redirects to the Workspace.
+ */
+export const FEATURES = {
+  jobs: import.meta.env.VITE_FEATURE_JOBS !== 'false',
+  /**
+   * The dispute group of D27 (request changes, revised version, split, return to client, final files): on by default
+   * (review-decision-plan.md); VITE_FEATURE_DISPUTE=false turns every D27 control off.
+   */
+  dispute: import.meta.env.VITE_FEATURE_DISPUTE !== 'false',
+} as const;
+
 configureCore({
   rpcUrl: import.meta.env.VITE_HELIUS_DEVNET_URL || PUBLIC_DEVNET_RPC,
   programId: import.meta.env.VITE_PROGRAM_ID,

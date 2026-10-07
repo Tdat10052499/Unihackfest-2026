@@ -10,6 +10,7 @@ import { Avatar } from './Avatar.tsx';
 import { DevnetBadge } from './DevnetBadge.tsx';
 import { Icon, WalletIcon } from './icons.tsx';
 import { Logo } from './Logo.tsx';
+import { NotificationBell } from './NotificationBell.tsx';
 import { WalletExtension } from './WalletExtension.tsx';
 import { WalletPanel } from './WalletPanel.tsx';
 import { useWalletPanel } from './WalletPanelContext.tsx';
@@ -32,6 +33,7 @@ export function TopBar() {
         </Link>
         <div className={styles.spacer} />
         <DevnetBadge />
+        {signedIn ? <NotificationBell /> : null}
         <div className={styles.anchor}>
           {signedIn ? (
             <WalletButton wallet={walletAddress} open={open} onClick={toggle} triggerRef={triggerRef} />

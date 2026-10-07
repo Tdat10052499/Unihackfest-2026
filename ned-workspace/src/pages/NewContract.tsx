@@ -52,6 +52,9 @@ const previewCreated =
       }
     : null;
 
+/** F5 (compliance fix list): the title is public on Solana forever */
+export const TITLE_HINT = "Public on Solana. Don't put names or personal details here.";
+
 export function NewContract() {
   const { walletAddress } = useAuth();
   const { region } = useRegion(walletAddress);
@@ -263,7 +266,7 @@ function Editor({ onCreated }: { onCreated(c: { fund: string; inviteLink: string
                 aria-describedby="cn-title-hint"
               />
               <p id="cn-title-hint" className={issue('title') && (attempted || bytes > TITLE_MAX_LEN) ? styles.error : styles.hint}>
-                {issue('title') && (attempted || bytes > TITLE_MAX_LEN) ? issue('title') : 'Saved on-chain and visible to anyone. Keep private details for the scope.'}
+                {issue('title') && (attempted || bytes > TITLE_MAX_LEN) ? issue('title') : TITLE_HINT}
               </p>
             </div>
             <div>

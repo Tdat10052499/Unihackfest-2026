@@ -1,6 +1,8 @@
 // Side navigation of the WebWorkspace board. Records and Settings open the wallet extension (the phone app, W6);
 // "New contract" is shown in the international view only (decision D18: no client actions in the Vietnam view).
+// "Jobs" opens the N.E.D Jobs site (D28) when FEATURES.jobs is on.
 import { NavLink } from 'react-router';
+import { FEATURES } from '../config.ts';
 import { useWalletPanel } from './WalletPanelContext.tsx';
 import { Icon, type IconName } from './icons.tsx';
 import styles from './Shell.module.css';
@@ -24,6 +26,7 @@ export function WorkspaceNav({ vn }: { vn: boolean }) {
       {item('/', 'Overview', 'home')}
       {item('/contracts', 'Contracts', 'contracts')}
       {vn ? null : item('/new', 'New contract', 'plus')}
+      {FEATURES.jobs ? item('/jobs', 'Jobs', 'jobs') : null}
       {inWallet('/records', 'Records', 'chart')}
       {inWallet('/settings', 'Settings', 'settings')}
       <div className={styles.phoneCard}>

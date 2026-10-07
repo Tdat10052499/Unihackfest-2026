@@ -1,5 +1,6 @@
 // Shared pieces of the contract screens (ContractDetail / ContractAccept / ContractLock / ContractClose boards).
 import React, { type ReactNode } from 'react';
+import { useRegion } from '../../hooks/useRegion';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -55,11 +56,16 @@ export function Card({ children, style, accent }: { children: ReactNode; style?:
   return <View style={[s.card, accent && elevation.sAccent, style]}>{children}</View>;
 }
 
-/** Itemised fees: N.E.D none, network ~0.000005 SOL, partner fee (VND path only) — never "free" */
+/**
+ * Itemised fees: N.E.D none, network ~0.000005 SOL, partner fee (VND path only) — never "free". A4: the Vietnam view
+ * (or no region yet) shows no SOL amount: "Test SOL on devnet · it has no value".
+ */
 export function FeesCard({ partner, extra }: { partner?: boolean; extra?: { label: string; value: string; sub?: string } }) {
+  const { region } = useRegion();
+  const vn = region !== 'intl';
   const rows: { label: string; value: string; sub?: string; simulated?: boolean }[] = [
     { label: 'N.E.D fee', value: 'None during the pilot' },
-    { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
+    vn ? { label: 'Network fee', value: 'Test SOL on devnet', sub: 'it has no value' } : { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
     ...(extra ? [extra] : []),
     ...(partner ? [{ label: 'Payout partner fee', value: 'Set by the partner', simulated: true }] : []),
   ];

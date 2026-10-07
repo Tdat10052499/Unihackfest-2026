@@ -414,3 +414,184 @@ Do not deploy before the PO says go in this session.
 Done when: main has the merge, both live sites show the new build, the live checks pass, and the progress log has the
 final row.
 ```
+
+## Appendix H · N.E.D Jobs hub spec (taken from the WebJobs and WebJobsFind boards)
+
+Added on 6 Oct 2026 for S5. The S5 prompt referred to this appendix before it existed; the PO chose to take it from
+the boards `docs/02-thiet-ke/canvas-v2/WebJobs.dc.html` and `WebJobsFind.dc.html`. If a board and this appendix
+disagree, fix both. Code: `ned-workspace/src/jobs/` (`hub.module.css`, `JobsLayout.tsx`, `ProfileMenu.tsx`,
+`components/`). Screenshots: `docs/02-thiet-ke/screenshots/s5-jobs-shell/`.
+
+**H.1 Colours.** Ink `#16161C`, ink-2 `#3F3F49`, ink-3 `#4B4B57`, caption `#5E5E6A`, muted `#8A8A96`. Page `#FFFFFF`;
+lavender (header, hero) `#EFE6FB` with `#DCC9F7` / `#D0B7F3` for the hero circles; peach band `#FFE4CF` (its caption
+`#5C4636`); cream section `#FFF1E6`; soft `#F6F4F9`; row line `#F0F0F3`. Dark (featured card, footer) `#16161C`, footer
+line `#2A2A33`, footer text `#D7D7DE`, footer caption `#A9A9B4`. Purple `#7B2FBE` (hover and ink `#6A22B0`). Chip tones
+(background / ink): info `#EEEFFE`/`#3730A3`, purple `#F2EAFB`/`#6A22B0`, success `#E7F6EC`/`#127A3A`, neutral
+`#EFEFF3`/`#4B4B57`, warning `#FFF5E1`/`#8A5300`. Category ink / tint, in taxonomy order: Design `#7B2FBE`/`#F2EAFB`,
+Development `#C2410C`/`#FFE4CF`, Writing & Translation `#127A3A`/`#E7F6EC`, Marketing `#B4235A`/`#FCE7EF`, Video &
+Animation `#3730A3`/`#EEEFFE`, Data & AI `#0E7490`/`#E0F4F8`, Admin & Support `#8A5300`/`#FFF5E1`, Other
+`#4B4B57`/`#EFEFF3`.
+
+**H.2 Radii and shadows.** Chips 9999 px, buttons 12 px (small 10 px), category tiles 18 px, cards 20 px, bands 24 px,
+menu 18 px. No borders on surfaces: card shadow `0 1px 2px rgba(17,17,22,.04), 0 6px 16px -6px rgba(17,17,22,.10)`;
+featured dark card `0 18px 36px -18px rgba(17,17,22,.55)`; menu `0 2px 6px rgba(17,17,22,.06), 0 24px 48px -20px
+rgba(17,17,22,.35)`; search box `0 2px 4px rgba(17,17,22,.04), 0 18px 40px -18px rgba(76,23,130,.35)`. The outline
+button is an inset 1.5 px ink shadow, not a border.
+
+**H.3 Type and spacing.** Space Grotesk for headings (h1 `clamp(40px, 5.4vw, 64px)`, -2 px tracking; h2 34 px, -1 px;
+card title 19 px), Inter for text (15 px body, 13–12 px small), Space Mono for amounts (20 px on cards). Content width
+1,200 px with a 24 px gutter; grid gap 16 px (cards) and 14 px (tiles); sections 56–80 px apart.
+
+**H.4 Motion.** The `src/motion.ts` curves (`cubic-bezier(.2,0,0,1)`, out `cubic-bezier(.16,1,.3,1)`). Hub-only:
+*float* (decoration, 6 px up and down over 6 s; the second variant 7 s with a 1.2 s delay) and *lift* (hover on cards
+−3 px, on tiles −2 px, 220 ms, with a deeper shadow). The menu pops in over 200 ms (scale .97 → 1, 6 px drop).
+Everything stops under `prefers-reduced-motion`.
+
+**H.5 Navbar.** Lavender bar, 1,200 px wide: dark "N.E.D" mark + "Jobs" → `/jobs`; tabs **Overview** (`/jobs`) and
+**Find jobs** (`/jobs/find`), the active tab in purple ink with a 2 px purple underline; spacer; white "Devnet · test
+money" chip; **Post a job** (purple, arrow-up icon → `/jobs/new`) only for a signed-in wallet outside the Vietnam view;
+the profile button (white pill: avatar 34 px, @handle, view line, chevron). Signed out, the button reads **Sign in** →
+`/sign-in?next=<path and query>` (only a path on this site is followed after sign-in).
+
+**H.6 Profile menu.** 290 px, under the button: header (avatar 40 px, @handle, "Vietnam view · VND" or "USDC wallet");
+**Open wallet** ("The N.E.D Wallet, as on your phone"; opens the wallet extension of D23); **Go to Workspace**
+("Contracts, milestones and records", → `/`, external-arrow icon). Escape and a click outside close it and focus
+returns to the button; arrow keys, Home and End move between the items.
+
+**H.7 Steps band.** Peach band, 24 px radius, two black swirls at the sides, three steps with a ringed icon.
+Freelancer (also every Vietnam view): Find a funded job / Budget locked, checkable on Explorer · Apply with a short
+pitch / Public, up to 280 bytes · Accept and deliver / Receive VND per milestone. Client: Post and lock the budget / One
+page, three short steps · Pick one applicant / That creates the contract · Release per milestone / After you accept
+the work.
+
+**H.8 Category tile.** White, 18 px radius, icon 44 px on the category tint, label 15 px, count line ("No open jobs
+yet", "1 open job", "N open jobs"); selected = 2 px inset purple ring; one link to Find jobs with `cat=<id>`.
+
+**H.9 Job card.** One link to `/jobs/:job`, 22 px padding, 14 px gap: title (+ "Applied" info chip or "Your job"
+purple chip); meta row (category, time to deliver, milestones); up to 3 skill chips; amount (Space Mono 20 px; "≈ …
+VND (estimate)" with "$… · estimate" under it in the Vietnam view) and the green **Budget locked** chip; footer above a
+hair line: business avatar and @handle, "Apply by {date} · N applicants" ("Applications closed" after the date), call
+to action ("Apply now", "View" or "Manage"; outlined, white on the dark card). The first card of Featured jobs is the
+dark variant.
+
+**H.10 Buttons.** Dark = browse or navigate ("Search", "Find more jobs"); purple = an action that goes to the wallet
+("Post a job", "Apply", "Lock budget & publish"); outline = secondary ("See your records").
+
+**H.11 Footer.** Dark: purple "N.E.D" mark + "Jobs" and the line "Jobs with budgets locked on Solana. N.E.D does not
+choose, vet or employ anyone, holds no funds and charges no fee in this version."; columns Jobs (Find jobs; Post a job
+outside the Vietnam view), Workspace (Overview; Records when signed in), Legal (Disclosures; Terms and Privacy come in
+S9); a note line. Vietnam view: "Devnet demo with test money. Listings, budgets and applications are read from Solana;
+N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.
+Your pitch is public on Solana." Otherwise: "Devnet demo with test money. Listings, budgets and applications are read
+from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared."
+
+**Numbering note (6 Oct).** The S5b prompt cites the hero as H.7, category tiles as H.8, featured jobs as H.9 and the
+"Funded before anyone applies" section as H.10. In this appendix those are H.12 (hero), H.8 (tile), H.9 (card) and
+H.14 (why); H.7 is the steps band and H.10 the buttons. The content is the same; only the numbers differ.
+
+**H.12 Overview hero.** Lavender section. Eyebrow chip (lock icon) "Every budget is locked before the job is posted".
+Headline and sub-line: freelancer copy for every Vietnam view and for visitors who are signed out — "Find work that is
+already funded" / "Every job here has its full budget locked on Solana before it is posted. Apply with a short pitch;
+if you are hired, you receive VND milestone by milestone."; client copy (signed in, outside the Vietnam view) — "Hire for
+work you can fund today" / "Browse what others post, or post your own job with its budget locked. Pick one applicant and
+the contract is created for you." Search capsule: Keyword (placeholder "Logo, Framer, translation…"), Category (All
+categories + the 8), dark Search → `/jobs/find?<filtersToQuery({ q, cat })>`. "Popular:" Logo & brand, Figma, English ↔
+Vietnamese, Solana programs → `/jobs/find?skills=<id>` (the core query key is `skills`). Illustration (decorative,
+hidden from screen readers): two lavender circles, two white curves, four floating category icons, the newest open
+listing as a tilted card (business, Budget locked, title, "category · N milestones · up to <time>", amount, Apply);
+the "<sum> locked in N open jobs" card with one bar per open listing (newest 24; height = budget relative to the
+largest; purple for the top half); "N applications on open jobs". With no open listing the tilted card reads "No open
+jobs yet / The newest open job shows here." Every number comes from `listOpenJobs` (state Open only).
+
+**H.13 Overview sections.** The steps band (H.7) overlaps the hero by 28 px. "Choose your field" / "Open jobs with
+locked budgets, by category." with the 8 tiles (H.8). "Featured jobs" on cream / "The newest jobs, each with its budget
+already locked. Find jobs lists every job, with filters." — the 6 newest open listings (H.9, first one dark), then dark
+"Find more jobs" → `/jobs/find`. Loading: 6 skeleton cards (the first dark). Error: "Couldn't read jobs from Solana. Try
+again." with Retry. Empty: "No open jobs yet" — client: "Post the first one: lock a budget and publish it." with Post a
+job; otherwise "New jobs show up here as soon as a business locks a budget."
+
+**H.14 "Funded before anyone applies".** Illustration "Your contract" with two rows (1 · First milestone — Released;
+2 · Final files — Locked; no amounts) and the badge "Checkable on Solana Explorer". Text: "A business can only post a
+job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is
+released milestone by milestone after the work is accepted." Reasons: Budget locked first · Track record from Solana ·
+No fee from N.E.D · Release only accepted work (Vietnam view: Receive earnings in VND). Buttons: client "Post a job" →
+`/jobs/new`, otherwise "Browse open jobs" → `/jobs/find`; outline "See your records" opens the wallet extension at
+`/records` (the Workspace has no `/records` page; signed out it goes to `/sign-in?next=/jobs`).
+
+**H.15 Find jobs.** (The S5c prompt calls this H.13.) Lavender title band: h1 "Find jobs", sub-line "Every job here has
+its whole budget locked on Solana. Filter by field, skill, budget and time to deliver.", category chips All + the 8
+with live counts (the open jobs that pass every other filter; the selected chip is dark). Heading row: "Open jobs" or
+"<Category> jobs" / "Every budget below is already locked on Solana."; "My applications" / "Where each of your
+applications stands."; "My listings" / "Jobs you posted and what happened to each budget."; tabs Open jobs · My
+applications · My listings with counts (My listings hidden in the Vietnam view; signed out, the two My tabs show "Sign
+in to see your applications / listings" with Sign in → `/sign-in?next=<this URL>`). Filter bar (white, 18 px radius):
+search "Search title, summary, skills" (writes `q` to the URL 150 ms after typing), Category, Skill (the category's
+skills), Budget (Under 20 USDC · 20 – 50 USDC · Over 50 USDC; Vietnam view: Under ≈ 520,000 VND · ≈ 520,000 – 1,301,000
+VND · Over ≈ 1,301,000 VND; stored as `min`/`max` in whole USDC), Time to deliver (Up to 1 week / 2 weeks / 1 month),
+Milestones (1 / 2–3 / 4–5), Sort (Newest · Apply by soonest · Budget: high to low); ticks "Apply by within 24 h" and
+"Hide jobs I applied to"; the count "N open jobs" (+ " match" when a filter is on); Clear (keeps the sort); Copy link
+("Link copied"). Results: job cards (H.9, the first dark), 9 at a time, "Show all N jobs" / "Show fewer jobs". No
+match: "No open jobs match these filters." / "Try another category or a wider budget." (or, with no open job at all,
+"No job is open right now. New jobs show up here as soon as a business locks a budget.") and Clear filters. URL:
+`filtersToQuery` order plus `tab=applied|listings`; nothing is stored.
+Rows (avatar, title, meta, amount with its second line, status chip, action): My applications — Selected · accept now
+(success; "Review & accept" purple → the contract), Applied (info; View job), Not selected yet (another applicant is
+selected), Not selected (filled by someone else), Hired (purple; Open contract), Closed (withdrawn). My listings — Open
+(success; "N applicants · select by … · posted …", "locked in the job", Review applicants, purple when there are
+applicants), Selected (info; "Selected @x · accept by …"), Filled (purple; "Hired @x · contract created", "moved into the
+contract", Open contract), Withdrawn (neutral; "budget returned", "returned to you", View record → the listing). Empty:
+"You haven't applied to a job yet." / "Every open job shows its locked budget, so the money is there before you apply."
+and "You haven't posted a job yet." / "Post a job: lock its budget and publish it."
+
+**H.16 Job detail (`/jobs/:job`, WebJobDetail).** Page background `#F7F4FB`; a dark pill "All jobs" back link. Main
+column: category chip and skill chips; title; summary; business avatar and handle "· posted {date}"; brief chip
+"Brief verified · matches its fingerprint on Solana" (warning when not: "The public brief does not match its
+fingerprint on Solana. Don't apply until the business saves it again." or "The public brief is not on Solana yet.");
+Scope (+ reference links); Milestones ("Each milestone is released after the client accepts it"; per milestone the
+brief name, "Due N days after you are selected · N days to review" — minutes or hours for devnet windows — amount,
+Done when points); "Budget locked" card (amount, "Locked in a program vault on Solana when the job was posted. It
+moves into your contract when you accept. It goes back to {business} only if nobody is hired.", View the vault on
+Explorer); "{business} on N.E.D" facts counted from its SharedFund accounts as client (contracts with a released
+milestone, milestones submitted to them, milestones still locked by a request, first contract) and "Counted from
+contracts on Solana. Not a rating." (the board's "Reviewed before the deadline" needs transaction history and is left
+out). Sticky aside: Budget, Apply by "{date} · N days left", Client selects by, "If selected, accept within 48 h (2 min
+on devnet)", Applicants; then one state: the pitch box ("Why you fit this job, and one link to similar work.", live
+"N / 280" byte counter, "Public on Solana. Don't put names or personal details here.", purple Apply → wallet confirm →
+runApplyJob, payout note per view, "One wallet confirmation; the network fee is test SOL on devnet.") · "Applied ·
+{date}" with the pitch · "You were selected" with "Review & accept in wallet" (opens the wallet extension at the
+contract) · "You're hired" with Open contract · Not selected · "This is your job" with Review applicants · signed out
+"Sign in to apply" · "Applications are closed". "How it works": Apply · Get selected · Accept · Submit each milestone ·
+Released, the reached steps filled. Applying first registers this computer's device key (D22).
+
+**H.17 Post a job (`/jobs/new`, WebJobPost).** Outside the Vietnam view only (the Vietnam view goes to `/jobs/find`;
+signed out to sign-in). "Post a job" / "Freelancers see your job with its budget already locked. You pick one applicant;
+that creates the contract." Three numbered cards: 1 About the job (Title with "N / 32" and the public hint; Category
+pills; Skills "pick up to 3"; Summary "shown on the job card" with "N / 160"; Scope; Reference links, one https link per
+line, optional); 2 Work (Milestone N with Name, Amount (USDC), Due (days after you select), Days to review, Done when
+one point per line; Remove; Add a milestone; "1 to 5 milestones · up to 1,000 USDC per job in this demo. Write done-when
+points someone else could check."); 3 Timing (Applications close in 3 / 7 / 14 days; You select someone within the
+apply days, +2, +4; "Apply by {date} · select by {date}. With no applicants you can withdraw the budget at any time.
+Once someone has applied, the budget stays locked until the select-by date, so applicants know it's there."). Aside:
+"How freelancers will see it" (the live job card) and the problem list. Sticky bar: "{amount} leaves your wallet now and
+waits in the job's vault · balance after: {balance}. Your wallet asks twice: to lock the budget, then to save the public
+brief." + purple "Lock {amount} & publish" → wallet confirm → runPostJob ("Saving the public brief · 1 of N"); a failed
+brief shows "Save the brief again" (runPostJobBrief). Published: "Published · {amount} locked" + "Your job is on the
+board. Applications appear under My listings; you can select someone until {date}." + Go to my listing + View on
+Explorer.
+
+**H.18 Applicants (`/jobs/:job/applicants`, WebJobApplicants).** Business only (others: "Only the business that posted
+this job can see its applicants"). Dark pill "My listings". Header: state chip (Open · select by {date} / Selected ·
+waiting to accept / accept time over / Filled / Withdrawn), "Budget locked · {amount}" chip, title, "{N} milestones ·
+applications close(d) {date} · select by {date}", View public listing, Withdraw budget (disabled until
+rules.canWithdraw) with its reason line ("Withdraw opens after {select by} if you hire no one. People applied because
+the budget is locked, so it stays until then." etc.). Banners: "Waiting for {x} to accept · {countdown} left" + "The
+contract is created. When {x} accepts, the {amount} moves into it and work starts. If the time runs out, you can select
+someone else." + Open contract; "{x} didn't accept in time" (re-select); "Hired {x} · {amount} moved into the contract" +
+"The listing is filled. Other applicants now see "Not selected"." Applicants ("Applicants · N", Sort Newest first / Most
+contracts completed): avatar, handle, "applied {date}", tag Selected / Hired / Not selected, pitch, track-record facts
+(N contracts completed, X of Y submitted on time, N refunds, Worked with you before, or New on N.E.D), Select (purple).
+Footer line: "Track records are counted from contracts on Solana, not ratings. Pitches are public. N.E.D does not vet or
+rank applicants." Select sheet: "Select {x}?" / "This creates a contract with your brief and these deadlines, counted
+from now:" with each milestone's submit-by and review-by, then the three bullets (budget moves at accept; accept within
+48 h (2 min on devnet); the wallet confirms the contract, its encrypted brief and the contract key for both) and Cancel
+/ "Create contract & select" → runSelectJob.

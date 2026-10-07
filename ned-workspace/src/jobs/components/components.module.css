@@ -1,0 +1,103 @@
+/* Building blocks of the Jobs hub (appendix H.7–H.10). Variables come from .hub in ../hub.module.css. */
+
+/* HubButton: dark = browse / navigate, purple = an on-chain action, outline = secondary */
+.button {
+  height: 44px; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: var(--hub-r-button); font-family: inherit; font-size: 14px; font-weight: 600;
+  text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: transform 160ms var(--hub-ease), background-color 200ms var(--hub-ease), box-shadow 200ms var(--hub-ease);
+}
+.button:active { transform: scale(0.98); }
+.button:disabled { cursor: not-allowed; opacity: 0.55; }
+.large { height: 52px; padding: 0 22px; font-size: 15px; }
+.small { height: 36px; padding: 0 14px; font-size: 13px; border-radius: 10px; }
+.dark { background: var(--hub-dark); color: #fff !important; }
+.dark:hover { background: #2a2a33; }
+.purple { background: var(--hub-purple); color: #fff !important; }
+.purple:hover { background: var(--hub-purple-hover); }
+.outline { background: #fff; color: var(--hub-ink) !important; box-shadow: inset 0 0 0 1.5px var(--hub-ink); }
+.outline:hover { background: var(--hub-soft); }
+
+/* Chip */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: var(--hub-r-chip);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.info { background: var(--tone-info-bg); color: var(--tone-info-ink); }
+.purpleTone { background: var(--tone-purple-bg); color: var(--tone-purple-ink); }
+.success { background: var(--tone-success-bg); color: var(--tone-success-ink); }
+.neutral { background: var(--tone-neutral-bg); color: var(--tone-neutral-ink); }
+.warning { background: var(--tone-warning-bg); color: var(--tone-warning-ink); }
+.onDark.success { background: rgba(74, 222, 128, 0.16); color: #86efac; }
+
+/* SectionHeading */
+.heading { display: flex; flex-direction: column; gap: 8px; }
+.center { text-align: center; align-items: center; }
+.h2 { margin: 0; font-family: var(--font-display); font-size: var(--hub-h2); font-weight: 700; letter-spacing: -1px; line-height: 1.1; }
+.sub { margin: 0; font-size: var(--hub-body); color: var(--hub-caption); max-width: 620px; }
+
+/* MoneyText */
+.money { display: inline-flex; flex-direction: column; }
+.moneyMain { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
+.moneySub { font-size: 11px; color: var(--hub-caption); }
+
+/* JobCard (H.9) */
+.card {
+  display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: var(--hub-r-card); text-decoration: none;
+  background: #fff; color: var(--hub-ink) !important; box-shadow: var(--hub-shadow-card);
+}
+.cardDark { background: var(--hub-dark); color: #fff !important; box-shadow: var(--hub-shadow-dark); }
+.cardTop { display: flex; align-items: flex-start; gap: 10px; }
+.cardTitle { flex: 1; min-width: 0; font-family: var(--font-display); font-size: var(--hub-h3); font-weight: 700; line-height: 1.25; letter-spacing: -0.3px; }
+.cardMeta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; font-weight: 500; color: var(--hub-caption); }
+.cardDark .cardMeta, .cardDark .moneySub, .cardDark .cardSub { color: var(--hub-dark-soft); }
+.metaItem { display: inline-flex; align-items: center; gap: 5px; }
+.skills { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill { height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: var(--hub-r-chip); font-size: 12px; font-weight: 600; background: var(--hub-soft); color: var(--hub-ink-2); }
+.cardDark .skill { background: rgba(255, 255, 255, 0.1); color: #e7e7ee; }
+.cardMoney { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cardFoot { display: flex; align-items: center; gap: 10px; padding-top: 14px; box-shadow: inset 0 1px 0 var(--hub-line); }
+.cardDark .cardFoot { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.cardWho { flex: 1; min-width: 0; }
+.cardBiz { display: block; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cardSub { display: block; font-size: 11px; color: var(--hub-caption); }
+.cardCta {
+  height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 600;
+  white-space: nowrap; background: transparent; color: var(--hub-ink); box-shadow: inset 0 0 0 1.5px var(--hub-ink);
+}
+.cardDark .cardCta { background: #fff; box-shadow: none; }
+
+/* CategoryTile (H.8) */
+.tile {
+  display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: var(--hub-r-tile); text-decoration: none;
+  color: var(--hub-ink) !important; background: #fff; box-shadow: var(--hub-shadow-card);
+}
+.tileOn { box-shadow: inset 0 0 0 2px var(--hub-purple), var(--hub-shadow-card); }
+.tileIcon { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center; }
+.tileLabel { display: block; font-size: 15px; font-weight: 600; }
+.tileCount { display: block; margin-top: 3px; font-size: 12px; color: var(--hub-caption); }
+.tileEmpty { color: var(--hub-muted); }
+
+/* StepsBand (H.7) */
+.band { position: relative; max-width: 1040px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; border-radius: var(--hub-r-band); background: var(--hub-peach); overflow: hidden; }
+.bandSwirl { position: absolute; top: 0; height: 100%; width: 80px; }
+.bandSwirlLeft { left: -6px; }
+.bandSwirlRight { right: -6px; transform: scaleX(-1); }
+.steps { position: relative; margin: 0 auto; padding: 0 40px; max-width: 840px; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.step { flex: 1 1 180px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.stepIcon { width: 52px; height: 52px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--hub-ink); display: grid; place-items: center; }
+.stepTitle { font-size: 15px; font-weight: 600; }
+.stepSub { margin-top: -6px; font-size: 12px; color: var(--hub-peach-ink); }
+
+/* EmptyState */
+.empty { padding: 40px 24px; border-radius: var(--hub-r-card); background: var(--hub-soft); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.emptyIcon { width: 48px; height: 48px; border-radius: 14px; background: #fff; display: grid; place-items: center; color: var(--hub-purple-ink); }
+.emptyTitle { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.emptyBody { margin: 0; max-width: 420px; font-size: 14px; color: var(--hub-caption); }
+
+/* Narrow screens: the steps stack, so the side swirls would cover the text */
+@media (max-width: 640px) {
+  .band { padding: 24px 20px; }
+  .bandSwirl { display: none; }
+  .steps { padding: 0; }
+}

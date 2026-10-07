@@ -74,3 +74,29 @@
 .rules { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
 
 button.primary { border: none; font-family: inherit; cursor: pointer; }
+
+/* S7: delivery line, both-party actions, D27 banners, split sheet */
+.deliveryLine { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border-radius: var(--r-12); background: var(--row); font-size: 13px; color: var(--ink-2); }
+.deliveryLink { font-weight: 600; color: var(--link); text-decoration: none; white-space: nowrap; }
+.deliveryLink:hover { color: var(--link-hover); }
+.msActions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.banner { margin-top: 12px; padding: 14px; border-radius: var(--r-14); background: var(--warning-bg); color: var(--ink); display: flex; flex-direction: column; gap: 8px; }
+.bannerInfo { background: var(--info-bg); }
+.bannerOk { background: var(--success-bg); }
+.bannerTitle { font-size: 14px; font-weight: 700; }
+.bannerText { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.unmet { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.reason { margin: 0; padding: 10px 12px; border-radius: var(--r-12); background: var(--card); font-size: 13px; line-height: 1.5; color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.bannerActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.danger { background: var(--card); color: var(--error-ink); }
+.split { padding: 16px; border-radius: var(--r-16); background: var(--tint); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.splitText { flex: 1 1 280px; font-size: 14px; color: var(--ink-2); }
+.splitText strong { color: var(--ink); }
+.error { margin: 0; padding: 10px 12px; border-radius: var(--r-12); background: var(--error-bg); color: var(--error-ink); font-size: 13px; font-weight: 600; }
+.backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(17, 17, 22, 0.42); display: grid; place-items: center; padding: 16px; }
+.sheet { width: 100%; max-width: 460px; box-sizing: border-box; padding: 22px; border-radius: var(--r-20); background: var(--card); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 12px; }
+.sheetTitle { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.sheetRow { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: var(--r-12); background: var(--row); font-size: 14px; }
+.amountInput { height: 44px; padding: 0 14px; border: none; border-radius: var(--r-12); background: var(--field); font-family: var(--font-mono); font-size: 16px; }
+.amountInput:focus { outline: none; box-shadow: var(--focus-halo); }
+.sheetButtons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }

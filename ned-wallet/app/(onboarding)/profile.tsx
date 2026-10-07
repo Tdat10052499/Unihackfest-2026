@@ -33,7 +33,6 @@ import {
   buildOnboardingTx,
   describeTxError,
   FEE_PER_TX,
-  formatSol,
   getSetupCost,
   syncProfileToUserStore,
   type SetupCost,
@@ -45,6 +44,9 @@ import { colors, elevation, fonts, palette, radius, space, status, type } from '
 const DEBOUNCE_MS = 400;
 
 type UsernameState = 'empty' | 'invalid' | 'checking' | 'available' | 'taken' | 'error';
+/** C3: hidden in the demo onboarding (phone linking is not in the demo script) */
+const SHOW_PHONE_FIELD = false;
+
 type PhoneState = 'empty' | 'invalid' | 'checking' | 'ok' | 'taken' | 'error';
 
 /** Chữ thường, bỏ khoảng trắng và ký tự không hợp lệ, tối đa 20 */
@@ -197,7 +199,6 @@ export default function ProfileScreen() {
     error: { text: 'Could not check this number. Check your connection.', color: colors.warningText },
   }[phoneState];
 
-  const setupCost = cost ? cost.profile + (phoneOn ? cost.phone : 0) : null;
 
   return (
     <OnbScreen glow={false}>
@@ -254,6 +255,9 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
+          {/* C3 (compliance fix list): the optional phone field is hidden in the demo; its on-chain hash could be reversed */}
+          {SHOW_PHONE_FIELD ? (
+            <>
           <Text style={[onbText.label, styles.label]} nativeID="onb-phone-label">
             Phone number <Text style={styles.optional}>(optional)</Text>
           </Text>
@@ -277,10 +281,12 @@ export default function ProfileScreen() {
                 {phoneHint.text}
               </Text>
           </>
+            </>
+          ) : null}
 
           <NoticeCard tone="info" style={styles.notice}>
             <Text style={onbText.small}>
-              Your @username and wallet address are public on Solana. Your phone number is never stored as plain text.
+              Your @username and wallet address are public on Solana.
             </Text>
           </NoticeCard>
 
@@ -299,9 +305,8 @@ export default function ProfileScreen() {
         <View style={styles.footer}>
           <PrimaryButton title="Create profile" onPress={create} disabled={!canCreate} loading={submitting} />
           <Text style={[onbText.caption, styles.cost]}>
-            {setupCost === null
-              ? 'Calculating one-time setup cost…'
-              : `One-time setup ≈ ${formatSol(setupCost)} SOL (devnet) + network fee`}
+            {/* A4: no SOL amount (this step comes before the region choice, which defaults to the Vietnam view) */}
+            One-time setup on devnet, covered by test SOL. It has no value.
           </Text>
         </View>
       </KeyboardAvoidingView>

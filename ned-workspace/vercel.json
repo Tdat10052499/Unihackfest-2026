@@ -24,7 +24,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://dynamic-static-assets.com https://*.dynamic-static-assets.com; connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://api.devnet.solana.com wss://api.devnet.solana.com https://devnet.helius-rpc.com wss://devnet.helius-rpc.com https://*.ably.net wss://*.ably.net https://*.ably-realtime.com wss://*.ably-realtime.com https://*.ably.io wss://*.ably.io; worker-src 'self' blob:; frame-src 'self' https://*.dynamicauth.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://dynamic-static-assets.com https://*.dynamic-static-assets.com; connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://api.devnet.solana.com wss://api.devnet.solana.com https://devnet.helius-rpc.com wss://devnet.helius-rpc.com https://*.ably.net wss://*.ably.net https://*.ably-realtime.com wss://*.ably-realtime.com https://*.ably.io wss://*.ably.io; worker-src 'self' blob:; frame-src 'self' https://*.dynamicauth.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         },
         {
           "key": "X-Frame-Options",
@@ -48,8 +48,8 @@
       "source": "/wallet/(.*)",
       "headers": [
         {
-          "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://api.devnet.solana.com wss://api.devnet.solana.com https://devnet.helius-rpc.com wss://devnet.helius-rpc.com https://mainnet.helius-rpc.com https://*.ably.net wss://*.ably.net https://*.ably-realtime.com wss://*.ably-realtime.com https://*.ably.io wss://*.ably.io https://api.jup.ag https://api.geckoterminal.com; worker-src 'self' blob:; frame-src 'self' https://*.dynamicauth.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://api.devnet.solana.com wss://api.devnet.solana.com https://devnet.helius-rpc.com wss://devnet.helius-rpc.com https://*.ably.net wss://*.ably.net https://*.ably-realtime.com wss://*.ably-realtime.com https://*.ably.io wss://*.ably.io; worker-src 'self' blob:; frame-src 'self' https://*.dynamicauth.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
         },
         {
           "key": "X-Frame-Options",

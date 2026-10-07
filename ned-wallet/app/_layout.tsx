@@ -2,7 +2,7 @@ import '../polyfill';
 import '../services/coreInit';
 import '../services/i18n';
 import '../services/webAlert';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -12,6 +12,7 @@ import { resolveOnboarding } from '../services/onboarding';
 import { ensureDeviceRegistered } from '../services/milestone/keySync';
 import { EMBEDDED, isAppPath, postToParent, ROOT_PATHS } from '../services/embedded';
 import { REGION_STORAGE_KEY, useRegionStore } from '../stores/useRegionStore';
+import { blockedForRegion } from '../services/regionGuard';
 import { takeInvite } from '../services/milestone/invite';
 import { importKeyFromFragment } from '../services/milestone/keys';
 import { contractKeyStorage } from '../services/milestone/keyStore';
@@ -26,7 +27,8 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
 // (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
 // 'c': the invite link route decides itself (it keeps the #k= fragment for after sign-in)
-const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c']);
+// terms, privacy, disclosures: readable before sign-in and before consent (P3; the Workspace footers link here)
+const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c', 'terms', 'privacy', 'disclosures']);
 
 /** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
 function AuthGate() {
@@ -84,6 +86,20 @@ function EmbeddedBridge() {
 }
 
 /** Key sync (D22): registers this device's key for the signed-in wallet, once per session, silently */
+/** V1: in the Vietnam view (or before a region is chosen), /send, /receive, /history and /scan-qr go to Home */
+function RegionGuard() {
+  const pathname = usePathname();
+  const { isAuthenticated, walletAddress } = useAuth();
+  const region = useRegionStore((s) => (walletAddress ? s.regions[walletAddress] ?? null : null));
+  const [hydrated, setHydrated] = useState(() => useRegionStore.persist.hasHydrated());
+  useEffect(() => useRegionStore.persist.onFinishHydration(() => setHydrated(true)), []);
+  useEffect(() => {
+    if (!isAuthenticated || !hydrated) return;
+    if (blockedForRegion(pathname, region)) router.replace('/home');
+  }, [pathname, region, isAuthenticated, hydrated]);
+  return null;
+}
+
 function DeviceKeyGate() {
   const { isReady, isAuthenticated, walletAddress, signTransaction } = useAuth();
   useEffect(() => {
@@ -169,6 +185,7 @@ export default function RootLayout() {
                   <View style={styles.root}>
                     <AuthGate />
                     <OnboardingGate />
+                    <RegionGuard />
                     <PendingInviteGate />
                     <DeviceKeyGate />
                     {EMBEDDED ? <EmbeddedBridge /> : null}
@@ -182,6 +199,9 @@ export default function RootLayout() {
                       <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
                       <Stack.Screen name="disclosures" options={{ headerShown: false }} />
                       <Stack.Screen name="settings" options={{ headerShown: false }} />
+                      <Stack.Screen name="terms" options={{ headerShown: false }} />
+                      <Stack.Screen name="privacy" options={{ headerShown: false }} />
+                      <Stack.Screen name="help" options={{ headerShown: false }} />
                       <Stack.Screen name="send" options={{ headerShown: false }} />
                       <Stack.Screen name="receive" options={{ headerShown: false }} />
                       <Stack.Screen name="notification-detail" options={{ headerShown: false }} />

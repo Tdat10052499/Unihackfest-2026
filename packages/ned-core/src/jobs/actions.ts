@@ -43,10 +43,11 @@ export async function readJob(address: string | undefined, env: ActionEnv): Prom
   return job;
 }
 
-async function sendBriefParts(env: ActionEnv, txs: Transaction[]): Promise<string[]> {
+async function sendBriefParts(env: ActionEnv, txs: Transaction[], onPart?: (done: number, total: number) => void): Promise<string[]> {
   const { walletAddress, signTransaction } = env.signer;
   const out: string[] = [];
   for (const tx of txs) {
+    onPart?.(out.length, txs.length);
     const opts = { ...(env.onStatus ? { onStatus: env.onStatus } : {}), ...(env.connection ? { connection: env.connection } : {}) };
     out.push((await sendAndConfirm(tx, { walletAddress, signTransaction }, opts)).signature);
   }
@@ -60,7 +61,9 @@ async function sendBriefParts(env: ActionEnv, txs: Transaction[]): Promise<strin
 export async function runPostJob(
   env: ActionEnv,
   draft: JobDraft,
-  region: Region
+  region: Region,
+  /** Called before each brief part is sent (0-based), for a "Saving the brief 1 of 2" line */
+  onBriefPart?: (done: number, total: number) => void
 ): Promise<{ signature: string; job: string; briefSignatures: string[] }> {
   if (region === 'vn') throw new UserFacingError(POST_JOB_VN_REFUSED);
   const connection = env.connection ?? getConnection();
@@ -79,7 +82,7 @@ export async function runPostJob(
   });
   const job = result.job.toBase58();
   try {
-    const briefSignatures = await sendBriefParts(env, buildJobBriefTxs({ job: result.job, business: new PublicKey(env.signer.walletAddress!), bytes }));
+    const briefSignatures = await sendBriefParts(env, buildJobBriefTxs({ job: result.job, business: new PublicKey(env.signer.walletAddress!), bytes }), onBriefPart);
     return { signature: result.signature, job, briefSignatures };
   } catch {
     throw new JobBriefNotSavedError(job);
@@ -87,14 +90,19 @@ export async function runPostJob(
 }
 
 /** Posts the brief again for an open listing (after JobBriefNotSavedError); it must hash to the listing's brief_hash */
-export async function runPostJobBrief(env: ActionEnv, address: string | undefined, brief: BriefDraft): Promise<{ briefSignatures: string[] }> {
+export async function runPostJobBrief(
+  env: ActionEnv,
+  address: string | undefined,
+  brief: BriefDraft,
+  onBriefPart?: (done: number, total: number) => void
+): Promise<{ briefSignatures: string[] }> {
   const { walletAddress } = env.signer;
   if (!walletAddress) throw new UserFacingError('Sign in first.');
   const job = await readJob(address, env);
   if (!job.business.equals(new PublicKey(walletAddress)) || job.state !== 'Open') throw new UserFacingError(NOT_NOW);
   const bytes = jobBriefBytes(job.title, brief);
   if (!equalBytes(hashBytes(bytes), job.briefHash)) throw new UserFacingError('This brief is not the one this job was published with.');
-  return { briefSignatures: await sendBriefParts(env, buildJobBriefTxs({ job: job.address, business: job.business, bytes })) };
+  return { briefSignatures: await sendBriefParts(env, buildJobBriefTxs({ job: job.address, business: job.business, bytes }), onBriefPart) };
 }
 
 /** apply_job with a public pitch (≤ 280 bytes); the freelancer pays the application rent */

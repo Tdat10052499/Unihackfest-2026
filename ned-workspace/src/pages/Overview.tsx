@@ -21,11 +21,18 @@ import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import styles from './Overview.module.css';
 
 // Steps with a Workspace page open it; the others open the contract in the wallet extension (the phone app, W6)
+/** Next actions that open the contract page here (it runs them, or links to their page) instead of the wallet */
+const ONSITE = new Set<ActionKind>(['accept', 'releaseNow', 'refundNow', 'lockFromJob', 'sendRevision', 'handover', 'acceptSplit']);
+
 const LOOK: Partial<Record<ActionKind, { icon: IconName; tone: string; cta: string; path?: 'submit' | 'review' }>> = {
   submit: { icon: 'submit', tone: 'purple', cta: 'Open delivery form', path: 'submit' },
   approve: { icon: 'review', tone: 'info', cta: 'Review delivery', path: 'review' },
-  releaseNow: { icon: 'release', tone: 'success', cta: 'Release in wallet' },
-  refundNow: { icon: 'release', tone: 'warning', cta: 'Refund in wallet' },
+  releaseNow: { icon: 'release', tone: 'success', cta: 'Release now' },
+  refundNow: { icon: 'release', tone: 'warning', cta: 'Refund now' },
+  lockFromJob: { icon: 'lock', tone: 'info', cta: 'Move locked budget' },
+  sendRevision: { icon: 'submit', tone: 'warning', cta: 'Send revised version' },
+  handover: { icon: 'submit', tone: 'success', cta: 'Hand over final files' },
+  acceptSplit: { icon: 'check', tone: 'purple', cta: 'Review the split' },
   accept: { icon: 'check', tone: 'info', cta: 'Read and accept' },
   lock: { icon: 'lock', tone: 'info', cta: 'Lock in wallet' },
   close: { icon: 'close', tone: 'neutral', cta: 'Close in wallet' },
@@ -70,7 +77,7 @@ function stats(raw: FundAccount[], views: FundView[], wallet: string, vn: boolea
   const next = toReview.map((ms) => ms.reviewBy).sort((a, b) => a - b)[0];
   return [
     { label: 'Locked in your contracts', value: formatUsdc(lockedByMe), sub: 'Held by the program, not by N.E.D' },
-    { label: 'Waiting for your review', value: String(toReview.length), sub: next ? `Auto-release ${formatDeadline(next)}` : 'Nothing to review' },
+    { label: 'Waiting for your review', value: String(toReview.length), sub: next ? `Release opens ${formatDeadline(next)} if not reviewed` : 'Nothing to review' },
     activeStat,
   ];
 }
@@ -157,7 +164,7 @@ export function Overview() {
                     </div>
                     <div className={styles.needFoot}>
                       <StatusChip tone={(ms?.tone ?? f.tone) as ChipTone}>{when.charAt(0).toUpperCase() + when.slice(1)}</StatusChip>
-                      {look.path || kind === 'accept' ? (
+                      {look.path || ONSITE.has(kind) ? (
                         <Link to={href} className={styles.needCta}>
                           {look.cta}
                         </Link>
