@@ -7,7 +7,8 @@ const all = (s: { title: string; body: string[] }[]) => s.map((x) => `${x.title}
 test('P3 Terms: refund line, funded-jobs line, no "marketplace" claim', () => {
   const t = all(TERMS);
   assert.match(t, /or refund it to the client after a missed deadline/);
-  assert.match(t, /N\.E\.D shows job listings that businesses post with a budget locked in the program\. N\.E\.D does not choose, vet or employ anyone and is not a party to the work\./);
+  // v1.4 (D29), CL pre-pitch-check 9.3 item 1
+  assert.match(t, /N\.E\.D shows job listings that businesses post\. A listing's budget is locked in the program either when it is posted or when the business selects a freelancer, and always before the freelancer accepts\. N\.E\.D does not choose, vet or employ anyone and is not a party to the work\./);
   assert.doesNotMatch(t, /marketplace/i);
 });
 
@@ -46,9 +47,10 @@ test('A4: the fee disclosure shows no SOL amount', async () => {
   assert.doesNotMatch(fees?.body ?? '', /\d/);
 });
 
-test('H4: the Disclosures list is shared (thirteen lines with the upgrade line, F11), disputes line by flag', async () => {
+test('H4: the Disclosures list is shared (fourteen lines: the upgrade line, F11, and v1.4 locks when hired), disputes line by flag', async () => {
   const { disclosureItems } = await import('../legalCopy.ts');
-  assert.equal(disclosureItems(false).length, 13);
+  assert.equal(disclosureItems(false).length, 14);
+  assert.equal(disclosureItems(false).find((d) => d.id === 'unfunded')?.title, 'Some listings lock only when they hire');
   assert.equal(disclosureItems(false).find((d) => d.id === 'disputes')?.title, 'No disputes in this demo');
   assert.equal(disclosureItems(true).find((d) => d.id === 'disputes')?.title, 'No neutral arbiter');
 });

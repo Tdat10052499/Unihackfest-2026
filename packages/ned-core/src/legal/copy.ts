@@ -69,7 +69,7 @@ export const TERMS: LegalSection[] = [
   {
     title: 'What N.E.D is not',
     body: [
-      'It is not a bank or an exchange, and no instruction in the program lets anyone at N.E.D move locked funds. N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
+      'It is not a bank or an exchange, and no instruction in the program lets anyone at N.E.D move locked funds. N.E.D shows job listings that businesses post. A listing\'s budget is locked in the program either when it is posted or when the business selects a freelancer, and always before the freelancer accepts. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
     ],
   },
   {
@@ -191,6 +191,8 @@ export function disclosureItems(disputesOn: boolean): DisclosureItem[] {
     { id: 'link', title: 'Anyone with the contract link can read it', body: 'The contract link holds the key to the brief and the delivery. Anyone who has the link can read them, but cannot move money. Share it only with the other party.' },
     // B1: the brief and delivery are stored encrypted on Solana
     { id: 'public', title: 'Public on-chain', body: 'Contract titles and the fingerprints of the brief and the delivery are public. The brief and the delivery are stored encrypted on Solana. N.E.D never stores your bank details.' },
+    // v1.4 (D29), CL pre-pitch-check 9.3 item 3
+    { id: 'unfunded', title: 'Some listings lock only when they hire', body: 'Listings marked Locks when hired have no locked budget until the business selects someone. Your application and pitch are public even if the listing is never funded.' },
     { id: 'advice', title: 'Not advice', body: 'This is not legal, tax or financial advice.' },
   ];
 }
@@ -204,11 +206,13 @@ export const TEAM_EMAIL = '[team email]';
 /** Job posting rules (board WebJobsLegal, H4); new text, reviewed with the compliance lead before the freeze */
 export const JOB_POSTING_RULES: LegalSection[] = [
   {
-    title: 'Lock the whole budget to post',
+    // v1.4 (D29), CL pre-pitch-check 9.3 item 2
+    title: 'Lock the budget now or when you hire',
     body: [
-      'A job is published only when its whole budget is locked in the program. The budget moves into the contract when the selected freelancer accepts.',
+      'Choose Lock now to lock the whole budget when you post, or Lock when I hire to lock it when you select a freelancer. Either way the budget is in the program before the freelancer can accept, and it moves into the contract when they accept.',
+      'Listings marked Locks when hired have no money locked until you select someone. N.E.D does not check that you can lock the budget; if you cannot, you cannot select.',
       'Posting is open to businesses outside Vietnam. The Vietnam view cannot post jobs or lock funds.',
-      'With no applicants you can withdraw the budget at any time. Once someone has applied, it stays locked until the select-by date, and until the accept window of a selected applicant has passed.',
+      'With no applicants you can withdraw a listing at any time; nothing is returned for a listing that locks when you hire, because nothing was locked. Once someone has applied, a locked budget stays locked until the select-by date, and until the accept window of a selected applicant has passed.',
     ],
   },
   { title: 'Describe the work so others can check it', body: ['Write a short title, a summary for the job card and done-when points someone else could check. Reviews are made against those points.'] },

@@ -10,7 +10,7 @@ test('one source: the four documents of /jobs/legal, in order, built from the sh
   assert.deepEqual(docs.map((d) => d.id), [...LEGAL_DOC_IDS]);
   assert.equal(docs[0].sections, TERMS);
   assert.equal(docs[1].sections, PRIVACY);
-  assert.equal(docs[2].sections.length, 13);
+  assert.equal(docs[2].sections.length, 14, 'v1.4 adds "Some listings lock only when they hire"');
   assert.equal(docs[3].sections, JOB_POSTING_RULES);
   assert.equal(typeof core.legalDocs, 'function', 'exported from @ned/core');
 });
@@ -43,4 +43,18 @@ test('F11: the upgrade authority is disclosed, and no text says "no one at N.E.D
 test('R3: the Privacy notice names the preview sites under "Where data goes"', () => {
   const where = PRIVACY.find((s) => s.title === 'Where data goes')!;
   assert.ok(where.body.includes('If you press Load preview, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.'));
+});
+
+test('v1.4 lock at hire (CL pre-pitch-check 9.3 items 1–3)', () => {
+  assert.match(text(TERMS), /either when it is posted or when the business selects a freelancer, and always before the freelancer accepts/);
+  assert.doesNotMatch(text(TERMS), /post with a budget locked in the program/);
+  const r = text(JOB_POSTING_RULES);
+  assert.equal(JOB_POSTING_RULES[0].title, 'Lock the budget now or when you hire');
+  assert.match(r, /Listings marked Locks when hired have no money locked until you select someone/);
+  assert.match(r, /N\.E\.D does not check that you can lock the budget; if you cannot, you cannot select/);
+  assert.match(r, /nothing is returned for a listing that locks when you hire/);
+  const d = disclosuresDoc(true);
+  const i = d.findIndex((x) => x.title === 'Some listings lock only when they hire');
+  assert.equal(d[i - 1].title, 'Public on-chain', 'right after the public line');
+  assert.equal(d[i].body[0], 'Listings marked Locks when hired have no locked budget until the business selects someone. Your application and pitch are public even if the listing is never funded.');
 });
