@@ -1,12 +1,17 @@
 // Search, filter and sort for the job board (funded-jobs-plan.md section 6.1). Pure functions over decoded listings:
-// the RPC only filters by state and category; everything else runs in the browser. The URL holds the filters
-// (/jobs/find?q=logo&cat=design&skills=figma,logo-brand&min=10&max=100&sort=new), so nothing is saved anywhere.
+// the RPC only filters by state and category; everything else runs in the browser. The URL holds the filters and the
+// view (/jobs/find?q=logo&cat=design&budget=20to50&skills=figma,logo-brand&sort=soon&view=list&tab=applied), so a
+// reload or a shared link shows the same page and nothing is saved anywhere.
 import type { JobListingAccount } from './decode.ts';
 import { categoryById, JOB_CATEGORIES, skillById } from './taxonomy.ts';
 
 export type JobSort = 'new' | 'soon' | 'budget';
 export type JobDuration = '1w' | '2w' | '1m';
 export type JobMilestoneRange = '1' | '2-3' | '4-5';
+/** Budget presets of Find jobs v4 (prompts-hub-v4.md V6.3), on the total in whole USDC */
+export type JobBudget = 'lt20' | '20to50' | 'gt50';
+export type JobView = 'grid' | 'list';
+export type JobTab = 'open' | 'applied' | 'listings';
 
 export interface JobFilters {
   /** Text in title or summary (case- and accent-insensitive) */
@@ -15,7 +20,9 @@ export interface JobFilters {
   cat?: string;
   /** Skill ids; a job matches if it has ANY of them */
   skills?: string[];
-  /** Budget range on the total, in whole USDC */
+  /** Budget preset (Under 20, 20–50, Over 50 USDC) */
+  budget?: JobBudget;
+  /** Budget range on the total, in whole USDC (older links; the page writes `budget`) */
   min?: number;
   max?: number;
   /** Longest milestone work window */
@@ -26,6 +33,10 @@ export interface JobFilters {
   /** Hide jobs I applied to (needs `applied` in the context) */
   hide?: boolean;
   sort?: JobSort;
+  /** Page view only (no effect on the results): grid (default) or list */
+  view?: JobView;
+  /** Page view only: Open jobs (default), My applications or My listings */
+  tab?: JobTab;
 }
 
 export interface FilterContext {
@@ -39,6 +50,21 @@ export const DURATION_SECS: Record<JobDuration, number> = { '1w': 7 * DAY, '2w':
 const SORTS: readonly JobSort[] = ['new', 'soon', 'budget'];
 const DURATIONS = Object.keys(DURATION_SECS) as JobDuration[];
 const RANGES: readonly JobMilestoneRange[] = ['1', '2-3', '4-5'];
+const VIEWS: readonly JobView[] = ['grid', 'list'];
+const TABS: readonly JobTab[] = ['open', 'applied', 'listings'];
+
+/** Budget presets in whole USDC: Under 20 (< 20), 20–50 (both ends in), Over 50 (> 50), as the board counts them */
+export const JOB_BUDGETS: readonly { id: JobBudget; min?: number; max?: number }[] = [
+  { id: 'lt20', max: 20 },
+  { id: '20to50', min: 20, max: 50 },
+  { id: 'gt50', min: 50 },
+];
+const USDC = 1_000_000n;
+export function inBudget(total: bigint, b: JobBudget): boolean {
+  if (b === 'lt20') return total < 20n * USDC;
+  if (b === '20to50') return total >= 20n * USDC && total <= 50n * USDC;
+  return total > 50n * USDC;
+}
 
 /** Lower case, no accents (Vietnamese đ included), single spaces */
 export function foldText(s: string): string {
@@ -66,6 +92,7 @@ export function filterJobs<T extends JobListingAccount>(jobs: readonly T[], f: J
     }
     if (category && job.category !== category.index) return false;
     if (skillBits.length && !skillBits.some((bit) => (job.skills & bit) !== 0n)) return false;
+    if (f.budget && !inBudget(job.total, f.budget)) return false;
     if (f.min !== undefined && job.total < BigInt(Math.round(f.min * 1e6))) return false;
     if (f.max !== undefined && job.total > BigInt(Math.round(f.max * 1e6))) return false;
     if (f.dur && longestWork(job) > DURATION_SECS[f.dur]) return false;
@@ -101,6 +128,8 @@ export function filtersFromQuery(query: string | URLSearchParams): JobFilters {
   if (q) f.q = q;
   const cat = p.get('cat');
   if (cat && categoryById(cat)) f.cat = cat;
+  const budget = p.get('budget') as JobBudget | null;
+  if (budget && JOB_BUDGETS.some((b) => b.id === budget)) f.budget = budget;
   const skills = (p.get('skills') ?? '').split(',').map((s) => s.trim()).filter((id) => id && skillById(id));
   if (skills.length) f.skills = [...new Set(skills)];
   const min = num(p.get('min'));
@@ -115,14 +144,22 @@ export function filtersFromQuery(query: string | URLSearchParams): JobFilters {
   if (p.get('hide') === 'applied') f.hide = true;
   const sort = p.get('sort') as JobSort | null;
   if (sort && SORTS.includes(sort) && sort !== 'new') f.sort = sort;
+  const view = p.get('view') as JobView | null;
+  if (view && VIEWS.includes(view) && view !== 'grid') f.view = view;
+  const tab = p.get('tab') as JobTab | null;
+  if (tab && TABS.includes(tab) && tab !== 'open') f.tab = tab;
   return f;
 }
 
-/** Filters → URL query without "?" (fixed key order; defaults left out, so an empty filter gives "") */
+/**
+ * Filters → URL query without "?". Fixed key order q, cat, budget, skills, min, max, dur, ms, soon, hide, sort, view, tab;
+ * defaults (sort new, view grid, tab open) are left out, so an empty filter gives "".
+ */
 export function filtersToQuery(f: JobFilters): string {
   const p = new URLSearchParams();
   if (f.q?.trim()) p.set('q', f.q.trim());
   if (f.cat && categoryById(f.cat)) p.set('cat', f.cat);
+  if (f.budget) p.set('budget', f.budget);
   const skills = (f.skills ?? []).filter((id) => skillById(id));
   if (skills.length) p.set('skills', [...new Set(skills)].join(','));
   if (f.min !== undefined) p.set('min', String(f.min));
@@ -132,6 +169,8 @@ export function filtersToQuery(f: JobFilters): string {
   if (f.soon) p.set('soon', '24h');
   if (f.hide) p.set('hide', 'applied');
   if (f.sort && f.sort !== 'new') p.set('sort', f.sort);
+  if (f.view && f.view !== 'grid') p.set('view', f.view);
+  if (f.tab && f.tab !== 'open') p.set('tab', f.tab);
   return p.toString().replace(/%2C/g, ',');
 }
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PublicKey } from '@solana/web3.js';
-import { filterJobs, filtersFromQuery, filtersToQuery, foldText, sortJobs, type JobFilters } from '../search.ts';
+import { filterJobs, filtersFromQuery, filtersToQuery, foldText, inBudget, sortJobs, type JobFilters } from '../search.ts';
 import { skillsMask } from '../taxonomy.ts';
 import { job, T0, USDC } from './fixture.ts';
 
@@ -59,4 +59,23 @@ test('URL round trip, defaults left out, invalid values dropped', () => {
   assert.equal(filtersToQuery({ sort: 'new' }), '');
   assert.deepEqual(filtersFromQuery('cat=nope&skills=figma,nope,figma&min=-1&max=abc&dur=1y&ms=9&sort=old&soon=1&hide=1'), { skills: ['figma'] });
   assert.deepEqual(filtersFromQuery(new URLSearchParams('q=%20%20')), {});
+});
+
+test('v4: budget presets, view and tab in the URL (key order q, cat, budget, skills, …, sort, view, tab)', () => {
+  const f: JobFilters = { q: 'logo', cat: 'design', budget: '20to50', skills: ['figma'], dur: '1w', ms: '1', soon: true, hide: true, sort: 'soon', view: 'list', tab: 'applied' };
+  const query = filtersToQuery(f);
+  assert.equal(query, 'q=logo&cat=design&budget=20to50&skills=figma&dur=1w&ms=1&soon=24h&hide=applied&sort=soon&view=list&tab=applied');
+  assert.deepEqual(filtersFromQuery(query), f);
+  assert.equal(filtersToQuery({ view: 'grid', tab: 'open' }), '');
+  assert.deepEqual(filtersFromQuery('budget=huge&view=table&tab=nope'), {});
+  assert.deepEqual(filtersFromQuery('min=10&max=100'), { min: 10, max: 100 }, 'older links with min / max still work');
+  const U = 1_000_000n;
+  assert.deepEqual([19n, 20n, 50n, 51n].map((n) => [inBudget(n * U, 'lt20'), inBudget(n * U, '20to50'), inBudget(n * U, 'gt50')]), [
+    [true, false, false],
+    [false, true, false],
+    [false, true, false],
+    [false, false, true],
+  ]);
+  const ctx = { now: 0 };
+  assert.equal(filterJobs(ALL, { view: 'list', tab: 'applied' }, ctx).length, ALL.length, 'view and tab never filter');
 });
