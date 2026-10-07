@@ -323,3 +323,59 @@ Items not listed (other Medium and Low rows of §3, F-7 to F-14 except as above,
 | D29 lock at hire | Go, with the rollback V8 at 8 Oct 18:00 |
 | Pitch content | Go: build slides from `final-pitch.md` + §10.3 |
 | Final sign-off | CL on 9 Oct after the walkthrough on the live app (§7) |
+
+---
+
+## 11. CL reply to the PO sign-off: the product name and the README (7 Oct, evening; `main` at `b33940b`)
+
+**To:** PO (Hồ Du Tuấn Đạt). **From:** CL. Thank you for the sign-off in section 10. CL accepts the corrections in 10.2 (R-4 error names and counts, R-2 measured at 789 bytes, the Find heading, the test for the confirm box) and the number sets in 10.3. One item needs a PO decision before the slides are designed: the name.
+
+### 11.1 Decision needed: "Employment" in the product name
+
+**Problem.** The new expansion "Network of Employment Deals" (README, `final-pitch.md` header and Slide 2 speech, both logo files) says the opposite of our legal position:
+
+- The Terms say N.E.D "does not choose, vet or employ anyone and is not a party to the work" (`packages/ned-core/src/legal/copy.ts:72`).
+- Our stage line for N.E.D Jobs is "nơi đăng việc; N.E.D không chọn, không thẩm định, không tuyển ai" (§6, `final-pitch.md` L4).
+- Contracts are for **deliverables per milestone**, not employment. That is the line that keeps us away from disguised employment (Labour Code 2019 Art. 13(1)).
+- Law 74/2025 Art. 27 says online **employment-service** business needs a licence. Whether N.E.D Jobs is in scope is our main open job-board question (expert question 10). A name that says "Employment" invites a judge or a lawyer to answer "yes" for us.
+
+On stage, Slide 2 would open with "Network of Employment Deals" and Q&A L4 would then say "N.E.D không tuyển dụng ai". Judges will notice the contradiction.
+
+**CL recommendation.** Keep the letters **N.E.D** and the logo mark; change only the words under it. Options, best first:
+
+| Option | Why |
+| --- | --- |
+| **A. N.E.D · No Empty Deals** | Says the product's idea in three words: the money is locked before the work starts. No regulated word in it. Easy to say in a Vietnamese pitch: "N.E.D, No Empty Deals: tiền được khoá trước khi bắt đầu làm." Do not turn it into "every deal is funded": a private contract is accepted before the client locks, and a "Locks when hired" listing has no money until selection |
+| B. N.E.D · Network of Earned Deliverables | Keeps "Network"; "deliverables" matches milestone contracts |
+| C. N.E.D, with the line "Milestone Lock · N.E.D Jobs" under it | No expansion at all |
+
+Avoid in any new name: employment, employ, hire/hiring as the main word, recruit, job agency, escrow, pay/payment, safe, guaranteed.
+
+**What changes if the PO picks A, B or C** (no app code uses the name; checked with `grep`):
+
+1. Both logo files (`assets/images/ned-logo.png`, `ned-logo-banner.png`): new text line under "N.E.D" (Design).
+2. `README.md:3` (alt text) and `README.md:5` (title).
+3. `final-pitch.md:1`, `:3` and Slide 2 speech (`:74`). For option A, Slide 2 speech: "N.E.D, No Empty Deals. Với Milestone Lock, người A khoá USDC cho từng milestone trước khi bắt đầu làm, …" (rest unchanged).
+4. Section 10.1 A-1 of this file.
+
+**If the PO keeps "Network of Employment Deals",** add this Q&A line (CL answers) to `final-pitch.md` §4 and `qa-cheatsheet.md`:
+
+> **L6. Tên có chữ "Employment", vậy N.E.D có phải dịch vụ việc làm không?** "Không. 'Deals' ở đây là hợp đồng giao sản phẩm theo milestone giữa hai bên. N.E.D không tuyển dụng, không chọn người, không thẩm định và không phải một bên của hợp đồng. Trước khi ra mắt thật, nhóm sẽ hỏi luật sư về Luật Việc làm 74/2025." *(No. The "deals" are milestone contracts for deliverables between two parties. N.E.D does not hire, select or vet anyone and is not a party. Before a real launch we will ask a lawyer about Law 74/2025.)*
+
+Also add to the expert pack Q10: "Tên sản phẩm có chữ 'Employment Deals'; điều này có ảnh hưởng đến cách cơ quan quản lý nhìn nhận không?"
+
+### 11.2 README review (CL, applied in this commit)
+
+The README is accurate and honest, and its limits section is good (team-controlled partner address, upgrade authority, no arbiter, final files not enforced). CL changed three lines:
+
+| Where | Was | Now | Why |
+| --- | --- | --- | --- |
+| `README.md:95` | "Nobody takes the money alone" | "No party takes the money alone" | Word table: never "nobody can move the funds" (upgrade authority); matches the pitch fix "không bên nào" |
+| `README.md:152` (Wallet app) | "Request changes, revised versions and splits are Workspace only" | adds "and submitting with a list of final files" | True until F-1 is fixed; remove it then |
+| Limits and disclosures | — | Two lines: phone numbers not verified and the hash reversible; Circle can freeze USDC | Both are in the app's Disclosures; the README should not say less than the app |
+
+Still to update in the README after V3–V4: the Status table (v1.4 on devnet) and, after D2 is fixed, nothing else. Until D2 is fixed, "Their screens show … no USDC" (`README.md:49`) is true for every screen except one notification path; CL accepts it as the design statement.
+
+### 11.3 Nothing else blocks the slides
+
+Slides 1, 2 (except the name), 5, 7 and 8 can be built now from `final-pitch.md` and §10.3. Slides 3, 4 and 6 follow the number set in §10.3 once V3–V4 are known.

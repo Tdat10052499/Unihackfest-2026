@@ -92,7 +92,7 @@ The full lifecycle tables, with every scenario and its status, are in [`docs/09-
 | Rule | How |
 | --- | --- |
 | **No instruction lets N.E.D move locked funds** | Each contract and each job has its own vault, a PDA owned by the program. Release and refund go only to addresses fixed on-chain. |
-| **Nobody takes the money alone** | Money moves only when:<br/>• the client accepts;<br/>• the review deadline passes (**Release now**, anyone can call it);<br/>• the submission deadline passes (**Refund now**);<br/>• the freelancer returns it;<br/>• both sides agree a split. |
+| **No party takes the money alone** | Money moves only when:<br/>• the client accepts;<br/>• the review deadline passes (**Release now**, anyone can call it);<br/>• the submission deadline passes (**Refund now**);<br/>• the freelancer returns it;<br/>• both sides agree a split. |
 | **Request changes never refunds the client** | A disputed milestone can only be released, returned by the freelancer, or split by agreement. |
 | **The destination is fixed at accept** | Set when the freelancer accepts. The Vietnam path only accepts an allow-listed partner address. |
 | **The budget is locked before the freelancer accepts** | `select_job` refuses a job whose budget is not in its vault. `accept + lock_from_job` runs in one transaction. |
@@ -149,7 +149,7 @@ flowchart TB
 | **Program on devnet** | **v1.3**: Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and Funded Jobs (`post_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 27 instructions, 53 errors, 24 events, 54 tests. Not audited. |
 | **Program v1.4** (lock at hire, D29) | Built and tested: 29 instructions, 55 errors, 26 events, **67/67 tests**. Adds `post_job_open` and `fund_job`, and the selected-applicant check in `lock_from_job`. Devnet upgrade pending (needs a 14,576-byte program extend). |
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages |
-| **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions and splits are **Workspace only** for now. |
+| **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
 | **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 171 · wallet 38 · Workspace 22 (node) + 106 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V2). |
 
@@ -309,6 +309,8 @@ Unihackfest-2026/
 - **Final files:** after release, N.E.D cannot make anyone hand them over. Fingerprints show what was promised; they do not enforce delivery.
 - **Who can read content:** anyone with a contract's invite link can read its encrypted content. Job listings and applications are public and permanent.
 - **Residence:** the Vietnam view is self-declared and is not checked.
+- **Phone numbers:** not verified by a code. Only a hash goes on-chain, and it can be reversed by trying every Vietnamese number, so treat a linked number as public.
+- **USDC freeze:** Circle, the issuer, can freeze any USDC address, including a vault. N.E.D cannot undo that.
 - **Fees:** none from N.E.D in v1. Network fees are test SOL on devnet.
 
 ---
