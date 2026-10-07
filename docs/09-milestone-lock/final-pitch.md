@@ -11,7 +11,7 @@ Trong mọi slide, demo và Q&A: **người A** là client ở nước ngoài (S
 
 ---
 
-## 0. Bám theo tiêu chí chấm (Track 2)
+## 0. Bám theo tiêu chí chấm vòng Final (BTC gửi, xác nhận 7/10)
 
 | Tiêu chí | Điểm | Ghi điểm ở đâu | Bằng chứng đưa ra |
 | --- | ---: | --- | --- |
@@ -20,7 +20,7 @@ Trong mọi slide, demo và Q&A: **người A** là client ở nước ngoài (S
 | **Solana Stack, Composability & Performance** | 25 | Slide 6 | Anchor 1.1.2, Token Interface, Circle devnet USDC, ví MPC của Dynamic; bảng compute units |
 | **Build Evidence, Documentation & Reproducibility** | 20 | Slide 7 + link trong Q&A | Repo công khai, hơn 420 commit; decision log D1–D28; program spec; build và test bằng 2 lệnh; script chạy lại luồng trên devnet |
 
-Track 2 không chấm business model, nên pitch **không có slide đối thủ, cũng không có slide doanh thu**. Nếu giám khảo hỏi thì trả lời trong Q&A (mục 4).
+Vòng Final ngày **10/10/2026** chấm theo đúng 4 tiêu chí trên (nhóm thi cả hai track; BTC đã xác nhận 7/10). Không có tiêu chí business model, nên pitch **không có slide đối thủ, cũng không có slide doanh thu**. Nếu giám khảo hỏi thì trả lời trong Q&A (mục 4, P2 và P6; số liệu trong `../05-legal/qa-cheatsheet.md`).
 
 ---
 
@@ -52,7 +52,7 @@ Tốc độ nói: khoảng 3 âm tiết mỗi giây. Lời nói bên dưới đ�
 - Hình: người B (Hà Nội) ↔ người A (Singapore), giữa hai người là dấu "?"
 
 **Lời nói**
-> "Theo một khảo sát của PayPal cuối năm 2017, 68% freelancer ở Việt Nam từng gặp tình trạng không được trả tiền công. Người B ở Hà Nội làm xong việc, người A ở Singapore biến mất. Và B không thể nhận crypto, vì ở Việt Nam tiền mã hoá không nằm trong danh mục phương tiện thanh toán hợp pháp."
+> "Theo một khảo sát của PayPal cuối năm 2017, 68% freelancer ở Việt Nam từng gặp tình trạng không được trả tiền công. Người B ở Hà Nội làm xong việc, người A ở Singapore biến mất. Và theo cách nhóm đọc Nghị định 52, B không nên nhận crypto, vì tiền mã hoá không nằm trong danh mục phương tiện thanh toán hợp pháp."
 
 **Lưu ý:**
 - Số 68% là của khảo sát năm 2017 (công bố 3/2018), nên luôn nói kèm năm. Không nói "ít nhất một lần" hay "hầu hết freelancer": nguồn chỉ nói "từng gặp tình trạng không được trả tiền".
@@ -82,11 +82,11 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | Thời gian | Thao tác | Lời nói |
 | --- | --- | --- |
 | 0:40 | Trình duyệt A (Workspace, chế độ xem quốc tế): mở `/new` **đã điền sẵn** "Landing page design", 2 milestone × 10 USDC (deadline +1 day), mỗi milestone có "Done when" → **Create** → xác nhận trong panel ví | "Người A chia công việc thành hai milestone, mỗi milestone có tiêu chí nghiệm thu và deadline riêng." |
-| 0:55 | Trình duyệt B (chế độ xem Việt Nam): mở link mời → đọc brief → **Open in wallet** → **Slide to accept** (lựa chọn "VND to my Vietnamese bank account" đã được chọn sẵn) | "Người B đọc brief. Brief đã được mã hoá, N.E.D không có khoá để đọc. B trượt để accept, nhận tiền bằng VND vào tài khoản ngân hàng. Nơi nhận này giờ đã được chốt trên chain, không ai đổi được." |
+| 0:55 | Trình duyệt B (chế độ xem Việt Nam): mở link mời → đọc brief → **Open in wallet** → **Slide to accept** (lựa chọn "VND to my Vietnamese bank account" đã được chọn sẵn) | "Người B đọc brief. Brief đã được mã hoá, N.E.D không có khoá để đọc. B trượt để accept, nhận tiền bằng VND vào tài khoản ngân hàng. Nơi nhận này giờ đã được chốt trên chain, không bên nào đổi được." |
 | 1:15 | A: **Open in wallet** → **Slide to lock** 20 USDC → B thấy *"Locked for you · ≈ 520,000 VND (estimate)"* | "Người A khoá 20 USDC. Người B thấy khoảng 520 nghìn đồng, không có số dư crypto nào. Giờ B mới bắt đầu làm." |
 | 1:30 | B: **Submit** milestone 1 (link Drive có watermark) → xác nhận | "B nộp bản preview có watermark, không nộp file gốc. Trên chain lưu dấu vân tay và thời gian nộp; nội dung bài nộp được mã hoá." |
 | 1:45 | A: bấm vào cửa sổ A → chuông thông báo → **Review** → **Load preview** (khung Drive hiện bản preview có watermark) → **Accept & release** | "A xem bản preview ngay trong trang Review, đối chiếu với tiêu chí rồi bấm Accept & release. Tiền đi tới payout partner; phần chuyển VND là mô phỏng." *(cập nhật 7/10: thêm bước Load preview)* |
-| 1:58 | Mở **contract B** đã chuẩn bị (link trực tiếp) → **Release now** | "Đây là tình huống quan trọng nhất. Ở hợp đồng này, A không review. Deadline review đã qua, nên ai cũng bấm được Release now, và B vẫn nhận được tiền." |
+| 1:58 | Mở **contract B** đã chuẩn bị (link trực tiếp) → **Release now** | "Đây là tình huống quan trọng nhất. Ở hợp đồng này, A không review. Deadline review đã qua, nên ai cũng bấm được Release now, và tiền đi tới payout partner cho B." |
 | 2:10 | Mở Solana Explorer: vault account → owner = program | "Vault thuộc về program. Không có instruction nào cho N.E.D di chuyển số tiền này." |
 | 2:20 | Chuyển sang Slide 4 | — |
 
@@ -97,12 +97,14 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 ### Slide 4: Ba bài toán khó (2:20–3:00)
 
 **Trên slide** (3 cột, mỗi cột 1 icon + 2 dòng)
-1. **Không ai tự lấy được tiền.** *Hết deadline thì ai cũng gọi được lệnh (trừ khi client đã yêu cầu chỉnh sửa) · nơi nhận tiền chốt từ lúc accept · yêu cầu chỉnh sửa không hoàn tiền cho client*
-2. **Nội dung riêng tư trên chain công khai.** *Mã hoá ngay trên thiết bị (XChaCha20-Poly1305) · khoá hợp đồng được bọc cho từng thiết bị (X25519 + HKDF) · không có backend*
+1. **Không instruction nào cho một bên tự lấy tiền.** *Hết deadline thì ai cũng gọi được lệnh (trừ khi client đã yêu cầu chỉnh sửa) · nơi nhận tiền chốt từ lúc accept · yêu cầu chỉnh sửa không hoàn tiền cho client*
+2. **Nội dung riêng tư trên chain công khai.** *Mã hoá ngay trên thiết bị (XChaCha20-Poly1305) · khoá hợp đồng được bọc cho từng thiết bị (X25519 + HKDF) · N.E.D không chạy server riêng*
 3. **Funded Jobs, nguyên tử.** *Ngân sách bị khoá ngay lúc đăng job · `create_fund + select_job` và `accept + lock_from_job` đều nằm trong một transaction*
 
 **Lời nói**
-> "Ba bài toán khó. Một: không ai tự lấy được tiền. Hết deadline review thì ai cũng gọi được release, hết deadline nộp bài thì ai cũng gọi được refund; nơi nhận tiền được chốt từ lúc freelancer accept; và yêu cầu chỉnh sửa không bao giờ hoàn tiền cho client. Hai: nội dung riêng tư trên một chain công khai. Brief và bài nộp được mã hoá ngay trên thiết bị; khoá của hợp đồng được bọc cho từng thiết bị bằng X25519, N.E.D không giữ khoá. Ba: Funded Jobs. Doanh nghiệp khoá toàn bộ ngân sách ngay khi đăng job. Chọn người và accept đều là một transaction nguyên tử, nên ngân sách chỉ vào hợp đồng sau khi nơi nhận đã được chốt."
+> "Ba bài toán khó. Một: không instruction nào cho một bên tự lấy tiền. Hết deadline review mà client chưa yêu cầu chỉnh sửa thì ai cũng gọi được release; trễ hạn nộp thì ai cũng gọi được refund; nơi nhận chốt từ lúc accept; yêu cầu chỉnh sửa không bao giờ hoàn tiền. Hai: nội dung riêng tư trên chain công khai: mã hoá ngay trên thiết bị, khoá bọc cho từng thiết bị bằng X25519, N.E.D không giữ khoá. Ba: Funded Jobs: ngân sách khoá ngay khi đăng job; chọn người và accept đều là transaction nguyên tử, nên tiền chỉ vào hợp đồng khi nơi nhận đã chốt."
+
+*(7/10: rút gọn khoảng 15 chữ cho vừa 40 s, thêm ngoại lệ "chưa yêu cầu chỉnh sửa".)*
 
 **Hình gợi ý:** ảnh chụp một transaction `post_note` trên Explorer để thấy dữ liệu chỉ là ciphertext.
 
@@ -135,11 +137,11 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | `accept_cancel` (cao nhất) | 39,781 |
 
 - Dòng nguồn (chữ nhỏ): *LiteSVM 2/10 (program v1.0); dòng job: smoke run devnet 6/10 (v1.3)*. **Dev đo lại toàn bộ bảng trên v1.3 trước khi làm slide** (mục 5); nếu số đổi thì dùng số mới.
-- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 20% hạn mức mặc định 200,000 CU*
+- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 20% hạn mức mặc định 200,000 CU* (mức cao nhất 39,781 = 19,9%, sát ngưỡng: nếu đo lại trên v1.3 có lệnh vượt 40,000 CU thì đổi thành "dưới 25%" hoặc ghi số cao nhất)
 - "IDL đăng on-chain" **chỉ đưa lên slide khi IDL v1.3 đã được đăng lại** (hiện bản on-chain là v1.1).
 
 **Lời nói**
-> "Chúng tôi dùng Token Interface với USDC devnet của Circle, nên đây là dòng token thật. Người dùng đăng nhập bằng Google và có ví MPC nhúng, không cần seed phrase. Mọi instruction đã đo đều dùng chưa tới 20% compute budget mặc định, và các lệnh ghép được vào một transaction."
+> "Chúng tôi dùng Token Interface với USDC devnet của Circle, nên đây là token SPL thật trên devnet, dù không có giá trị. Người dùng đăng nhập bằng Google và có ví MPC nhúng, không cần seed phrase. Mọi instruction đã đo đều dùng chưa tới 20% compute budget mặc định, và các lệnh ghép được vào một transaction."
 
 ### Slide 7: Bằng chứng build & khả năng chạy lại (3:50–4:10)
 
@@ -164,13 +166,13 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 ### Slide 8: Giới hạn, lộ trình & kết (4:10–4:30)
 
 **Trên slide**
-- **N.E.D không bao giờ:** giữ tiền · quy đổi tiền · thu phí (v1)
+- **N.E.D không:** giữ tiền · quy đổi tiền · thu phí trong v1
 - **Giới hạn hiện tại:** devnet, token thử · chưa audit · payout partner là mô phỏng · chưa có trọng tài trung lập · quyền upgrade vẫn ở ví deploy của nhóm
 - **Tiếp theo:** sandbox với partner (ứng viên: Due, Nium) → ý kiến luật sư → người review trung lập → audit → multisig cho quyền upgrade → thí điểm
 - Câu kết lớn: **"Khoá trước khi làm. Release theo luật. VND cho người B."**
 
 **Lời nói**
-> "N.E.D không giữ tiền, không quy đổi tiền và không thu phí. Đây là prototype trên devnet: chưa audit, partner là mô phỏng, chưa có trọng tài trung lập, và quyền upgrade vẫn ở ví của nhóm. Bước tiếp theo là sandbox với partner, ý kiến luật sư, audit và multisig. Khoá trước khi làm. Release theo luật. Xin cảm ơn."
+> "N.E.D không giữ tiền, không quy đổi tiền, và v1 không thu phí. Đây là prototype trên devnet: chưa audit, partner là mô phỏng, chưa có trọng tài trung lập, quyền upgrade vẫn ở ví của nhóm. Tiếp theo: sandbox với partner, luật sư, audit, multisig. Khoá trước khi làm. Release theo luật. Xin cảm ơn."
 
 ---
 
@@ -230,21 +232,22 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 | # | Câu hỏi | Trả lời |
 | --- | --- | --- |
-| L1 | Ở Việt Nam có hợp pháp không? | "Theo Nghị định 52/2024, tiền mã hoá không nằm trong danh mục phương tiện thanh toán hợp pháp. Vì vậy người dùng Việt Nam của nhóm không bao giờ nhận crypto: client khoá USDC ở nước ngoài, payout partner ở nước ngoài chuyển VND qua ngân hàng; trong demo, partner là mô phỏng. Nhóm không giữ tiền. Người dùng Việt Nam chỉ ký accept và submit bằng ví đăng nhập; trên devnet phí mạng là test SOL, trước launch sẽ có fee payer. Trước khi có tiền thật, cần luật sư xác nhận phần mềm này không phải dịch vụ tài sản mã hoá theo Nghị định 284/2026." |
+| L1 | Ở Việt Nam có hợp pháp không? | "Theo cách đọc của nhóm về Nghị định 52/2024, tiền mã hoá không nằm trong danh mục phương tiện thanh toán hợp pháp. Vì vậy người dùng Việt Nam của nhóm không bao giờ nhận crypto: client khoá USDC ở nước ngoài, payout partner ở nước ngoài chuyển VND qua ngân hàng; trong demo, partner là mô phỏng. Nhóm không giữ tiền. Người dùng Việt Nam chỉ ký accept và submit bằng ví đăng nhập; trên devnet phí mạng là test SOL, trước launch sẽ có fee payer. Trước khi có tiền thật, cần luật sư xác nhận phần mềm này không phải dịch vụ tài sản mã hoá theo Nghị định 284/2026." |
 | L2 | KYC / chống rửa tiền? | "KYC và thông tin ngân hàng nằm ở payout partner, không bao giờ ở nhóm. Mỗi hợp đồng bị giới hạn 1,000 USDC. Devnet chưa có KYC, và nhóm công khai điều đó. Sàng lọc ví nằm trong lộ trình." |
 | L3 | Dữ liệu cá nhân đi đâu? | "Đăng nhập qua Dynamic, có màn đồng ý rõ ràng. Nội dung hợp đồng được mã hoá, N.E.D không có khoá. Địa chỉ ví, username, tiêu đề hợp đồng, job listing và pitch là công khai trên chain, và app nhắc người dùng không ghi dữ liệu cá nhân vào đó." |
-| L4 | Đây có phải sàn việc làm không? | "Doanh nghiệp tự đăng funded job và tự chọn freelancer. N.E.D không chọn, không thẩm định, không tuyển dụng ai, không phải một bên của công việc, và không thu phí." *(Không khẳng định job board nằm ngoài luật việc làm; đây là câu hỏi đang chờ chuyên gia.)* |
-| L5 | Thuế thì sao? | "Doanh thu kinh doanh tới 500 triệu đồng một năm không phải nộp thuế thu nhập cá nhân theo Luật 109/2025. Nhóm cung cấp bản ghi để freelancer tự kê khai; đây không phải tư vấn thuế." |
+| L4 | Đây có phải sàn việc làm không? | "Doanh nghiệp tự đăng funded job và tự chọn freelancer. N.E.D không chọn, không thẩm định, không tuyển dụng ai, không phải một bên của công việc, và v1 không thu phí. Trước khi ra mắt thật, nhóm sẽ hỏi luật sư về giấy phép dịch vụ việc làm (Luật Việc làm 74/2025) và đăng ký sàn thương mại điện tử (Luật 122/2025)." *(Không khẳng định job board nằm ngoài các luật này; đây là câu hỏi đang chờ chuyên gia.)* |
+| L5 | Thuế thì sao? | "Luật 109/2025 đặt ngưỡng 500 triệu đồng một năm cho cá nhân có doanh thu kinh doanh, từ kỳ tính thuế 2026. Thu nhập freelance từ khách nước ngoài có được xếp vào doanh thu kinh doanh hay không thì nhóm đang chờ chuyên gia thuế. Nhóm cung cấp bản ghi để freelancer tự kê khai; đây không phải tư vấn thuế." |
 
 ### Sản phẩm (PO)
 
 | # | Câu hỏi | Trả lời |
 | --- | --- | --- |
-| P1 | Vì sao chọn Solana? | "Phí dưới một cent, khoảng 7,2 tỷ đô USDC đang nằm trên Solana, và USDC devnet của Circle giúp nhóm demo dòng token thật." *(DefiLlama 7/10; kiểm tra lại ngày 9/10.)* |
-| P2 | Nhóm kiếm tiền thế nào? | "Bản v1 không thu phí. Một khoản phí nhỏ phía client khi release chỉ được tính tới sau khi có ý kiến pháp lý." |
+| P1 | Vì sao chọn Solana? | "Phí dưới một cent, khoảng 7,2 tỷ đô USDC đang nằm trên Solana, và USDC devnet của Circle giúp nhóm demo bằng token SPL thật trên devnet, không có giá trị." *(DefiLlama 7/10; kiểm tra lại ngày 9/10.)* |
+| P2 | Nhóm kiếm tiền thế nào? | "Bản v1 không thu phí. Kế hoạch là 1% phía client khi release, chỉ áp dụng sau khi có ý kiến pháp lý. Với 1.000 USD, Upwork thu client 3–10% cộng phí khởi tạo hợp đồng; nhóm không nói N.E.D rẻ hơn Wise, vì giá trị là tiền được khoá trước." |
 | P3 | Còn thiếu gì trước khi launch? | "Sandbox với payout partner, ý kiến luật sư, OTP, audit và multisig. Sau đó thí điểm với các cặp client và freelancer thật." |
 | P4 | Nhóm có dùng AI không? | Trả lời trung thực theo câu team đã thống nhất, ví dụ: *"Có, nhóm dùng AI hỗ trợ viết code; mọi commit đều công khai và nhóm có thể giải thích bất kỳ instruction nào."* |
-| P5 | Sao app lại bằng tiếng Anh? | "Người dùng chính là client nước ngoài và freelancer làm việc với họ, nên sản phẩm dùng tiếng Anh. Ban tổ chức cũng yêu cầu sản phẩm bằng tiếng Anh." |
+| P5 | Sao app lại bằng tiếng Anh? | "Người dùng chính là client nước ngoài và freelancer làm việc với họ, nên sản phẩm dùng tiếng Anh. Nhóm đã thống nhất với ban tổ chức: pitch bằng tiếng Việt, sản phẩm giữ tiếng Anh." |
+| P6 | Khác gì các dự án khoá tiền khác trên Solana? | "Một số dự án devnet khác cũng release khi client im lặng, nên nhóm không nói mình là đầu tiên. Điểm N.E.D thêm vào: đường VND cho người ở Việt Nam, nơi nhận chốt lúc accept và chỉ là địa chỉ partner trong allowlist; yêu cầu chỉnh sửa không bao giờ hoàn tiền; brief mã hoá có dấu vân tay trên chain; và Funded Jobs khoá ngân sách trước khi có người ứng tuyển." |
 
 ---
 
@@ -263,6 +266,8 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | 9 | Backup video 60–90 s (lồng tiếng hoặc phụ đề tiếng Việt) | Design + PO | 9 Oct | Bắt buộc theo rule |
 | 10 | Slide tiếng Việt, gửi cho ban tổ chức | Biz | theo hạn BTC | Bắt buộc theo rule |
 | 11 | CL ký duyệt: mọi câu trên slide, app, booth đều đúng sự thật hoặc được ghi là lộ trình | CL | 9 Oct | Compliance |
+| 12 | Sửa chữ và lộ thông tin trong app theo `../05-legal/pre-pitch-check-7oct.md` mục 3 ("released automatically" trên app ví, thông báo lộ USDC ở chế độ Việt Nam, Privacy và consent) | Dev + CL | 8 Oct 18:00 | Giám khảo tự thử app |
+| 13 | Bổ sung runbook: độ rộng màn hình ≥ 900 px mỗi cửa sổ, cách đưa link mời sang B, ≥ 40 USDC cho người A, consent v2, giới hạn 5 device key | PO | 9 Oct | Demo không vỡ trên sân khấu |
 
 ---
 
@@ -277,7 +282,12 @@ Word table gốc nằm ở `product-spec.md` §6 (cho chữ tiếng Anh trong s�
 | "devnet, token thử" | "an toàn", "đảm bảo", "cam kết", "chống lừa đảo", "đúng luật thuế", "đầu tiên", "duy nhất", "miễn phí hoàn toàn" |
 | "khi hết deadline review, cả hai bên thấy Release now" | "tự động giải ngân", "auto-release" |
 | "người B không bao giờ nhận, giữ hay gửi USDC" | "người B không bao giờ chạm vào crypto" |
-| "không có instruction nào cho N.E.D di chuyển tiền" | "không ai di chuyển được tiền", "kể cả N.E.D cũng không thể" (quyền upgrade vẫn ở ví của nhóm) |
+| "không có instruction nào cho N.E.D di chuyển tiền", "không instruction nào cho một bên tự lấy tiền" | "không ai di chuyển được tiền", "không ai tự lấy được tiền", "kể cả N.E.D cũng không thể" (quyền upgrade vẫn ở ví của nhóm) |
+| "N.E.D không chạy server riêng" | "không có backend" (app vẫn dùng Dynamic, Helius, Vercel) |
+| "token SPL thật trên devnet, không có giá trị" | "dòng tiền thật", "token thật" (nghe như tiền thật) |
+| "v1 không thu phí" | "không bao giờ thu phí" (kế hoạch 1%) |
+| "nơi đăng việc; doanh nghiệp tự chọn người" | N.E.D "tuyển dụng", "sàn việc làm của chúng tôi" |
+| "tiền đi tới payout partner cho B (mô phỏng)" | "B nhận được tiền" trong demo (VND là mô phỏng) |
 | "sàng lọc ví nằm trong lộ trình" | "chúng tôi sàng lọc ví", "chúng tôi không cung cấp dịch vụ" |
 
 Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm năm.
@@ -328,11 +338,12 @@ Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm n�
 ### Cơ sở pháp lý (cho Q&A)
 
 - Nghị định 52/2024/NĐ-CP: Đ.3(10) liệt kê phương tiện thanh toán hợp pháp, Đ.3(11) mọi thứ ngoài danh mục là không hợp pháp, Đ.8(6) cấm phát hành, cung ứng và sử dụng. Nghị định không gọi tên crypto; "crypto không nằm trong danh mục" là cách đọc của nhóm
-- Nghị định 340/2025/NĐ-CP (hiệu lực 9/2/2026): phạt 150–200 triệu đồng với cá nhân, gấp đôi với tổ chức. **Không trích "Điều 30 khoản 6 điểm d" trên sân khấu** cho tới khi mở được văn bản chính thức
-- Nghị định 284/2026/NĐ-CP, Đ.7(4): cung cấp **hoặc quảng cáo** dịch vụ tài sản mã hoá khi chưa có giấy phép; tổ chức 180–200 triệu, cá nhân 90–100 triệu (hiệu lực 1/9/2026)
+- Nghị định 340/2025/NĐ-CP (hiệu lực 9/2/2026): phạt 150–200 triệu đồng với cá nhân (Đ.30(6)(d), đọc qua cơ sở dữ liệu luật), gấp đôi với tổ chức (Đ.5(3)(a)). **Không trích điều khoản và mức phạt trên sân khấu** cho tới khi mở được văn bản chính thức
+- Nghị định 284/2026/NĐ-CP, Đ.7(4): cung cấp **hoặc quảng cáo** dịch vụ tài sản mã hoá khi chưa có giấy phép; tổ chức 180–200 triệu, cá nhân 90–100 triệu (hiệu lực 1/9/2026). Tới 6/10/2026 chưa có tổ chức nào được cấp phép
 - Nghị quyết 05/2025/NQ-CP (9/9/2025): thí điểm thị trường tài sản mã hoá 5 năm
 - Luật Bảo vệ dữ liệu cá nhân 91/2025 + Nghị định 356/2025 (hiệu lực 1/1/2026): dữ liệu cá nhân
-- Luật 109/2025, Đ.7(1): doanh thu kinh doanh tới 500 triệu đồng/năm không phải nộp thuế TNCN (hiệu lực 1/7/2026)
-- Luật Việc làm 74/2025 (Đ.27–28) và Nghị định 352/2025 (hiệu lực 1/1/2026): dịch vụ việc làm, kể cả giới thiệu việc làm trên mạng, cần giấy phép. Job board có thuộc diện này không vẫn **[Unverified]**, đang chờ chuyên gia; không khẳng định trên sân khấu
+- Luật 109/2025, Đ.7(1): cá nhân có doanh thu kinh doanh tới 500 triệu đồng/năm không phải nộp thuế TNCN (hiệu lực 1/7/2026, kỳ tính thuế 2026). Thu nhập freelance có thuộc diện này không: **[Unverified]**, chờ chuyên gia thuế
+- [Luật Việc làm 74/2025](https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Luat-Viec-lam-2025-so-74-2025-QH15-530912.aspx) (Đ.27–28) và Nghị định 352/2025 (hiệu lực 1/1/2026): kinh doanh dịch vụ việc làm qua thương mại điện tử chỉ do doanh nghiệp có giấy phép thực hiện. Job board có thuộc diện này không vẫn **[Unverified]**, đang chờ chuyên gia; không khẳng định trên sân khấu
+- [Luật Thương mại điện tử 122/2025](https://thuvienphapluat.vn/van-ban/EN/Thuong-mai/Law-122-2025-QH15-Electronic-Commerce/703876/tieng-anh.aspx) + Nghị định 248/2026 (hiệu lực 1/7/2026): sàn trung gian gồm cả sàn dịch vụ; nền tảng nước ngoài có giao diện tiếng Việt phải đăng ký với Bộ Công Thương. N.E.D Jobs có thuộc diện này không: **[Unverified]**
 
 *Đây không phải tư vấn pháp lý. Các điểm [Unverified] cần luật sư xác nhận.*

@@ -128,7 +128,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 | Timer | Hết hạn thì | Bên "thua" | Demo | Launch (đề xuất) | Status |
 | --- | --- | --- | --- | --- | --- |
-| Work window tối thiểu | Không cho tạo/accept/lock nếu còn quá ít thời gian | — | 60 s | vài giờ | ✅ |
+| Work window tối thiểu | Không cho tạo/accept/lock nếu còn quá ít thời gian | — | 60 s | 24 h [Assumption] (`program-spec.md`; 7/10: trước ghi "vài giờ") | ✅ |
 | `apply_by` / `select_by` (job) | Hết nhận đơn / business được withdraw | Business (nếu không chọn) | tuỳ | 3–7 ngày | ✅ |
 | Job accept window | Business được chọn người khác | Applicant được chọn nhưng không accept | 120 s | 48 h | ✅ (🆕 48 h launch) |
 | `submit_by` | **Refund now** mở cho anyone | Freelancer | +10 min (preset; contract B của demo gõ tay +5 min) | theo job | ✅ |
@@ -336,7 +336,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-07 | Test T1–T15 (S15), merge & deploy (S16) | Dev | 🔧 | 9 Oct | Cả hai build được deploy |
 | B-08 | Keys S1–S3 | PO | 🔧 | ngay | Bundle mới không còn key; register row 12 |
 | B-09 | README R1 + LICENSE R2 | PO + Dev | 🔧 | 8 Oct | CL đọc README đối chiếu app live |
-| B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs đã xong trên nhánh `feat/hub-v4` (chưa vào `main`); H4 trang Legal (chỉ ở footer), H5 restyle + QA chưa làm | Dev | 🔧 | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
+| B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs, H4 trang Legal (chỉ ở footer), H5 restyle + QA. 7/10: H1–H5 đã vào `main` (`hub-v4-qa.md`, `tong-hop-tien-do.md`) | Dev | ✅ | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |

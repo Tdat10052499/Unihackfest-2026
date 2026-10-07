@@ -76,8 +76,8 @@ Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor bu
 
 - No backend (D4): content is stored as `post_note` ciphertext in transactions that reference the fund; only hashes are in the account.
 - Each contract has a random content key made by the client's app. It travels in the invite-link fragment (`#k=`), which browsers do not send to servers, and, since D22, as wraps for every registered device of both parties. N.E.D never has the key. Anyone holding the link can read the brief and the delivery, never move money. Say so in Disclosures.
-- A device without the key shows the money state and the hashes, and asks the user to open the invite link on that device.
-- To move to another device, a party uses "Copy contract link" on the contract screen, or pastes the link in the Workspace. "Same delivery that was submitted ✓" proves only that the delivery note equals the on-chain evidence, not that the content behind a link is unchanged; ask freelancers for fixed-version links.
+- A device without the key (not yet registered, so no wrap for it) shows the money state and the hashes, and asks the user to register the device or open the invite link on it (7 Oct, D22).
+- To move to another device, a party signs in there and registers the device; the contract key is then wrapped for it (D22). "Copy contract link" on the contract screen, or pasting the link in the Workspace, still works as a fallback. "Same delivery that was submitted ✓" proves only that the delivery note equals the on-chain evidence, not that the content behind a link is unchanged; ask freelancers for fixed-version links.
 - The Vietnam view never shows "New contract" or client actions (decision D18).
 
 ## 6. Words

@@ -1,9 +1,9 @@
 # Compliance Lead — task list (Danh sách việc cần làm)
 
 **Owner:** Nguyễn Minh Chính (GitHub: @F4ol4n), Compliance Lead, N.E.D Wallet
-**Deadline (hạn chót):** everything ready by **9/10/2026**; final round ~10/10/2026 (date to be confirmed)
+**Deadline (hạn chót):** everything ready by **9/10/2026**; final round **10/10/2026** (confirmed 7 Oct)
 **Working doc:** [N.E.D Compliance Hub](https://docs.google.com/document/d/1JQbL5JY5La6Rzev-gaFV1VUUxMW1AmLJQZgTGjqnErA/edit) (team only)
-**Last updated:** 2/10/2026
+**Last updated:** 7/10/2026 (final date, criteria and walkthrough; full check in [`pre-pitch-check-7oct.md`](pre-pitch-check-7oct.md))
 
 > Team rule: before anything is shown to judges or the public (slides, app text, README, demo video, social posts), send it to the Compliance Lead to check.
 
@@ -17,7 +17,8 @@
 - [x] Straight to the final round
 - [x] Product (app, UI copy, README) in English; **pitch, slides and Q&A in Vietnamese only** (re-confirmed with the organisers on 7 Oct 2026; replaces "English-only presentation")
 - [x] No "Best AI Product" prize in the official rules
-- [ ] Final date and format (pitch length, Q&A length, Expo booth) — waiting for organisers
+- [x] Final on 10/10/2026 (confirmed 7 Oct). Final criteria from the organisers: Technical Difficulty & Depth (30) · Architecture & Smart Contract Quality (25) · Solana Stack, Composability & Performance (25) · Build Evidence, Documentation & Reproducibility (20)
+- [ ] Pitch length, Q&A length and Expo booth format in writing (team plan: 5 min + 3 min Q&A) — save in Tab 10
 
 ---
 
@@ -74,7 +75,7 @@
 
 ## Step 8 — Check the live app (Kiểm tra app thật) · 7/10
 
-- [ ] Walk through: sign up → create a contract (client) → accept and choose VND (freelancer, Vietnam view) → lock → submit → approve → auto-release → refund
+- [ ] Walk through (7 Oct, D26–D27): sign up → create a contract (client) → accept and choose VND (freelancer, Vietnam view) → lock → submit → request changes → revised version → accept and release → Release now on a second contract after its review deadline → refund after a missed submission deadline
 - [ ] Confirm disclaimers, risk disclosure, real fees and "not financial advice" on every screen
 
 ## Step 9 — Prepare to defend (Chuẩn bị bảo vệ) · 8/10

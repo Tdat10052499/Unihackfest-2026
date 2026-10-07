@@ -4,7 +4,7 @@ Thư mục này gom **mọi thông tin quan trọng** để cả đội (và tr�
 
 | Đọc gì | Khi nào |
 |---|---|
-| [`09-milestone-lock/`](09-milestone-lock/README.md) | **Hướng đi hiện hành, đọc trước khi code (02/10/2026)**: Milestone Lock cho freelancer có khách nước ngoài; ở Việt Nam freelancer chỉ nhận VND qua đối tác chi trả (mô phỏng trong demo). Gồm đặc tả sản phẩm, đặc tả program (byte layout, instruction, test), nhật ký quyết định D1–D12 và danh sách mâu thuẫn đã xử lý. Tiếng Anh |
+| [`09-milestone-lock/`](09-milestone-lock/README.md) | **Hướng đi hiện hành, đọc trước khi code (02/10/2026)**: Milestone Lock cho freelancer có khách nước ngoài; ở Việt Nam freelancer chỉ nhận VND qua đối tác chi trả (mô phỏng trong demo). Gồm đặc tả sản phẩm, đặc tả program (byte layout, instruction, test), nhật ký quyết định D1–D28 và danh sách mâu thuẫn đã xử lý. Tiếng Anh |
 | [`08-research/`](08-research/README.md) | Nghiên cứu của Compliance Lead: khách hàng, thị trường, đối thủ, đối tác chi trả, pháp lý, rubric, kế hoạch theo ngày. Bắt đầu từ `ned-research-and-compliance.md` |
 | [`01-dinh-huong-du-an.md`](01-dinh-huong-du-an.md) | Muốn biết **làm gì / không làm gì** và vì sao (lời mentor, ưu tiên, lộ trình 15 ngày, phân công) |
 | [`02-thiet-ke/README.md`](02-thiet-ke/README.md) | Cần **danh mục 40 màn hình**, luồng điều hướng, design tokens, cách đọc file thiết kế |

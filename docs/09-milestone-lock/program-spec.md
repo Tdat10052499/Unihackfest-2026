@@ -6,7 +6,7 @@ Scope: add Milestone Lock to the existing Anchor program `ned_program` (`ned_pro
 
 ## 1. Rules the program enforces
 
-1. Money moves only by the rules in this file. No N.E.D, admin, arbiter or upgrade key can move funds out of a vault.
+1. Money moves only by the rules in this file. No instruction lets N.E.D, an admin or an arbiter move funds out of a vault; there is no admin or arbiter key. The upgrade authority (deploy wallet until after the final, section 7) could replace the program, and the app discloses it (7 Oct: was "no … upgrade key can move funds").
 2. **Destination fixed before lock.** The freelancer sets the payout destination in `accept`; nothing can change it afterwards, and `lock` is only possible after `accept`. Every release goes to the associated token account (ATA) of `payout_destination`.
 3. **The signer and the destination are different fields.** `freelancer` is the wallet that signs `accept`, `submit` and `concede`. `payout_destination` is where money goes:
    - the freelancer's own wallet (`OwnWallet`, international path);
@@ -192,11 +192,11 @@ Move the clock with `svm.set_sysvar::<Clock>()`. Create the devnet USDC mint at 
 
 1. **Happy path, 2 milestones:** create → accept(OwnWallet) → lock → submit 0 → approve 0 → submit 1 → approve 1 → `Settled` → close; balances and rent returned
 2. **Vietnam path:** accept(PayoutPartner, allowlisted, reference) → release reaches the partner ATA and the event carries the reference; the freelancer signs `submit`; a non-allowlisted address fails with `PayoutPartnerNotAllowed`; a zero reference fails with `InvalidPayoutReference`
-3. **Auto-release:** submit, then `release_after_review` at `review_by` (fails) and `review_by + 1` (succeeds), signed by a third wallet
+3. **Release after review:** submit, then `release_after_review` at `review_by` (fails) and `review_by + 1` (succeeds), signed by a third wallet
 4. **Refund:** no submit; `refund` at `submit_by` (fails) and `submit_by + 1` (succeeds); goes to the client
 5. **Submit boundary:** at `submit_by` (succeeds) and `submit_by + 1` (fails)
 6. **Unused slots:** in a 2-milestone fund, every per-index instruction with index 2–4 fails with `MilestoneIndexOutOfRange`; the fund settles after 2 milestones
-7. **Dispute:** before `review_by` it blocks auto-release; `approve` still works; `concede` refunds; dispute after `review_by` fails
+7. **Dispute (request changes):** before `review_by` it blocks release after review; `approve` still works; `concede` refunds; dispute after `review_by` fails
 8. **Cancel:** client proposes, freelancer accepts; the split and `released` / `refunded` match; the proposer cannot accept their own proposal; an amount above unsettled fails; a changed proposal fails with `CancelProposalChanged`; a proposal is cleared after a release
 9. **Order and windows:** `lock` before `accept` fails; `accept` twice fails; `accept` by a non-freelancer fails; `accept` and `lock` inside the last `MIN_WORK_WINDOW_SECS` before the first `submit_by` fail
 10. **`create_fund` validation:** 0 or 6 milestones, amount 0, sum above cap, deadline inside the work window, review window 59 s, freelancer == client, title 33 bytes, wrong mint

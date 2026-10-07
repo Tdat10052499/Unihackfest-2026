@@ -189,7 +189,7 @@ Tick items there with the commit hash, as the list asks.
 
 | # | Decision | Recommendation |
 | --- | --- | --- |
-| 1 | Disputes and split for the final: on or off? | **Off**; fix the copy as in A1 |
+| 1 | Disputes and split for the final: on or off? | **Off**; fix the copy as in A1. **Superseded 7 Oct by D27: request changes is on in the Workspace** |
 | 2 | Phone field in onboarding | **Hidden** for the demo (C3, A5) |
 | 3 | LICENSE | Add an **MIT** file if the whole team agrees (each member is a copyright holder); otherwise remove the claim |
 | 4 | D1–D5 | Write "Confirmed 6 Oct" in the decision log |

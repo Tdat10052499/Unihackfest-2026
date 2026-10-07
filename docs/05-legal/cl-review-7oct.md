@@ -80,5 +80,11 @@ New owner tasks (also in `final-pitch.md` §5):
 | P11 | `jobs:smoke`: add an option to skip the binary comparison, so people outside the team can run it | Dev | 8 Oct |
 | P12 | Re-measure the compute-unit table on v1.3 (`g15`; add `accept_cancel` and the job instructions) | Dev | 8 Oct |
 | P13 | Re-upload the v1.3 IDL on-chain (the on-chain IDL is still v1.1) before saying "IDL on-chain" | Dev | 8 Oct |
-| P14 | `docs/08-research/ned-research-and-compliance.md`: status note, disputes, Q&A 2, 3, 6, 7, 8, the demo line and the Track 2 rubric name were stale | CL | done (7 Oct) |
+| P14 | `docs/08-research/ned-research-and-compliance.md`: status note, disputes, Q&A 2, 3, 6, 7, 8, the demo line and the Track 2 rubric name were stale | CL | Marked done earlier but the file had not changed since `af0b0f8`; **applied in the pre-pitch push (7 Oct)**, see section 5 |
 | P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines | CL | after deploy |
+
+---
+
+## 5. Pre-pitch check, 7 Oct (later)
+
+A second full check ran on `main` at `09b1506` and was re-based on `343faa6`: documents against each other, numbers against their sources, program v1.3 against its spec, every UI string against the word table, the legal position of N.E.D Jobs, and the demo runbook. Results, owners and dates: [`pre-pitch-check-7oct.md`](pre-pitch-check-7oct.md). The final on 10 Oct 2026 and its four criteria are confirmed. CL documents fixed in the same push: `qa-cheatsheet.md`, `../08-research/ned-research-and-compliance.md` (P14), `../08-research/NED_Market_Analysis_Final.md`, this file, `compliance-fix-list.md`, `compliance-fix-list-review.md`, `compliance-lead-tasks.md`, plus wording in `../09-milestone-lock/final-pitch.md`, `program-spec.md`, `product-spec.md` and `system-tracker.md`.

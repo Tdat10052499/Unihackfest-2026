@@ -5,6 +5,8 @@
 **Code freeze:** 9 Oct 2026 · **Final:** 10 Oct 2026
 **Status:** open. Tick each box when its "Done when" check passes, and name the commit.
 
+> **Superseded in part, 7 Oct 2026 (CL).** Since this list was written, request changes shipped (D27), "auto-release" was retired for "Release now" (D26) and N.E.D Jobs was added (D25, D28). So: **C2** and the "no disputes" answers in **D2** rows 7–8 no longer apply (the Disclosures line is "No neutral arbiter"); the Terms draft line "not a payment service … or a marketplace" (Appendix 2) is replaced by the live text in `packages/ned-core/src/legal/copy.ts`; the Privacy draft line "only the two parties hold the key" (Appendix 1) is wrong, because anyone holding the contract link can read the content. The current open items, owners and dates are in [`pre-pitch-check-7oct.md`](pre-pitch-check-7oct.md).
+
 > Team rule (from `compliance-lead-tasks.md`): anything a judge or the public can see (app text, README, slides, video, booth) goes past the Compliance Lead first. This list covers what I found in the repo and the live apps on 5–6 Oct. Not legal advice; open legal points go to the expert check.
 
 ## How to read this
@@ -290,7 +292,7 @@ Optional clarity: `ned-wallet/app/disclosures.tsx:17` "No licensed partner is co
 - [ ] P1–P4 live; Terms and Privacy pages open
 - [ ] R1–R2 done; README read against the live app
 - [ ] D1–D4 done; Q&A sheet printed
-- [ ] Walkthrough on the live app: sign up → create (client) → accept and choose VND (Vietnam view) → lock → submit → approve → auto-release → refund, with no banned word on any screen
+- [ ] Walkthrough on the live app: sign up → create (client) → accept and choose VND (Vietnam view) → lock → submit → request changes → revised version → accept and release → Release now (second contract) → refund, with no banned word on any screen (7 Oct)
 - [ ] Team message sent: "Compliance sign-off done. Known limits: section G. Legal questions in Q&A come to me."
 
 ---

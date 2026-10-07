@@ -4,6 +4,13 @@
 **Cơ sở sản phẩm:** repo `Tdat10052499/Unihackfest-2026`, nhánh `main` @ `3a1564a` (04/10/2026)
 **Cơ sở bằng chứng:** `NED_Evidence_Base.md` (đã đóng băng). Tài liệu này không dùng thêm nguồn nào mới.
 
+> **Cập nhật 07/10/2026 (Compliance Lead, kiểm tra tại `main` 343faa6).** Đã mở lại nguồn và sửa trực tiếp các dòng sau, mỗi dòng có ghi "(07/10)":
+> - Sản phẩm nay là **program v1.3**: 27 instruction, 53 mã lỗi, 24 event, 54 test (lần ghi nhận gần nhất 06/10). Có thêm **Funded Jobs** (D25): doanh nghiệp khóa toàn bộ ngân sách khi đăng việc. **Yêu cầu chỉnh sửa (request changes) đã có trên Workspace** (D27), không còn bị ẩn. Từ "tự giải phóng / auto-release" không dùng nữa (D26): sau hạn duyệt, **bất kỳ ai** bấm **Release now**.
+> - **Phí Contra bị ghi ngược:** freelancer trả 15 USD (dự án dưới 500 USD) hoặc 29 USD mỗi dự án ở gói miễn phí, 0 ở gói Pro; khách trả phí xử lý (ACH 0,8%, tối đa 5 USD; thẻ 2,9% + 0,30 USD) ([Contra](https://help.contra.com/en/articles/9322934)).
+> - Nghị định 284/2026: mức 180–200 triệu là cho **tổ chức**; cá nhân bằng một nửa. Upwork: phí khách 3–10% (gói Basic 3–5%) + phí khởi tạo hợp đồng. Payoneer: 71% (không phải 71–75%). Escrow.com: dưới 5.000 USD người mua có thể trả bằng PayPal hoặc thẻ.
+> - Không dùng cụm "đối tác chi trả có giấy phép" và "bảo đảm thanh toán" cho N.E.D (bảng từ ngữ, `product-spec.md` mục 6): nói "đối tác chi trả ở nước ngoài (ứng viên Due, Nium; mô phỏng trong demo)" và "khóa tiền trước".
+> - Danh sách đầy đủ: [`../05-legal/pre-pitch-check-7oct.md`](../05-legal/pre-pitch-check-7oct.md).
+
 > **Về tài liệu này.** Đây là bản phân tích kinh doanh nội bộ, viết theo khung 2.1–2.5. Khung này lấy từ một mẫu của cuộc thi khác (Ra Khơi 2026), không phải yêu cầu nộp bài của UniHackFest. Theo rubric BTC gửi cho team, vòng final UniHackFest chấm bốn tiêu chí kỹ thuật (độ khó kỹ thuật; kiến trúc và chất lượng smart contract; cách dùng Solana; bằng chứng xây dựng, tài liệu và khả năng tái lập). Phần thị trường và kinh doanh không phải tiêu chí chấm điểm, nhưng vẫn cần thiết để trả lời giám khảo, để hiểu sản phẩm đang đứng ở đâu, và để định hướng sau cuộc thi.
 >
 > **Cách đọc các khẳng định.** Tài liệu tách rõ ba loại:
@@ -25,9 +32,9 @@
 - khách hàng im lặng quá hạn duyệt thì **bất kỳ ai** cũng có thể bấm giải phóng tiền cho freelancer;
 - freelancer không nộp kịp hạn thì **bất kỳ ai** cũng có thể bấm hoàn tiền cho khách hàng.
 
-Với freelancer sống ở Việt Nam, sản phẩm được thiết kế để họ nhận tiền đồng qua ngân hàng thông qua một đối tác chi trả có giấy phép, thay vì nhận đồng tiền số. Phần này **hiện đang được mô phỏng**.
+Với freelancer sống ở Việt Nam, sản phẩm được thiết kế để họ nhận tiền đồng qua ngân hàng thông qua một đối tác chi trả ở nước ngoài (ứng viên: Due, Nium) (07/10), thay vì nhận đồng tiền số. Phần này **hiện đang được mô phỏng**.
 
-**Sản phẩm đang ở trạng thái nào?** Mọi thứ chạy trên **devnet**, tức mạng thử nghiệm của Solana, dùng tiền thử không có giá trị thật. Smart contract có 21 lệnh (instruction), chưa được kiểm toán bảo mật (audit). Có hai giao diện web: một bản cho điện thoại và một bản cho máy tính (Workspace). Ngày 04/10/2026, team đã chạy trọn vòng hợp đồng (tạo → chấp nhận → khóa → nộp → duyệt → giải phóng → đóng) trên bản đã triển khai, hai lượt đều đạt. Trong mỗi lượt, một vai do người thật thao tác trên giao diện, vai còn lại chạy bằng script, vì team chỉ có một tài khoản Google. Có ba điều sản phẩm **chưa có**:
+**Sản phẩm đang ở trạng thái nào?** Mọi thứ chạy trên **devnet**, tức mạng thử nghiệm của Solana, dùng tiền thử không có giá trị thật. Smart contract (v1.3) có 27 lệnh (instruction) (07/10), chưa được kiểm toán bảo mật (audit). Có hai giao diện web: một bản cho điện thoại và một bản cho máy tính (Workspace). Ngày 04/10/2026, team đã chạy trọn vòng hợp đồng (tạo → chấp nhận → khóa → nộp → duyệt → giải phóng → đóng) trên bản đã triển khai, hai lượt đều đạt. Trong mỗi lượt, một vai do người thật thao tác trên giao diện, vai còn lại chạy bằng script, vì team chỉ có một tài khoản Google. Có ba điều sản phẩm **chưa có**:
 
 - chưa có đối tác chi trả tiền đồng thật;
 - chưa thu phí;
@@ -77,7 +84,7 @@ N.E.D đặt mình vào khoảng trống giữa cách 1 và cách 2. Ý tưởng
 
 - Upwork chỉ bảo vệ những giờ làm có theo dõi và những milestone đã được nạp tiền.
 - Để đưa một khách hàng quen ra làm việc ngoài sàn, Upwork thu phí chuyển đổi 13,5% thu nhập dự kiến của 12 tháng, tối thiểu 1.000 USD [C1, P15].
-- PayPal (kênh nhận tiền phổ biến khi làm trực tiếp) gần như không bảo vệ người bán dịch vụ trước khiếu nại kiểu "không nhận được hàng" [P18].
+- PayPal (kênh nhận tiền phổ biến khi làm trực tiếp) chỉ bảo vệ người bán dịch vụ trước khiếu nại kiểu "không nhận được hàng" khi có bằng chứng đã giao, và chính sách khác nhau theo quốc gia [P18] (07/10).
 - Luật chống trả chậm của Anh hay New York thực tế không áp dụng được cho một freelancer Việt Nam có khách ở nước ngoài. Ví dụ, luật mới của Anh miễn trừ giao dịch xuất nhập khẩu [P19].
 
 Tóm lại: **làm ngoài sàn thì rẻ hơn và tự do hơn, nhưng gần như không có lưới an toàn.**
@@ -94,16 +101,16 @@ Khi chuyển sang Việt Nam, bằng chứng mỏng đi rõ rệt:
 
   Đây là tín hiệu lịch sử, không phải số liệu hiện tại.
 - Báo chí Việt Nam có nhiều câu chuyện freelancer "bị bùng tiền", nhưng phần lớn liên quan đến **khách trong nước**, và không có số liệu tần suất [P21].
-- Các con số như "2 triệu freelancer" hay "500.000 thành viên nhóm Facebook" đến từ doanh nghiệp có lợi ích thương mại, hoặc chỉ là số người có thể tiếp cận, không phải số người thật đang làm freelance [P5].
+- Các con số như "2 triệu freelancer" hay "500.000 thành viên nhóm Facebook" đến từ doanh nghiệp có lợi ích thương mại, hoặc chỉ là số người có thể tiếp cận, không phải số người thật đang làm freelance [P5; con số 500.000 thành viên là của Thanh Niên, 07/10].
 
 Về mặt **kênh nhận tiền**, freelancer Việt Nam gặp một số bất tiện:
 
 - PayPal thu phí 4,4% cộng phí cố định, chênh lệch đổi tiền khoảng 4% [S10].
 - Người cư trú tại Việt Nam không được giữ số dư trên Wise [S11].
 
-Nhưng mức độ bất tiện này **ở khoảng giữa trong khu vực**. Upwork chuyển tiền về ngân hàng Việt Nam với phí 0,99 USD, và có ngân hàng miễn phí nhận chuyển khoản quốc tế cho cá nhân [S12]. Trong khi đó, freelancer ở Bangladesh hay Pakistan còn không dùng được PayPal [S15]. Quan trọng hơn, đây là vấn đề **phí và kênh chuyển tiền**, khác với vấn đề **niềm tin và bảo đảm thanh toán** mà Milestone Lock giải quyết.
+Nhưng mức độ bất tiện này **ở khoảng giữa trong khu vực**. Upwork chuyển tiền về ngân hàng Việt Nam với phí 0,99 USD, và có ngân hàng miễn phí nhận chuyển khoản quốc tế cho cá nhân [S12]. Trong khi đó, freelancer ở Bangladesh hay Pakistan còn không dùng được PayPal [S15]. Quan trọng hơn, đây là vấn đề **phí và kênh chuyển tiền**, khác với vấn đề **niềm tin: tiền đã được khóa trước khi bắt đầu làm** mà Milestone Lock giải quyết (07/10).
 
-Có một tín hiệu đáng chú ý: theo báo cáo của Deel (nền tảng trả lương quốc tế) năm 2026, Việt Nam đứng **thứ 5 thế giới** về tỷ lệ người làm hợp đồng (contractor) chọn nhận lương bằng stablecoin [S4]. Đây là dữ liệu của chính Deel. Nó cho thấy contractor Việt Nam có tồn tại trên các nền tảng quốc tế và có thiện cảm với tiền số, nhưng không cho biết số lượng.
+Có một tín hiệu đáng chú ý: theo báo cáo của Deel (nền tảng trả lương quốc tế) năm 2026, Việt Nam đứng **thứ 5 thế giới** trong xếp hạng mức độ dùng stablecoin của người làm hợp đồng (contractor); báo cáo chỉ đưa thứ hạng, không đưa tỷ lệ [S4] (07/10). Đây là dữ liệu của chính Deel. Nó cho thấy contractor Việt Nam có tồn tại trên các nền tảng quốc tế và có thiện cảm với tiền số, nhưng không cho biết số lượng.
 
 ### 2.1.4 Khách hàng mục tiêu: giả thuyết ban đầu và những gì còn đứng được
 
@@ -143,7 +150,7 @@ TAM, SAM, SOM là ba lớp quy mô thị trường: toàn bộ, phần có thể
 | Freelancer (mọi loại) | **Chưa biết** | Không có thống kê chính thức |
 | Freelancer làm online / dịch vụ số | **Chưa biết** | Ngân hàng Thế giới không công bố số cho Việt Nam [S2] |
 | … có khách nước ngoài | **Chưa biết** | — |
-| … làm trực tiếp, ngoài sàn | **Chưa biết** | Số tham chiếu toàn cầu của Payoneer: 71–75% tìm việc chủ yếu qua sàn, không áp được cho Việt Nam [S8] |
+| … làm trực tiếp, ngoài sàn | **Chưa biết** | Số tham chiếu toàn cầu của Payoneer (2022): 71% tìm việc chủ yếu qua sàn, không áp được cho Việt Nam [S8] |
 | … theo dự án/milestone | **Chưa biết** | — |
 | … gặp vấn đề bảo đảm thanh toán đáng kể | **Chưa biết** | Bằng chứng riêng cho Việt Nam yếu [P1] |
 | … có khách hàng chịu khóa trước bằng USDC | **Chưa biết**, nhiều khả năng nhỏ | [S19, G1–G14] |
@@ -198,13 +205,13 @@ Trước khi so sánh với đối thủ, cần hiểu N.E.D vận hành ra sao 
 | Phí N.E.D | **Không có** (chưa có dòng code thu phí nào) |
 | Giới hạn | Tối đa 1.000 USDC mỗi hợp đồng, tối đa 5 milestone |
 | Ai rút được tiền khỏi két | Không có lệnh nào cho N.E.D rút tiền. Tiền chỉ ra theo các luật ở bước 5. **Tuy nhiên**, chương trình vẫn có thể được team nâng cấp bằng khóa triển khai (upgrade authority), và khóa này hiện là một khóa đơn. Về lý thuyết, nâng cấp code thì luật cũng có thể bị thay. Kế hoạch là chuyển khóa này sang ví đa chữ ký (multisig) hoặc khóa cứng chương trình trước khi lên mainnet |
-| Tranh chấp | Khách hàng có thể mở tranh chấp trước hạn duyệt, khi đó tiền không tự giải phóng nữa. Tranh chấp chỉ kết thúc khi khách duyệt, freelancer nhượng bộ, hoặc hai bên thỏa thuận chia. **Không có trọng tài trung lập.** Phần giao diện cho tranh chấp đang ẩn |
+| Tranh chấp | Khách hàng có thể **yêu cầu chỉnh sửa (request changes)** trước hạn duyệt; khi đó không ai bấm Release now được nữa. Milestone chỉ kết thúc khi khách chấp nhận bản sửa, freelancer trả lại tiền, hoặc hai bên thỏa thuận chia; **không bao giờ tự hoàn tiền**. **Không có trọng tài trung lập.** Đã có trên Workspace (D27); ứng dụng điện thoại chưa phản hồi được yêu cầu chỉnh sửa (07/10) |
 | Trả VND | **Mô phỏng.** Tiền được giải phóng tới một ví thử nghiệm do team giữ, đóng vai đối tác. Màn hình ghi rõ "VND payout simulated". Không có đồng VND nào được trả thật |
-| Kiểm chứng | Chạy end-to-end hai lượt trên bản đã triển khai (04/10/2026); một vai là người thật, vai còn lại là script. Test lần gần nhất: 29 test milestone và 10 test identity đều đạt. **Chưa audit bảo mật** |
+| Kiểm chứng | Chạy end-to-end hai lượt trên bản đã triển khai (04/10/2026); một vai là người thật, vai còn lại là script. Test lần gần nhất (v1.3, 06/10): 54/54 test program đạt (07/10). **Chưa audit bảo mật** |
 
 **Vì sao thiết kế như vậy?** Có hai lý do chính.
 
-- **Pháp lý tại Việt Nam.** Theo Nghị định 52/2024, tiền mã hóa không phải phương tiện thanh toán hợp pháp tại Việt Nam. Mọi giao dịch tài sản mã hóa phải bằng VND và qua tổ chức được Bộ Tài chính cấp phép, mà đến cuối tháng 9/2026 chưa tìm thấy tổ chức nào được cấp phép [L1–L14, L18]. Vì vậy team chọn một thiết kế thận trọng: **freelancer ở Việt Nam không nhận USDC**, mà nhận VND qua một đối tác chi trả có giấy phép, thực hiện việc chuyển đổi ở ngoài Việt Nam. Đây là **lựa chọn thiết kế**, không phải kết luận pháp lý đã được luật sư xác nhận.
+- **Pháp lý tại Việt Nam.** Theo cách đọc của team đối với Nghị định 52/2024 (Điều 3 khoản 10–11, Điều 8 khoản 6), tiền mã hóa không nằm trong danh sách phương tiện thanh toán hợp pháp tại Việt Nam. Theo Nghị quyết 05/2025 (thí điểm), giao dịch tài sản mã hóa phải thanh toán bằng VND qua tổ chức được Bộ Tài chính cấp phép, mà đến 06/10/2026 vẫn chưa có tổ chức nào được cấp phép (07/10) [L1–L14, L18]. Vì vậy team chọn một thiết kế thận trọng: **freelancer ở Việt Nam không nhận USDC**, mà nhận VND qua một đối tác chi trả ở nước ngoài (ứng viên: Due, Nium), thực hiện việc chuyển đổi ở ngoài Việt Nam. Đây là **lựa chọn thiết kế**, không phải kết luận pháp lý đã được luật sư xác nhận.
 - **Không cần ai giữ tiền hộ.** Ý tưởng là hai bên tin vào luật được viết trong chương trình, thay vì phải tin vào một công ty trung gian. Tuy vậy, như bảng trên đã nêu, ý tưởng này chỉ đúng hoàn toàn khi quyền nâng cấp chương trình đã được khóa lại.
 
 ### 2.2.2 Người dùng hiện đang làm gì thay vì dùng N.E.D?
@@ -221,14 +228,14 @@ Trước khi so sánh với đối thủ, cần hiểu N.E.D vận hành ra sao 
 
 **2. Dịch vụ escrow truyền thống (Escrow.com).** Khách nạp đủ tiền trước. Mỗi milestone có thời gian kiểm tra từ 1 đến 30 ngày; hết hạn mà khách không phản hồi thì coi như chấp nhận và tiền được giải phóng. Tranh chấp đi tới trọng tài ràng buộc tại California [C7].
 
-*Đánh đổi:* phí tối thiểu 50 USD, không hỗ trợ VND, chỉ chuyển tiền bằng điện chuyển khoản quốc tế. Bất tiện với dự án nhỏ của freelancer Việt Nam.
+*Đánh đổi:* phí tối thiểu 50 USD, không hỗ trợ VND; giao dịch lớn chủ yếu bằng điện chuyển khoản quốc tế (dưới 5.000 USD người mua có thể dùng PayPal hoặc thẻ) (07/10). Bất tiện với dự án nhỏ của freelancer Việt Nam.
 
 **3. Nền tảng thanh toán (Payoneer, Wise, PayPal, Deel, Request Finance).** Các nền tảng này **chuyển tiền**, nhưng **không bảo đảm** khách hàng sẽ trả.
 - Payoneer đã đóng dịch vụ escrow từ năm 2018.
 - Wise cấm dùng tài khoản làm escrow.
-- Deel có loại hợp đồng theo milestone nhưng không bắt khách nạp trước [C8].
+- Deel có loại hợp đồng theo milestone; việc khách có phải nạp trước hay không **chưa kiểm chứng được** (nguồn [C8] nói về rút tiền bằng stablecoin) (07/10).
 
-Đây là kênh nhận tiền, không phải đối thủ trực tiếp về bảo đảm thanh toán.
+Đây là kênh nhận tiền, không phải đối thủ trực tiếp về việc khóa tiền trước.
 
 **4. Escrow bằng smart contract.**
 - **Worqen:** một sàn freelance trên Solana mainnet. Freelancer không mất phí, khách trả 3–5%, tranh chấp do nhân viên Worqen quyết định [C9]. Tuy nhiên số liệu sử dụng chỉ do công ty tự công bố (khoảng 37 lần chi trả, tổng khoảng 5.000 USD tính đến tháng 9/2026) và chưa kiểm chứng được on-chain [G10].
@@ -244,7 +251,7 @@ Trước khi so sánh với đối thủ, cần hiểu N.E.D vận hành ra sao 
 |---|---|---|---|---|---|---|
 | Upwork | Có | 14 ngày | Hòa giải, trọng tài | Freelancer 0–15%, khách 3–10% | Rút về ngân hàng Việt Nam 0,99 USD | Đang hoạt động |
 | Fiverr | Có | 3 ngày, cộng 14 ngày chờ tiền | Trung tâm giải quyết của sàn | Freelancer 20%, khách 5,5% | Qua Payoneer/PayPal | Đang hoạt động |
-| Contra | Có | 120 giờ | Mặc định có lợi cho freelancer sau 3 tháng | 29 USD/dự án hoặc gói trả phí | Chưa rõ | Đang hoạt động |
+| Contra | Có | 120 giờ | Tiền giữ tối đa 3 tháng khi tranh chấp; ai được nhận sau đó **chưa kiểm chứng** (07/10) | Freelancer 15–29 USD/dự án (gói miễn phí) hoặc 0 (Pro); khách trả phí xử lý (07/10) | Chưa rõ | Đang hoạt động |
 | Escrow.com | Có, toàn bộ | Hết thời gian kiểm tra | Trọng tài (California) | 2,6%, tối thiểu 50 USD | Không có VND, chỉ điện chuyển khoản | Đang hoạt động |
 | Fastlance (VN) | Có | 7 ngày | Chưa rõ | Không công bố | VND, khách trong nước | Đang hoạt động |
 | Worqen | Có (on-chain) | 7 ngày (với hóa đơn theo giờ) | Nhân viên Worqen quyết định | Khách 3–5% | Không thấy kênh chi trả tiền pháp định | Mainnet (theo công ty tự công bố) |
@@ -258,7 +265,7 @@ Nguồn: [C1–C14], [G10].
 
 **Những gì N.E.D *không* thể khẳng định:**
 
-- **Không phải sản phẩm đầu tiên hay duy nhất.** Khóa tiền trước, tự giải phóng khi hết hạn, hoàn tiền khi trễ hạn: mỗi cơ chế này đều đã có ở ít nhất một sản phẩm khác [C16].
+- **Không phải sản phẩm đầu tiên hay duy nhất.** Khóa tiền trước, giải phóng khi khách im lặng quá hạn, hoàn tiền khi trễ hạn: mỗi cơ chế này đều đã có ở ít nhất một sản phẩm khác [C16].
 - **Không rẻ hơn một cách bền vững.** Phí 0 hiện tại chỉ vì phiên bản thử nghiệm chưa thu phí. Ngoài ra, dịch vụ chuyển USDC thành VND sẽ có chi phí riêng, hiện chưa biết.
 - **Không đơn giản hơn với khách hàng phổ thông.** Khách phải có USDC trên Solana, trong khi Escrow.com hay Upwork nhận thẻ hoặc chuyển khoản ngân hàng.
 - **Không bảo vệ freelancer mạnh hơn trong mọi tình huống.** Khi khách hàng mở tranh chấp, N.E.D không có trọng tài. Freelancer chỉ có thể chờ, thương lượng hoặc nhượng bộ. Trong khi đó, Contra và Worqen mặc định trả cho freelancer khi tranh chấp bị treo quá lâu, còn Escrow.com và Kleros có trọng tài.
@@ -284,7 +291,7 @@ Trong số các sản phẩm đã khảo sát, **chưa tìm thấy** sản phẩ
 | **Không có trọng tài trung lập** | Khách hàng có thể chặn việc giải phóng tiền bằng cách mở tranh chấp, đi ngược lời hứa "tiền không bị giữ tùy tiện" | Team đã ghi nhận và công khai giới hạn này (quyết định D11). Thiết kế trọng tài cần được xem xét về pháp lý |
 | **Sản phẩm hai phía** | Phải thuyết phục được cả freelancer lẫn khách hàng ở nước ngoài | Chưa có kênh tiếp cận khách hàng nào được kiểm chứng (xem 2.3) |
 | **Phụ thuộc đối tác chi trả VND** | Không có đối tác thì không có VND thật | Đã gửi câu hỏi cho Due và Nium ngày 02/10/2026; chưa ghi nhận phản hồi. Nium có tài liệu công khai về nhận USDC và chi VND qua NAPAS/ví điện tử [M9, M10] |
-| **Pháp lý chưa rõ** | Nghị định 284/2026 phạt hành vi "cung cấp dịch vụ liên quan đến tài sản mã hóa" và "quảng cáo, tiếp thị liên quan đến tài sản mã hóa" khi chưa có giấy phép, mức 180–200 triệu đồng (Điều 7 khoản 4) [R1-3]. Chưa rõ một phần mềm khóa và giải phóng USDC có thuộc phạm vi này không | Chỉ chạy devnet, không thu phí, freelancer Việt Nam không nhận USDC. **Cần ý kiến luật sư Việt Nam** trước khi lên mainnet |
+| **Pháp lý chưa rõ** | Nghị định 284/2026 phạt hành vi "cung cấp dịch vụ liên quan đến tài sản mã hóa" và "quảng cáo, tiếp thị liên quan đến tài sản mã hóa" khi chưa có giấy phép, mức 180–200 triệu đồng với **tổ chức**, cá nhân bằng một nửa (Điều 7 khoản 4) [R1-3] (07/10). Chưa rõ một phần mềm khóa và giải phóng USDC có thuộc phạm vi này không | Chỉ chạy devnet, không thu phí, freelancer Việt Nam không nhận USDC. **Cần ý kiến luật sư Việt Nam** trước khi lên mainnet |
 | **Chưa sẵn sàng cho tiền thật** | Chưa audit; quyền nâng cấp là khóa đơn; chưa có cơ chế trả hộ phí giao dịch; chưa có KYC | Đã có trong kế hoạch (xem 2.4) |
 
 > **Kết luận của phần này**
@@ -310,7 +317,7 @@ N.E.D hiện **không thu bất kỳ khoản phí nào** và không có dòng co
 | **Trả cho cái gì?** | Cho việc dùng cơ chế khóa tiền theo milestone, giải phóng và hoàn tiền theo luật | Kế hoạch |
 | **Khi nào?** | Khi một milestone được giải phóng | Kế hoạch |
 | **Bao nhiêu?** | 1% số tiền được giải phóng (team có xem thêm kịch bản 2%) | Kế hoạch, chưa kiểm chứng mức sẵn lòng chi trả |
-| **Vì sao khách có thể chịu trả?** | Giả thuyết: (a) để chứng tỏ cam kết và thu hút freelancer tốt; (b) để được hoàn tiền tự động nếu freelancer không giao bài; (c) vì rẻ hơn phí của sàn | **Chưa có bằng chứng.** Nghiên cứu không tìm thấy dữ liệu cho thấy khách hàng muốn cung cấp bảo đảm thanh toán để thu hút freelancer [S18] |
+| **Vì sao khách có thể chịu trả?** | Giả thuyết: (a) để chứng tỏ cam kết và thu hút freelancer tốt; (b) để được hoàn tiền nếu freelancer không giao bài đúng hạn; (c) vì rẻ hơn phí của sàn | **Chưa có bằng chứng.** Nghiên cứu không tìm thấy dữ liệu cho thấy khách hàng muốn cung cấp bảo đảm thanh toán để thu hút freelancer [S18] |
 
 **Các dòng doanh thu khác team từng nêu** (đều là giả định, chưa có bằng chứng về nhu cầu):
 - gói thuê bao cho agency có nhiều freelancer;
@@ -321,21 +328,21 @@ N.E.D hiện **không thu bất kỳ khoản phí nào** và không có dòng co
 
 | Lựa chọn | Khách hàng trả | Freelancer trả |
 |---|---|---|
-| Upwork | khoảng 50 USD (5%) + phí khởi tạo hợp đồng | 0–150 USD |
+| Upwork | 30–100 USD (3–10%) + phí khởi tạo hợp đồng (07/10) | 0–150 USD |
 | Fiverr | 55 USD | 200 USD |
 | Escrow.com | tối thiểu 50 USD | — |
-| Contra | 2–29 USD mỗi dự án | 0 |
+| Contra | phí xử lý: tối đa 5 USD (ACH) đến khoảng 29 USD (thẻ) | 29 USD (gói miễn phí) hoặc 0 (Pro) (07/10) |
 | **N.E.D (kế hoạch)** | **10 USD** (1%) | 0 cho N.E.D |
 
 Nguồn: [C1–C7], bảng phí trong research của team.
 
 Bảng này cho thấy **nếu** thu 1%, N.E.D có phí thấp hơn Upwork, Fiverr và Escrow.com với milestone cỡ này. Có ba lưu ý quan trọng khiến **không được** kết luận "N.E.D rẻ hơn":
 
-1. Chưa tính **phí của đối tác chuyển USDC thành VND**. Giá của các ứng viên (Due, Nium) không công bố. Tham chiếu công khai của Stripe cho chi trả về Việt Nam là khoảng 1,50 USD + 1% + 1% phí đổi tiền, tức khoảng 21,50 USD trên 1.000 USD (số liệu team đã xác minh).
+1. Chưa tính **phí của đối tác chuyển USDC thành VND**. Giá của các ứng viên (Due, Nium) không công bố. Tham chiếu công khai của Stripe cho chi trả về Việt Nam là khoảng 1,50 USD + 1% + 1% phí đổi tiền, tức khoảng 21,50 USD trên 1.000 USD nếu người gửi ở Mỹ; người gửi ngoài Mỹ chịu 2% phí đổi tiền, khoảng 31,50 USD (07/10).
 2. Chưa tính **chi phí để khách hàng có USDC** (mua, chuyển vào ví).
-3. Contra có mức phí ngang hoặc thấp hơn, và đã có khách hàng.
+3. Contra có tổng phí ngang hoặc thấp hơn (đặc biệt với gói Pro của freelancer), và đã có khách hàng.
 
-Với chuyển tiền thông thường, N.E.D **không rẻ hơn Wise**. Chính tài liệu của team cũng ghi nhận điều này. Nếu có giá trị, thì giá trị nằm ở **bảo đảm thanh toán**, không phải ở giá.
+Với chuyển tiền thông thường, N.E.D **không rẻ hơn Wise**. Chính tài liệu của team cũng ghi nhận điều này. Nếu có giá trị, thì giá trị nằm ở **tiền được khóa trước theo luật viết sẵn**, không phải ở giá (07/10).
 
 ### 2.3.4 Chi phí N.E.D phải gánh
 
@@ -408,16 +415,16 @@ Team từng lên kế hoạch một khảo sát người dùng, với ngưỡng 
 
 Phần này không phải danh sách việc cần làm chung chung cho một startup. Mỗi hoạt động dưới đây xuất phát từ **một khoảng trống cụ thể** đã được xác định ở các phần trước. Bảng đầu tiên tóm tắt những gì đã làm xong, để thấy điểm xuất phát.
 
-### 2.4.1 Đã làm được gì (sự thật sản phẩm, tính đến 04/10/2026)
+### 2.4.1 Đã làm được gì (sự thật sản phẩm, tính đến 04/10/2026; cập nhật 07/10)
 
 | Hạng mục | Hiện trạng |
 |---|---|
-| Smart contract | Chương trình `ned_program` (v1.2, 21 lệnh) trên **devnet**: hợp đồng milestone, két do chương trình quản lý, giải phóng và hoàn tiền theo thời hạn, tranh chấp ở tầng chương trình, định danh @username, đăng ký khóa thiết bị |
-| Kiểm thử | 29 test milestone và 10 test identity đạt ở lần ghi nhận gần nhất (v1.2); test thư viện dùng chung 100/100; smoke test trên devnet đạt; chạy end-to-end 2 lượt đạt (04/10/2026), một vai là người thật, vai còn lại là script; chưa có lượt nào với hai người dùng thật |
+| Smart contract | Chương trình `ned_program` (v1.3, 27 lệnh, 53 mã lỗi, 24 event) trên **devnet**: hợp đồng milestone, két do chương trình quản lý, giải phóng và hoàn tiền theo thời hạn, yêu cầu chỉnh sửa, định danh @username, đăng ký khóa thiết bị, **Funded Jobs** (đăng việc kèm ngân sách đã khóa, ứng tuyển, chọn người) (07/10) |
+| Kiểm thử | 54/54 test program đạt ở lần ghi nhận gần nhất (v1.3, 06/10) (07/10); test thư viện dùng chung 100/100; smoke test trên devnet đạt; chạy end-to-end 2 lượt đạt (04/10/2026), một vai là người thật, vai còn lại là script; chưa có lượt nào với hai người dùng thật |
 | Giao diện | Ứng dụng web cho điện thoại (GitHub Pages) và Workspace cho máy tính (Vercel). Đăng nhập Google qua Dynamic. Có giao diện cho người ở Việt Nam (hiển thị VND ước tính) và giao diện quốc tế |
 | Bảo mật nội dung | Brief và bài nộp mã hóa đầu cuối; khóa được chia sẻ tự động giữa các thiết bị đã đăng ký |
-| Tài liệu kỹ thuật | Đặc tả chương trình v1.2 đầy đủ; hướng dẫn build, test, deploy |
-| Đang ẩn hoặc tắt | Giao diện tranh chấp; swap và xStocks (tính năng của sản phẩm cũ, vẫn còn code) |
+| Tài liệu kỹ thuật | Đặc tả chương trình v1.3 đầy đủ (07/10); hướng dẫn build, test, deploy |
+| Đang ẩn hoặc tắt | Swap và xStocks (tính năng của sản phẩm cũ, vẫn còn code) |
 
 ### 2.4.2 Các hoạt động cần làm, theo khoảng trống
 
@@ -459,8 +466,8 @@ Phần này không phải danh sách việc cần làm chung chung cho một sta
 
 | Khoảng trống | Hoạt động |
 |---|---|
-| README vẫn mô tả sản phẩm ví cũ; số liệu sai (17 lệnh thay vì 21, 708 byte thay vì 740, 24 test thay vì 29) | Cập nhật README theo Milestone Lock |
-| `ARCHITECTURE.md` lỗi thời | Cập nhật theo v1.2 và Workspace |
+| README vẫn mô tả sản phẩm ví cũ; số liệu sai (17 lệnh thay vì 27, 708 byte thay vì 740, 24 test thay vì 54) (07/10) | Cập nhật README theo Milestone Lock |
+| `ARCHITECTURE.md` lỗi thời | Cập nhật theo v1.3, Workspace và N.E.D Jobs |
 | Ảnh chụp màn hình là của sản phẩm cũ | Thay bằng ảnh của Milestone Lock |
 | README ghi giấy phép MIT nhưng không có file LICENSE | Thêm file hoặc sửa lại dòng ghi |
 | Tổng số test của v1.2 chưa được ghi đầy đủ | Chạy lại toàn bộ test và ghi kết quả |
@@ -552,7 +559,7 @@ Phân tích này chỉ dựa trên nghiên cứu tại bàn (desk research), s�
 3. **Bằng chứng về việc khách hàng tự nguyện khóa tiền.** Không tìm thấy bằng chứng công khai về mức sử dụng đáng kể. Một số nguồn on-chain (Worqen, Trustless Work, Kleros, Smart Invoice) chưa được truy vấn đầy đủ. Vì vậy "không tìm thấy bằng chứng" **không có nghĩa** là "chắc chắn không có".
 4. **Quy mô thị trường.** Không tính được TAM/SAM/SOM; các tầng từ "freelancer" trở xuống đều chưa biết.
 5. **Mức sẵn lòng dùng USDC của khách hàng.** Dữ liệu về stablecoin trong doanh nghiệp chủ yếu đến từ Mỹ và các khảo sát có cỡ mẫu vừa phải.
-6. **Diễn giải pháp lý.** Nguyên văn Nghị định 284/2026 được đọc qua các bản sao pháp lý uy tín; bản gốc là file scan không đọc được bằng máy. Chưa rõ mức phạt ở Điều 9 áp cho cá nhân hay tổ chức. Mọi đánh giá về việc N.E.D có thuộc phạm vi cấp phép hay không đều **cần luật sư Việt Nam**.
+6. **Diễn giải pháp lý.** Nguyên văn Nghị định 284/2026 được đọc qua các bản sao pháp lý uy tín; bản gốc là file scan không đọc được bằng máy. (07/10) Theo Điều 4 khoản 2, mức phạt chung trong Nghị định là cho tổ chức và cá nhân chịu một nửa; riêng mức 30–50 triệu ở Điều 9 khoản 1 được báo chí mô tả là cho cá nhân giao dịch ngoài tổ chức được cấp phép ([VnEconomy](https://vneconomy.vn/phat-den-50-trieu-dong-voi-ca-nhan-giao-dich-tai-san-ma-hoa-khong-qua-don-vi-duoc-cap-phep.htm)). Cần đọc bản gốc trước khi trích dẫn. Mọi đánh giá về việc N.E.D có thuộc phạm vi cấp phép hay không đều **cần luật sư Việt Nam**.
 7. **Giá của đối tác chi trả.** Due và Nium không công bố giá. Tham chiếu duy nhất là bảng giá của Stripe.
 8. **Không có doanh thu hay giao dịch thật.** Mọi hoạt động diễn ra trên mạng thử nghiệm với tiền không có giá trị.
 9. **Số liệu do công ty tự công bố.** Một số số liệu về đối thủ và thị trường (Worqen, Deel, Bonsai, Remote, PayPal) do chính các công ty công bố, chưa được kiểm chứng độc lập.
@@ -565,7 +572,7 @@ Phân tích này chỉ dựa trên nghiên cứu tại bàn (desk research), s�
 Mã nguồn tương ứng với các mục trong `NED_Evidence_Base.md`.
 
 **Sản phẩm (sự thật sản phẩm)**
-- Repo `Tdat10052499/Unihackfest-2026`, `main` @ `3a1564a`: `ned_program/` (21 lệnh, v1.2), `docs/09-milestone-lock/` (product-spec, program-spec, decision log), `docs/tong-hop-tien-do.md` (kết quả test, D1, thông tin devnet), `docs/08-research/ned-research-and-compliance.md` (bảng phí, kế hoạch GTM của team) — https://github.com/Tdat10052499/Unihackfest-2026
+- Repo `Tdat10052499/Unihackfest-2026`, `main` @ `3a1564a`: `ned_program/` (21 lệnh, v1.2; nay là v1.3, 27 lệnh, 07/10), `docs/09-milestone-lock/` (product-spec, program-spec, decision log), `docs/tong-hop-tien-do.md` (kết quả test, D1, thông tin devnet), `docs/08-research/ned-research-and-compliance.md` (bảng phí, kế hoạch GTM của team) — https://github.com/Tdat10052499/Unihackfest-2026
 
 **Vấn đề (Q1: P1–P23)**
 - [P1] PayPal Global Freelancer Survey (10/2017) — https://www.matterhorncommunications.com/half-freelancers-surveyed-four-southeast-asia-markets-experienced-not-paid-paypal-global-freelancer-survey/
