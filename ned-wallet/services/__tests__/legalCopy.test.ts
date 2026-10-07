@@ -28,7 +28,7 @@ test('copy rules: no payment, escrow, safe, guaranteed or licensed partner', () 
   assert.doesNotMatch(text, /\bpay\b|escrow|\bsafe\b|guaranteed|licensed partner/i);
   // CL review 7 Oct: the "not a payment service" line is gone, so "payment" appears nowhere
   assert.equal(text.match(/payment\w*/gi), null);
-  assert.match(all(TERMS), /not a bank or an exchange, and no one at N\.E\.D can move locked funds/);
+  assert.match(all(TERMS), /not a bank or an exchange, and no instruction in the program lets anyone at N\.E\.D move locked funds/);
 });
 
 test('A4: the Vietnam paragraph is precise (no "never hold crypto"; USDC, signing and test SOL named)', () => {
@@ -46,9 +46,9 @@ test('A4: the fee disclosure shows no SOL amount', async () => {
   assert.doesNotMatch(fees?.body ?? '', /\d/);
 });
 
-test('H4: the Disclosures list is shared and keeps its twelve lines, disputes line by flag', async () => {
+test('H4: the Disclosures list is shared (thirteen lines with the upgrade line, F11), disputes line by flag', async () => {
   const { disclosureItems } = await import('../legalCopy.ts');
-  assert.equal(disclosureItems(false).length, 12);
+  assert.equal(disclosureItems(false).length, 13);
   assert.equal(disclosureItems(false).find((d) => d.id === 'disputes')?.title, 'No disputes in this demo');
   assert.equal(disclosureItems(true).find((d) => d.id === 'disputes')?.title, 'No neutral arbiter');
 });

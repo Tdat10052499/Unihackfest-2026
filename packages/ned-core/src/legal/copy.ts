@@ -3,7 +3,8 @@
 // funded-jobs-plan.md section 9; review-decision-plan.md section 4; U5 + U6), moved here in H4 without rewording.
 // H4 adds the Disclosures document (the phone app's Disclosures list) and the Job posting rules (board WebJobsLegal).
 // 7 Oct (CL review, docs/05-legal/cl-review-7oct.md): Terms 1.1 (no "payment service" line; A4 Vietnam wording), fee line
-// without a SOL amount, job rules (Vietnam view, no listing review, devnet accept window).
+// without a SOL amount, job rules (Vietnam view, no listing review, devnet accept window). Audit 7 Oct: "no instruction"
+// wording (the deploy wallet can still upgrade the program) and a Disclosures line for the upgrade authority (F11).
 // Pure data so it can be tested; change it only with the compliance lead.
 
 export interface LegalSection {
@@ -60,13 +61,13 @@ export const TERMS: LegalSection[] = [
   {
     title: 'What N.E.D is',
     body: [
-      'Software that lets a client lock test USDC per milestone in a Solana program and release it to the freelancer, or refund it to the client after a missed deadline. N.E.D holds no funds, converts nothing and charges no fee.',
+      'Software that lets a client lock test USDC per milestone in a Solana program and release it to the destination the freelancer chose, or refund it to the client after a missed deadline. N.E.D holds no funds, converts nothing and charges no fee.',
     ],
   },
   {
     title: 'What N.E.D is not',
     body: [
-      'It is not a bank or an exchange, and no one at N.E.D can move locked funds. N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
+      'It is not a bank or an exchange, and no instruction in the program lets anyone at N.E.D move locked funds. N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
     ],
   },
   {
@@ -177,6 +178,8 @@ export function disclosureItems(disputesOn: boolean): DisclosureItem[] {
     { id: 'kyc', title: 'No KYC yet', body: 'N.E.D does not check anyone’s identity in this version.' },
     { id: 'phone', title: 'Phone numbers are not verified', body: 'We don’t send a code. A number on a profile may not belong to that person.' },
     { id: 'audit', title: 'The program is not audited', body: 'The Solana program that locks and releases USDC has not had a security audit.' },
+    // F11: no instruction moves locked funds for N.E.D, but the upgrade authority is still the team's deploy wallet
+    { id: 'upgrade', title: 'The team can still upgrade the program', body: 'Until the final, the team’s deploy wallet can upgrade the Solana program to fix bugs. Before any mainnet launch it moves to a multisig, or the program is made unchangeable.' },
     { id: 'partner', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank.' },
     { id: 'fees', title: 'Network fees use test SOL', body: 'Each action you sign has a small network fee, paid in test SOL on devnet, which has no value. N.E.D charges no fee during the pilot.' },
     { id: 'disputes', ...disputeDisclosure(disputesOn) },

@@ -10,7 +10,7 @@ test('one source: the four documents of /jobs/legal, in order, built from the sh
   assert.deepEqual(docs.map((d) => d.id), [...LEGAL_DOC_IDS]);
   assert.equal(docs[0].sections, TERMS);
   assert.equal(docs[1].sections, PRIVACY);
-  assert.equal(docs[2].sections.length, 12);
+  assert.equal(docs[2].sections.length, 13);
   assert.equal(docs[3].sections, JOB_POSTING_RULES);
   assert.equal(typeof core.legalDocs, 'function', 'exported from @ned/core');
 });
@@ -32,4 +32,10 @@ test('job posting rules: Vietnam view cannot post, no listing review, devnet acc
   assert.match(r, /The Vietnam view cannot post jobs or lock funds/);
   assert.match(r, /N\.E\.D does not review or approve listings/);
   assert.match(r, /2 minutes to accept on devnet \(48 hours planned for launch\)/);
+});
+
+test('F11: the upgrade authority is disclosed, and no text says "no one at N.E.D can move" funds', () => {
+  assert.match(text(disclosuresDoc(true)), /The team can still upgrade the program/);
+  const all = legalDocs(true).map((d) => text(d.sections)).join(' ');
+  assert.doesNotMatch(all, /no one at N\.E\.D can move|Nobody, including N\.E\.D/i);
 });

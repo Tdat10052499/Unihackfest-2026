@@ -17,6 +17,7 @@ const ICONS: Record<string, Icon> = {
   kyc: 'user-x',
   phone: 'phone-off',
   audit: 'shield-off',
+  upgrade: 'tool',
   partner: 'repeat',
   fees: 'zap',
   disputes: 'pause-circle',

@@ -1,6 +1,6 @@
 // Review a milestone (MilestoneReview / MilestoneReleased boards + build-plan B1): the delivery (links, note, file
 // fingerprints) decrypted from the contract, "On time" from submitted_at, "Same delivery that was submitted ✓" or
-// "Does not match what was submitted", the auto-release countdown, a local check of the "Done when" points,
+// "Does not match what was submitted", the Release now countdown (D26: no "auto-release" wording), a local check of the "Done when" points,
 // itemised fees, slide to release, then the result. Dispute only with FEATURES.dispute (P1).
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -134,8 +134,8 @@ export default function ReviewScreen() {
             {ms.status === 'submitted' ? (
               <View accessibilityRole="timer" style={r.timer}>
                 <Text style={r.timerText}>
-                  Auto-release in <Text style={r.mono}>{formatCountdown(Math.max(0, ms.reviewBy + 1 - now))}</Text>
-                  {FEATURES.dispute ? ' unless you dispute' : ' unless you release it sooner'}
+                  Release now opens in <Text style={r.mono}>{formatCountdown(Math.max(0, ms.reviewBy + 1 - now))}</Text>
+                  {FEATURES.dispute ? ' unless you request changes' : ' unless you release it sooner'}
                 </Text>
               </View>
             ) : null}
