@@ -32,6 +32,8 @@ export interface FixtureJob {
   selectedAt?: number;
   fund?: PublicKey;
   applicationCount?: number;
+  /** v1.4: byte 544 (1 = locks when hired) */
+  unfunded?: boolean;
 }
 
 export function jobBytes(f: FixtureJob = {}): Uint8Array {
@@ -64,6 +66,7 @@ export function jobBytes(f: FixtureJob = {}): Uint8Array {
   b.writeUInt16LE(f.applicationCount ?? 0, 540);
   b[542] = 254;
   b[543] = 253;
+  b[544] = f.unfunded ? 1 : 0;
   return b;
 }
 

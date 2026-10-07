@@ -6,7 +6,9 @@ import { Buffer } from 'buffer';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { IDL_PROGRAM_ID } from '../constants.ts';
 import { JOB_CONTRACT_LOCK, runAccept, runFundAction, runLockFromJob, type ActionEnv } from '../actions.ts';
-import { runSelectJob } from '../jobs/actions.ts';
+import { NEED_USDC_TO_LOCK, POST_JOB_VN_REFUSED, runPostJob, runSelectJob } from '../jobs/actions.ts';
+import { ata } from '../chain/ata.ts';
+import { USDC_DEVNET_MINT } from '../constants.ts';
 import { buildJobBriefTxs, jobBriefBytes } from '../jobs/brief.ts';
 import { jobAppPda } from '../jobs/pda.ts';
 import { coder } from '../milestone/decode.ts';
@@ -127,3 +129,72 @@ test('re-select after the accept window closes the previous contract before crea
   assert.ok(conn.sent.some((names) => names.includes('create_fund') && names.at(-1) === 'select_job'));
 });
 
+
+// ---- v1.4 (D29): lock at hire ----
+
+/** A USDC token account holding `units` (amount at offset 64) */
+const usdcAccount = (owner: PublicKey, units: bigint) => {
+  const b = Buffer.alloc(165);
+  USDC_DEVNET_MINT.toBuffer().copy(b, 0);
+  owner.toBuffer().copy(b, 32);
+  b.writeBigUInt64LE(units, 64);
+  return Uint8Array.from(b);
+};
+const usdcOf = (units: bigint): [string, Uint8Array] => [ata(USDC_DEVNET_MINT, business.publicKey).toBase58(), usdcAccount(business.publicKey, units)];
+const TEMPLATE = [{ amount: 1_000_000_000n, workSecs: 600, reviewSecs: 120 }];
+
+test('runSelectJob on an unfunded listing: fund_job + create_fund + select_job in one transaction', async () => {
+  const listing = jobBytes({ business: business.publicKey, applicationCount: 1, briefHash, milestones: TEMPLATE, unfunded: true });
+  const conn = selectChain(listing, [usdcOf(1_000_000_000n)]);
+  await runSelectJob(env(business, conn), JOB.toBase58(), freelancer.publicKey.toBase58());
+  assert.deepEqual(conn.sent[0], ['fund_job', 'create_fund', 'select_job']);
+  assert.ok(conn.sent.slice(1).every((names) => !names.includes('select_job') && !names.includes('fund_job')), 'select_job never alone');
+});
+
+test('runSelectJob on a funded listing sends no fund_job (v1.3 order unchanged)', async () => {
+  const listing = jobBytes({ business: business.publicKey, applicationCount: 1, briefHash, milestones: TEMPLATE });
+  const conn = selectChain(listing, [usdcOf(0n)]);
+  await runSelectJob(env(business, conn), JOB.toBase58(), freelancer.publicKey.toBase58());
+  assert.deepEqual(conn.sent[0], ['create_fund', 'select_job']);
+});
+
+test('runSelectJob on an unfunded listing refuses before signing when the wallet holds less than the total', async () => {
+  const listing = jobBytes({ business: business.publicKey, applicationCount: 1, briefHash, milestones: TEMPLATE, unfunded: true });
+  const conn = selectChain(listing, [usdcOf(999_999_999n)]);
+  await assert.rejects(runSelectJob(env(business, conn), JOB.toBase58(), freelancer.publicKey.toBase58()), (e: Error) => e.message === NEED_USDC_TO_LOCK(1_000_000_000n));
+  assert.equal(NEED_USDC_TO_LOCK(1_000_000_000n), 'You need 1,000.00 USDC to lock this budget when you select.');
+  assert.deepEqual(conn.sent, []);
+  // No USDC account at all
+  const none = selectChain(listing);
+  await assert.rejects(runSelectJob(env(business, none), JOB.toBase58(), freelancer.publicKey.toBase58()), /to lock this budget when you select/);
+});
+
+const postDraft = {
+  title: 'Logo for a café',
+  summary: 'A simple logo and two colour variants.',
+  category: 0,
+  skills: [0],
+  milestones: [{ amountUsdc: '10', workSecs: 3 * 86_400, reviewSecs: 86_400 }],
+  brief: BRIEF,
+  applyBy: T0 + 86_400,
+  selectBy: T0 + 2 * 86_400,
+};
+
+test('runPostJob: post_job by default (balance checked), post_job_open with lockNow false (no balance needed); Vietnam refused', async () => {
+  const locked = chain(new Map([usdcOf(10_000_000n)]), []);
+  const r1 = await runPostJob(env(business, locked), postDraft, 'intl');
+  assert.deepEqual(locked.sent[0], ['post_job']);
+  assert.equal(r1.locked, true);
+
+  const poor = chain(new Map([usdcOf(0n)]), []);
+  await assert.rejects(runPostJob(env(business, poor), postDraft, 'intl'), /You need 10.00 USDC to publish this job/);
+  const open = chain(new Map([usdcOf(0n)]), []);
+  const r2 = await runPostJob(env(business, open), postDraft, 'intl', undefined, { lockNow: false });
+  assert.deepEqual(open.sent[0], ['post_job_open']);
+  assert.ok(open.sent.slice(1).every((names) => names.every((n) => n === 'post_job_brief')), 'then the public brief');
+  assert.equal(r2.locked, false);
+
+  const vn = chain(new Map(), []);
+  await assert.rejects(runPostJob(env(business, vn), postDraft, 'vn', undefined, { lockNow: false }), (e: Error) => e.message === POST_JOB_VN_REFUSED);
+  assert.deepEqual(vn.sent, []);
+});

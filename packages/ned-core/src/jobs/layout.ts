@@ -1,5 +1,5 @@
-// JobListing and JobApplication byte layout and program constants (program v1.3, funded-jobs-plan.md sections 4.1–4.2,
-// program-spec.md section 10). Mirrors ned_program/src/state/job.rs; change both together.
+// JobListing and JobApplication byte layout and program constants (program v1.4, funded-jobs-plan.md sections 4.1–4.2,
+// program-spec.md sections 10 and 11). Mirrors ned_program/src/state/job.rs; change both together.
 
 /** JobListing account size, discriminator included */
 export const JOB_LISTING_SIZE = 576;
@@ -27,6 +27,8 @@ export const JOB_OFFSET_SELECTED = 468;
 export const JOB_OFFSET_SELECTED_AT = 500;
 export const JOB_OFFSET_FUND = 508;
 export const JOB_OFFSET_APPLICATION_COUNT = 540;
+/** v1.4 (D29): 1 = "locks when hired" (nothing locked yet), 0 = budget in the job vault; every v1.3 listing reads 0 */
+export const JOB_OFFSET_UNFUNDED = 544;
 
 // JobApplication offsets
 export const APP_OFFSET_JOB = 9;

@@ -14,6 +14,7 @@ import {
   JOB_OFFSET_CATEGORY,
   JOB_OFFSET_FUND,
   JOB_OFFSET_STATE,
+  JOB_OFFSET_UNFUNDED,
   JOB_STATES,
 } from './layout.ts';
 
@@ -59,10 +60,14 @@ async function applications(conn: ListConnection, filters: GetProgramAccountsFil
   return out.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** Open listings (state at 9), optionally one category (at 42); newest first */
-export function listOpenJobs(opts: { category?: number } = {}, conn: ListConnection = getConnection()) {
+/**
+ * Open listings (state at 9), optionally one category (at 42) and "funded only" (v1.4: unfunded byte 0 at 544, off by
+ * default); newest first
+ */
+export function listOpenJobs(opts: { category?: number; fundedOnly?: boolean } = {}, conn: ListConnection = getConnection()) {
   const filters: GetProgramAccountsFilter[] = [{ memcmp: { offset: JOB_OFFSET_STATE, bytes: byte(JOB_STATES.indexOf('Open')) } }];
   if (opts.category !== undefined) filters.push({ memcmp: { offset: JOB_OFFSET_CATEGORY, bytes: byte(opts.category) } });
+  if (opts.fundedOnly) filters.push({ memcmp: { offset: JOB_OFFSET_UNFUNDED, bytes: byte(0) } });
   return listings(conn, filters);
 }
 

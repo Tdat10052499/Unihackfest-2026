@@ -31,6 +31,7 @@ export function listing(over: Partial<JobListingAccount> = {}): JobListingAccoun
     applicationCount: 0,
     bump: 255,
     vaultBump: 254,
+    unfunded: false,
     ...over,
   };
 }

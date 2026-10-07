@@ -68,3 +68,15 @@ test('getJob and getApplication return null for a missing or foreign account', a
   assert.equal(await getApplication(JOB_ADDRESS, FREELANCER, conn(null)), null);
   assert.ok((await getApplication(JOB_ADDRESS, FREELANCER, conn({ owner: IDL_PROGRAM_ID, data: applicationBytes() })))?.freelancer.equals(FREELANCER));
 });
+
+test('listOpenJobs fundedOnly adds unfunded == 0 at 544; off by default', async () => {
+  const { calls, conn } = mock([]);
+  await listOpenJobs({ fundedOnly: true }, conn);
+  await listOpenJobs({ category: 2, fundedOnly: true }, conn);
+  await listOpenJobs({ fundedOnly: false }, conn);
+  const state = { memcmp: { offset: 9, bytes: bs58.encode([0]) } };
+  const funded = { memcmp: { offset: 544, bytes: bs58.encode([0]) } };
+  assert.deepEqual(calls[0].filters, [...LISTING, state, funded]);
+  assert.deepEqual(calls[1].filters, [...LISTING, state, { memcmp: { offset: 42, bytes: bs58.encode([2]) } }, funded]);
+  assert.deepEqual(calls[2].filters, [...LISTING, state]);
+});

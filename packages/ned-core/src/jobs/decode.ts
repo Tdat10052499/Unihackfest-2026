@@ -46,6 +46,8 @@ export interface JobListingAccount {
   applicationCount: number;
   bump: number;
   vaultBump: number;
+  /** v1.4 (D29): true = "locks when hired", nothing in the job vault yet (post_job_open); false = budget locked */
+  unfunded: boolean;
 }
 
 export interface JobApplicationAccount {
@@ -101,6 +103,7 @@ export function decodeJobListing(address: PublicKey, data: Uint8Array): JobListi
     applicationCount: j.application_count,
     bump: j.bump,
     vaultBump: j.vault_bump,
+    unfunded: j.unfunded === 1,
   };
 }
 

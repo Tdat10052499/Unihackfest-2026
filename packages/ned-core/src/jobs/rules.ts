@@ -20,12 +20,30 @@ export const acceptWindowOver = (job: JobListingAccount, now: number) => now > j
 export const canApply = (job: JobListingAccount, me: Wallet, now: number, alreadyApplied = false) =>
   job.state === 'Open' && now <= job.applyBy && !same(job.business, me) && !alreadyApplied;
 
-/** The business, before select_by: an open listing with applicants, or a re-select after the accept window */
+/** v1.4 (D29): the budget is in the job vault (post_job, or fund_job at selection); every v1.3 listing is funded */
+export const isFunded = (job: JobListingAccount) => !job.unfunded;
+
+/** Chip text for cards and the detail page (lock-at-hire-plan.md section 3) */
+export const fundedLabel = (job: JobListingAccount) => (isFunded(job) ? 'Budget locked' : 'Locks when hired');
+
+/** fund_job (program check): the business, an Open listing that is not funded yet, before select_by */
+export const canFundJob = (job: JobListingAccount, me: Wallet, now: number) =>
+  same(job.business, me) && job.state === 'Open' && job.unfunded && now <= job.selectBy;
+
+/**
+ * The business, before select_by: an open listing with applicants, or a re-select after the accept window. An unfunded
+ * listing ("locks when hired") is only selectable when fund_job can go first in the same transaction (runSelectJob
+ * does that); select_job alone is refused by the program (JobNotFunded).
+ */
 export const canSelect = (job: JobListingAccount, me: Wallet, now: number) =>
   same(job.business, me) &&
   now <= job.selectBy &&
   job.applicationCount > 0 &&
-  (job.state === 'Open' || (job.state === 'Selected' && acceptWindowOver(job, now)));
+  (job.state === 'Open' || (job.state === 'Selected' && acceptWindowOver(job, now))) &&
+  (isFunded(job) || canFundJob(job, me, now));
+
+/** True when selecting this listing locks its budget in the same transaction (fund_job + create_fund + select_job) */
+export const selectLocksBudget = (job: JobListingAccount) => !isFunded(job);
 
 /** The business: open with no applicants (any time) or after select_by; selected, after select_by and the accept window */
 export function canWithdraw(job: JobListingAccount, me: Wallet, now: number): boolean {

@@ -40,6 +40,7 @@ const job: JobListingAccount = {
   applicationCount: 4,
   bump: 255,
   vaultBump: 254,
+  unfunded: false,
 };
 
 const inRouter = (ui: React.ReactNode) => render(<MemoryRouter>{ui}</MemoryRouter>);

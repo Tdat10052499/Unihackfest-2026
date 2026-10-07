@@ -19,21 +19,28 @@ import * as milestoneClient from '../milestone/client.ts';
 import { fundPda } from '../milestone/pda.ts';
 import { getFund } from '../milestone/queries.ts';
 import * as milestoneRules from '../milestone/rules.ts';
-import { buildApplyJobIx, buildPostJobIx, buildSelectJobIx, buildWithdrawJobIx } from './client.ts';
+import { buildApplyJobIx, buildFundJobIx, buildPostJobIx, buildSelectJobIx, buildWithdrawJobIx } from './client.ts';
 import { jobAppPda } from './pda.ts';
 import { getApplication, getJob } from './queries.ts';
-import { assertJobDraft, canApply, canSelect, canWithdraw, jobDraftTotal, pitchProblem, type JobDraft } from './rules.ts';
+import { assertJobDraft, canApply, canSelect, canWithdraw, isFunded, jobDraftTotal, pitchProblem, type JobDraft } from './rules.ts';
 
 export const POST_JOB_VN_REFUSED = 'Posting a job is not available in the Vietnam view.';
 
-/** post_job confirmed but a brief part did not: the listing exists and its budget is locked; post the brief again */
+/** post_job(_open) confirmed but a brief part did not: the listing exists; post the brief again */
 export class JobBriefNotSavedError extends UserFacingError {
   readonly job: string;
-  constructor(job: string) {
-    super('The job was published and its budget is locked, but its brief was not saved. Open the job and save the brief again.');
+  constructor(job: string, locked = true) {
+    super(
+      locked
+        ? 'The job was published and its budget is locked, but its brief was not saved. Open the job and save the brief again.'
+        : 'The job was published, but its brief was not saved. Open the job and save the brief again.'
+    );
     this.job = job;
   }
 }
+
+/** runSelectJob on a "locks when hired" listing when the wallet holds less than the total */
+export const NEED_USDC_TO_LOCK = (total: bigint) => `You need ${formatUsdc(total)} to lock this budget when you select.`;
 
 /** Fresh read of a listing (never act on a stale poll result) */
 export async function readJob(address: string | undefined, env: ActionEnv): Promise<JobListingAccount> {
@@ -56,24 +63,29 @@ async function sendBriefParts(env: ActionEnv, txs: Transaction[], onPart?: (done
 
 /**
  * "Lock budget & publish": post_job (the total leaves the business wallet into the job vault), then the public brief
- * parts. Never in the Vietnam view (that view never posts a job).
+ * parts. With `lockNow: false` (v1.4, D29 "Lock when I hire"): post_job_open, nothing leaves the wallet; the total is
+ * locked by fund_job when the business selects someone (runSelectJob). Never in the Vietnam view (that view never
+ * posts a job).
  */
 export async function runPostJob(
   env: ActionEnv,
   draft: JobDraft,
   region: Region,
   /** Called before each brief part is sent (0-based), for a "Saving the brief 1 of 2" line */
-  onBriefPart?: (done: number, total: number) => void
-): Promise<{ signature: string; job: string; briefSignatures: string[] }> {
+  onBriefPart?: (done: number, total: number) => void,
+  { lockNow = true }: { lockNow?: boolean } = {}
+): Promise<{ signature: string; job: string; briefSignatures: string[]; locked: boolean }> {
   if (region === 'vn') throw new UserFacingError(POST_JOB_VN_REFUSED);
   const connection = env.connection ?? getConnection();
   const bytes = jobBriefBytes(draft.title.trim(), draft.brief);
   const result = await runBuilt(env, async (me) => {
     assertJobDraft(draft, await env.now());
-    const total = jobDraftTotal(draft);
-    const balance = await fetchUsdcUnits(connection, me);
-    if (balance < total) throw new UserFacingError(`You need ${formatUsdc(total)} to publish this job; your wallet has ${formatUsdc(balance)}.`);
-    const { ix, job } = buildPostJobIx({ business: me, jobId: BigInt(Date.now()), draft, briefHash: hashBytes(bytes) });
+    if (lockNow) {
+      const total = jobDraftTotal(draft);
+      const balance = await fetchUsdcUnits(connection, me);
+      if (balance < total) throw new UserFacingError(`You need ${formatUsdc(total)} to publish this job; your wallet has ${formatUsdc(balance)}.`);
+    }
+    const { ix, job } = buildPostJobIx({ business: me, jobId: BigInt(Date.now()), draft, briefHash: hashBytes(bytes), lockNow });
     const [listingRent, vaultRent] = await Promise.all([
       connection.getMinimumBalanceForRentExemption(JOB_LISTING_SIZE),
       connection.getMinimumBalanceForRentExemption(TOKEN_ACCOUNT_SIZE),
@@ -83,9 +95,9 @@ export async function runPostJob(
   const job = result.job.toBase58();
   try {
     const briefSignatures = await sendBriefParts(env, buildJobBriefTxs({ job: result.job, business: new PublicKey(env.signer.walletAddress!), bytes }), onBriefPart);
-    return { signature: result.signature, job, briefSignatures };
+    return { signature: result.signature, job, briefSignatures, locked: lockNow };
   } catch {
-    throw new JobBriefNotSavedError(job);
+    throw new JobBriefNotSavedError(job, lockNow);
   }
 }
 
@@ -120,7 +132,10 @@ export function runApplyJob(env: ActionEnv, address: string | undefined, pitch: 
   });
 }
 
-/** withdraw_job: the whole budget back to the business wallet (its USDC account is re-created if it was closed) */
+/**
+ * withdraw_job: the whole budget back to the business wallet (its USDC account is re-created if it was closed). An
+ * unfunded listing (v1.4) returns 0; the program also returns any donation.
+ */
 export function runWithdrawJob(env: ActionEnv, address: string | undefined) {
   const connection = env.connection ?? getConnection();
   return runBuilt(env, async (me) => {
@@ -130,7 +145,7 @@ export function runWithdrawJob(env: ActionEnv, address: string | undefined) {
     const exists = (await connection.getAccountInfo(token, 'confirmed')) !== null;
     const rent = exists ? 0 : await connection.getMinimumBalanceForRentExemption(TOKEN_ACCOUNT_SIZE);
     const tx = new Transaction().add(createAtaIdempotentIx(me, me, USDC_DEVNET_MINT), buildWithdrawJobIx(job.address, me));
-    return { tx, rent, amount: job.total };
+    return { tx, rent, amount: isFunded(job) ? job.total : 0n };
   });
 }
 
@@ -143,6 +158,8 @@ const plainUsdc = (units: bigint) => `${units / 1_000_000n}.${(units % 1_000_000
  * and select_job in the same transaction. The contract key, brief notes and key wraps are the normal runCreate path.
  * On a re-select (the first person did not accept in time), the previous contract is closed in the same transaction,
  * or first on its own when the three do not fit in one transaction, so it can never be accepted later.
+ * v1.4 (D29): on a "locks when hired" listing, fund_job goes first in the same transaction (fund_job + create_fund +
+ * select_job), after a USDC balance check; select_job is never sent alone for an unfunded listing.
  */
 export async function runSelectJob(env: ActionEnv, address: string | undefined, freelancer: string) {
   const { walletAddress } = env.signer;
@@ -154,6 +171,8 @@ export async function runSelectJob(env: ActionEnv, address: string | undefined, 
   if (!canSelect(job, me, now)) throw new UserFacingError(NOT_NOW);
   const applicant = new PublicKey(freelancer);
   if (!(await getApplication(job.address, applicant, connection))) throw new UserFacingError('This person has not applied to this job.');
+  const fundFirst = isFunded(job) ? [] : [buildFundJobIx(job.address, me)];
+  if (fundFirst.length && (await fetchUsdcUnits(connection, me)) < job.total) throw new UserFacingError(NEED_USDC_TO_LOCK(job.total));
   const brief = await fetchJobBrief(job, connection);
   if (brief.status !== 'ok' || !brief.brief) throw new UserFacingError('The public brief of this job is missing or does not match. Save the brief again first.');
   const draft = {
@@ -171,15 +190,16 @@ export async function runSelectJob(env: ActionEnv, address: string | undefined, 
 
   const previous = job.state === 'Selected' && job.fund ? await getFund(job.fund, connection) : null;
   const closable = previous && milestoneRules.canClose(previous, me) && previous.state !== 'Settled' ? previous : null;
-  const before = closable ? (await milestoneClient.buildClose({ fund: closable, creator: me }, connection)).tx.instructions : [];
+  const close = closable ? (await milestoneClient.buildClose({ fund: closable, creator: me }, connection)).tx.instructions : [];
+  const before = [...fundFirst, ...close];
   let closeSignature: string | undefined;
   let result: Awaited<ReturnType<typeof runCreate>>;
   try {
     result = await runCreate(env, draft, { before, after: [select], fundId });
   } catch (err) {
-    if (!before.length || !String((err as Error)?.message).includes('too large')) throw err;
+    if (!close.length || !String((err as Error)?.message).includes('too large')) throw err;
     closeSignature = (await runFundAction(env, closable!.address.toBase58(), 'close')).signature;
-    result = await runCreate(env, draft, { after: [select], fundId });
+    result = await runCreate(env, draft, { before: fundFirst, after: [select], fundId });
   }
   return { ...result, job: job.address.toBase58(), ...(closeSignature ? { closeSignature } : {}) };
 }

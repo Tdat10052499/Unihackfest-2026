@@ -141,6 +141,7 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
       applicationCount: 0,
       bump: 0,
       vaultBump: 0,
+      unfunded: false,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wallet, f, total, now]

@@ -84,3 +84,12 @@ test('job PDAs use the program seeds', () => {
   assert.ok(jobVaultPda(j).equals(PublicKey.findProgramAddressSync([Buffer.from('job_vault'), j.toBuffer()], IDL_PROGRAM_ID)[0]));
   assert.ok(jobAppPda(j, FREELANCER).equals(PublicKey.findProgramAddressSync([Buffer.from('job_app'), j.toBuffer(), FREELANCER.toBuffer()], IDL_PROGRAM_ID)[0]));
 });
+
+test('v1.4 unfunded at 544: a v1.3 listing (byte 0) is funded, a post_job_open listing (byte 1) is not', () => {
+  const v13 = jobBytes();
+  assert.equal(v13[544], 0);
+  assert.equal(decodeJobListing(JOB_ADDRESS, v13).unfunded, false);
+  const open = jobBytes({ unfunded: true });
+  assert.equal(open[544], 1);
+  assert.equal(decodeJobListing(JOB_ADDRESS, open).unfunded, true);
+});

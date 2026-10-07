@@ -1,4 +1,4 @@
-// Funded Jobs (program v1.3, decision D25, funded-jobs-plan.md section 5). Screens use these through the apps' hooks.
+// Funded Jobs (program v1.4, decisions D25 and D29, funded-jobs-plan.md section 5). Screens use these through the apps' hooks.
 export * from './layout.ts';
 export * from './pda.ts';
 export * from './decode.ts';

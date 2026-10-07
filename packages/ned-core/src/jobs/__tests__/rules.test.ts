@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canApply, canSelect, canWithdraw, pitchProblem, validateJobDraft, type JobDraft } from '../rules.ts';
+import { canApply, canFundJob, canSelect, canWithdraw, fundedLabel, isFunded, pitchProblem, selectLocksBudget, validateJobDraft, type JobDraft } from '../rules.ts';
 import { runPostJob, POST_JOB_VN_REFUSED } from '../actions.ts';
 import { JOB_CATEGORIES, JOB_SKILLS, listingSkills, skillsFromMask, skillsMask } from '../taxonomy.ts';
 import { JOB_CATEGORY_COUNT } from '../layout.ts';
@@ -99,4 +99,29 @@ test('taxonomy: 8 categories 0–7, unique skill indices and ids, valid categori
   assert.deepEqual(skillsFromMask(skillsMask([0, 3, 63])), [0, 3, 63]);
   assert.throws(() => skillsMask([64]));
   assert.deepEqual(listingSkills(skillsMask([1, 62])).map((k) => k.index), [1], 'unknown bits are skipped');
+});
+
+test('v1.4 funded helpers and canFundJob: the business, Open, unfunded, before select_by', () => {
+  const funded = job({ selectBy: SELECT_BY });
+  const open = job({ selectBy: SELECT_BY, unfunded: true });
+  assert.deepEqual([isFunded(funded), isFunded(open)], [true, false]);
+  assert.deepEqual([fundedLabel(funded), fundedLabel(open)], ['Budget locked', 'Locks when hired']);
+  assert.deepEqual([selectLocksBudget(funded), selectLocksBudget(open)], [false, true]);
+  assert.equal(canFundJob(open, BUSINESS, SELECT_BY), true);
+  assert.equal(canFundJob(open, BUSINESS, SELECT_BY + 1), false, 'after select_by');
+  assert.equal(canFundJob(open, FREELANCER, T0), false, 'only the business');
+  assert.equal(canFundJob(funded, BUSINESS, T0), false, 'already funded');
+  assert.equal(canFundJob(job({ state: 'Withdrawn', unfunded: true }), BUSINESS, T0), false, 'not Open');
+});
+
+test('v1.4 canSelect on an unfunded listing needs fund_job to be possible in the same transaction', () => {
+  const open = job({ applicationCount: 1, selectBy: SELECT_BY, unfunded: true });
+  assert.equal(canSelect(open, BUSINESS, SELECT_BY), true);
+  assert.equal(canSelect(open, BUSINESS, SELECT_BY + 1), false);
+  assert.equal(canSelect(open, FREELANCER, T0), false);
+});
+
+test('CORE_FEATURES.lockAtHire defaults to true (apps may override)', async () => {
+  const { CORE_FEATURES } = await import('../../features.ts');
+  assert.equal(CORE_FEATURES.lockAtHire, true);
 });
