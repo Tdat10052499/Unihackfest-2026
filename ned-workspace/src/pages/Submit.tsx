@@ -22,6 +22,7 @@ import { canHandover, canSendRevision, canSubmit } from '@ned/core/milestone/rul
 import type { FundView, MilestoneView } from '@ned/core/milestone/view.ts';
 import { partyName } from '../components/ContractsTable.tsx';
 import { FileDrop } from '../components/FileDrop.tsx';
+import { PreviewFrame } from '../components/PreviewFrame.tsx';
 import { Icon } from '../components/icons.tsx';
 import { KeyMissing } from '../components/KeyMissing.tsx';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
@@ -61,6 +62,8 @@ export const QUICK_CHECK = [
   'Nothing secret or personal is in the links, note or file names.',
   'Each done-when point is covered.',
 ];
+export const PREVIEW_LINK_HINT = 'Upload your watermarked preview to Google Drive (Anyone with the link · Viewer), Figma, YouTube or Loom, and paste the link.';
+export const WHAT_THEY_SEE = (name: string) => `This is what ${name} will see`;
 export const FILES_HINT = (name: string) =>
   `Add files only if you send them to ${name} outside N.E.D. Files stay on your computer; we keep only a fingerprint so ${name} can check they match.`;
 
@@ -260,8 +263,10 @@ export function SubmitView(p: SubmitViewProps) {
   const criteria = ms.criteria ?? [];
   const allFiles = useMemo(() => (preview ? [...files.filter((f) => f.sha256 !== preview.sha256), { name: preview.name, size: preview.file.size, sha256: preview.sha256 }] : files), [files, preview]);
   const delivery: DeliveryDraft = useMemo(() => ({ links, files: allFiles, note }), [links, allFiles, note]);
-  const problems = validateDelivery(delivery);
-  const empty = !links.length && !allFiles.length;
+  // Checked with its stage (R1): a first delivery or a revision needs a preview link, a hand-over a link or a file. The
+  // stage is added here for the check only; the actions add it to the saved note themselves.
+  const problems = validateDelivery(mode === 'submit' ? delivery : { ...delivery, stage: mode });
+  const empty = mode === 'handover' ? !links.length && !allFiles.length : !links.length;
   const fingerprint = empty ? '—' : shortHash(deliveryEvidence(delivery));
   const left = msRaw.submitBy - now;
   const pay = money(msRaw.amount, vn);
@@ -478,9 +483,19 @@ export function SubmitView(p: SubmitViewProps) {
           <m.section variants={rise} custom={0} aria-labelledby="sb-links" className={flow.card}>
             <div>
               <h2 id="sb-links" className={flow.h2}>
-                {mode === 'handover' ? 'Links to the final files' : 'Links to your work'}
+                {mode === 'handover' ? (
+                  'Links to the final files'
+                ) : (
+                  <>
+                    Preview link <span className={styles.required}>· required</span>
+                  </>
+                )}
               </h2>
-              <p className={flow.hint}>Use links that point at one fixed version (a Figma version, a Git commit, a shared file), so what {other} opens is what you delivered.</p>
+              <p className={flow.hint}>
+                {mode === 'handover'
+                  ? `Use links that point at one fixed version (a Figma version, a Git commit, a shared file), so what ${other} opens is what you delivered.`
+                  : PREVIEW_LINK_HINT}
+              </p>
             </div>
             <ul className={flow.list}>
               <AnimatePresence initial={false}>
@@ -523,13 +538,22 @@ export function SubmitView(p: SubmitViewProps) {
             ) : links.some(looksUnversioned) || looksUnversioned(linkDraft) ? (
               <p className={styles.warnHint}>Use a fixed version: a Figma link with version-id, or a Git commit / tree/&lt;sha&gt; / blob/&lt;sha&gt;.</p>
             ) : null}
+            {mode !== 'handover' && links[0] ? (
+              <div className={styles.seePreview} data-testid="submit-preview">
+                <div className={styles.seeTitle}>{WHAT_THEY_SEE(other)}</div>
+                <PreviewFrame key={links[0]} url={links[0]} name={other} />
+              </div>
+            ) : null}
           </m.section>
 
           <m.section variants={rise} custom={1} aria-labelledby="sb-files" className={flow.card}>
             <div>
-              <h2 id="sb-files" className={flow.h2}>
-                Files (optional)
-              </h2>
+              <div className={styles.filesHead}>
+                <h2 id="sb-files" className={flow.h2}>
+                  Files (optional)
+                </h2>
+                <span className={flow.caption}>· fingerprints only, never uploaded</span>
+              </div>
               <p className={flow.hint}>{FILES_HINT(other)} Up to 200 MB each.</p>
             </div>
             <FileDrop label="Drop files here or choose files" onFiles={(f) => void addFiles(f)} />

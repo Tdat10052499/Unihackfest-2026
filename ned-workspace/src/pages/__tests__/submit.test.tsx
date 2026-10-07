@@ -6,7 +6,8 @@ import { WalletPanelProvider } from '../../components/WalletPanelContext.tsx';
 import { SCENARIOS, scenarioView } from '../../dev/states.ts';
 import { png } from '../../lib/__tests__/images.ts';
 import { MESSAGES, OVERRIDE_LABEL, writePngMarker } from '../../lib/preview.ts';
-import { FILES_HINT, GUIDE_TITLE, SubmitView, workTypeForCategory, type SubmitMode, type WorkType } from '../Submit.tsx';
+import { FILES_HINT, GUIDE_TITLE, PREVIEW_LINK_HINT, SubmitView, WHAT_THEY_SEE, workTypeForCategory, type SubmitMode, type WorkType } from '../Submit.tsx';
+import { PREVIEW_LINK_NEEDED, type DeliveryDraft } from '@ned/core/milestone/content.ts';
 
 afterEach(cleanup);
 const wrap = (ui: ReactNode) => render(<WalletPanelProvider><MemoryRouter>{ui}</MemoryRouter></WalletPanelProvider>);
@@ -121,5 +122,61 @@ describe('D27 modes', () => {
     expect(screen.getByTestId('mode-info').textContent).toBe('Share the final files now. @mia can check them against the fingerprints you committed when you submitted.');
     expect(screen.queryByTestId('preview-check')).toBeNull();
     expect((screen.getByRole('button', { name: 'Hand over final files' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
+describe('R2 preview link', () => {
+  const addLink = (url: string) => {
+    fireEvent.change(screen.getByLabelText('Add a link'), { target: { value: url } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  };
+
+  it('Submit cannot be sent without a link, even with files; the field says what to paste', async () => {
+    const send = view('funded', 'submit', 'writing');
+    expect(screen.getByRole('heading', { name: /Preview link/ }).textContent).toContain('required');
+    expect(screen.getByText(PREVIEW_LINK_HINT)).toBeTruthy();
+    await drop(screen.getByRole('region', { name: /Files \(optional\)/ }), new File(['draft'], 'draft.docx'));
+    await waitFor(() => expect(screen.getByText('draft.docx')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(submitButton());
+    });
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByText(PREVIEW_LINK_NEEDED)).toBeTruthy();
+  });
+
+  it('the first link shows "This is what {client} will see" with a PreviewFrame that loads only on click', async () => {
+    const send = view('funded', 'submit', 'writing');
+    addLink('https://drive.google.com/file/d/1AbC/view?usp=sharing');
+    const box = screen.getByTestId('submit-preview');
+    expect(box.textContent).toContain(WHAT_THEY_SEE('@mia'));
+    expect(within(box).getByTestId('preview-frame').textContent).toContain('Google Drive');
+    expect(document.querySelector('iframe')).toBeNull();
+    fireEvent.click(within(box).getByRole('button', { name: 'Load preview' }));
+    expect(document.querySelector('iframe')?.getAttribute('src')).toBe('https://drive.google.com/file/d/1AbC/preview');
+    await act(async () => {
+      fireEvent.click(submitButton());
+    });
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it('revision also needs a link', async () => {
+    const send = view('changes', 'revision');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Send revised version' }));
+    });
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByText(PREVIEW_LINK_NEEDED)).toBeTruthy();
+  });
+
+  it('handover still works with files only', async () => {
+    const send = view('released', 'handover');
+    expect(screen.queryByTestId('submit-preview')).toBeNull();
+    await drop(screen.getByRole('region', { name: /Files \(optional\)/ }), new File(['svg'], 'logo-final.svg'));
+    await waitFor(() => expect(screen.getByText('logo-final.svg')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
+    });
+    expect(send).toHaveBeenCalledOnce();
+    expect((send.mock.calls as unknown as [DeliveryDraft][])[0][0]).toMatchObject({ links: [], files: [{ name: 'logo-final.svg' }] });
   });
 });
