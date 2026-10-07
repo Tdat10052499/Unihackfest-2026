@@ -1,7 +1,10 @@
 // Dev only (VITE_DEV_TOOLS=1): the Jobs hub v4 frame (header, footer, motion) with a fixture viewer, for screenshots
-// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1]. Nothing here signs or reads the chain.
+// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1][&page=overview][&state=loading|error|empty]. Nothing
+// here signs or reads the chain; page=overview fills the real Overview view with the board's sample jobs.
 import { useSearchParams } from 'react-router';
 import { CLIENT } from './states.ts';
+import { HUB_JOBS, HUB_NAMES, HUB_NOW } from './hubFixtures.ts';
+import { OverviewView } from '../jobs/pages/Overview.tsx';
 import { FOOT, JobsFooter, JobsHeader } from '../jobs/JobsLayout.tsx';
 import { HubButton, Reveal, SectionHeading } from '../jobs/components/index.ts';
 import hub from '../jobs/hub.module.css';
@@ -15,6 +18,21 @@ export function HubFrame() {
   return (
     <div className={`${hub.hub} hb-root`}>
       <JobsHeader wallet={wallet} name={wallet ? '@mia' : null} vn={vn} status={wallet ? 'ready' : 'signed-out'} next="%2Fjobs" onOpenWallet={() => {}} />
+      {params.get('page') === 'overview' ? (
+        <main id="main" className={hub.main}>
+          <OverviewView
+            jobs={params.get('state') === 'loading' || params.get('state') === 'error' ? null : params.get('state') === 'empty' ? [] : HUB_JOBS}
+            loading={params.get('state') === 'loading'}
+            error={params.get('state') === 'error'}
+            onRetry={() => {}}
+            vn={vn || as === 'guest'}
+            client={Boolean(wallet) && !vn}
+            signedIn={Boolean(wallet)}
+            names={HUB_NAMES}
+            now={HUB_NOW}
+          />
+        </main>
+      ) : (
       <main id="main" className={hub.main}>
         <div className={hub.container} style={{ paddingTop: 72, paddingBottom: 72, display: 'flex', flexDirection: 'column', gap: 48 }}>
           <SectionHeading level={1} size="page" title="Find jobs, " tone="already funded" sub="Dev frame for the v4 header, footer and motion." />
@@ -34,7 +52,8 @@ export function HubFrame() {
           <p style={{ margin: 0, color: '#6B6B76' }}>{vn ? FOOT.vn : FOOT.intl}</p>
         </div>
       </main>
-      <JobsFooter vn={vn} client={Boolean(wallet) && !vn} cta={params.get('cta') === '1'} />
+      )}
+      <JobsFooter vn={vn || (as === 'guest' && params.get('page') === 'overview')} client={Boolean(wallet) && !vn} cta={params.get('cta') === '1' || params.get('page') === 'overview'} />
     </div>
   );
 }

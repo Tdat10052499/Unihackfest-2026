@@ -75,9 +75,6 @@
   --hub-dark-soft: #b9b9c4;
   --hub-dark-line: var(--hub-night-line);
   --hub-lavender: var(--hub-soft);
-  --hub-peach: var(--hub-soft);
-  --hub-peach-ink: var(--hub-muted);
-  --hub-cream: var(--hub-soft);
   --hub-r-chip: var(--hub-r-pill);
   --hub-r-button: var(--hub-r-pill);
   --hub-r-band: var(--hub-r-popover);
@@ -120,7 +117,8 @@
 }
 
 /* ---- V4 header: white, sticky; .hb-hdr / .hb-hdr-in (motion.css) add the shadow and shrink the padding on scroll ---- */
-.header { position: sticky; top: 0; z-index: 30; background: #fff; }
+/* The board scrolls to 86 % white; the blur keeps the header readable over the dark hero (not on the board) */
+.header { position: sticky; top: 0; z-index: 30; background: #fff; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .headerInner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding-top: 18px; padding-bottom: 18px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--hub-ink); }
 .mark {

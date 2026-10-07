@@ -1,4 +1,4 @@
-/* Building blocks of the Jobs hub v4 (prompts-hub-v4.md V2–V7; StepsBand and CategoryTile stay until H2). Variables
+/* Building blocks of the Jobs hub v4 (prompts-hub-v4.md V2–V7). Variables
    come from .hub in ../hub.module.css; rings and hairlines are inset box-shadows, never borders. */
 
 /* Pill button (V2, V4): purple = on-chain, dark = browse, white, ghost; `outline` = the v3 name, drawn as white */
@@ -144,41 +144,12 @@
 .segOn { background: #fff; color: var(--hub-ink); box-shadow: var(--hub-shadow-thumb); }
 
 /* StatCounter (V5.1) */
-.stat { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.statValue { font-size: var(--hub-stat); font-weight: 300; letter-spacing: -1.2px; line-height: 1; font-variant-numeric: tabular-nums; }
-.statLabel { font-size: 13px; line-height: 1.45; color: var(--hub-muted); }
-
-/* CategoryTile (H.8) */
-.tile {
-  display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: var(--hub-r-tile); text-decoration: none;
-  color: var(--hub-ink) !important; background: #fff; box-shadow: var(--hub-shadow-card);
-}
-.tileOn { box-shadow: inset 0 0 0 2px var(--hub-purple), var(--hub-shadow-card); }
-.tileIcon { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center; }
-.tileLabel { display: block; font-size: 15px; font-weight: 600; }
-.tileCount { display: block; margin-top: 3px; font-size: 12px; color: var(--hub-caption); }
-.tileEmpty { color: var(--hub-muted); }
-
-/* StepsBand (H.7) */
-.band { position: relative; max-width: 1040px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; border-radius: var(--hub-r-band); background: var(--hub-peach); overflow: hidden; }
-.bandSwirl { position: absolute; top: 0; height: 100%; width: 80px; }
-.bandSwirlLeft { left: -6px; }
-.bandSwirlRight { right: -6px; transform: scaleX(-1); }
-.steps { position: relative; margin: 0 auto; padding: 0 40px; max-width: 840px; list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 18px; }
-.step { flex: 1 1 180px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-.stepIcon { width: 52px; height: 52px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--hub-ink); display: grid; place-items: center; }
-.stepTitle { font-size: 15px; font-weight: 600; }
-.stepSub { margin-top: -6px; font-size: 12px; color: var(--hub-peach-ink); }
+.stat { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.statValue { font-size: var(--hub-stat); font-weight: 300; letter-spacing: -1.4px; line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.statLabel { max-width: 150px; font-size: 12px; line-height: 1.45; color: var(--hub-subtle); }
 
 /* EmptyState */
 .empty { padding: 40px 24px; border-radius: var(--hub-r-card); background: var(--hub-soft); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .emptyIcon { width: 48px; height: 48px; border-radius: 14px; background: #fff; display: grid; place-items: center; color: var(--hub-purple-ink); }
 .emptyTitle { margin: 0; font-size: 22px; font-weight: 300; letter-spacing: -0.5px; }
 .emptyBody { margin: 0; max-width: 420px; font-size: 14px; color: var(--hub-caption); }
-
-/* Narrow screens: the steps stack, so the side swirls would cover the text */
-@media (max-width: 640px) {
-  .band { padding: 24px 20px; }
-  .bandSwirl { display: none; }
-  .steps { padding: 0; }
-}

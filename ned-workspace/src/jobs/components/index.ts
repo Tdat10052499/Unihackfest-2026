@@ -11,6 +11,4 @@ export * from './Switch.tsx';
 export * from './Segmented.tsx';
 export * from './StatCounter.tsx';
 export * from './categoryLook.ts';
-export * from './CategoryTile.tsx';
-export * from './StepsBand.tsx';
 export * from './EmptyState.tsx';
