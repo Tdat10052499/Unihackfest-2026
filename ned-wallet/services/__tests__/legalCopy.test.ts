@@ -30,3 +30,10 @@ test('copy rules: no payment, escrow, safe, guaranteed or licensed partner', () 
   assert.deepEqual(text.match(/payment\w*/gi), ['payment']);
   assert.match(all(TERMS), /not a payment service/);
 });
+
+test('H4: the Disclosures list is shared and keeps its twelve lines, disputes line by flag', async () => {
+  const { disclosureItems } = await import('../legalCopy.ts');
+  assert.equal(disclosureItems(false).length, 12);
+  assert.equal(disclosureItems(false).find((d) => d.id === 'disputes')?.title, 'No disputes in this demo');
+  assert.equal(disclosureItems(true).find((d) => d.id === 'disputes')?.title, 'No neutral arbiter');
+});
