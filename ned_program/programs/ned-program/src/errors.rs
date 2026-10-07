@@ -116,4 +116,9 @@ pub enum NedError {
     InvalidCategory,
     #[msg("The job summary must be 1 to 160 bytes.")]
     SummaryTooLong,
+    // ---- v1.4 Lock at hire (lock-at-hire-plan.md, decision D29); append only, never reorder ----
+    #[msg("The budget of this job is not locked yet. Lock it in the same step as selecting.")]
+    JobNotFunded,
+    #[msg("The budget of this job is already locked.")]
+    JobAlreadyFunded,
 }

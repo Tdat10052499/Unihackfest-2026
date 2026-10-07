@@ -11,8 +11,8 @@ use anchor_lang::{AnchorDeserialize, Discriminator, InstructionData, ToAccountMe
 use common::*;
 use litesvm::LiteSVM;
 use ned_program::{
-    FundLocked, FundState, JobApplication, JobApplied, JobBriefPosted, JobFilled, JobListing, JobMilestoneInput, JobPosted,
-    JobSelected, JobState, JobWithdrawn, MilestoneInput, MilestoneStatus, NotePosted, PayoutKind, SharedFund, FUND_SEED,
+    FundLocked, FundState, JobApplication, JobApplied, JobBriefPosted, JobFilled, JobFunded, JobListing, JobMilestoneInput,
+    JobPosted, JobPostedOpen, JobSelected, JobState, JobWithdrawn, MilestoneInput, MilestoneStatus, NotePosted, PayoutKind, SharedFund, FUND_SEED,
     JOB_ACCEPT_WINDOW_SECS, JOB_APP_SEED, JOB_SEED, JOB_VAULT_SEED, PAYOUT_PARTNERS, VAULT_SEED,
 };
 use solana_keypair::Keypair;
@@ -127,6 +127,72 @@ fn post_ix(business: &Pubkey, mint: Pubkey, p: Post) -> Instruction {
             select_by: p.select_by,
         }
         .data(),
+    }
+}
+
+/// v1.4 (D29): the same listing with nothing locked (post_job_open; same accounts as post_job)
+fn post_open_ix(business: &Pubkey, mint: Pubkey, p: Post) -> Instruction {
+    let job = job_pda(business, p.job_id);
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::PostJob {
+            business: *business,
+            payer: *business,
+            job,
+            job_vault: job_vault_pda(&job),
+            business_token: ata(business, &mint),
+            mint,
+            token_program: TOKEN_PROGRAM_ID,
+            system_program: SYSTEM_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::PostJobOpen {
+            job_id: p.job_id,
+            title: p.title,
+            summary: p.summary,
+            category: p.category,
+            skills: p.skills,
+            milestones: p.milestones,
+            brief_hash: p.brief_hash,
+            apply_by: p.apply_by,
+            select_by: p.select_by,
+        }
+        .data(),
+    }
+}
+
+/// v1.4 (D29): the business locks the budget of a "locks when hired" listing
+fn fund_ix(job: Pubkey, business: &Pubkey, mint: Pubkey) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::FundJob {
+            job,
+            business: *business,
+            job_vault: job_vault_pda(&job),
+            business_token: ata(business, &mint),
+            mint,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::FundJob {}.data(),
+    }
+}
+
+fn close_fund_ix(fund: Pubkey, creator: &Pubkey, mint: Pubkey) -> Instruction {
+    Instruction {
+        program_id: ned_program::ID,
+        accounts: ned_program::accounts::Close {
+            fund,
+            creator: *creator,
+            rent_payer: *creator,
+            client: *creator,
+            client_token: ata(creator, &mint),
+            vault: vault_pda(&fund),
+            mint,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: ned_program::instruction::Close {}.data(),
     }
 }
 
@@ -832,4 +898,205 @@ fn d27_delivery_notes_on_submitted_disputed_and_released_only() {
     e.as_business(&[refund_ix(fund, &biz, &biz, mint, 1)]).unwrap();
     assert_eq!(e.fund(&fund).milestones[1].status, MilestoneStatus::Refunded);
     assert_err(e.as_a(&[note_ix(fund, &a, 1, 1)]), "NoteNotAllowed");
+}
+
+// -----------------------------------------------------------------------------
+// v1.4 Lock at hire (lock-at-hire-plan.md, D29) and the G1 check
+// -----------------------------------------------------------------------------
+
+impl Env {
+    /// post_job_open for job 1 (n × amount) and A and B apply; returns the job address
+    fn open_unfunded_with_two(&mut self, n: usize, amount: u64) -> Pubkey {
+        let (biz, mint) = (self.biz(), self.mint);
+        self.as_business(&[post_open_ix(&biz, mint, post(n, amount))]).unwrap();
+        let job = job_pda(&biz, 1);
+        let (a, b) = (self.a.pubkey(), self.b.pubkey());
+        self.as_a(&[apply_ix(job, &a, "I build landing pages")]).unwrap();
+        self.as_b(&[apply_ix(job, &b, "Designer and front-end developer")]).unwrap();
+        job
+    }
+    /// fund_job + create_fund + select_job in one transaction; returns the fund
+    fn fund_and_select(&mut self, job: Pubkey, fund_id: u64, freelancer: Pubkey, now: i64) -> Result<(Pubkey, litesvm::types::TransactionMetadata), String> {
+        let (biz, mint) = (self.biz(), self.mint);
+        let tmpl: Vec<JobMilestoneInput> = self.job(1).used().iter().map(|m| JobMilestoneInput { amount: m.amount, work_secs: m.work_secs, review_secs: m.review_secs }).collect();
+        let fund = fund_pda(&biz, fund_id);
+        self.as_business(&[fund_ix(job, &biz, mint), create_for(&biz, mint, fund_id, freelancer, &tmpl, now, BRIEF), select_ix(job, &biz, fund, &freelancer)])
+            .map(|meta| (fund, meta))
+    }
+}
+
+#[test]
+fn v14_post_job_open_locks_nothing_and_sets_unfunded() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let before = e.balance(&biz);
+    let meta = e.as_business(&[post_open_ix(&biz, mint, post(2, 10 * USDC))]).unwrap();
+    cu("post_job_open", &meta);
+    let job = job_pda(&biz, 1);
+    let ev: JobPostedOpen = event(&meta);
+    assert_eq!((ev.job, ev.business, ev.total), (job, biz, 20 * USDC));
+    assert_eq!(e.balance(&biz), before, "nothing leaves the business");
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 0, "empty job vault");
+    let listing = e.job(1);
+    assert_eq!((listing.state, listing.unfunded, listing.total), (JobState::Open, 1, 20 * USDC));
+    let d = e.svm.get_account(&job).unwrap().data;
+    assert_eq!(d.len(), 576, "layout unchanged");
+    assert_eq!(d[544], 1, "unfunded @544");
+    assert!(d[545..576].iter().all(|b| *b == 0), "_reserved @545..576");
+    // Freelancers can apply as to any open listing
+    let a = e.a.pubkey();
+    e.as_a(&[apply_ix(job, &a, "hi")]).unwrap();
+    assert_eq!(e.job(1).application_count, 1);
+}
+
+#[test]
+fn v14_post_job_keeps_v13_behaviour() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let before = e.balance(&biz);
+    let meta = e.as_business(&[post_ix(&biz, mint, post(1, 10 * USDC))]).unwrap();
+    let _: JobPosted = event(&meta);
+    let job = job_pda(&biz, 1);
+    assert_eq!(e.job(1).unfunded, 0);
+    assert_eq!(e.balance(&biz), before - 10 * USDC);
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 10 * USDC);
+    // fund_job on a funded listing is refused
+    assert_err(e.as_business(&[fund_ix(job, &biz, mint)]), "JobAlreadyFunded");
+}
+
+#[test]
+fn v14_select_needs_the_budget_locked_in_the_same_transaction() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let job = e.open_unfunded_with_two(2, 10 * USDC);
+    let b = e.b.pubkey();
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+
+    // create_fund + select_job without fund_job: refused, nothing changes
+    assert_err(e.select(job, 70, b, now), "JobNotFunded");
+    assert_eq!((e.job(1).state, e.job(1).unfunded), (JobState::Open, 1));
+
+    // fund_job + create_fund + select_job: the budget moves at the moment of selection
+    let before = e.balance(&biz);
+    let (fund, meta) = e.fund_and_select(job, 71, b, now).unwrap();
+    cu("fund_job + create_fund + select_job", &meta);
+    let ev: JobFunded = event(&meta);
+    assert_eq!((ev.job, ev.total), (job, 20 * USDC));
+    assert_eq!(e.balance(&biz), before - 20 * USDC);
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 20 * USDC);
+    let listing = e.job(1);
+    assert_eq!((listing.state, listing.unfunded, listing.selected, listing.fund), (JobState::Selected, 0, b, fund));
+
+    // The freelancer accepts with the budget already locked: accept + lock_from_job as in v1.3
+    e.as_b(&[accept_partner(fund, &b), lock_from_ix(job, fund, &biz, &b, mint)]).unwrap();
+    assert_eq!(e.fund(&fund).state, FundState::Funded);
+    assert_eq!(token_amount(&e.svm, &vault_pda(&fund)), 20 * USDC);
+    assert_eq!(e.job(1).state, JobState::Filled);
+}
+
+#[test]
+fn v14_fund_job_rules() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    e.as_business(&[post_open_ix(&biz, mint, post(1, 10 * USDC))]).unwrap();
+    let job = job_pda(&biz, 1);
+    let a = e.a.pubkey();
+
+    // Only the business
+    let ix = Instruction {
+        accounts: ned_program::accounts::FundJob { job, business: a, job_vault: job_vault_pda(&job), business_token: ata(&a, &mint), mint, token_program: TOKEN_PROGRAM_ID }
+            .to_account_metas(None),
+        ..fund_ix(job, &biz, mint)
+    };
+    assert!(e.as_a(&[ix]).is_err());
+
+    // Exactly the stored total, only once (the business starts with 1,000 USDC)
+    let before = e.balance(&biz);
+    e.as_business(&[fund_ix(job, &biz, mint)]).unwrap();
+    assert_eq!(e.balance(&biz), before - 10 * USDC);
+    assert_eq!(e.job(1).unfunded, 0);
+    assert_err(e.as_business(&[fund_ix(job, &biz, mint)]), "JobAlreadyFunded");
+
+    // Not enough USDC: refused, the listing stays unfunded (990 left: 900 fits once, not twice)
+    let mut p = post(1, 900 * USDC);
+    p.job_id = 2;
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    let mut p = post(1, 900 * USDC);
+    p.job_id = 3;
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    e.as_business(&[fund_ix(job_pda(&biz, 2), &biz, mint)]).unwrap();
+    assert!(e.as_business(&[fund_ix(job_pda(&biz, 3), &biz, mint)]).is_err(), "balance too low");
+    assert_eq!(e.job(3).unfunded, 1);
+
+    // After select_by: refused
+    let mut p = post(1, USDC);
+    p.job_id = 4;
+    e.as_business(&[post_open_ix(&biz, mint, p)]).unwrap();
+    set_clock(&mut e.svm, SELECT_BY + 1);
+    assert_err(e.as_business(&[fund_ix(job_pda(&biz, 4), &biz, mint)]), "SelectClosed");
+}
+
+#[test]
+fn v14_reselect_does_not_lock_again() {
+    let mut e = env();
+    let biz = e.biz();
+    let job = e.open_unfunded_with_two(1, 10 * USDC);
+    let (a, b) = (e.a.pubkey(), e.b.pubkey());
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+    e.fund_and_select(job, 80, a, now).unwrap();
+    let after_first = e.balance(&biz);
+    // A does not accept; after the accept window the business selects B without a second fund_job
+    let later = now + JOB_ACCEPT_WINDOW_SECS + 1;
+    set_clock(&mut e.svm, later);
+    let fund_b = e.select(job, 81, b, later).unwrap();
+    assert_eq!(e.balance(&biz), after_first, "no second lock");
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 10 * USDC);
+    assert_eq!(e.job(1).fund, fund_b);
+    // fund_job is refused on a Selected listing
+    let mint = e.mint;
+    assert_err(e.as_business(&[fund_ix(job, &biz, mint)]), "JobNotOpen");
+}
+
+#[test]
+fn v14_withdraw_an_unfunded_listing_moves_nothing() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let before = e.balance(&biz);
+    e.as_business(&[post_open_ix(&biz, mint, post(2, 10 * USDC))]).unwrap();
+    let job = job_pda(&biz, 1);
+    let meta = e.as_business(&[withdraw_ix(job, &biz, mint)]).unwrap();
+    let w: JobWithdrawn = event(&meta);
+    assert_eq!((w.job, w.amount), (job, 0));
+    assert_eq!(e.balance(&biz), before);
+    assert_eq!(e.job(1).state, JobState::Withdrawn);
+    assert!(closed(&e.svm, &job_vault_pda(&job)));
+}
+
+#[test]
+fn v14_g1_a_recreated_contract_for_someone_else_cannot_take_the_budget() {
+    let mut e = env();
+    let (biz, mint) = (e.biz(), e.mint);
+    let job = e.open_with_two(1, 10 * USDC);
+    let a = e.a.pubkey();
+    let now = T0 + 400;
+    set_clock(&mut e.svm, now);
+    let fund = e.select(job, 90, a, now).unwrap();
+
+    // The business closes A's contract (still Created) and recreates the same address for a stranger
+    e.as_business(&[close_fund_ix(fund, &biz, mint)]).unwrap();
+    let stranger = new_user(&mut e.svm);
+    put_token_account(&mut e.svm, &stranger.pubkey(), &mint, 0);
+    let tmpl = template(1, 10 * USDC);
+    e.as_business(&[create_for(&biz, mint, 90, stranger.pubkey(), &tmpl, now, BRIEF)]).unwrap();
+    assert_eq!(fund_pda(&biz, 90), fund, "same address");
+    assert_eq!(e.job(1).fund, fund);
+
+    // The stranger accepts and tries to move the job budget: refused (G1)
+    let s = stranger.insecure_clone();
+    let result = send_signed(&mut e.svm, &[accept_partner(fund, &s.pubkey()), lock_from_ix(job, fund, &biz, &s.pubkey(), mint)], &s, &[]);
+    assert_err(result, "JobFundMismatch");
+    assert_eq!(token_amount(&e.svm, &job_vault_pda(&job)), 10 * USDC, "the budget stays in the job vault");
+    assert_eq!(e.job(1).state, JobState::Selected);
 }

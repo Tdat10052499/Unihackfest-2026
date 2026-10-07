@@ -3,10 +3,12 @@ use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, Tran
 
 use crate::constants::*;
 use crate::errors::NedError;
-use crate::events::JobPosted;
+use crate::events::{JobPosted, JobPostedOpen};
 use crate::state::*;
 
-/// Publishes a job and locks its whole budget in the job vault (funded-jobs-plan.md 4.3).
+/// Publishes a job. `lock_now`: post_job locks the whole budget in the job vault at once (funded-jobs-plan.md 4.3);
+/// post_job_open (v1.4, D29) creates the listing and an empty job vault and locks nothing until fund_job, which the
+/// app sends with create_fund + select_job.
 #[allow(clippy::too_many_arguments)]
 pub fn post_job_handler(
     ctx: Context<PostJob>,
@@ -19,6 +21,7 @@ pub fn post_job_handler(
     brief_hash: [u8; 32],
     apply_by: i64,
     select_by: i64,
+    lock_now: bool,
 ) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
 
@@ -71,7 +74,13 @@ pub fn post_job_handler(
     job.application_count = 0;
     job.bump = ctx.bumps.job;
     job.vault_bump = ctx.bumps.job_vault;
-    job._reserved = [0u8; 32];
+    job.unfunded = if lock_now { 0 } else { 1 };
+    job._reserved = [0u8; 31];
+
+    if !lock_now {
+        emit!(JobPostedOpen { job: job.key(), business, job_id, category, total, apply_by, select_by, brief_hash });
+        return Ok(());
+    }
 
     // CPI: business ATA -> job vault, signed by the business
     token_interface::transfer_checked(

@@ -22,6 +22,8 @@ pub fn select_job_handler(ctx: Context<SelectJob>) -> Result<()> {
         _ => return err!(NedError::JobNotOpen),
     }
     require!(now <= job.select_by, NedError::SelectClosed);
+    // v1.4 (D29): a "locks when hired" listing must be funded first (fund_job in the same transaction)
+    require!(job.unfunded == 0, NedError::JobNotFunded);
 
     // Validate: the contract matches the job
     require!(fund.state == FundState::Created, NedError::JobFundMismatch);

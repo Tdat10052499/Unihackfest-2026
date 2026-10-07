@@ -197,3 +197,24 @@ pub struct JobWithdrawn {
     pub job: Pubkey,
     pub amount: u64,
 }
+
+/// v1.4 (D29): a listing that locks its budget when the business selects someone. `total` is the planned budget;
+/// nothing is locked yet.
+#[event]
+pub struct JobPostedOpen {
+    pub job: Pubkey,
+    pub business: Pubkey,
+    pub job_id: u64,
+    pub category: u8,
+    pub total: u64,
+    pub apply_by: i64,
+    pub select_by: i64,
+    pub brief_hash: [u8; 32],
+}
+
+/// v1.4 (D29): the budget of a "locks when hired" listing moved into its job vault (sent with create_fund + select_job)
+#[event]
+pub struct JobFunded {
+    pub job: Pubkey,
+    pub total: u64,
+}

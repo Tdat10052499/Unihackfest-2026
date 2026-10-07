@@ -1,6 +1,7 @@
 // Funded Jobs (v1.3, docs/09-milestone-lock/funded-jobs-plan.md section 4, decision D25). New accounts only; no
 // existing instruction changes. Shared helpers for the job vault are below.
 pub mod apply_job;
+pub mod fund_job;
 pub mod lock_from_job;
 pub mod post_job;
 pub mod post_job_brief;
@@ -8,6 +9,7 @@ pub mod select_job;
 pub mod withdraw_job;
 
 pub use apply_job::*;
+pub use fund_job::*;
 pub use lock_from_job::*;
 pub use post_job::*;
 pub use post_job_brief::*;

@@ -77,7 +77,10 @@ pub struct JobListing {
     pub application_count: u16,
     pub bump: u8,
     pub vault_bump: u8,
-    pub _reserved: [u8; 32],
+    /// v1.4 (D29, lock-at-hire-plan.md): 1 = "locks when hired" (post_job_open; nothing locked yet), 0 = the budget is
+    /// in the job vault (post_job, or after fund_job). Every v1.3 listing reads 0. memcmp "funded only" (offset 544)
+    pub unfunded: u8,
+    pub _reserved: [u8; 31],
 }
 
 impl JobListing {

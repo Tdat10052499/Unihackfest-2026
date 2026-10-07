@@ -21,6 +21,10 @@ pub fn lock_from_job_handler(ctx: Context<LockFromJob>) -> Result<()> {
     require!(job.fund == fund.key(), NedError::NotSelected);
     require!(fund.state == FundState::Accepted, NedError::InvalidFundState);
     require!(fund.total == job.total, NedError::JobFundMismatch);
+    // v1.4 (G1, pre-pitch-check-7oct.md): the contract at job.fund must still be the selected applicant's, with the
+    // job's brief; a contract closed and recreated at the same address for someone else cannot take the budget
+    require!(fund.freelancer == job.selected, NedError::JobFundMismatch);
+    require!(fund.brief_hash == job.brief_hash, NedError::JobFundMismatch);
     check_work_window(used(fund), now)?;
 
     // State

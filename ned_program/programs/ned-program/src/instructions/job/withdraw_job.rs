@@ -7,7 +7,8 @@ use crate::errors::NedError;
 use crate::events::JobWithdrawn;
 use crate::state::*;
 
-/// Returns the budget to the business when no one was hired: at once while no one applied; after `select_by` when
+/// Returns the budget to the business when no one was hired (nothing for a v1.4 "locks when hired" listing that was
+/// never funded): at once while no one applied; after `select_by` when
 /// open; after `select_by` and the accept window when someone was selected but did not accept. The listing account
 /// stays as the record.
 pub fn withdraw_job_handler(ctx: Context<WithdrawJob>) -> Result<()> {
@@ -22,8 +23,8 @@ pub fn withdraw_job_handler(ctx: Context<WithdrawJob>) -> Result<()> {
     };
     require!(allowed, NedError::WithdrawTooEarly);
 
-    // State
-    let amount = job.total;
+    // State: an unfunded listing (v1.4, D29) owes nothing back; only a donation, if any, is returned
+    let amount = if job.unfunded == 1 { 0 } else { job.total };
     let leftover = ctx.accounts.job_vault.amount.saturating_sub(amount);
     ctx.accounts.job.state = JobState::Withdrawn;
 

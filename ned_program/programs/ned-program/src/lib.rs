@@ -179,7 +179,29 @@ pub mod ned_program {
         apply_by: i64,
         select_by: i64,
     ) -> Result<()> {
-        post_job_handler(ctx, job_id, title, summary, category, skills, milestones, brief_hash, apply_by, select_by)
+        post_job_handler(ctx, job_id, title, summary, category, skills, milestones, brief_hash, apply_by, select_by, true)
+    }
+
+    /// v1.4 (D29): publishes a job that locks its budget when the business selects someone (nothing locked now)
+    #[allow(clippy::too_many_arguments)]
+    pub fn post_job_open(
+        ctx: Context<PostJob>,
+        job_id: u64,
+        title: String,
+        summary: String,
+        category: u8,
+        skills: u64,
+        milestones: Vec<JobMilestoneInput>,
+        brief_hash: [u8; 32],
+        apply_by: i64,
+        select_by: i64,
+    ) -> Result<()> {
+        post_job_handler(ctx, job_id, title, summary, category, skills, milestones, brief_hash, apply_by, select_by, false)
+    }
+
+    /// v1.4 (D29): locks the budget of a "locks when hired" job (same transaction as create_fund + select_job)
+    pub fn fund_job(ctx: Context<FundJob>) -> Result<()> {
+        fund_job_handler(ctx)
     }
 
     /// One part of the job's plain-text brief (no state change), while the job is Open
