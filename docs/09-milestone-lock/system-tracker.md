@@ -1,8 +1,15 @@
 # N.E.D Milestone Lock: System Tracker
 
-**Owner:** Compliance Lead (Nguyễn Minh Chính) · **Cập nhật:** 7 Oct 2026 · **Build tham chiếu:** `main` at `8f17921` (program **v1.3** live on devnet: Milestone Lock + Funded Jobs + D27 note rules)
+**Owner:** Compliance Lead (Nguyễn Minh Chính) · **Cập nhật:** 7 Oct 2026 (tối) · **Build tham chiếu:** `main` at `0b808d1` (program **v1.3** live on devnet: Milestone Lock + Funded Jobs + D27 note rules)
 **Mục đích:** một chỗ duy nhất để cả team biết hệ thống *phải* chạy thế nào, theo dõi mọi tình huống (positive và negative) và từng việc còn phải làm. Mỗi khi code hoặc quyết định thay đổi, cập nhật mục 12 (build tracker) và mục 13 (decisions).
 **Rà soát 7 Oct (PO, đối chiếu với program v1.3 và code trên `main`):** workflow lõi (mục 1–5) khớp với code. Đã sửa: I6 chuyển thành đề xuất (chờ Q1); câu D-5 bỏ phần chưa build; mục 7.1 ghi rõ nguồn dữ liệu; trạng thái hint "Public on Solana" và record của business; câu C-1; thêm hub v4 vào build tracker (B-21); `close` ở bảng 3.2; thay từ cấm ở mục 7.2 và 11 bằng "bond".
+**Cập nhật workflow 7 Oct (tối, PO):** mục 3.2, 4 và 6–12 theo code trên `main` `0b808d1`, gồm:
+- hub v4 (H1–H5, có trang Legal ở footer);
+- Review có khung xem trước (R1–R3, [`prompts-review-preview.md`](prompts-review-preview.md));
+- file cuối (F1–F2, [`prompts-final-files.md`](prompts-final-files.md));
+- Accept và Lock nằm trong panel ví (Slide to accept / Slide to lock).
+
+Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (docs, copy, e2e) còn lại.
 **Nguồn ưu tiên khi có mâu thuẫn:** decision log D1–D28 trong [`README.md`](README.md) thắng về product và program; file này tóm tắt và theo dõi, không thay thế decision log. Không phải legal advice. Đây là devnet prototype, tiền thử.
 
 **Ký hiệu:** ✅ đã chạy trên `main` · 🔧 đang làm hoặc còn thiếu một phần · 🆕 đề xuất mới (7 Oct, chưa duyệt) · 🗺 roadmap (sau final) · ⛔ cố ý không làm
@@ -72,18 +79,18 @@
 | Từ | Hành động (UI → instruction) | Ai | Điều kiện | Sang |
 | --- | --- | --- | --- | --- |
 | — | New contract → `create_fund` | Client | 1–5 milestone, đủ work/review window, ≤ 1,000 USDC | Created |
-| Created | Accept → `accept` | Freelancer | Chọn đích | Accepted |
-| Accepted | Lock → `lock` (contract trực tiếp) hoặc `lock_from_job` (từ job) | Client / anyone | Đủ USDC; đủ work window | Funded |
-| Pending | Submit → `submit` + delivery note | Freelancer | Trước `submit_by` | Submitted |
+| Created | Accept → `accept` (panel ví: **Slide to accept**) | Freelancer | Chọn đích | Accepted |
+| Accepted | Lock → `lock` (contract trực tiếp, panel ví: **Slide to lock**) hoặc `lock_from_job` (từ job, cùng transaction với accept) | Client / anyone | Đủ USDC; đủ work window | Funded |
+| Pending | Submit → `submit` + delivery note | Freelancer | Trước `submit_by`. Bắt buộc **link xem trước** (R1) và **danh sách file cuối** kèm fingerprint (F1); được miễn danh sách nếu có link phiên bản cố định (Figma version, Git commit) | Submitted |
 | Submitted / Disputed | **Accept & release** → `approve` | Client | — | Released |
-| Submitted | **Request changes** → `dispute` + review note (kind 3: điểm chưa đạt + lý do) | Client | Trước `review_by` | Disputed |
-| Disputed | **Send revised version** → delivery note (`stage: revision`) | Freelancer | — | Disputed |
+| Submitted | **Request changes** → `dispute` + review note (kind 3: điểm chưa đạt + lý do) | Client | Trước `review_by`. Mốc không có điểm done-when thì chỉ cần lý do 10–500 ký tự (R1) | Disputed |
+| Disputed | **Send revised version** → delivery note (`stage: revision`) | Freelancer | Cũng cần link xem trước và danh sách file cuối (có thể đổi danh sách) | Disputed |
 | Disputed | **Return to client** → `concede` | Freelancer | — | Refunded |
 | Chưa xong | **Propose / Accept split** → `propose_cancel` + `accept_cancel` | Hai bên | Split cho **cả contract**, không riêng một milestone | Cancelled (chia theo thoả thuận) |
 | Submitted, quá `review_by` | **Release now** → `release_after_review` | Anyone (cả hai bên đều thấy nút) | Không bị dispute | Released |
 | Pending, quá `submit_by` | **Refund now** → `refund` | Anyone | Chưa submit | Refunded |
-| Released | **Hand over final files** → delivery note (`stage: handover`) | Freelancer | Không bắt buộc (không có gì cưỡng chế). *Cập nhật 7/10 (F1–F2):* bắt buộc link tải; file giao được so với **promised list** của bản được chấp nhận, khác thì phải ghi lý do; chỉ mở khi Released (approve hoặc Release now), không mở sau refund/split | Released |
-| Created / Accepted / Settled | Close → `close` | Creator | Vault rỗng; phần thừa về client. Ở Created/Accepted đây là huỷ contract trước khi lock | Closed |
+| Released | **Hand over final files** → delivery note (`stage: handover`) | Freelancer | Chỉ khi Released (sau Accept & release hoặc Release now). Bắt buộc **link tải**; app so file với danh sách của **phiên bản đã chấp nhận**, nếu khác thì phải ghi lý do ≥ 10 ký tự (F1–F2). Program không cưỡng chế việc bàn giao | Released |
+| Created / Accepted / Settled | Close → `close` | Creator | Vault rỗng; phần thừa về client. Ở Created/Accepted đây là huỷ contract trước khi lock. Nếu còn milestone đã release mà chưa bàn giao, app cảnh báo (**Keep open** / **Close anyway**, F2) | Closed |
 
 Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > deadline`. **Khi đang Disputed thì không có deadline nào chạy** (mục 5).
 
@@ -91,34 +98,51 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 ## 4. Workflows (ví dụ)
 
+Cập nhật theo `main` `0b808d1`. Cột "Status" ghi rõ app nào đã có.
+
 ### 4.1 Contract trực tiếp: Mia (client, Singapore, Workspace) & Vinh (designer, Hà Nội, Vietnam view)
 
-| Bước | Ai | Làm gì | Vinh / Mia thấy gì | Status |
+| Bước | Ai | Làm gì | Bên kia thấy gì | Status |
 | --- | --- | --- | --- | --- |
-| 0 | Cả hai | Google sign-in → consent v2 → (fund chạy ngầm "Preparing your account…") → residence | Không có số SOL ở Vietnam view | ✅ |
-| 1 | Mia | `/new`: "Landing page design", 2 × 10 USDC, "Done when" cho từng milestone, 2 deadline | Gợi ý "Public on Solana…" ở ô title | ✅ |
-| 2 | Vinh | Mở link → đọc brief → **Accept** → "VND to my bank account" | "≈ 520,000 VND (estimate)" | ✅ |
-| 3 | Mia | **Lock** 20 USDC | Vinh thấy "Locked" → bắt đầu làm | ✅ |
-| 4 | Vinh | **Submit** M1: đọc "Before you submit" (U5), gắn watermark cho preview (U6), share bằng Google Drive link | Fingerprint + thời gian lưu on-chain | ✅ Workspace · 🔧 mobile (S13) |
-| 5 | Mia | Chuông thông báo (U3) → **Review**: "What to check" bên cạnh "What Vinh delivered" | Countdown review deadline | ✅ Workspace · 🔧 mobile (S12) |
+| 0 | Cả hai | Google sign-in → consent v2 → "Preparing your account…" (fund chạy ngầm) → chọn nơi cư trú | Vietnam view không có số SOL | ✅ |
+| 1 | Mia | `/new`: "Landing page design", 2 × 10 USDC, mỗi milestone **ít nhất 1 điểm "Done when"** (R1), 2 deadline → Create → xác nhận trong panel ví | Gợi ý "Public on Solana…" ở ô title | ✅ |
+| 2 | Vinh | Mở link mời → đọc brief → **Open in wallet** → **Slide to accept**, chọn "VND to my Vietnamese bank account" | Mia thấy contract Accepted; nơi nhận đã chốt trên chain | ✅ |
+| 3 | Mia | **Open in wallet** → **Slide to lock** 20 USDC | Vinh thấy "Locked for you · ≈ 520,000 VND (estimate)" → bắt đầu làm | ✅ |
+| 4 | Vinh | **Submit** M1. Lần lượt: <ul><li>đọc "Before you submit" (U5);</li><li>gắn watermark cho preview (U6);</li><li>dán **link xem trước** (Drive, Figma, YouTube, Loom, link ảnh) và xem trước "This is what Mia will see";</li><li>chọn **file cuối sẽ bàn giao**: chỉ băm trên máy, không upload; Mia chỉ thấy tên, cỡ, fingerprint.</li></ul> | Fingerprint + thời gian nộp trên chain; nội dung mã hoá | ✅ Workspace · 🔧 mobile (S13) |
+| 5 | Mia | Chuông (U3) → **Review**. Trang có: <ul><li>**Load preview** (khung Drive/Figma… chỉ tải khi bấm);</li><li>"What to check";</li><li>thẻ **"What you will receive after release"** (danh sách file cuối);</li><li>câu "After release, N.E.D cannot make Vinh hand over the files…".</li></ul> | Countdown "Release opens in … if not reviewed" | ✅ Workspace · 🔧 mobile (S12/S13; mobile chỉ hiện danh sách file cuối, read-only) |
 | 6a | Mia | **Accept & release** | "Released to payout partner · VND transfer simulated" | ✅ |
-| 6b | Mia | Hoặc **Request changes** (tick điểm chưa đạt + lý do) | Cả hai thấy "No deadline while changes are requested" | ✅ Workspace · 🔧 mobile |
-| 7 | Vinh | (sau 6b) **Send revised version**, rồi Mia accept & release | "Revised version received · review it" | ✅ Workspace |
-| 8 | Vinh | Sau release: **Hand over final files** | Mia **Check a file** khớp fingerprint | ✅ Workspace |
-| 9 | Mia im lặng ở M2 | Hết review deadline → **Release now** (cả hai thấy) | Tiền về Vinh; tính 1 "late review" cho Mia 🆕 | ✅ (🆕 record) |
-| 10 | Vinh | Records → CSV (≈ VND, kèm note "estimate · simulated · not tax advice") | — | ✅ |
-| 11 | Mia | Close contract, lấy lại rent | — | ✅ |
+| 6b | Mia | Hoặc **Request changes**: tick điểm chưa đạt + lý do (không có điểm done-when thì lý do 10–500 ký tự) | Cả hai thấy "No deadline while changes are requested"; tiền vẫn lock | ✅ Workspace · 🔧 mobile (P4) |
+| 7 | Vinh | (sau 6b) **Send revised version** (link xem trước mới, có thể đổi danh sách file cuối) → Mia chuyển Version 1 · Version 2, rồi accept & release | "Revised version received · review it" | ✅ Workspace |
+| 8 | Vinh | Sau release: chuông "Released · hand over the final files" (nhắc lại sau 24 h và 48 h) → **Hand over final files**: <ul><li>link tải (Drive: Anyone with the link · Viewer, giữ ≥ 30 ngày);</li><li>chọn lại file cuối; app so với danh sách của **phiên bản đã chấp nhận**;</li><li>khác thì ghi lý do.</li></ul> | Mia thấy thẻ **Final files**: "Waiting for final files · since …" → "Late" sau 48 h (chỉ nhắc) → "Handed over" | ✅ Workspace |
+| 9 | Mia | Thẻ **Final files** (đầu trang milestone, mục Files trên trang contract, nút **Get final files**): <ul><li>**Download**;</li><li>**Check your download**: kéo file/thư mục vào → "Same as promised before you accepted ✓" / "Different…" / "Not in the promised list";</li><li>**Save receipt** (JSON tạo trên máy).</li></ul> | Chuông "Final files received · milestone 1" | ✅ Workspace |
+| 10 | Mia im lặng ở M2 | Hết review deadline → **Release now** (cả hai thấy) → Vinh vẫn nhận tiền và vẫn bàn giao như bước 8–9 | "late review" cho Mia 🆕 (chưa build, mục 7) | ✅ (🆕 record) |
+| 11 | Vinh | Records → CSV (≈ VND, kèm "estimate · simulated · not tax advice") | — | ✅ (app ví) |
+| 12 | Mia | Close contract, lấy lại rent. Còn milestone chưa bàn giao thì app cảnh báo trước | — | ✅ |
 
-### 4.2 Funded Job
+### 4.2 Funded Job (N.E.D Jobs, hub v4)
 
 | Bước | Ai | Làm gì | Status |
 | --- | --- | --- | --- |
-| 1 | Business (non-VN) | `/jobs/new`: đăng job, **lock toàn bộ budget** ("Budget locked" + Explorer link) | ✅ |
-| 2 | Freelancer | `/jobs/find` → job detail → **Apply** (pitch công khai ≤ 280 bytes) | ✅ |
-| 3 | Business | Applicants → **Select** → tạo contract bình thường (brief mã hoá + key wraps) | ✅ |
-| 4 | Freelancer | Mở invite → **Review & accept in wallet** → chọn đích → budget chuyển vào contract | ✅ |
-| 5 | — | Từ đây chạy y như 4.1, bước 4–11 | ✅ |
-| 6 | Business | Không ai phù hợp → **Withdraw** sau `select_by` → budget về business | ✅ |
+| 1 | Business (non-VN) | `/jobs/new`: đăng job (mỗi milestone ≥ 1 điểm done-when), **lock toàn bộ budget** ("Budget locked" + Explorer link) | ✅ |
+| 2 | Freelancer | `/jobs` (Overview) hoặc `/jobs/find` (tìm theo What · Field · Budget, Filters) → job detail → **Apply** (pitch công khai ≤ 280 bytes, có hint "Public on Solana") | ✅ |
+| 3 | Business | Applicants → **Select** → `create_fund + select_job` trong 1 transaction (brief mã hoá + key wraps) | ✅ |
+| 4 | Freelancer | Mở invite → **Review & accept in wallet** → **Slide to accept** → chọn đích → `accept + lock_from_job` trong 1 transaction (không có bước Lock riêng) | ✅ |
+| 5 | Business | Người được chọn không accept trong accept window (120 s devnet) → chọn người khác | ✅ |
+| 6 | — | Từ đây chạy y như 4.1, bước 4–12 | ✅ |
+| 7 | Business | Không ai phù hợp → **Withdraw** (chưa ai apply, hoặc sau `select_by`) → budget về business | ✅ |
+
+Trang Legal (`/jobs/legal`: Terms, Privacy, Disclosures, Job posting rules) chỉ có link ở footer, không có trên navbar.
+
+### 4.3 Quyền lợi hai bên ở từng bước
+
+| Bước | Freelancer được bảo vệ | Client được bảo vệ |
+| --- | --- | --- |
+| Trước khi làm | Tiền đã lock trước khi bắt đầu; nơi nhận chốt lúc accept, không ai đổi được | Mỗi milestone có điểm done-when để nghiệm thu |
+| Nộp bài | Chỉ gửi bản preview có watermark; file cuối không rời máy, chỉ lộ tên, cỡ, fingerprint | Xem được bản preview ngay trong Review; biết trước danh sách file sẽ nhận |
+| Review | Client không review kịp thì Release now; Request changes **không bao giờ** hoàn tiền cho client | Request changes được khi bài chưa đạt; tiền vẫn lock tới khi hai bên đồng ý |
+| Sau release | Chỉ bàn giao **sau khi** tiền đã release; được ghi lý do khi file cuối thay đổi hợp lý | Tải file, so với danh sách của phiên bản đã chấp nhận, lưu biên nhận; được nhắc khi bàn giao trễ |
+| Đóng contract | Không bị tính "chưa bàn giao" nếu client tự đóng trước (khi có record, mục 7) | Được cảnh báo trước khi đóng mà chưa nhận file |
+| Giới hạn chung | Refund / Return to client: không phải bàn giao | N.E.D **không cưỡng chế** được việc bàn giao sau release (nói rõ cạnh nút Accept); mã hoá file cuối + mở khoá cùng lúc với tiền là roadmap (B-17) |
 
 ---
 
@@ -166,7 +190,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | C-2 | **Client ngâm review** | Hết `review_by` → Release now | Freelancer phải chờ | Countdown + reminders; record "late review"; cooldown nếu lặp lại | ✅ / 🆕 |
 | C-3 | Client **copy preview rồi request changes** để ép giá | Tiền vẫn lock (I4), không về client | Ép freelancer nhận split thấp | Watermark preview (U6); số milestone đang bị request changes hiện trên record của business ở trang job ✅ (chỉ đếm yêu cầu **đang mở**, không tích luỹ; `labels.ts`); record "long hold" và "repeated change requests" 🆕; neutral reviewer 🗺 | ✅ / 🆕 |
 | C-4 | **Stalemate:** không bên nào nhường | Tiền lock không có hạn | Kẹt tiền vô thời hạn | Disclosure "No neutral arbiter"; record "long hold" sau 7 ngày 🆕; dispute timeout / `arbiter` 🗺 | 🔧 / 🗺 |
-| C-5 | Client lấy được final files rồi biến mất | Final chỉ giao sau release (D27) | — | "Before you submit" + handover sau release | ✅ |
+| C-5 | Client lấy được final files rồi biến mất | Final chỉ giao sau release (D27); trước đó client chỉ thấy tên, cỡ, fingerprint của file cuối | — | "Before you submit" + handover chỉ mở khi Released (F1–F2) | ✅ |
 | C-6 | Client muốn **đổi đích** sang địa chỉ của mình | Program chặn | — | I5 | ✅ |
 | C-7 | Client không đủ USDC khi lock hoặc khi đăng job | App kiểm tra trước | — | — | ✅ |
 | C-8 | Business **đăng job ảo hoặc spam** | Không có moderation (chỉ có withdraw) | Uy tín board; dữ liệu công khai | Budget phải lock thật (cái giá của spam); nút report 🗺 | 🗺 |
@@ -182,7 +206,9 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | F-2 | **Nộp bài rác** | Client request changes (D27) | Bắt buộc link xem trước khi nộp (R1, 7/10) | Done-when checklist + khung xem trước trong Review (bấm Load preview, R2); mốc không có done-when → lý do 10–500 ký tự | ✅ Workspace |
 | F-3 | Trễ submit vài phút | Refund now mở ngay | Mất milestone | Reminders; `extend_deadline` 🗺 | 🆕 / 🗺 |
 | F-4 | Được chọn ở job nhưng **không accept** | Business chọn lại sau accept window | — | Record "no-show after selection" 🆕 | ✅ / 🆕 |
-| F-5 | **Giữ final files** sau release | Không cưỡng chế được | Client mất bài | *Cập nhật 7/10 (F1–F2):* lúc nộp freelancer cam kết **promised list** (tên, cỡ, fingerprint file cuối), client thấy trước khi accept; sau release thẻ Final files hiện "Waiting", sau 48 h "Late" (chỉ nhắc, không cưỡng chế) + chuông nhắc freelancer 24 h/48 h; client tải, kiểm tra file với danh sách và **Save receipt** (JSON trên máy); cảnh báo trước khi Close. Record "handover missing" 🆕; final mã hoá, key mở khi release 🗺 (B-17) | ✅ Workspace / 🗺 |
+| F-5 | **Giữ final files** sau release | Không cưỡng chế được | Client mất bài | Danh sách file cuối cam kết lúc nộp và hiện trước khi accept; thẻ Final files: Waiting → Late sau 48 h, nhắc freelancer 24 h / 48 h; client kiểm tra file tải về và lưu biên nhận (F1–F2 ✅). Record "handover missing" 🆕; final mã hoá, key mở khi release 🗺 | ✅ Workspace / 🆕 / 🗺 |
+| F-11 | Hai bên **split** hoặc freelancer **Return to client** | Program không nhận handover trên milestone Cancelled | Freelancer nhận một phần tiền theo split nhưng không có bàn giao được ghi nhận | Thẻ Final files ghi "No final files: this milestone was split" + "Agree which files are handed over as part of the split"; cho phép handover trên Cancelled cần đổi program 🗺 | 🔧 / 🗺 |
+| F-12 | Client **đóng contract trước khi nhận file** | Sau khi đóng, freelancer không bàn giao được | Client mất file; freelancer có thể bị đánh giá oan | Cảnh báo Keep open / Close anyway (F2 ✅); record không tính "handover missing" khi client đóng trước (mục 7) | ✅ / 🆕 |
 | F-6 | Mất điện thoại/login | Google login khôi phục ví; key từ thiết bị khác hoặc link mời | Mất hết thiết bị và link thì không đọc lại được brief | Hướng dẫn lưu link mời | ✅ |
 | F-7 | Người ở VN **chuyển sang international view** | Residence tự khai | Vỡ I1 | Disclose; launch: KYC của partner quyết định | ⚠ disclosed |
 | F-8 | Người ở VN gõ URL `/send`, `/receive`… | Route guard chuyển về `/home` (cả GitHub Pages và `/wallet`) | — | V1 | ✅ (PO cần thử khi đã đăng nhập) |
@@ -229,9 +255,9 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | **Repeated change requests** | Client | ≥ **3** review note trên cùng một milestone | Lịch sử giao dịch `post_note` (kind 3) |
 | **Missed submission** | Freelancer | Milestone bị refund vì quá `submit_by` | Account: `Refunded` + `submitted_at = 0` (đọc thẳng được) |
 | **No-show after selection** | Freelancer | Được chọn ở job nhưng không accept trong accept window | Lịch sử giao dịch `select_job`. Re-select ghi đè `selected_at`/`fund` của listing |
-| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h**. *(7/10)* Không tính khi client đã **Close** contract trước (sau Close freelancer không bàn giao được nữa). Rules của `prompts-final-files.md` ghi "closed by the client before handover" cho trường hợp này; app chưa hiện dòng đó (contract đã close không còn trang) | Thời điểm giao dịch release và note `stage: handover`. Account không có `released_at` |
+| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h** | Thời điểm giao dịch release và note `stage: handover`. Account không có `released_at` |
 
-Không tính lapse do bên kia gây ra, và không tính contract demo/test (có tag).
+Không tính lapse do bên kia gây ra (ví dụ: client đóng contract trước khi freelancer bàn giao thì không tính "Handover missing"), và không tính contract demo/test (có tag).
 
 **Hệ quả về dữ liệu:** 5 trên 6 lapse không đọc được từ account state mà phải quét lịch sử giao dịch (`getSignaturesForAddress` + parse log) của từng contract và listing. Không có indexer thì cách này tốn RPC và chậm khi số contract tăng (cùng vấn đề với S-10). Vì vậy layer này chỉ lên slide roadmap; khi build thì cần indexer, hoặc program lưu thêm `disputed_at`/`released_at`/`by_timeout` (đổi layout, cần upgrade).
 
@@ -255,6 +281,10 @@ Không tính lapse do bên kia gây ra, và không tính contract demo/test (có
 ## 8. Submit: "Before you submit" (U5 + U6, đã có trên Workspace)
 
 **Cập nhật 7/10 (R1–R3):** lần nộp đầu và bản sửa **bắt buộc có link xem trước** (Drive, Figma, YouTube, Loom hoặc link ảnh); file vẫn tuỳ chọn, chỉ lưu fingerprint; Hand over vẫn nhận link hoặc file. Ngay dưới ô link có **khung xem trước** ("This is what {client} will see") giống khung client thấy trong Review; khung chỉ tải khi bấm **Load preview**. CSP Workspace chỉ cho đúng các origin xem trước; Privacy nói rõ bấm Load preview thì trình duyệt kết nối tới trang đó.
+
+**Cập nhật 7/10 (F1–F2):**
+- **Lần nộp đầu và bản sửa:** bắt buộc mục "Final files you will hand over after release" (chọn file, băm trên máy, không upload; tối đa 10). Được miễn khi có link phiên bản cố định. "Files (optional)" đổi thành "Preview files · fingerprints only". File preview không được trùng file cuối.
+- **Bàn giao:** bắt buộc link tải; khác danh sách thì phải ghi lý do.
 
 Hiện có trên Workspace (S8): sheet "Before you submit", kiểm tra watermark cho preview thiết kế (nút **Add watermark**), share bằng Google Drive link, "Files (optional)" chỉ lưu fingerprint, các chế độ Send revised version và Hand over final files. Mobile: 🔧 S13. Help guide `/help` trên mobile ✅ (S11).
 
@@ -282,9 +312,9 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Changes requested | — | "Changes requested · send a revised version" | ✅ Workspace · 🔧 mobile |
 | Revised version sent | "Revised version received · review it" | — | ✅ Workspace |
 | Review deadline passed | "Review time is over · Release now" | "Release now" | ✅ |
-| Released | "Released" | "Released · hand over the final files" (F2, 7/10) | ✅ |
-| Final files handed over | "Final files received · milestone {n}" | — | ✅ Workspace (F2, 7/10) |
-| Final files chưa giao 24 h / 48 h sau release | — | "Final files for milestone {n} are due" | ✅ Workspace (F2, 7/10) |
+| Released | "Released" | "Released · hand over the final files" | ✅ |
+| Final files due (24 h, 48 h sau release, chưa bàn giao) | — | "Final files for milestone {n} are due" | ✅ Workspace (F2) |
+| Final files handed over | "Final files received · milestone {n}" | — | ✅ Workspace (F2) |
 | Refunded | ✓ | ✓ | ✅ |
 | Reminders 24 h / 1 h | review | submit | 🆕 |
 | Warning / cooldown | ✓ | ✓ | 🆕 |
@@ -338,7 +368,9 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-08 | Keys S1–S3 | PO | 🔧 | ngay | Bundle mới không còn key; register row 12 |
 | B-09 | README R1 + LICENSE R2 | PO + Dev | 🔧 | 8 Oct | CL đọc README đối chiếu app live |
 | B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs, H4 trang Legal (chỉ ở footer), H5 restyle + QA. 7/10: H1–H5 đã vào `main` (`hub-v4-qa.md`, `tong-hop-tien-do.md`) | Dev | ✅ | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
-| B-22 | Final files (`prompts-final-files.md`): F1 core (promised list, hand-over check, status, receipt, close warnings), F2 Workspace (Submit, Review, thẻ Final files, mục Files, cảnh báo Close, chuông 24/48 h), F3 docs, copy, e2e. 7/10: F1–F2 trên `main`; mobile (submit có promised list, màn bàn giao, close warning) để S13 | Dev + CL | 🔧 | 8 Oct | F3: CL duyệt 2 câu copy; PO chạy e2e `review-preview-e2e.md` phần final files |
+| B-22 | Review có khung xem trước (`prompts-review-preview.md`): R1 core, R2 Workspace, R3 CSP + Privacy + docs | Dev + CL | ✅ | — | Trên `main`; còn chạy e2e 2 login (danh sách thao tác trong progress log R3) |
+| B-23 | File cuối (`prompts-final-files.md`): F1 core, F2 Workspace (+ mobile chỉ đọc danh sách) | Dev | ✅ | — | Trên `main` `0b808d1` |
+| B-24 | F3: docs (D27 amendment, guide, Terms — CL duyệt), câu Q&A tiếng Việt, e2e | CL + PO + Dev | 🔧 | 8 Oct | Mục tracker đã cập nhật ở đây; còn review-decision-plan, README D27, copy, final-pitch, e2e |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
