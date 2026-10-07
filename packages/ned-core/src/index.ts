@@ -17,3 +17,4 @@ export * from './identity/transactionCost.ts';
 export * from './utils/amountInput.ts';
 export * from './actions.ts';
 export * from './avatar.ts';
+export * from './legal/index.ts';

@@ -1,5 +1,6 @@
 // Disclosures (Disclosures board), reachable from Settings, the consent screen and Home "Suggested for you".
-// Copy is reviewed by the compliance lead (docs/05-legal/compliance-lead-tasks.md): change it only with them.
+// The text is shared with N.E.D Jobs (@ned/core legal copy); it is reviewed by the compliance lead
+// (docs/05-legal/compliance-lead-tasks.md): change it only with them.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -7,27 +8,27 @@ import { Feather } from '@expo/vector-icons';
 import { Badge, IconButton, Screen } from '@/components/design';
 import { fonts, palette, radius, space } from '@/constants/design';
 import { FEATURES } from '@/constants/features';
-import { disputeDisclosure } from '@/services/legalCopy';
+import { disclosureItems, DISCLOSURES_LEAD } from '@/services/legalCopy';
 
 type Icon = React.ComponentProps<typeof Feather>['name'];
 
-const ITEMS: { icon: Icon; title: string; body: string }[] = [
-  { icon: 'cloud-off', title: 'Devnet only', body: 'This demo runs on Solana devnet with test money. Nothing here has real value.' },
-  { icon: 'user-x', title: 'No KYC yet', body: 'N.E.D does not check anyone’s identity in this version.' },
-  { icon: 'phone-off', title: 'Phone numbers are not verified', body: 'We don’t send a code. A number on a profile may not belong to that person.' },
-  { icon: 'shield-off', title: 'The program is not audited', body: 'The Solana program that locks and releases USDC has not had a security audit.' },
-  { icon: 'repeat', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank.' },
-  { icon: 'zap', title: 'Network fees use test SOL', body: 'Each action costs about 0.000005 test SOL on devnet. N.E.D charges no fee during the pilot.' },
-  // C2: follows FEATURES.dispute ("No disputes in this demo" while it is off)
-  { icon: 'pause-circle', ...disputeDisclosure(FEATURES.dispute) },
-  { icon: 'arrow-right-circle', title: 'After release in the Vietnam path', body: 'Once a milestone is released to the payout partner, you rely on that partner to send you the VND.' },
-  { icon: 'slash', title: 'Circle can freeze USDC addresses', body: 'USDC is issued by Circle, which can freeze an address. N.E.D cannot undo that.' },
-  // D15 (product-spec 5.1): the invite link carries the key that opens the brief and the delivery
-  { icon: 'link', title: 'Anyone with the contract link can read it', body: 'The contract link holds the key to the brief and the delivery. Anyone who has the link can read them, but cannot move money. Share it only with the other party.' },
-  // Updated for B1: the brief and delivery are stored encrypted on Solana (the board said N.E.D never stores the delivery link)
-  { icon: 'globe', title: 'Public on-chain', body: 'Contract titles and the fingerprints of the brief and the delivery are public. The brief and the delivery are stored encrypted on Solana. N.E.D never stores your bank details.' },
-  { icon: 'info', title: 'Not advice', body: 'This is not legal, tax or financial advice.' },
-];
+/** Icon per line of the shared Disclosures list (@ned/core legal copy) */
+const ICONS: Record<string, Icon> = {
+  devnet: 'cloud-off',
+  kyc: 'user-x',
+  phone: 'phone-off',
+  audit: 'shield-off',
+  partner: 'repeat',
+  fees: 'zap',
+  disputes: 'pause-circle',
+  'vn-release': 'arrow-right-circle',
+  freeze: 'slash',
+  link: 'link',
+  public: 'globe',
+  advice: 'info',
+};
+// C2: the disputes line follows FEATURES.dispute ("No disputes in this demo" while it is off)
+const ITEMS = disclosureItems(FEATURES.dispute).map((d) => ({ ...d, icon: ICONS[d.id] ?? 'info' }));
 
 export default function DisclosuresScreen() {
   return (
@@ -39,7 +40,7 @@ export default function DisclosuresScreen() {
         </Text>
         <Badge label="Devnet · test money" tone="warning" />
       </View>
-      <Text style={styles.lead}>Please read these before you lock or receive anything. Version 1.0.0 · pilot on Solana devnet.</Text>
+      <Text style={styles.lead}>{DISCLOSURES_LEAD}</Text>
       <View accessibilityRole="list" style={styles.list}>
         {ITEMS.map((item, i) => (
           <View key={item.title} accessibilityRole="text" style={[styles.item, i > 0 && styles.divider]}>
