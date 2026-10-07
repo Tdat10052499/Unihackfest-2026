@@ -2,6 +2,8 @@
 
 **From:** Compliance Lead (Nguyễn Minh Chính, @F4ol4n) · **Checked against:** `main` at `09b1506`, re-based on `343faa6` · **Final:** **10 Oct 2026** (confirmed) · **Cut line:** 8 Oct 18:00 · **Freeze:** 9 Oct · Not legal advice.
 
+> **Status, 7 Oct (later), `main` at `b7ca253`: nothing in sections 3–4 is closed yet, and F2 (final files) added one new High item. Dev: start with section 8, then section 3.**
+
 **Team, please read sections 1 and 3–4 before you touch slides or code.** Every item has an owner and a date. Reply in the team chat with the commit when you close one, and I will tick it here.
 
 ---
@@ -49,7 +51,7 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 | --- | --- | --- | --- |
 | D1 | `ned-wallet/app/contracts/[fund]/submit.tsx:80`, `index.tsx:222, 273, 275`, `contracts/new.tsx:388`, `components/contracts/ui.tsx:92` | "Released automatically when the review time ends…" (6 places; D26 bans it, and it is wrong: someone has to press Release now, and a change request stops it) | "Released when {other} approves. If {other} does not review or request changes before the review deadline, anyone can release it (Release now)." Adjust per screen (client side: "You accept, or anyone can release it after the review deadline unless you request changes.") |
 | D2 | `ned-wallet/stores/useNotificationStore.ts:101-142`, `ned-wallet/services/solana.ts:485, 506` | On-chain history sync runs for every region and prices SOL at $150 labelled `USDC`, so the test-SOL airdrop of the Vietnam fund step can show as "+$150.00" with "USDC"; `/notification-detail` is not in `VN_BLOCKED_ROUTES` (`services/regionGuard.ts:7`) | Skip the sync unless region is `intl`; add `/notification-detail` to `VN_BLOCKED_ROUTES`; remove the `* 150` SOL price everywhere. Breaks invariant I1 today |
-| D3 | `copy.ts:29` (Privacy), `copy.ts:106`, `ned-workspace/src/pages/Submit.tsx:735` | "only the two parties hold the key", "Only you and {other} can read them" | "Briefs and deliveries are encrypted. N.E.D has no key; anyone holding the contract link can read them." |
+| D3 | `copy.ts:29` (Privacy), `copy.ts:106`, `ned-workspace/src/pages/Submit.tsx:842` (was 735 before F2) | "only the two parties hold the key", "Only you and {other} can read them" | "Briefs and deliveries are encrypted. N.E.D has no key; anyone holding the contract link can read them." |
 | D4 | `copy.ts:193` (Disclosures "Public on-chain") | Says the brief is stored encrypted | Add: "Job titles, summaries, briefs and pitches on N.E.D Jobs are public plain text on Solana, permanently." (job briefs are posted in plain text: `packages/ned-core/src/jobs/brief.ts:1-4`) |
 | D5 | `copy.ts:27` (Privacy, phone) | "only a hash goes on Solana. The number itself stays on your device." | Add: "The hash can be reversed by trying every Vietnamese number, so treat a linked number as public." |
 | D6 | `copy.ts:202` `TEAM_EMAIL` | `'[team email]'` on the live `/jobs/legal` | A real team address (PO gives it by 8 Oct 12:00); update the core test |
@@ -134,3 +136,65 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 | 9 Oct | CL reads every slide, the backup video, the live `/jobs/legal` and booth text against this file; walkthrough on the live app (`compliance-lead-tasks.md` Step 8) | CL |
 | 9 Oct | O4–O8 | PO + Dev |
 | 10 Oct | Final. Legal questions in Q&A come to CL | All |
+
+---
+
+## 8. Re-check after F2 (7 Oct, later; `main` at `b7ca253`)
+
+Checked again after the final-files commits F1–F2 (`7649cdb` … `0b808d1`) and the tracker update `1e446ad`. Code line numbers below are on `b7ca253` (unchanged in `1e446ad`).
+
+### 8.1 Status of the requests above
+
+| Item | Status | Evidence on `main` |
+| --- | --- | --- |
+| D1 "released automatically" (wallet, 6 places) | **Open** | `ned-wallet/app/contracts/[fund]/submit.tsx:80`, `index.tsx:222, 273, 275`, `contracts/new.tsx:388`, `components/contracts/ui.tsx:92` |
+| D2 Vietnam-view notification leak | **Open** | `ned-wallet/services/solana.ts:485, 506` (`* 150`); `/notification-detail` not in `services/regionGuard.ts:7` |
+| D3 "only the two parties / Only you and {other}" | **Open** | `copy.ts:29, 106`; `ned-workspace/src/pages/Submit.tsx:842` |
+| D4 job content public · D5 phone hash · D15 partners and residence | **Open** | lines not added to `copy.ts` |
+| D6 `[team email]` | **Open** | `copy.ts:202` |
+| D7 Applicants privacy line | **Open** | `ned-workspace/src/jobs/pages/Applicants.tsx:51` |
+| D8–D10 Jobs wording | **Open** | `JobDetail.tsx:410`, `Overview.tsx:38-44, 60`, `JobsLayout.tsx:41-48` |
+| D13 welcome consent line | **Open** | `ned-wallet/app/(onboarding)/welcome.tsx:78` |
+| D16 `amount_usdc` in Vietnam CSV | **Open** | `packages/ned-core/src/milestone/records.ts:325` |
+| G1 `lock_from_job` applicant check | **Open, decision needed** | `instructions/job/lock_from_job.rs` unchanged |
+| O1 README · O2 LICENSE · O3 Anchor CLI pin | **Open** | `README.md:81, 85` ("Updated 3 Oct", "17 instructions"); no `LICENSE`; `Anchor.toml` `[toolchain]` empty |
+
+### 8.2 New findings in F1–F2 (final files)
+
+The new copy has no banned words and no Vietnamese text. No new screen shows USDC or SOL in the Vietnam view. D27 is unchanged: release, Release now and "request changes never refunds" behave as before. Problems:
+
+| # | Severity | Where | Issue | Fix | Owner |
+| --- | --- | --- | --- | --- | --- |
+| F-1 | **High** | `ned-wallet/app/contracts/[fund]/submit.tsx:40-41`; rule `packages/ned-core/src/milestone/content.ts:239`; `actions.ts:387` | The phone app builds the delivery with `files: []` and no final files, and `validateDelivery` now requires a final-file list unless a link is a fixed version. **A Drive link cannot be submitted from the phone app** ("List the final files…"). Judges may try the phone (final-pitch §5 row 6) | Before the freeze: either a final-file picker on mobile, or a clear line on the mobile Submit screen "Submit from the Workspace on a computer to list your final files" (and keep the button disabled with that reason), or relax the rule for mobile. Add a test | Dev, 8 Oct 18:00 |
+| F-2 | Medium | `ned-workspace/src/components/FinalFilesCard.tsx:196-198`; `packages/ned-core/src/milestone/content.ts` `compareHandover` | Chips "Same as promised / Missing / Extra" compare the fingerprints **the freelancer hashed** at hand-over with the promised list. Nothing checks what is behind the link, but the client will read it as a checked result | Heading "As listed by {name} at hand-over"; chip "Listed by {name}: same fingerprint"; line "This is {name}'s own list. Check your download below to compare the files you received." | Dev |
+| F-3 | Medium | `FinalFilesCard.tsx:167-169` | "Handed over {time} · for Version n" in success green; it only means a link was posted | "Hand-over link shared {time} · for Version n", neutral colour | Dev |
+| F-4 | Medium | `ned-workspace/src/lib/finalFiles.ts:72` | Bell "Final files received · milestone n" fires on any note after release, without reading it | "Final files shared · milestone n" | Dev |
+| F-5 | Medium | `ned-workspace/src/pages/Review.tsx:455`; `ned-wallet/app/contracts/[fund]/review.tsx:164` | Card title "What you will receive after release" reads as a promise (and is wrong when the freelancer views it) | Client: "Final files {name} promises to hand over after release"; freelancer: "Final files you promised" | Dev |
+| F-6 | Medium | `Submit.tsx:70` (hand-over link hint); Disclosures `copy.ts:191` | The hand-over link sits in a note that anyone with the contract link can decrypt; not disclosed | Hint: "Anyone with this link, or with the contract link, can download the files." Disclosures: "…the brief, the delivery **and the final-file links**…" | Dev + CL |
+| F-7 | Medium | `copy.ts:116-118`; `packages/ned-core/src/milestone/links.ts:15` | A fixed-version link (Figma version, GitHub commit) makes the final-file list optional ("Your fixed version link is the final work"). That hands the final work over **before** release, against the soft rule "finals leave only after release" and the GUIDE | PO + CL decide: exempt fixed-version links only as preview, or say in the GUIDE "A fixed-version link given before release is treated as the final work" | PO + CL |
+| F-8 | Low | `Submit.tsx:68` | "{client} sees only their names, sizes and fingerprints until the money is released" (implies automatic reveal; "only the client" is untrue) | "Keep these files. Before release, only their names, sizes and fingerprints are shared. You hand the files over after release." | Dev |
+| F-9 | Low | `Submit.tsx:73` FILES_HINT | "we keep only a fingerprint so {name} can check they match" (Review no longer checks preview files; "we keep" overclaims) | "Fingerprints of the preview files, saved in the encrypted delivery. The files stay on your computer." | Dev |
+| F-10 | Low | `Contract.tsx:632`; `finalFiles.ts:77`; `Contract.tsx:304` | "{other} shares the final files after release" stated as fact; bell "…are due"; freelancer sees "Late" without "reminder only" | "{other} can now hand over the final files; N.E.D cannot make them."; "Reminder: hand over the final files for milestone n"; add "The time is a reminder only" for the freelancer too | Dev |
+| F-11 | Low | `copy.ts:42` | Privacy covers "Load preview" only; the new **Download** button also contacts the file host | "If you press Load preview or Download…" | CL + Dev |
+| F-12 | Low | `FinalFilesCard.tsx:241`; `handover.ts:55` | RECEIPT_LINE "Built on the client's device" is also shown to the freelancer | "Built on this device" | Dev |
+| F-13 | Low | `Contract.tsx:268-289` | CLOSE_WARNING with "You" reads "You has not handed over…" (latent) | Fix grammar | Dev |
+| F-14 | Low | `ned-workspace/src/pages/__tests__/f2.test.tsx` | Every F2 test renders with `vn={false}` | Add Contract, Files and Review cases with `vn={true}` asserting no `/USDC\|SOL/` | Dev |
+
+Never call either check "verified": the hand-over list is the freelancer's own; "Check your download" compares the client's downloaded files with the accepted version's list (accurate as written, `FinalFilesCard.tsx:23-27, 207`).
+
+### 8.3 Demo and pitch impact
+
+- **Submit step (1:30) now needs one more pick:** B must list at least one final file that differs from the preview, or Submit stays disabled (`Submit.tsx:601-631`). Put a small final file (for example `landing-final.png`) on B's laptop, use it for contract B prep too, and re-time the step. Added to `final-pitch.md` §5 row 13.
+- **Review (1:45):** the new "will receive" card pushes **Accept & release** down by about 270 px at 960 px width. Rehearse the scroll at the 900 px demo width.
+- **F3 docs** (PO with CL): `README.md:61`; `review-decision-plan.md:29, 96-97, 130-132, 147, 155, 157`; `system-tracker.md` was already updated in `1e446ad` (workflow, timers, notices, B-23); still missing there: a §10 data row (final-file links, receipt, notice store), the mobile Submit limit (F-1), and the notice text once F-4 and F-10 change (rows "Final files due", "Final files received"); `product-spec.md:26`; `copy.ts:118` and a Disclosures line "N.E.D cannot make anyone hand over final files"; `qa-cheatsheet.md` limits line; `final-pitch.md` §4 Q&A line. CL reviews the copy before the push.
+- On stage say "so khớp fingerprint với danh sách đã hứa" and "nhắc nhở", never "xác minh file", "bắt buộc" or "đảm bảo".
+
+### 8.4 Order of work for Dev (by 8 Oct 18:00)
+
+1. F-1 (mobile Submit dead end).
+2. D1, D2 (wording the judges will see; Vietnam-view leak).
+3. D3, D6, D7, F-6 (privacy lines; real team email from PO by 12:00).
+4. F-2 to F-5 (final-files wording).
+5. G1 decision with PO, then the Medium rows of section 3.
+
+Reply in the team chat with the commit for each item; CL re-checks on 8 Oct evening and signs off on 9 Oct.

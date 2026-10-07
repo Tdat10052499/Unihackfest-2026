@@ -269,7 +269,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | 10 | Slide tiếng Việt, gửi cho ban tổ chức | Biz | theo hạn BTC | Bắt buộc theo rule |
 | 11 | CL ký duyệt: mọi câu trên slide, app, booth đều đúng sự thật hoặc được ghi là lộ trình | CL | 9 Oct | Compliance |
 | 12 | Sửa chữ và lộ thông tin trong app theo `../05-legal/pre-pitch-check-7oct.md` mục 3 ("released automatically" trên app ví, thông báo lộ USDC ở chế độ Việt Nam, Privacy và consent) | Dev + CL | 8 Oct 18:00 | Giám khảo tự thử app |
-| 13 | Bổ sung runbook: độ rộng màn hình ≥ 900 px mỗi cửa sổ, cách đưa link mời sang B, ≥ 40 USDC cho người A, consent v2, giới hạn 5 device key | PO | 9 Oct | Demo không vỡ trên sân khấu |
+| 13 | Bổ sung runbook: **B cần sẵn 1 file cuối (khác file preview) trên máy để chọn ở bước Submit 1:30 và khi chuẩn bị contract B (F2 bắt buộc danh sách file cuối)**; độ rộng màn hình ≥ 900 px mỗi cửa sổ, cách đưa link mời sang B, ≥ 40 USDC cho người A, consent v2, giới hạn 5 device key | PO | 9 Oct | Demo không vỡ trên sân khấu |
 
 ---
 

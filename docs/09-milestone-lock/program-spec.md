@@ -202,7 +202,7 @@ Move the clock with `svm.set_sysvar::<Clock>()`. Create the devnet USDC mint at 
 10. **`create_fund` validation:** 0 or 6 milestones, amount 0, sum above cap, deadline inside the work window, review window 59 s, freelancer == client, title 33 bytes, wrong mint
 11. **Attacks:** wrong vault, wrong mint, attacker destination ATA, attacker as client in `approve`, double release, refund after release
 12. **Donation:** extra tokens sent to the vault do not change payouts and go to the client on `close`
-13. **Invariant:** full 3-milestone cycles (approve + auto-release + refund, and approve + cancel) end with `released + refunded == total`
+13. **Invariant:** full 3-milestone cycles (approve + release after review + refund, and approve + cancel) end with `released + refunded == total`
 14. **Layout:** `8 + SharedFund::INIT_SPACE == 740`; `client` at offset 12, `freelancer` at 44, `brief_hash` at 676
 15. **Compute units:** logged for every instruction (table for the deck)
 16. **Brief (v1.1):** `create_fund` with an all-zero `brief_hash` fails with `InvalidBriefHash`; the stored hash equals the argument and `FundCreated` carries it; `accept` with a different `expected_brief_hash` fails with `BriefMismatch`, with the same one succeeds
