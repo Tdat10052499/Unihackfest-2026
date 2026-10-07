@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_JOBS?: string;
   /** 'false' turns the D27 dispute controls off */
   readonly VITE_FEATURE_DISPUTE?: string;
+  /** "false" hides "Lock when I hire" (v1.4, D29); default from CORE_FEATURES.lockAtHire */
+  readonly VITE_FEATURE_LOCK_AT_HIRE?: string;
 }
 
 interface ImportMeta {
