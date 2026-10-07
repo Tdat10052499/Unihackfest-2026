@@ -102,6 +102,18 @@ describe('Contract page', () => {
     expect(confirmFor('releaseNow', scenarioView(s, 'client'), s.fund, 0).rows.find((r) => r.label === 'To')?.sub).toBe('Through the payout partner, sent as VND (simulated)');
     expect(confirmFor('proposeSplit', asFreelancer, s.fund, 0, 5_000_000n).note?.text).toBe('A split settles every milestone that is still open in this contract, not only this one.');
   });
+
+  it('A4 (CL review 7 Oct): confirm sheets in the Vietnam view show ≈ VND and no SOL amount', () => {
+    const s = S('changes');
+    const vnFreelancer = scenarioView(s, 'freelancer', 'vn');
+    for (const sheet of [confirmFor('concede', vnFreelancer, s.fund, 0), confirmFor('proposeSplit', vnFreelancer, s.fund, 0, 5_000_000n)]) {
+      const text = JSON.stringify(sheet);
+      expect(text).not.toContain('USDC');
+      expect(text).not.toMatch(/0\.000005|~0\.0/);
+      expect(text).toContain('VND (estimate)');
+      expect(sheet.rows.find((r) => r.label === 'Network fee')?.value).toBe('Test SOL on devnet');
+    }
+  });
 });
 
 function review(id: string, role: 'client' | 'freelancer', p1 = true) {

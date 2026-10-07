@@ -97,7 +97,8 @@ describe('Overview v4', () => {
     expect(screen.getByText(HERO.vn.sub)).toBeTruthy();
     expect(notch()).toContain('≈ 3.0M VND');
     expect(container.textContent).not.toContain('USDC');
-    expect(container.textContent).toContain('never hold crypto');
+    expect(container.textContent).toContain('the locked amount never passes through your wallet');
+    expect(container.textContent).not.toContain('never hold crypto');
     expect(screen.queryByRole('link', { name: /^Post a job/ })).toBeNull();
   });
 

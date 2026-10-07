@@ -64,8 +64,10 @@ export const RULES: { icon: HubIconName; title: string; text: string }[] = [
   { icon: 'data', title: 'Track record from Solana', text: 'Completed contracts and on-time submissions are counted from the chain. No ratings that can be bought.' },
 ];
 
-/** The Vietnam view never names USDC (section 0): the VND rule says "crypto", as the Terms do */
-export const rulesFor = (vn: boolean) => (vn ? RULES.map((r) => ({ ...r, text: r.text.replace('never hold USDC', 'never hold crypto') })) : RULES);
+/** The Vietnam view never names USDC (section 0). A4: say exactly what holds, without "never hold crypto" (the login
+ * wallet signs with test SOL for fees) */
+export const rulesFor = (vn: boolean) =>
+  vn ? RULES.map((r) => ({ ...r, text: r.text.replace('and never hold USDC', 'and the locked amount never passes through your wallet') })) : RULES;
 
 export interface HowStep {
   role: string;
