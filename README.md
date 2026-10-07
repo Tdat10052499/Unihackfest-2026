@@ -150,7 +150,7 @@ flowchart TB
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages. Lock at hire: **Lock now** / **Lock when I hire** on `/jobs/new`, "Budget locked" / "Locks when hired" chips, a "Funded only" filter, and "Select @x and lock X USDC". An open contract from `/new` is not built yet. |
 | **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
-| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 184 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V7). |
+| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 185 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V7). |
 
 **Compute units:**
 - Measured with LiteSVM on v1.4, 7 Oct 2026, over 10 runs.

@@ -71,7 +71,7 @@ Three checks ran against `main`: every technical claim of `final-pitch.md` again
 | A7 | `qa-cheatsheet.md` contradicted the pitch (wallet screening as built, "not offering a service", "disputes are off", v1.2) | Rewritten to match `final-pitch.md` §4 |
 | A8 | `product-spec.md`, decision log D11, `expert-check-pack.vi.md`, tracker S-1, `CLAUDE.md` (D1–D27) were stale on D26/D27, partner wording or the job board | Updated; expert pack adds questions 10 (job board, Law 74/2025) and 11 (open-ended lock) |
 
-Verified and unchanged: 27 instructions, 53 errors, 24 events; permissionless release and refund to fixed recipients; destination fixed at accept; request changes never refunds; budget locked at `post_job`; XChaCha20-Poly1305 + X25519/HKDF; `transfer_checked`; 1,000 USDC cap; 120 s accept window; USDC on Solana ≈ US$7.2 bn (DefiLlama, 7 Oct); faucet 20 USDC / 2 h; ≈ 520,000 VND for 20 USDC still holds (Wise 25,990 on 7 Oct); Due and Nium document USDC on Solana in and VND out separately (so "candidates, simulated" stays).
+Verified and unchanged *(v1.3; superseded 7 Oct by v1.4: 29 instructions, 55 errors, 26 events, 67 tests, budget locked at posting or at selection; see `program-spec.md` §11)*: 27 instructions, 53 errors, 24 events; permissionless release and refund to fixed recipients; destination fixed at accept; request changes never refunds; budget locked at `post_job`; XChaCha20-Poly1305 + X25519/HKDF; `transfer_checked`; 1,000 USDC cap; 120 s accept window; USDC on Solana ≈ US$7.2 bn (DefiLlama, 7 Oct); faucet 20 USDC / 2 h; ≈ 520,000 VND for 20 USDC still holds (Wise 25,990 on 7 Oct); Due and Nium document USDC on Solana in and VND out separately (so "candidates, simulated" stays).
 
 New owner tasks (also in `final-pitch.md` §5):
 
@@ -81,7 +81,7 @@ New owner tasks (also in `final-pitch.md` §5):
 | P12 | Re-measure the compute-unit table on v1.3 (`g15`; add `accept_cancel` and the job instructions) | Dev | 8 Oct |
 | P13 | Re-upload the v1.3 IDL on-chain (the on-chain IDL is still v1.1) before saying "IDL on-chain" | Dev | 8 Oct |
 | P14 | `docs/08-research/ned-research-and-compliance.md`: status note, disputes, Q&A 2, 3, 6, 7, 8, the demo line and the Track 2 rubric name were stale | CL | Marked done earlier but the file had not changed since `af0b0f8`; **applied in the pre-pitch push (7 Oct)**, see section 5 |
-| P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines | CL | after deploy |
+| P15 | Open the live `/jobs/legal` in a browser after Vercel redeploys `main`, and check the Terms show "no instruction in the program lets anyone at N.E.D move locked funds" and 13 Disclosures lines *(14 since v1.4, 7 Oct V7: "Some listings lock only when they hire" added after "Public on-chain")* | CL | after deploy |
 
 ---
 

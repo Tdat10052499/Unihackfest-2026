@@ -5,7 +5,7 @@
 **Cơ sở bằng chứng:** `NED_Evidence_Base.md` (đã đóng băng). Tài liệu này không dùng thêm nguồn nào mới.
 
 > **Cập nhật 07/10/2026 (Compliance Lead, kiểm tra tại `main` 343faa6).** Đã mở lại nguồn và sửa trực tiếp các dòng sau, mỗi dòng có ghi "(07/10)":
-> - Sản phẩm nay là **program v1.3**: 27 instruction, 53 mã lỗi, 24 event, 54 test (lần ghi nhận gần nhất 06/10). Có thêm **Funded Jobs** (D25): doanh nghiệp khóa toàn bộ ngân sách khi đăng việc. **Yêu cầu chỉnh sửa (request changes) đã có trên Workspace** (D27), không còn bị ẩn. Từ "tự giải phóng / auto-release" không dùng nữa (D26): sau hạn duyệt, **bất kỳ ai** bấm **Release now**.
+> - Sản phẩm nay là **program v1.4** (07/10, trên devnet): 29 instruction, 55 mã lỗi, 26 event, 67 test. Có thêm **N.E.D Jobs** (D25, sửa bởi D29): doanh nghiệp khóa ngân sách lúc đăng việc hoặc ngay lúc chọn người, luôn trước khi freelancer accept. **Yêu cầu chỉnh sửa (request changes) đã có trên Workspace** (D27), không còn bị ẩn. Từ "tự giải phóng / auto-release" không dùng nữa (D26): sau hạn duyệt, **bất kỳ ai** bấm **Release now**.
 > - **Phí Contra bị ghi ngược:** freelancer trả 15 USD (dự án dưới 500 USD) hoặc 29 USD mỗi dự án ở gói miễn phí, 0 ở gói Pro; khách trả phí xử lý (ACH 0,8%, tối đa 5 USD; thẻ 2,9% + 0,30 USD) ([Contra](https://help.contra.com/en/articles/9322934)).
 > - Nghị định 284/2026: mức 180–200 triệu là cho **tổ chức**; cá nhân bằng một nửa. Upwork: phí khách 3–10% (gói Basic 3–5%) + phí khởi tạo hợp đồng. Payoneer: 71% (không phải 71–75%). Escrow.com: dưới 5.000 USD người mua có thể trả bằng PayPal hoặc thẻ.
 > - Không dùng cụm "đối tác chi trả có giấy phép" và "bảo đảm thanh toán" cho N.E.D (bảng từ ngữ, `product-spec.md` mục 6): nói "đối tác chi trả ở nước ngoài (ứng viên Due, Nium; mô phỏng trong demo)" và "khóa tiền trước".
@@ -207,7 +207,7 @@ Trước khi so sánh với đối thủ, cần hiểu N.E.D vận hành ra sao 
 | Ai rút được tiền khỏi két | Không có lệnh nào cho N.E.D rút tiền. Tiền chỉ ra theo các luật ở bước 5. **Tuy nhiên**, chương trình vẫn có thể được team nâng cấp bằng khóa triển khai (upgrade authority), và khóa này hiện là một khóa đơn. Về lý thuyết, nâng cấp code thì luật cũng có thể bị thay. Kế hoạch là chuyển khóa này sang ví đa chữ ký (multisig) hoặc khóa cứng chương trình trước khi lên mainnet |
 | Tranh chấp | Khách hàng có thể **yêu cầu chỉnh sửa (request changes)** trước hạn duyệt; khi đó không ai bấm Release now được nữa. Milestone chỉ kết thúc khi khách chấp nhận bản sửa, freelancer trả lại tiền, hoặc hai bên thỏa thuận chia; **không bao giờ tự hoàn tiền**. **Không có trọng tài trung lập.** Đã có trên Workspace (D27); ứng dụng điện thoại chưa phản hồi được yêu cầu chỉnh sửa (07/10) |
 | Trả VND | **Mô phỏng.** Tiền được giải phóng tới một ví thử nghiệm do team giữ, đóng vai đối tác. Màn hình ghi rõ "VND payout simulated". Không có đồng VND nào được trả thật |
-| Kiểm chứng | Chạy end-to-end hai lượt trên bản đã triển khai (04/10/2026); một vai là người thật, vai còn lại là script. Test lần gần nhất (v1.3, 06/10): 54/54 test program đạt (07/10). **Chưa audit bảo mật** |
+| Kiểm chứng | Chạy end-to-end hai lượt trên bản đã triển khai (04/10/2026); một vai là người thật, vai còn lại là script. Test lần gần nhất (v1.4, 07/10): 67/67 test program đạt. **Chưa audit bảo mật** |
 
 **Vì sao thiết kế như vậy?** Có hai lý do chính.
 
@@ -419,8 +419,8 @@ Phần này không phải danh sách việc cần làm chung chung cho một sta
 
 | Hạng mục | Hiện trạng |
 |---|---|
-| Smart contract | Chương trình `ned_program` (v1.3, 27 lệnh, 53 mã lỗi, 24 event) trên **devnet**: hợp đồng milestone, két do chương trình quản lý, giải phóng và hoàn tiền theo thời hạn, yêu cầu chỉnh sửa, định danh @username, đăng ký khóa thiết bị, **Funded Jobs** (đăng việc kèm ngân sách đã khóa, ứng tuyển, chọn người) (07/10) |
-| Kiểm thử | 54/54 test program đạt ở lần ghi nhận gần nhất (v1.3, 06/10) (07/10); test thư viện dùng chung 100/100; smoke test trên devnet đạt; chạy end-to-end 2 lượt đạt (04/10/2026), một vai là người thật, vai còn lại là script; chưa có lượt nào với hai người dùng thật |
+| Smart contract | Chương trình `ned_program` (v1.4, 29 lệnh, 55 mã lỗi, 26 event) trên **devnet**: hợp đồng milestone, két do chương trình quản lý, giải phóng và hoàn tiền theo thời hạn, yêu cầu chỉnh sửa, định danh @username, đăng ký khóa thiết bị, **Funded Jobs** (đăng việc kèm ngân sách đã khóa, ứng tuyển, chọn người) (07/10) |
+| Kiểm thử | 67/67 test program đạt ở lần ghi nhận gần nhất (v1.4, 07/10); test thư viện dùng chung 185/185; smoke test trên devnet đạt; chạy end-to-end 2 lượt đạt (04/10/2026), một vai là người thật, vai còn lại là script; chưa có lượt nào với hai người dùng thật |
 | Giao diện | Ứng dụng web cho điện thoại (GitHub Pages) và Workspace cho máy tính (Vercel). Đăng nhập Google qua Dynamic. Có giao diện cho người ở Việt Nam (hiển thị VND ước tính) và giao diện quốc tế |
 | Bảo mật nội dung | Brief và bài nộp mã hóa đầu cuối; khóa được chia sẻ tự động giữa các thiết bị đã đăng ký |
 | Tài liệu kỹ thuật | Đặc tả chương trình v1.3 đầy đủ (07/10); hướng dẫn build, test, deploy |
