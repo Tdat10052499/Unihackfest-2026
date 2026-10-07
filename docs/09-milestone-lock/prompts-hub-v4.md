@@ -24,7 +24,7 @@ The written spec is **appendix V** of this file.
 **How to run:**
 
 - One new Claude Code session per prompt, in order H1 → H5.
-- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md) (no secrets, English UI, the word table, tests, a progress row in `docs/tong-hop-tien-do.md`), with one change: `release/6oct` is already merged (PR #40), so H1 creates the branch **`feat/hub-v4` from `main`** and every H step commits and pushes there. H5 opens the PR.
+- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md) (no secrets, English UI, the word table, tests, a progress row in `docs/tong-hop-tien-do.md`), including the git rule changed on 7 Oct: **work and push directly on `main`**, no branches and no pull requests. Pull before each step; run the tests before each push; never force-push.
 - **Starting point (main at `bb69e02`):** S5 and S6 are built (`ned-workspace/src/jobs/`: `JobsLayout`, `ProfileMenu`, `hub.module.css`, `components/`, `pages/`, `__tests__/`), S9 added `LegalLinks` in the Workspace, S11 added the legal text in `ned-wallet/services/legalCopy.ts` and the `/terms`, `/privacy`, `/disclosures` screens. H1–H5 **restyle and extend** that code; they do not rebuild it.
 
 **Not changing:**
@@ -39,7 +39,7 @@ The written spec is **appendix V** of this file.
 ## H1 · Hub foundation v4: tokens, header, footer, motion, shared components
 
 ```
-Follow docs/09-milestone-lock/prompts-6oct.md section 0, but branch: git switch -c feat/hub-v4 origin/main.
+Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main: git switch main && git pull --ff-only origin main).
 Read: docs/09-milestone-lock/prompts-hub-v4.md (run notes and appendix V1–V4, V7, V9), README.md D28, the boards
 docs/02-thiet-ke/canvas-v2/{WebJobs,WebJobsFind,WebJobsLegal}.dc.html (the helmet <style> is the exact CSS of the
 effects), and the code already built in S5/S6: ned-workspace/src/jobs/{JobsLayout.tsx,ProfileMenu.tsx,hub.module.css,
@@ -68,13 +68,13 @@ Tests: update src/jobs/__tests__ for changed markup and copy (do not delete a te
 and Sheet close on Escape and outside click; useCountUp returns the target under reduced motion; JobCard shows ≈ VND in
 the Vietnam view.
 Done when: typecheck, lint, tests and build pass; screenshots of the header at the top and after scrolling, the profile
-menu, the footer; progress row added; pushed to feat/hub-v4.
+menu, the footer; progress row added; pushed to main.
 ```
 
 ## H2 · Overview landing v4 (`/jobs`)
 
 ```
-Follow docs/09-milestone-lock/prompts-6oct.md section 0 (branch feat/hub-v4).
+Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
 Read: prompts-hub-v4.md appendix V5 (every subsection) and V9, the board docs/02-thiet-ke/canvas-v2/WebJobs.dc.html
 (inline styles are the exact values; renderVals() holds the copy per view: guest, Vietnam view, client), the H1
 components, and the current ned-workspace/src/jobs/{pages/Overview.tsx,pages/Overview.module.css,overview.ts,hooks.ts}.
@@ -100,7 +100,7 @@ Vietnam view and client; a short screen recording or GIF of the scroll effects i
 ## H3 · Find jobs v4 (`/jobs/find`)
 
 ```
-Follow docs/09-milestone-lock/prompts-6oct.md section 0 (branch feat/hub-v4).
+Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
 Read: prompts-hub-v4.md appendix V6, funded-jobs-plan.md section 6.1, the board
 docs/02-thiet-ke/canvas-v2/WebJobsFind.dc.html, packages/ned-core/src/jobs/ (search, filtersToQuery/filtersFromQuery),
 the H1 components, and the current ned-workspace/src/jobs/{pages/Find.tsx,pages/Find.module.css,find.ts}.
@@ -128,7 +128,7 @@ progress row; pushed.
 ## H4 · Legal page (`/jobs/legal`), one source for the legal text
 
 ```
-Follow docs/09-milestone-lock/prompts-6oct.md section 0 (branch feat/hub-v4).
+Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
 Read: prompts-hub-v4.md appendix V8, the board docs/02-thiet-ke/canvas-v2/WebJobsLegal.dc.html, the shipped text in
 ned-wallet/services/legalCopy.ts (+ its test), ned-wallet/app/{terms,privacy,disclosures}.tsx,
 ned-workspace/src/components/LegalLinks.tsx, compliance-fix-list.md appendices 1–2 and P3.
@@ -151,10 +151,10 @@ Done when: typecheck, lint, tests and build pass for ned-core, ned-wallet and ne
 the table of contents follows the scroll; screenshots desktop and 390 px; progress row; pushed.
 ```
 
-## H5 · Restyle detail, post and applicants; QA; PR
+## H5 · Restyle detail, post and applicants; QA
 
 ```
-Follow docs/09-milestone-lock/prompts-6oct.md section 0 (branch feat/hub-v4).
+Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
 Read: prompts-hub-v4.md appendix V1–V4 and V10, the boards docs/02-thiet-ke/canvas-v2/{WebJobDetail,WebJobPost,
 WebJobApplicants}.dc.html, and ned-workspace/src/jobs/pages/{JobDetail.tsx,Job.module.css,PostJob.tsx,Applicants.tsx}.
 Task:
@@ -170,8 +170,8 @@ Task:
    - wording sweep: no "payment", "pay" (for USDC), "escrow", "safe", "guaranteed", "licensed partner" (except the Terms
      line flagged in H4 if the PO has not decided).
 3. Fix what fails in small commits; list anything left in the progress row.
-4. Open a PR feat/hub-v4 → main with the QA checklist and results and the screenshots. Do not merge.
-Done when: typecheck, lint, tests and build pass; the PR is open; screenshots of the three restyled pages.
+4. Write the QA checklist with results and the screenshot list in docs/09-milestone-lock/hub-v4-qa.md; push to main.
+Done when: typecheck, lint, tests and build pass; hub-v4-qa.md is on main; screenshots of the three restyled pages.
 ```
 
 ---

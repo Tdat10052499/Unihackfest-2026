@@ -12,6 +12,7 @@ Superseded but kept for their research: `docs/07-strategy-v3/`, `docs/06-strateg
 
 Rules:
 
+- Git (PO decision, 7 Oct 2026): commit and push straight to `main`. Do not create branches or pull requests. Pull before you start (`git pull --ff-only origin main`), make small conventional commits, and run the tests before each push. Never force-push `main`.
 - If two documents disagree, `docs/09-milestone-lock/` wins on product and program design, and `docs/08-research/ned-research-and-compliance.md` wins on research facts. Fix the losing document instead of following it.
 - Keep the source labels when you extend these documents. Never present an assumption as a fact.
 - Follow the word table in `docs/09-milestone-lock/product-spec.md` section 6 for product copy, pitch and docs. Never call USDC a "payment".

@@ -28,10 +28,10 @@ Each prompt starts with "Follow prompts-6oct.md section 0". Those rules:
    - The documents the step names.
    - For any screen, the `.dc.html` boards it names. Inline styles there are the exact values; copy is final English.
    - Rebuild screens with the app's own components. Never paste board HTML or sample data into the app.
-2. **Branch.**
-   - Work on the integration branch `release/6oct`, made from `main` in S0.
-   - Make one or more small conventional commits per step, and push after each step.
-   - Do not merge to `main`; S16 does that.
+2. **Branch.** *(Changed 7 Oct by the PO: no branches, no pull requests.)*
+   - Work directly on `main`: `git switch main && git pull --ff-only origin main` before the step.
+   - Make one or more small conventional commits per step; run the tests, then push to `main` after each step.
+   - Never force-push `main`. `release/6oct` was merged in PR #40 and is no longer used.
 3. **Never do these.**
    - Commit keys, keypairs or `.env`.
    - Weaken a program check to make a test pass.
@@ -389,7 +389,7 @@ Done when: every changed sentence follows the word table; links resolve; progres
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0.
 Read: build-order-6oct.md step 6 (scenarios T1–T15).
-Task: deploy preview builds of release/6oct (Vercel preview for ned-workspace with the /wallet build; no production
+Task: deploy preview builds of main (Vercel preview for ned-workspace with the /wallet build; no production
 deploy) only if the PO approves in this session; otherwise run both apps locally against devnet. Prepare a checklist file
 docs/09-milestone-lock/test-run-6oct.md with T1–T15, steps, expected result and a column for the result. Run T3, T14 and
 T15 yourself (filters, Records, wording grep) and fill them in. For the scenarios that need two human logins, list the
@@ -400,16 +400,16 @@ Done when: test-run-6oct.md exists with T3, T14, T15 filled and every fix commit
 
 **Owner task:** run the two-login scenarios twice and fill in `test-run-6oct.md`. If a scenario fails and cannot be fixed, switch its flag off (build-order step 6).
 
-## S16 · Merge and deploy
+## S16 · Release check and deploy
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0.
 Context: the PO confirms T1–T15 passed twice (or names the flags to switch off).
 Task:
 1. Apply any flag the PO named, with the matching disclosure and Q&A text.
-2. Rebase release/6oct on main, run every test and both builds, and open ONE pull request to main with a summary per step
-   (S1–S15), the test-run file, and the CL review box of the PR template ticked only after CL reviews.
-3. After CL approves and the PO says go: merge; build ned-wallet for GitHub Pages and check `grep -o 'jup_'` on the bundle
+2. On main (no pull request, section 0 rule 2): run every test and both builds, and write a release summary per step
+   (S1–S15) with the test-run file in docs/09-milestone-lock/release-6oct.md; ask CL to review that summary and main.
+3. After CL approves and the PO says go: build ned-wallet for GitHub Pages and check `grep -o 'jup_'` on the bundle
    is empty; deploy gh-pages; deploy the Workspace on Vercel (production). Run T1, T5, T6, T9 and T12 once on the live
    sites and report.
 Do not deploy before the PO says go in this session.
