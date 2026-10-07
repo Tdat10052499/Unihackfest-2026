@@ -21,7 +21,7 @@ import { ensureDeviceRegistered } from '../../hooks/keySync.ts';
 import { useChainTime } from '../../hooks/useChainTime.ts';
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { shortAddress } from '../../lib/format.ts';
-import { Chip } from '../components/Chip.tsx';
+import { Chip, ListingBudgetChip } from '../components/Chip.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon } from '../components/HubIcon.tsx';
@@ -37,6 +37,11 @@ export const PITCH_HINT = "Public on Solana. Don't put names or personal details
 export const BRIEF_OK = 'Brief verified · matches its fingerprint on Solana';
 export const BRIEF_BAD = "The public brief does not match its fingerprint on Solana. Don't apply until the business saves it again.";
 export const BRIEF_MISSING = 'The public brief is not on Solana yet.';
+/** v1.4 (D29) chip hint, CL pre-pitch-check 9.3 item 9 */
+export const LOCKS_WHEN_HIRED_HINT = 'The budget is locked when the business selects someone, before you accept.';
+/** v1.4 (D29) apply sheet notice on a listing that locks when hired, CL pre-pitch-check 9.3 item 7 */
+export const UNFUNDED_APPLY_NOTICE =
+  'This listing locks its budget only when the business selects someone. Your pitch, wallet and @username are public on Solana even if it is never funded.';
 const utf8 = (s: string) => new TextEncoder().encode(s).length;
 
 export function JobDetail() {
@@ -106,6 +111,7 @@ export function JobDetailView(p: JobDetailViewProps) {
         <main className={styles.main}>
           <section aria-labelledby="jd-title" className={`${styles.card} rv`}>
             <div className={styles.chips}>
+              <ListingBudgetChip unfunded={job.unfunded} />
               <Chip tone="purple">{categoryLabel(job.category)}</Chip>
               {skills.map((k) => (
                 <span key={k.id} className={styles.chipSoft}>
@@ -198,10 +204,10 @@ export function JobDetailView(p: JobDetailViewProps) {
             <section aria-labelledby="jd-proof" className={`${styles.card} rv`}>
               <div className={styles.proofHead}>
                 <span className={styles.proofIcon} aria-hidden>
-                  <HubIcon name="lock" size={16} />
+                  <HubIcon name={job.unfunded ? 'clock' : 'lock'} size={16} />
                 </span>
                 <h2 id="jd-proof" className={styles.h2}>
-                  Budget locked
+                  {job.unfunded ? 'Locks when hired' : 'Budget locked'}
                 </h2>
               </div>
               <div className={styles.big}>
@@ -210,9 +216,13 @@ export function JobDetailView(p: JobDetailViewProps) {
               <p className={styles.para}>
                 {job.state === 'Filled'
                   ? 'The budget moved into the hired freelancer’s contract.'
-                  : job.state === 'Withdrawn'
+                  : job.unfunded
+                    ? job.state === 'Withdrawn'
+                      ? 'Nobody was hired, and nothing was locked.'
+                      : LOCKS_WHEN_HIRED_HINT
+                    : job.state === 'Withdrawn'
                     ? `Nobody was hired, so the budget went back to ${p.businessName}.`
-                    : `Locked in a program vault on Solana when the job was posted. It moves into your contract when you accept. It goes back to ${p.businessName} only if nobody is hired.`}
+                    : `Locked in a program vault on Solana. It moves into your contract when you accept. It goes back to ${p.businessName} only if nobody is hired.`}
               </p>
               <a href={explorer(vault)} target="_blank" rel="noopener noreferrer" className={styles.extLink}>
                 View the vault on Explorer
@@ -287,7 +297,9 @@ function ApplyCard(p: JobDetailViewProps) {
         p.vn ? { label: 'Network fee', value: 'Test SOL on devnet', sub: 'it has no value' } : { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
         { label: 'N.E.D fee', value: 'None during the pilot' },
       ],
-      note: { tone: 'purple', text: 'Nothing is locked from your wallet. If you are selected, the business creates the contract and you accept it.' },
+      note: job.unfunded
+        ? { tone: 'warning', text: UNFUNDED_APPLY_NOTICE }
+        : { tone: 'purple', text: 'Nothing is locked from your wallet. If you are selected, the business creates the contract and you accept it.' },
       confirmLabel: 'Apply',
     });
     if (!ok) return;

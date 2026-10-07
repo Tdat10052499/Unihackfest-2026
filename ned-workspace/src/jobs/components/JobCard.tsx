@@ -1,5 +1,6 @@
 // Job card v4 (prompts-hub-v4.md V6.5, V7) and the list-view JobRow. The whole card is one link to /jobs/:job.
-// Card: category dot and "Category · Up to …", the "Applied" / "Your job" chip, the green "Locked" chip; title (18/600,
+// Card: category dot and "Category · Up to …", the "Applied" / "Your job" chip, the green "Locked" chip or the neutral
+// "Locks when hired" chip of a v1.4 listing (D29); title (18/600,
 // never the display font); summary; skill pills; footer with the business, "Apply by … · N applicants", the amount
 // (Space Mono, "≈ … VND" in the Vietnam view) and the milestone count. Lifts on hover and reveals on scroll (.rv).
 // `dark` is the v3 featured card, kept until H2 rebuilds the Overview.
@@ -11,7 +12,7 @@ import { formatDeadline } from '@ned/core/milestone/format.ts';
 import { Avatar } from '../../components/Avatar.tsx';
 import { shortAddress } from '../../lib/format.ts';
 import { CATEGORY_LOOK } from './categoryLook.ts';
-import { BudgetLockedChip, Chip } from './Chip.tsx';
+import { budgetWords, Chip, ListingBudgetChip } from './Chip.tsx';
 import { HubIcon } from './HubIcon.tsx';
 import { moneyLabel } from './MoneyText.tsx';
 import styles from './components.module.css';
@@ -88,7 +89,7 @@ export function JobCard({ job, vn, now, dark = false, businessName, mine = null,
           {f.category} · {f.upTo}
         </span>
         <MineChip mine={mine} />
-        <BudgetLockedChip short onDark={dark} />
+        <ListingBudgetChip unfunded={job.unfunded} short onDark={dark} />
       </div>
       <div>
         <h3 className={styles.cardTitle}>{job.title}</h3>
@@ -129,7 +130,7 @@ export function JobCard({ job, vn, now, dark = false, businessName, mine = null,
     <Link
       to={`/jobs/${job.address.toBase58()}`}
       className={`${cls} hb-lift rv`}
-      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
+      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, ${budgetWords(job.unfunded)}`}
       data-testid="job-card"
     >
       {body}
@@ -144,7 +145,7 @@ export function JobRow({ job, vn, now, businessName, mine = null }: Omit<JobCard
     <Link
       to={`/jobs/${job.address.toBase58()}`}
       className={styles.row}
-      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, budget locked`}
+      aria-label={`${job.title}, ${moneyLabel(job.total, vn)}, ${budgetWords(job.unfunded)}`}
       data-testid="job-row"
     >
       <Avatar seed={f.business} size={38} decorative />
@@ -163,9 +164,9 @@ export function JobRow({ job, vn, now, businessName, mine = null }: Omit<JobCard
       </span>
       <span className={styles.rowMoney}>
         <span className={styles.rowAmount}>{cardAmount(job.total, vn)}</span>
-        <span className={styles.rowLocked}>
-          <HubIcon name="lock" size={11} width={2.6} />
-          {vn ? 'Estimate · budget locked' : 'Budget locked'}
+        <span className={`${styles.rowLocked} ${job.unfunded ? styles.rowUnfunded : ''}`}>
+          <HubIcon name={job.unfunded ? 'clock' : 'lock'} size={11} width={2.6} />
+          {job.unfunded ? (vn ? 'Estimate · locks when hired' : 'Locks when hired') : vn ? 'Estimate · budget locked' : 'Budget locked'}
         </span>
       </span>
       <span className={`hb-arrow ${styles.rowArrow}`}>

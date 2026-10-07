@@ -97,6 +97,7 @@
 .rowMoney { width: 170px; text-align: right; }
 .rowAmount { display: block; font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
 .rowLocked { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--tone-success-ink); }
+.rowUnfunded { color: var(--hub-muted); }
 .rowArrow { display: inline-flex; color: var(--hub-muted); }
 
 /* Popover (V6.3) */

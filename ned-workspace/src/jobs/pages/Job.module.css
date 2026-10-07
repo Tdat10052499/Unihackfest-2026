@@ -122,3 +122,12 @@
 
 /* R1: done-when rule shown on each milestone */
 .ruleHint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--tone-warning-ink); }
+/* v1.4 (D29): after selecting on a listing that locked when hired */
+.lockedNow { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--tone-success-ink); }
+/* v1.4 (D29): "When is the budget locked?" on Post a job */
+.lockChoice { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 8px; }
+.lockOption { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; text-align: left; border: none; border-radius: var(--hub-r-tile); background: var(--hub-page); box-shadow: inset 0 0 0 1px var(--hub-line); cursor: pointer; font: inherit; color: inherit; }
+.lockOption:focus-visible { outline: 2px solid var(--hub-purple); outline-offset: 2px; }
+.lockOptionOn { box-shadow: inset 0 0 0 2px var(--hub-purple); background: var(--hub-tint); }
+.lockOptionLabel { font-size: 14px; font-weight: 700; }
+.lockOptionText { font-size: 13px; line-height: 1.45; color: var(--hub-subtle); }

@@ -50,6 +50,8 @@ export const HUB_JOBS: JobListingAccount[] = SAMPLES.map(([title, biz, category,
     applicationCount: apps,
     bump: 255,
     vaultBump: 254,
+    // v1.4 (D29): every third sample locks when hired
+    unfunded: n % 3 === 1,
   } as JobListingAccount;
 });
 

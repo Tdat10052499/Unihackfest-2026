@@ -3,6 +3,7 @@
 // (with the CTA band on the Overview). Its own route tree under /jobs, sharing sign-in, the wallet extension (D23) and
 // @ned/core with the Workspace. Readable signed out; "Post a job" only for a signed-in wallet outside the Vietnam view
 // (D18). Legal is reached from the footer only, never the navbar.
+import { FEATURES } from '../config.ts';
 import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { AnimatePresence, m } from 'motion/react';
@@ -46,7 +47,8 @@ export const FOOT = {
 export const CTA = {
   client: ['Hire with the money on the table, ', 'and no fee from N.E.D'],
   other: ['Work with the money on the table, ', 'and no fee from N.E.D'],
-  checks: ['Budget locked before posting', 'Checkable on Solana Explorer'],
+  /** v1.4 (D29): locked at posting or at hire; v1.3 wording when FEATURES.lockAtHire is off */
+  checks: [FEATURES.lockAtHire ? 'Budget locked before you accept' : 'Budget locked before posting', 'Checkable on Solana Explorer'],
   text: 'N.E.D holds no funds and charges no fee in this version. The money waits in the program until the work is accepted or a deadline passes.',
 } as const;
 

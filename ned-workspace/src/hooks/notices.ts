@@ -111,7 +111,7 @@ export function useNotices(wallet: string | null, vn: boolean) {
       const incoming: StoredNotice[] = [
         ...finalsEvts.map((e) => ({ ...e, at: data.now, seen: false })),
         ...contractEvts.map((e) => ({ id: e.id, ...contractNotice(e, vn, names[e.counterparty] ?? shortAddress(e.counterparty)), at: data.now, href: `/contract/${e.fund}`, seen: false })),
-        ...jobEvts.map((e) => ({ id: e.id, ...jobNotice(e), at: data.now, href: e.kind === 'newApplicant' ? `/jobs/${e.job}/applicants` : `/jobs/${e.job}`, seen: false })),
+        ...jobEvts.map((e) => ({ id: e.id, ...jobNotice(e), at: data.now, href: e.kind === 'newApplicant' || e.kind === 'budgetLocked' ? `/jobs/${e.job}/applicants` : `/jobs/${e.job}`, seen: false })),
       ];
       const next = {
         ...state,

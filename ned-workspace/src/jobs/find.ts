@@ -31,11 +31,11 @@ export const viewToQuery = (filters: JobFilters, tab: FindTab): string => filter
 
 /** Filters that narrow the results (sort and view do not) */
 export const filtersOn = (f: JobFilters) =>
-  Boolean(f.q || f.cat || f.budget || f.skills?.length || f.min !== undefined || f.max !== undefined || f.dur || f.ms || f.soon || f.hide);
+  Boolean(f.q || f.cat || f.budget || f.skills?.length || f.min !== undefined || f.max !== undefined || f.dur || f.ms || f.soon || f.hide || f.funded);
 
-/** Only the filters of the Filters sheet: skills, time to deliver, milestones, the two switches (the button's badge) */
-export const sheetCount = (f: JobFilters) => (f.skills?.length ?? 0) + (f.dur ? 1 : 0) + (f.ms ? 1 : 0) + (f.soon ? 1 : 0) + (f.hide ? 1 : 0);
-export const clearSheet = (f: JobFilters): JobFilters => ({ ...f, skills: undefined, dur: undefined, ms: undefined, soon: undefined, hide: undefined });
+/** Only the filters of the Filters sheet: skills, time to deliver, milestones, the switches (the button's badge) */
+export const sheetCount = (f: JobFilters) => (f.skills?.length ?? 0) + (f.dur ? 1 : 0) + (f.ms ? 1 : 0) + (f.soon ? 1 : 0) + (f.hide ? 1 : 0) + (f.funded ? 1 : 0);
+export const clearSheet = (f: JobFilters): JobFilters => ({ ...f, skills: undefined, dur: undefined, ms: undefined, soon: undefined, hide: undefined, funded: undefined });
 /** Clear all keeps the sort and the grid / list choice */
 export const clearAll = (f: JobFilters): JobFilters => ({ sort: f.sort, view: f.view });
 
@@ -67,6 +67,9 @@ export const RANGES: { id: JobMilestoneRange; label: string; chip: string }[] = 
 /** The board's skill pills when no field is chosen (taxonomy ids); with a field, its own skills */
 export const SHEET_SKILLS = ['logo-brand', 'ui-ux', 'illustration', 'figma', 'frontend', 'backend', 'mobile', 'solana', 'en-vi', 'copywriting', 'social-media', 'motion', 'video-editing', 'spreadsheets'];
 
+/** v1.4 (D29) switch and chip label: hides listings that lock when hired */
+export const FUNDED_ONLY = 'Funded only';
+
 export interface FilterChip {
   key: string;
   label: string;
@@ -89,6 +92,7 @@ export function filterChips(f: JobFilters, vn: boolean): FilterChip[] {
   if (f.ms) out.push({ key: 'ms', label: RANGES.find((r) => r.id === f.ms)!.chip, without: { ...f, ms: undefined } });
   if (f.soon) out.push({ key: 'soon', label: 'Apply by within 24 h', without: { ...f, soon: undefined } });
   if (f.hide) out.push({ key: 'hide', label: 'Hiding applied', without: { ...f, hide: undefined } });
+  if (f.funded) out.push({ key: 'funded', label: FUNDED_ONLY, without: { ...f, funded: undefined } });
   return out.map((c) => ({ ...c, without: { ...c.without, skills: c.without.skills?.length ? c.without.skills : undefined } }));
 }
 
@@ -135,7 +139,7 @@ export function applicationRows(items: { application: JobApplicationAccount; job
   return items.flatMap(({ application: a, job: j }): Row[] => {
     if (!j) return [];
     const biz = name(j.business.toBase58());
-    const base = { key: a.address.toBase58(), seed: j.business.toBase58(), title: j.title, units: j.total, sub: 'test USDC, locked' };
+    const base = { key: a.address.toBase58(), seed: j.business.toBase58(), title: j.title, units: j.total, sub: j.unfunded ? 'test USDC, locks when hired' : 'test USDC, locked' };
     const jobHref = `/jobs/${j.address.toBase58()}`;
     const selectedMe = j.selected?.toBase58() === me;
     if (j.state === 'Selected' && selectedMe) {
@@ -146,7 +150,7 @@ export function applicationRows(items: { application: JobApplicationAccount; job
       return [selectedMe
         ? { ...base, meta: `${biz} · hired · contract created`, status: 'Hired', tone: 'purple', cta: 'Open contract', href: j.fund ? `/contract/${j.fund.toBase58()}` : jobHref, primary: false }
         : { ...base, meta: `${biz} · applied ${date(a.createdAt)} · filled`, status: 'Not selected', tone: 'neutral', cta: 'View job', href: jobHref, primary: false }];
-    if (j.state === 'Withdrawn') return [{ ...base, meta: `${biz} · applied ${date(a.createdAt)} · budget returned to the business`, status: 'Closed', tone: 'neutral', cta: 'View job', href: jobHref, primary: false }];
+    if (j.state === 'Withdrawn') return [{ ...base, meta: `${biz} · applied ${date(a.createdAt)} · ${j.unfunded ? 'withdrawn, nothing was locked' : 'budget returned to the business'}`, status: 'Closed', tone: 'neutral', cta: 'View job', href: jobHref, primary: false }];
     if (j.state === 'Selected') return [{ ...base, meta: `${biz} · applied ${date(a.createdAt)} · another applicant was selected`, status: 'Not selected yet', tone: 'neutral', cta: 'View job', href: jobHref, primary: false }];
     return [{ ...base, meta: `${biz} · applied ${date(a.createdAt)} · selects by ${date(j.selectBy)}`, status: 'Applied', tone: 'info', cta: 'View job', href: jobHref, primary: false }];
   });
@@ -160,13 +164,13 @@ export function listingRows(jobs: JobListingAccount[], me: string, name: (wallet
     const applicantsHref = `/jobs/${j.address.toBase58()}/applicants`;
     switch (j.state) {
       case 'Open':
-        return { ...base, meta: `${applicants} · select by ${date(j.selectBy)} · posted ${date(j.createdAt)}`, sub: 'locked in the job', status: 'Open', tone: 'success' as Tone, cta: 'Review applicants', href: applicantsHref, primary: j.applicationCount > 0 };
+        return { ...base, meta: `${applicants} · select by ${date(j.selectBy)} · posted ${date(j.createdAt)}`, sub: j.unfunded ? 'locks when you select' : 'locked in the job', status: 'Open', tone: 'success' as Tone, cta: 'Review applicants', href: applicantsHref, primary: j.applicationCount > 0 };
       case 'Selected':
         return { ...base, seed: j.selected?.toBase58() ?? me, meta: `Selected ${name(j.selected?.toBase58() ?? '')} · accept by ${date(j.selectedAt + JOB_ACCEPT_WINDOW_SECS)}`, sub: 'locked in the job', status: 'Selected', tone: 'info' as Tone, cta: 'Review applicants', href: applicantsHref, primary: false };
       case 'Filled':
         return { ...base, seed: j.selected?.toBase58() ?? me, meta: `Hired ${name(j.selected?.toBase58() ?? '')} · contract created`, sub: 'moved into the contract', status: 'Filled', tone: 'purple' as Tone, cta: 'Open contract', href: j.fund ? `/contract/${j.fund.toBase58()}` : `/jobs/${j.address.toBase58()}`, primary: false };
       default:
-        return { ...base, meta: `${applicants} · budget returned`, sub: 'returned to you', status: 'Withdrawn', tone: 'neutral' as Tone, cta: 'View record', href: `/jobs/${j.address.toBase58()}`, primary: false };
+        return { ...base, meta: `${applicants} · ${j.unfunded ? 'nothing was locked' : 'budget returned'}`, sub: j.unfunded ? 'nothing was locked' : 'returned to you', status: 'Withdrawn', tone: 'neutral' as Tone, cta: 'View record', href: `/jobs/${j.address.toBase58()}`, primary: false };
     }
   });
 }

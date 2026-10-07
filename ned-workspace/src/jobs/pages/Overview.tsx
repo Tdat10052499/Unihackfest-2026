@@ -13,7 +13,8 @@ import { Avatar } from '../../components/Avatar.tsx';
 import { useChainTime } from '../../hooks/useChainTime.ts';
 import { shortAddress } from '../../lib/format.ts';
 import { CATEGORY_LOOK, openJobsLabel } from '../components/categoryLook.ts';
-import { BudgetLockedChip } from '../components/Chip.tsx';
+import { ListingBudgetChip } from '../components/Chip.tsx';
+import { FEATURES } from '../../config.ts';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon, type HubIconName } from '../components/HubIcon.tsx';
@@ -32,8 +33,25 @@ import styles from './Overview.module.css';
 
 export type OverviewAudience = 'guest' | 'vn' | 'client';
 
-/** V5.1 hero copy per view (board renderVals: guest, Vietnam view, client) */
-export const HERO: Record<OverviewAudience, { title: [string, string]; sub: string; link: { label: string; to: string } }> = {
+type HeroCopy = Record<OverviewAudience, { title: [string, string]; sub: string; link: { label: string; to: string } }>;
+
+/** v1.4 (D29) intro of the hero sub (CL pre-pitch-check 9.3 item 4) */
+const LOCKED_BEFORE_ACCEPT =
+  'Every job here locks its full budget on Solana before you can accept: at posting, or when the business selects you. Each milestone is released when the client accepts it, or anyone can release it after the review deadline.';
+
+/** V5.1 hero copy per view, v1.4 lock at hire (CL pre-pitch-check 9.3 items 4–5) */
+export const HERO: HeroCopy = {
+  guest: { title: ['Work with the budget', 'locked before you start'], sub: LOCKED_BEFORE_ACCEPT, link: { label: 'How it works', to: '#hb-how' } },
+  vn: { title: ['Work with the budget', 'locked before you start'], sub: `${LOCKED_BEFORE_ACCEPT} VND transfer simulated in this demo.`, link: { label: 'How it works', to: '#hb-how' } },
+  client: {
+    title: ['Hire with the', 'budget on the table'],
+    sub: 'Post a job, lock its budget now or when you hire, pick one applicant, and release each milestone after you accept the work.',
+    link: { label: 'Post a job', to: '/jobs/new' },
+  },
+};
+
+/** V5.1 hero copy per view (board renderVals: guest, Vietnam view, client): v1.3, shown when FEATURES.lockAtHire is off */
+export const HERO_V13: HeroCopy = {
   guest: {
     title: ['Work that is', 'already funded'],
     sub: 'Every job here has its full budget locked on Solana before it is posted. If you are hired, you receive your earnings milestone by milestone.',
@@ -52,11 +70,20 @@ export const HERO: Record<OverviewAudience, { title: [string, string]; sub: stri
 };
 
 export const TRUST_TEXT =
+  'A business locks a job’s whole budget in the program before you can accept: when it posts, or when it selects you. When it hires you, that budget moves into your contract and is released milestone by milestone after the work is accepted.';
+export const TRUST_TEXT_V13 =
   'A business can only post a job by locking its whole budget in the program. When it hires you, that budget moves into your contract and is released milestone by milestone after the work is accepted.';
+
+const RULE_LOCKED_V13 = { icon: 'lock' as const, title: 'Budget locked first', text: 'A business can post a job only by locking its whole budget in the program. Anyone can check it on Explorer.' };
+const RULE_LOCKED = {
+  icon: 'lock' as const,
+  title: 'Budget locked before you accept',
+  text: 'A business locks the whole budget in the program when it posts, or when it selects you. Anyone can check it on Explorer.',
+};
 
 /** V5.3 */
 export const RULES: { icon: HubIconName; title: string; text: string }[] = [
-  { icon: 'lock', title: 'Budget locked first', text: 'A business can post a job only by locking its whole budget in the program. Anyone can check it on Explorer.' },
+  RULE_LOCKED,
   { icon: 'check', title: 'Released per milestone', text: 'Each milestone is released after the client accepts the work, or when the review time ends.' },
   { icon: 'undo', title: 'Request changes, not refunds', text: 'A client who refuses a delivery names what is missing. The amount stays locked; it never goes back alone.' },
   { icon: 'eye', title: 'Preview first, final files after', text: 'Share a watermarked preview to be reviewed. Hand over the final files after release, checked against their fingerprints.' },
@@ -66,8 +93,10 @@ export const RULES: { icon: HubIconName; title: string; text: string }[] = [
 
 /** The Vietnam view never names USDC (section 0). A4: say exactly what holds, without "never hold crypto" (the login
  * wallet signs with test SOL for fees) */
-export const rulesFor = (vn: boolean) =>
-  vn ? RULES.map((r) => ({ ...r, text: r.text.replace('and never hold USDC', 'and the locked amount never passes through your wallet') })) : RULES;
+export const rulesFor = (vn: boolean, lockAtHire = true) => {
+  const rules = lockAtHire ? RULES : [RULE_LOCKED_V13, ...RULES.slice(1)];
+  return vn ? rules.map((r) => ({ ...r, text: r.text.replace('and never hold USDC', 'and the locked amount never passes through your wallet') })) : rules;
+};
 
 export interface HowStep {
   role: string;
@@ -86,13 +115,15 @@ export interface HowStep {
  * V5.5 steps. The mock amounts are fixed examples; the Vietnam view shows them as ≈ VND and never mentions USDC
  * (section 0: the Vietnam view shows no USDC).
  */
-export function howSteps(vn: boolean): HowStep[] {
+export function howSteps(vn: boolean, lockAtHire = true): HowStep[] {
   const m = (usdc: bigint) => moneyLabel(usdc * 1_000_000n, vn);
   return [
     {
       role: 'Business',
       title: 'Post and lock the budget',
-      text: 'Write the brief, split it into milestones and lock the whole budget. The job appears with a "Budget locked" badge anyone can check on Explorer.',
+      text: lockAtHire
+        ? 'Write the brief, split it into milestones and lock the budget now or when you hire. The job appears with a "Budget locked" or "Locks when hired" badge anyone can check on Explorer.'
+        : 'Write the brief, split it into milestones and lock the whole budget. The job appears with a "Budget locked" badge anyone can check on Explorer.',
       note: 'One page, one wallet confirmation to lock, one to save the public brief.',
       mockLabel: 'Post a job',
       mockTitle: 'Icon set, 24 icons',
@@ -181,6 +212,7 @@ export function Overview() {
       signedIn={viewer.signedIn}
       names={names}
       now={now}
+      lockAtHire={FEATURES.lockAtHire}
     />
   );
 }
@@ -197,9 +229,14 @@ export interface OverviewViewProps {
   signedIn: boolean;
   names: Record<string, string>;
   now: number;
+  /** v1.4 (D29) copy and stats; off = the v1.3 page (funded listings only) */
+  lockAtHire?: boolean;
 }
 
-export function OverviewView(p: OverviewViewProps) {
+export function OverviewView(props: OverviewViewProps) {
+  const lockAtHire = props.lockAtHire ?? true;
+  // Flag off: the v1.3 page counts and shows funded listings only
+  const p = lockAtHire ? props : { ...props, jobs: props.jobs ? props.jobs.filter((j) => !j.unfunded) : null };
   const stats = overviewStats(p.jobs ?? []);
   const ready = p.jobs !== null && !p.loading;
   // Signed in and not a client means the Vietnam view (client = signed in outside it)
@@ -207,7 +244,7 @@ export function OverviewView(p: OverviewViewProps) {
   const name = (j: JobListingAccount) => p.names[j.business.toBase58()] ?? shortAddress(j.business.toBase58());
   return (
     <>
-      <Hero {...p} stats={stats} ready={ready} audience={audience} />
+      <Hero {...p} stats={stats} ready={ready} audience={audience} lockAtHire={lockAtHire} />
       {p.error ? (
         <div className={`${hub.container} ${styles.errorWrap}`}>
           <div className={styles.error} role="alert">
@@ -219,26 +256,26 @@ export function OverviewView(p: OverviewViewProps) {
           </div>
         </div>
       ) : null}
-      <Trust stats={stats} ready={ready} />
-      <Rules vn={p.vn} />
+      <Trust stats={stats} ready={ready} lockAtHire={lockAtHire} />
+      <Rules vn={p.vn} lockAtHire={lockAtHire} />
       <Featured {...p} stats={stats} ready={ready} name={name} />
-      <HowItWorks vn={p.vn} />
+      <HowItWorks vn={p.vn} lockAtHire={lockAtHire} />
     </>
   );
 }
 
 /* ---- V5.1 hero ---- */
 
-function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; audience: OverviewAudience }) {
+function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; audience: OverviewAudience; lockAtHire: boolean }) {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
-  const copy = HERO[p.audience];
+  const copy = (p.lockAtHire ? HERO : HERO_V13)[p.audience];
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const query = filtersToQuery({ q });
     navigate(query ? `/jobs/find?${query}` : '/jobs/find');
   };
-  const newest = p.stats.newest;
+  const newest = p.stats.newestFunded;
   const lockedUsdc = Number(usdcFromUnits(p.stats.lockedUnits));
   return (
     <section aria-labelledby="hb-h1" className={`${hub.container} ${styles.heroWrap}`}>
@@ -373,8 +410,21 @@ function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; aud
           <span className={`${styles.corner} ${styles.cornerLeft}`} aria-hidden />
           {p.ready ? (
             <>
-              <StatCounter value={lockedUsdc} format={(n) => lockedStatLabel(n, p.vn)} label="locked in open jobs, read from Solana now" />
-              <StatCounter value={p.stats.openCount} label="open jobs, each with its budget already locked" />
+              <StatCounter
+                value={lockedUsdc}
+                format={(n) => lockedStatLabel(n, p.vn)}
+                label={
+                  <>
+                    locked in open jobs, read from Solana now
+                    {p.stats.unfundedCount ? (
+                      <span className={styles.statExtra} data-testid="unfunded-count">
+                        +{p.stats.unfundedCount} {p.stats.unfundedCount === 1 ? 'job that locks' : 'jobs that lock'} when hired
+                      </span>
+                    ) : null}
+                  </>
+                }
+              />
+              <StatCounter value={p.stats.openCount} label={p.lockAtHire ? 'open jobs, each locked before you accept' : 'open jobs, each with its budget already locked'} />
               <StatCounter value={p.stats.applications} label="applications on open jobs" />
             </>
           ) : (
@@ -393,14 +443,14 @@ function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; aud
 
 /* ---- V5.2 trust and category circles ---- */
 
-function Trust({ stats, ready }: { stats: OverviewStats; ready: boolean }) {
+function Trust({ stats, ready, lockAtHire }: { stats: OverviewStats; ready: boolean; lockAtHire: boolean }) {
   return (
     <section aria-labelledby="hb-trust" className={`${hub.container} ${styles.trust}`}>
       <Reveal className={styles.trustHead}>
         <div className={styles.trustTitle}>
           <SectionHeading id="hb-trust" title="Funded first, " tone="so both sides can start with trust" />
         </div>
-        <p className={styles.trustText}>{TRUST_TEXT}</p>
+        <p className={styles.trustText}>{lockAtHire ? TRUST_TEXT : TRUST_TEXT_V13}</p>
       </Reveal>
       <Reveal className={styles.circles} role="list" aria-label="Browse by field">
         {JOB_CATEGORIES.map((c, i) => {
@@ -428,7 +478,7 @@ function Trust({ stats, ready }: { stats: OverviewStats; ready: boolean }) {
 
 /* ---- V5.3 rules ---- */
 
-function Rules({ vn }: { vn: boolean }) {
+function Rules({ vn, lockAtHire }: { vn: boolean; lockAtHire: boolean }) {
   return (
     <section aria-labelledby="hb-rules" className={styles.rules}>
       <div className={`${hub.container} ${styles.rulesInner}`}>
@@ -436,7 +486,7 @@ function Rules({ vn }: { vn: boolean }) {
           <SectionHeading id="hb-rules" center title="Same rules for every job, " tone="written into the program" />
         </Reveal>
         <Reveal className={styles.rulesGrid}>
-          {rulesFor(vn).map((r) => (
+          {rulesFor(vn, lockAtHire).map((r) => (
             <div key={r.title} className={styles.rule}>
               <span className={styles.ruleIcon} aria-hidden>
                 <HubIcon name={r.icon} size={17} width={2.1} />
@@ -506,7 +556,7 @@ function Featured(p: OverviewViewProps & { stats: OverviewStats; ready: boolean;
               <span className={styles.previewWho}>
                 {p.name(job)} · {categoryLabel(job.category)}
               </span>
-              <BudgetLockedChip />
+              <ListingBudgetChip unfunded={job.unfunded} />
             </div>
             <div className={styles.previewTitle}>{job.title}</div>
             <div className={styles.plan}>
@@ -541,8 +591,8 @@ function Featured(p: OverviewViewProps & { stats: OverviewStats; ready: boolean;
 
 /* ---- V5.5 how it works ---- */
 
-function HowItWorks({ vn }: { vn: boolean }) {
-  const steps = howSteps(vn);
+function HowItWorks({ vn, lockAtHire }: { vn: boolean; lockAtHire: boolean }) {
+  const steps = howSteps(vn, lockAtHire);
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
   const paused = hover || focus;

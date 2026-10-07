@@ -8,13 +8,18 @@ export const FEATURED_COUNT = 4;
 
 export interface OverviewStats {
   openCount: number;
+  /** Funded open listings only (v1.4, D29: a listing that locks when hired has nothing locked) */
   lockedUnits: bigint;
+  /** Open listings that lock when hired */
+  unfundedCount: number;
   applications: number;
   /** open listings per category index */
   byCategory: number[];
   /** newest first */
   featured: JobListingAccount[];
   newest: JobListingAccount | null;
+  /** The newest open listing with its budget locked (the hero's "Newest funded job") */
+  newestFunded: JobListingAccount | null;
 }
 
 export function overviewStats(jobs: readonly JobListingAccount[]): OverviewStats {
@@ -23,11 +28,13 @@ export function overviewStats(jobs: readonly JobListingAccount[]): OverviewStats
   for (const j of open) if (j.category < JOB_CATEGORY_COUNT) byCategory[j.category] += 1;
   return {
     openCount: open.length,
-    lockedUnits: open.reduce((s, j) => s + j.total, 0n),
+    lockedUnits: open.reduce((s, j) => (j.unfunded ? s : s + j.total), 0n),
+    unfundedCount: open.filter((j) => j.unfunded).length,
     applications: open.reduce((s, j) => s + j.applicationCount, 0),
     byCategory,
     featured: open.slice(0, FEATURED_COUNT),
     newest: open[0] ?? null,
+    newestFunded: open.find((j) => !j.unfunded) ?? null,
   };
 }
 

@@ -35,6 +35,7 @@ import {
   countLabel,
   DURATIONS,
   filterChips,
+  FUNDED_ONLY,
   filtersOn,
   listingRows,
   openJobsCount,
@@ -47,6 +48,7 @@ import {
   type FindTab,
   type Row,
 } from '../find.ts';
+import { FEATURES } from '../../config.ts';
 import { useDisplayNames, useMyApplications, useMyListings, useOpenJobs } from '../hooks.ts';
 import { useHubViewer } from '../JobsLayout.tsx';
 import hub from '../hub.module.css';
@@ -80,6 +82,7 @@ export function Find() {
       me={viewer.wallet}
       names={names}
       now={now}
+      lockAtHire={FEATURES.lockAtHire}
     />
   );
 }
@@ -97,6 +100,8 @@ export interface FindViewProps {
   me: string | null;
   names: Record<string, string>;
   now: number;
+  /** v1.4 (D29): the "Funded only" switch and listings that lock when hired; off = the v1.3 board (funded only) */
+  lockAtHire?: boolean;
 }
 
 const SORTS: { id: JobSort; label: string }[] = [
@@ -110,7 +115,10 @@ type Pop = 'cat' | 'budget' | null;
 export function FindView(p: FindViewProps) {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
-  const { filters: f, tab: wanted } = viewFromQuery(params);
+  const lockAtHire = p.lockAtHire ?? true;
+  const { filters: query, tab: wanted } = viewFromQuery(params);
+  // Flag off: the v1.3 board shows funded listings only, with no switch
+  const f: JobFilters = lockAtHire ? query : { ...query, funded: undefined };
   // Visibility as before: My listings never in the Vietnam view
   const tab: FindTab = p.vn && wanted === 'listings' ? 'open' : wanted;
   const [showAll, setShowAll] = useState(false);
@@ -137,7 +145,7 @@ export function FindView(p: FindViewProps) {
 
   const appliedSet = useMemo(() => new Set((p.applications ?? []).map((a) => a.application.job.toBase58())), [p.applications]);
   const ctx = { now: p.now, applied: appliedSet };
-  const all = p.open ?? [];
+  const all = lockAtHire ? (p.open ?? []) : (p.open ?? []).filter((j) => !j.unfunded);
   const results = sortJobs(filterJobs(all, f, ctx), f.sort);
   const shown = showAll ? results : results.slice(0, PAGE_SIZE);
   const on = filtersOn(f);
@@ -145,7 +153,8 @@ export function FindView(p: FindViewProps) {
   const more = sheetCount(f);
   const name = (w: string) => p.names[w] ?? shortAddress(w);
   const mine = (j: JobListingAccount): JobMine => (p.me && j.business.toBase58() === p.me ? 'own' : appliedSet.has(j.address.toBase58()) ? 'applied' : null);
-  const lockedAll = all.reduce((s, j) => s + j.total, 0n);
+  // Only funded listings count as locked (D29)
+  const lockedAll = all.reduce((s, j) => (j.unfunded ? s : s + j.total), 0n);
   const list = f.view === 'list';
 
   const tabs: { id: FindTab; label: string; count: number | null }[] = [
@@ -167,7 +176,7 @@ export function FindView(p: FindViewProps) {
     <>
       <section aria-labelledby="fj-h1" className={`${hub.container} ${styles.top}`}>
         <div className={`${styles.titleRow} hb-in`}>
-          <SectionHeading id="fj-h1" level={1} size="page" title="Find jobs, " tone="already funded" />
+          <SectionHeading id="fj-h1" level={1} size="page" title="Find jobs, " tone={lockAtHire ? 'locked before you accept' : 'already funded'} />
           <p className={styles.summary} data-testid="find-summary">
             {p.open ? (
               <>
@@ -397,7 +406,7 @@ export function FindView(p: FindViewProps) {
               </>
             }
           >
-            <SheetFilters f={f} go={go} signedIn={p.signedIn} />
+            <SheetFilters f={f} go={go} signedIn={p.signedIn} lockAtHire={lockAtHire} />
           </Sheet>
         </>
       ) : !p.signedIn ? (
@@ -487,7 +496,7 @@ function BudgetOptions({ all, f, ctx, vn, onPick }: { all: JobListingAccount[]; 
 }
 
 /** V6.4 the Filters sheet body; every change writes the URL at once */
-function SheetFilters({ f, go, signedIn }: { f: JobFilters; go(next: JobFilters): void; signedIn: boolean }) {
+function SheetFilters({ f, go, signedIn, lockAtHire }: { f: JobFilters; go(next: JobFilters): void; signedIn: boolean; lockAtHire: boolean }) {
   const cat = f.cat ? categoryById(f.cat) : undefined;
   const ids = cat ? JOB_SKILLS.filter((k) => k.category === cat.index).map((k) => k.id) : SHEET_SKILLS;
   const picked = f.skills ?? [];
@@ -529,6 +538,9 @@ function SheetFilters({ f, go, signedIn }: { f: JobFilters; go(next: JobFilters)
       <section className={styles.sheetSwitches}>
         <Switch checked={Boolean(f.soon)} onChange={(v) => go({ ...f, soon: v || undefined })} label="Apply by within 24 hours" sub="Jobs that close soon" />
         {signedIn ? <Switch checked={Boolean(f.hide)} onChange={(v) => go({ ...f, hide: v || undefined })} label="Hide jobs I applied to" sub="Keep your list fresh" /> : null}
+        {lockAtHire ? (
+          <Switch checked={Boolean(f.funded)} onChange={(v) => go({ ...f, funded: v || undefined })} label={FUNDED_ONLY} sub="Only jobs with the budget already locked" />
+        ) : null}
       </section>
     </>
   );

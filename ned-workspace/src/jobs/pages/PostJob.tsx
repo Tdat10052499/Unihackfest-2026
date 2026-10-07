@@ -1,6 +1,8 @@
 // /jobs/new — Post a job (WebJobPost board; appendix H.17). Outside the Vietnam view only (D18). One page, three
 // sections; the right column shows the live card and what is still missing; the sticky bar says how much leaves the
 // wallet. "Lock X USDC & publish": wallet confirm → runPostJob (post_job, then the public brief parts) → published.
+// v1.4 (D29, FEATURES.lockAtHire): "When is the budget locked?" — Lock when I hire (default: post_job_open, "Publish")
+// or Lock now (post_job, "Lock X USDC & publish").
 import { useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,6 +20,7 @@ import { MAX_MILESTONES, TITLE_MAX_LEN } from '@ned/core/milestone/layout.ts';
 import { useWalletPanel } from '../../components/WalletPanelContext.tsx';
 import { useActionEnv } from '../../hooks/actions.ts';
 import { useUsdcUnits } from '../../hooks/queries.ts';
+import { FEATURES } from '../../config.ts';
 import { useChainTime } from '../../hooks/useChainTime.ts';
 import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon } from '../components/HubIcon.tsx';
@@ -66,8 +69,13 @@ export function toDraft(f: PostForm, now: number): JobDraft {
   };
 }
 
-/** What still blocks publishing, in the board's words where it has them */
-export function postProblems(f: PostForm, now: number, balance: bigint | undefined): string[] {
+/** v1.4 (D29) choice texts (lock-at-hire-plan section 3; CL pre-pitch-check 9.3 item 10) */
+export const LOCK_WHEN_HIRED_TEXT = (total: string) => `Nothing is locked now. When you select a freelancer, ${total} is locked in the same step.`;
+export const LOCK_NOW_TEXT = (total: string) => `${total} is locked now and shows as Budget locked.`;
+export const BALANCE_AT_SELECT = 'If your balance is too low at that moment, you cannot select.';
+
+/** What still blocks publishing, in the board's words where it has them; `lockNow` false skips the balance check */
+export function postProblems(f: PostForm, now: number, balance: bigint | undefined, lockNow = true): string[] {
   const out: string[] = [];
   const d = toDraft(f, now);
   if (!f.title.trim()) out.push('Add a title.');
@@ -81,7 +89,7 @@ export function postProblems(f: PostForm, now: number, balance: bigint | undefin
   if (f.milestones.some((m) => !(Number(m.due) >= 1) || !(Number(m.review) >= 1))) out.push('Give every milestone at least 1 day to deliver and 1 day to review.');
   const total = jobDraftTotal(d);
   if (total > 1_000_000_000n) out.push('The demo allows up to 1,000 USDC per job.');
-  if (balance !== undefined && total > balance) out.push(`Your wallet has ${formatUsdc(balance)}.`);
+  if (lockNow && balance !== undefined && total > balance) out.push(`Your wallet has ${formatUsdc(balance)}.`);
   // The core checks (same as post_job) catch anything else, such as a bad reference link
   for (const p of validateJobDraft(d, now)) if (!out.length && !out.includes(p.message)) out.push(p.message);
   return out;
@@ -96,7 +104,7 @@ export function PostJob() {
   return <PostJobForm wallet={viewer.wallet!} name={viewer.name ?? ''} />;
 }
 
-export function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
+export function PostJobForm({ wallet, name, lockAtHire = FEATURES.lockAtHire }: { wallet: string; name: string; lockAtHire?: boolean }) {
   const now = useChainTime();
   const balance = useUsdcUnits(wallet).data;
   const { env, status } = useActionEnv();
@@ -107,13 +115,16 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [retryJob, setRetryJob] = useState<string | null>(null);
-  const [published, setPublished] = useState<{ job: string; total: string; selectBy: number } | null>(null);
+  const [published, setPublished] = useState<{ job: string; total: string; selectBy: number; locked: boolean } | null>(null);
+  // Default "Lock when I hire" when the flag is on; the v1.3 page always locks now
+  const [lockChoice, setLockChoice] = useState(false);
+  const lockNow = !lockAtHire || lockChoice;
   const set = (patch: Partial<PostForm>) => setF((x) => ({ ...x, ...patch }));
   const setMs = (i: number, patch: Partial<MilestoneForm>) => setF((x) => ({ ...x, milestones: x.milestones.map((m, j) => (j === i ? { ...m, ...patch } : m)) }));
 
   const draft = toDraft(f, now);
   const total = jobDraftTotal(draft);
-  const problems = postProblems(f, now, balance);
+  const problems = postProblems(f, now, balance, lockNow);
   const titleBytes = utf8(f.title.trim());
   const sumBytes = utf8(f.summary.trim());
   const preview: JobListingAccount = useMemo(
@@ -141,21 +152,24 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
       applicationCount: 0,
       bump: 0,
       vaultBump: 0,
-      unfunded: false,
+      unfunded: !lockNow,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [wallet, f, total, now]
+    [wallet, f, total, now, lockNow]
   );
   const selectOptions = [...new Set([f.applyDays, f.applyDays + 2, f.applyDays + 4])];
 
   const publish = async () => {
     setError('');
     const fingerprint = Array.from(hashBytes(jobBriefBytes(draft.title, draft.brief)).subarray(0, 4), (x) => x.toString(16).padStart(2, '0')).join('');
+    const amount = formatUsdc(total);
     const ok = await confirm({
-      title: `Lock ${formatUsdc(total)} & publish`,
+      title: lockNow ? `Lock ${amount} & publish` : 'Publish',
       rows: [
         { label: 'Job', value: draft.title },
-        { label: 'Budget', value: formatUsdc(total), sub: 'Leaves your wallet now and waits in the job’s vault' },
+        lockNow
+          ? { label: 'Budget', value: amount, sub: 'Leaves your wallet now and waits in the job’s vault' }
+          : { label: 'Budget', value: amount, sub: 'Lock when I hire · nothing leaves your wallet now' },
         { label: 'Milestones', value: String(draft.milestones.length) },
         { label: 'Apply by', value: formatDeadline(draft.applyBy) },
         { label: 'Select by', value: formatDeadline(draft.selectBy) },
@@ -163,14 +177,16 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
         { label: 'Network fee', value: '~0.000005 SOL per transaction', sub: 'devnet test SOL · the brief adds 1–2 transactions' },
         { label: 'N.E.D fee', value: 'None during the pilot' },
       ],
-      note: { tone: 'purple', text: 'With no applicants you can withdraw the budget at any time. Once someone applies, it stays locked until the select-by date.' },
-      confirmLabel: 'Lock & publish',
+      note: lockNow
+        ? { tone: 'purple', text: `${lockAtHire ? `${LOCK_NOW_TEXT(amount)} ` : ''}With no applicants you can withdraw the budget at any time. Once someone applies, it stays locked until the select-by date.` }
+        : { tone: 'purple', text: `${LOCK_WHEN_HIRED_TEXT(amount)} ${BALANCE_AT_SELECT}` },
+      confirmLabel: lockNow ? 'Lock & publish' : 'Publish',
     });
     if (!ok) return;
     setBusy(true);
     try {
-      const result = await runPostJob(env, draft, 'intl', (done, all) => setProgress(`Saving the public brief · ${done + 1} of ${all}`));
-      setPublished({ job: result.job, total: formatUsdc(total), selectBy: draft.selectBy });
+      const result = await runPostJob(env, draft, 'intl', (done, all) => setProgress(`Saving the public brief · ${done + 1} of ${all}`), { lockNow });
+      setPublished({ job: result.job, total: formatUsdc(total), selectBy: draft.selectBy, locked: result.locked });
       await queryClient.invalidateQueries({ queryKey: ['jobs'] });
     } catch (err) {
       if (err instanceof JobBriefNotSavedError) setRetryJob(err.job);
@@ -187,7 +203,7 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
     setError('');
     try {
       await runPostJobBrief(env, retryJob, draft.brief, (done, all) => setProgress(`Saving the public brief · ${done + 1} of ${all}`));
-      setPublished({ job: retryJob, total: formatUsdc(total), selectBy: draft.selectBy });
+      setPublished({ job: retryJob, total: formatUsdc(total), selectBy: draft.selectBy, locked: lockNow });
       setRetryJob(null);
     } catch (err) {
       setError(describeActionError(err));
@@ -207,12 +223,16 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
         </Link>
         <div className={styles.postHead}>
           <h1 className={styles.postH1}>Post a job</h1>
-          <div className={styles.note}>Freelancers see your job with its budget already locked. You pick one applicant; that creates the contract.</div>
+          <div className={styles.note}>
+            {lockAtHire
+              ? 'Freelancers see whether the budget is locked already or locks when you hire. You pick one applicant; that creates the contract.'
+              : 'Freelancers see your job with its budget already locked. You pick one applicant; that creates the contract.'}
+          </div>
         </div>
         {published ? (
           <section className={styles.published} aria-live="polite">
             <span className={styles.publishedText}>
-              <span className={styles.publishedTitle}>Published · {published.total} locked</span>
+              <span className={styles.publishedTitle}>{published.locked ? `Published · ${published.total} locked` : `Published · ${published.total} locks when you hire`}</span>
               Your job is on the board. Applications appear under My listings; you can select someone until {formatDeadline(published.selectBy)}.
             </span>
             <HubButton variant="dark" to={`/jobs/${published.job}/applicants`}>
@@ -365,9 +385,36 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
                     </button>
                   ))}
                 </div>
+                {lockAtHire ? (
+                  <>
+                    <div className={styles.label} id="jp-lock">
+                      When is the budget locked?
+                    </div>
+                    <div role="radiogroup" aria-labelledby="jp-lock" className={styles.lockChoice}>
+                      {[
+                        { now: false, label: 'Lock when I hire', text: LOCK_WHEN_HIRED_TEXT(formatUsdc(total)) },
+                        { now: true, label: 'Lock now', text: LOCK_NOW_TEXT(formatUsdc(total)) },
+                      ].map((o) => (
+                        <button
+                          key={o.label}
+                          type="button"
+                          role="radio"
+                          aria-checked={lockChoice === o.now}
+                          className={`${styles.lockOption} ${lockChoice === o.now ? styles.lockOptionOn : ''}`}
+                          onClick={() => setLockChoice(o.now)}
+                        >
+                          <span className={styles.lockOptionLabel}>{o.label}</span>
+                          <span className={styles.lockOptionText}>{o.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
                 <p className={styles.para}>
-                  Apply by <strong>{formatDeadline(draft.applyBy)}</strong> · select by <strong>{formatDeadline(draft.selectBy)}</strong>. With no applicants you can
-                  withdraw the budget at any time. Once someone has applied, the budget stays locked until the select-by date, so applicants know it's there.
+                  Apply by <strong>{formatDeadline(draft.applyBy)}</strong> · select by <strong>{formatDeadline(draft.selectBy)}</strong>.{' '}
+                  {lockNow
+                    ? "With no applicants you can withdraw the budget at any time. Once someone has applied, the budget stays locked until the select-by date, so applicants know it's there."
+                    : 'With no applicants you can withdraw the listing at any time; nothing is returned, because nothing was locked.'}
                 </p>
               </section>
             </fieldset>
@@ -388,9 +435,18 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
       <div className={styles.bar}>
         <div className={`${hub.container} ${styles.barInner}`}>
           <span className={styles.barText}>
-            <strong>{formatUsdc(total)}</strong> leaves your wallet now and waits in the job's vault · balance after:{' '}
-            {balance === undefined ? '…' : formatUsdc(balance > total ? balance - total : 0n)}. Your wallet asks twice: to lock the budget, then to save the public
-            brief.
+            {lockNow ? (
+              <>
+                <strong>{formatUsdc(total)}</strong> leaves your wallet now and waits in the job's vault · balance after:{' '}
+                {balance === undefined ? '…' : formatUsdc(balance > total ? balance - total : 0n)}. Your wallet asks twice: to lock the budget, then to save the public
+                brief.
+              </>
+            ) : (
+              <>
+                Nothing leaves your wallet now. <strong>{formatUsdc(total)}</strong> is locked when you select a freelancer. {BALANCE_AT_SELECT} Your wallet asks
+                twice: to publish, then to save the public brief.
+              </>
+            )}
             {progress || (busy && status) ? <span className={styles.status}> {progress || status}</span> : null}
             {error ? <span className={styles.error} role="alert" style={{ display: 'block' }}>{error}</span> : null}
           </span>
@@ -400,7 +456,7 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
             </HubButton>
           ) : (
             <HubButton variant="purple" disabled={busy || Boolean(published) || problems.length > 0} onClick={() => void publish()}>
-              {published ? 'Published' : busy ? status || 'Publishing…' : `Lock ${formatUsdc(total)} & publish`}
+              {published ? 'Published' : busy ? status || 'Publishing…' : lockNow ? `Lock ${formatUsdc(total)} & publish` : 'Publish'}
             </HubButton>
           )}
         </div>

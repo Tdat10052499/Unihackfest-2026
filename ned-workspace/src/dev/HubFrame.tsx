@@ -1,5 +1,6 @@
 // Dev only (VITE_DEV_TOOLS=1): the Jobs hub v4 frame (header, footer, motion) with a fixture viewer, for screenshots
-// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1][&page=overview|find|detail|applicants|post][&state=loading|error|empty]. Nothing
+// without a Google sign-in. /dev/hub?as=guest|client|vn[&cta=1][&page=overview|find|detail|applicants|post][&state=loading|error|empty]
+// [&job=N (detail / applicants sample; 4 locks when hired)][&low=1 (applicants: balance below the budget)]. Nothing
 // here signs or reads the chain; page=overview fills the real Overview view with the board's sample jobs.
 import { useSearchParams } from 'react-router';
 import { CLIENT } from './states.ts';
@@ -26,6 +27,8 @@ export function HubFrame() {
   const wallet = as === 'guest' ? null : me.toBase58();
   const mine = hubMine(me);
   const page = params.get('page');
+  const pick = HUB_JOBS[Number(params.get('job') ?? 9)] ?? HUB_JOBS[9];
+  const balance = (params.get('low') === '1' ? 5n : 250n) * 1_000_000n;
   return (
     <div className={`${hub.hub} hb-root`}>
       <JobsHeader wallet={wallet} name={wallet ? (vn ? '@vinh' : '@mia') : null} vn={vn} status={wallet ? 'ready' : 'signed-out'} next="%2Fjobs" onOpenWallet={() => {}} />
@@ -35,7 +38,7 @@ export function HubFrame() {
             <PostJobForm wallet={me.toBase58()} name="@mia" />
           ) : page === 'detail' ? (
             // JobDetailView draws its own page, back pill and cards
-            <JobDetailView job={HUB_JOBS[9]} brief={HUB_BRIEF} application={null} records={[]} businessName="@orbit_cafe" now={HUB_NOW} vn={vn || as === 'guest'} me={wallet} />
+            <JobDetailView job={pick} brief={HUB_BRIEF} application={null} records={[]} businessName="@orbit_cafe" now={HUB_NOW} vn={vn || as === 'guest'} me={wallet} />
           ) : (
             <div className={job.page}>
               <div className={`${hub.container} ${job.pageInner}`}>
@@ -45,13 +48,14 @@ export function HubFrame() {
                 </Link>
                 {
                   <ApplicantsView
-                    job={{ ...HUB_JOBS[9], business: me }}
-                    applications={hubApplicants(HUB_JOBS[9].address)}
+                    job={{ ...pick, business: me, applicationCount: Math.max(1, pick.applicationCount) }}
+                    applications={hubApplicants(pick.address)}
                     names={HUB_NAMES}
                     records={{}}
                     briefOk
                     now={HUB_NOW}
                     me={me.toBase58()}
+                    balance={balance}
                   />
                 }
               </div>
