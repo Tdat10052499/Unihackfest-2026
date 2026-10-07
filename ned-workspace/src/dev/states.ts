@@ -24,13 +24,26 @@ export const BRIEF: BriefDraft = {
     { name: 'Final logo files', criteria: ['SVG and PNG (1x, 2x)', 'One-page usage sheet'] },
   ],
 };
+/** F2: the promised list of the fixture deliveries (fingerprints only) */
+export const FINALS = [
+  { name: 'logo.svg', size: 18_204, sha256: 'b1c2'.padEnd(64, '1') },
+  { name: 'logo@2x.png', size: 96_512, sha256: 'c3d4'.padEnd(64, '2') },
+  { name: 'usage-sheet.pdf', size: 241_877, sha256: 'd5e6'.padEnd(64, '3') },
+];
 export const FIRST: DeliveryDraft = {
   links: ['https://www.figma.com/file/abc/Logo?version-id=2214', 'https://drive.google.com/drive/folders/preview-sheet'],
   files: [{ name: 'concepts-preview.png', size: 482_113, sha256: 'a3f1'.padEnd(64, '0') }],
   note: 'Two directions: a rounded wordmark and a stamp. Previews are watermarked.',
+  finals: FINALS,
 };
-export const REVISION: DeliveryDraft = { links: ['https://www.figma.com/file/abc/Logo?version-id=2290'], files: [], note: 'Dark background version added, icon thickened for 32 px.', stage: 'revision' };
-export const HANDOVER: DeliveryDraft = { links: ['https://drive.google.com/drive/folders/final-files'], files: [], note: 'Final SVG and PNG files and the usage sheet.', stage: 'handover' };
+export const REVISION: DeliveryDraft = {
+  links: ['https://www.figma.com/file/abc/Logo?version-id=2290'],
+  files: [],
+  note: 'Dark background version added, icon thickened for 32 px.',
+  finals: [...FINALS, { name: 'logo-dark.svg', size: 18_377, sha256: 'e7f8'.padEnd(64, '4') }],
+  stage: 'revision',
+};
+export const HANDOVER: DeliveryDraft = { links: ['https://drive.google.com/file/d/1FinalLogoFilesZip/view?usp=sharing'], files: FINALS, note: 'Final SVG and PNG files and the usage sheet.', stage: 'handover' };
 
 const ms = (index: number, status: MilestoneStatusName, extra: Partial<MilestoneAccount> = {}): MilestoneAccount => ({
   index,
@@ -113,6 +126,9 @@ export const SCENARIOS: Scenario[] = (() => {
     { id: 'split', label: 'Split proposed', now: T0 + 62 * H, fund: fund('Funded', [submitted(0, 'Disputed'), ms(1, 'Pending')], { cancelProposer: FREELANCER, cancelFreelancerAmount: 10n * USDC }) },
     { id: 'released', label: 'Released · waiting for final files', now: T0 + 70 * H, fund: fund('Funded', [submitted(0, 'Released'), ms(1, 'Pending')]) },
     { id: 'final-files', label: 'Final files handed over', now: T0 + 80 * H, fund: fund('Funded', [submitted(0, 'Released'), ms(1, 'Pending')]) },
+    { id: 'refunded', label: 'Refunded after a missed deadline', now: T0 + 60 * H, fund: fund('Funded', [ms(0, 'Refunded'), ms(1, 'Pending')]) },
+    { id: 'split-settled', label: 'Settled by a split', now: T0 + 70 * H, fund: fund('Settled', [submitted(0, 'Cancelled'), ms(1, 'Cancelled')]) },
+    { id: 'settled-no-handover', label: 'Settled · final files not handed over', now: T0 + 150 * H, fund: fund('Settled', [submitted(0, 'Released'), { ...submitted(1, 'Released'), index: 1 }]) },
   ];
   return list.map((s) => {
     const history: ContractContent['history'] =
@@ -120,7 +136,7 @@ export const SCENARIOS: Scenario[] = (() => {
         ? { 0: { deliveries: [firstEntry], reviews: [reviewNote(T0 + 30 * H)] } }
         : s.id === 'revised'
           ? { 0: { deliveries: [firstEntry, entry(REVISION, 'revision', T0 + 50 * H)], reviews: [reviewNote(T0 + 30 * H)] } }
-          : s.id === 'released' || s.id === 'submitted' || s.id === 'review-over'
+          : s.id === 'released' || s.id === 'submitted' || s.id === 'review-over' || s.id === 'settled-no-handover'
             ? { 0: { deliveries: [firstEntry], reviews: [] } }
             : s.id === 'final-files'
               ? { 0: { deliveries: [firstEntry, entry(HANDOVER, 'handover', T0 + 75 * H)], reviews: [] } }

@@ -158,6 +158,18 @@ export default function ReviewScreen() {
                 </Text>
               ))}
               {delivery.content.note ? <Text style={r.body}>“{delivery.content.note}”</Text> : null}
+              {/* F2: the promised list, read-only (names, sizes and fingerprints; the files stay with the freelancer) */}
+              {delivery.content.finals?.length ? (
+                <>
+                  <Text style={r.cardTitle}>What you will receive after release</Text>
+                  {delivery.content.finals.map((f) => (
+                    <Text key={`final-${f.sha256}`} style={r.small}>
+                      {f.name} · {f.size.toLocaleString('en-US')} bytes · <Text style={r.monoSmall}>{f.sha256.slice(0, 6)}…{f.sha256.slice(-4)}</Text>
+                    </Text>
+                  ))}
+                  <Text style={r.small}>After release, N.E.D cannot make {other} hand over the files. Check this list before you accept.</Text>
+                </>
+              ) : null}
               <Text style={r.small}>
                 This proves the delivery shown here is the one whose fingerprint ({ms?.evidence}) was saved on-chain, not that the content behind a link is unchanged. Ask for fixed-version links.
               </Text>

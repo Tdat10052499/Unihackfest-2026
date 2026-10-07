@@ -3,6 +3,7 @@
 // [&mode=revision|handover][&type=design]&vn=1; review also takes &links=<url>,<url> and &points=0 (R2).
 // Nothing here signs or reads the chain.
 import { Link, useSearchParams } from 'react-router';
+import type { ReleaseRecord } from '@ned/core/milestone/records.ts';
 import { ContractView } from '../pages/Contract.tsx';
 import { ReviewView } from '../pages/Review.tsx';
 import { SubmitView, type SubmitMode, type WorkType } from '../pages/Submit.tsx';
@@ -30,6 +31,10 @@ export function StatesPage() {
       </main>
     );
   const fund = scenarioView(s, role, vn ? 'vn' : 'intl');
+  // F2 screenshots: &release=<hours before now> gives milestone 1 a release time (waiting, late after 48 h)
+  const releaseHours = params.get('release');
+  const releases: ReleaseRecord[] =
+    releaseHours !== null ? [{ id: `${s.fund.address.toBase58()}:0`, fund: s.fund.address.toBase58(), index: 0, title: '', client: '', amountUnits: '8000000', releasedAt: s.now - Number(releaseHours) * 3600, signature: '5Re1ease', destination: 'payoutPartner', by: 'approve' }] : [];
   const content = { hasKey: true, ready: true, contentStatus: 'ok' as const, content: s.content, importKey: async () => false };
   const me = (role === 'client' ? CLIENT : FREELANCER).toBase58();
   if (params.get('page') === 'submit') {
@@ -48,7 +53,7 @@ export function StatesPage() {
       ...(m0.delivery ? { delivery: { ...m0.delivery, content: swap(m0.delivery.content) } } : {}),
       ...(m0.history ? { history: { ...m0.history, deliveries: m0.history.deliveries.map((d) => ({ ...d, content: swap(d.content)! })) } } : {}),
     } as typeof m0;
-    return <ReviewView fund={fund} raw={s.fund} index={0} now={s.now} vn={vn} me={me} content={content} p1 status="" onRelease={noop} onRequestChanges={noop} />;
+    return <ReviewView fund={fund} raw={s.fund} index={0} now={s.now} vn={vn} me={me} content={content} p1 status="" onRelease={noop} onRequestChanges={noop} {...(releases[0] ? { release: releases[0] } : {})} />;
   }
-  return <ContractView fund={fund} raw={s.fund} content={content} vn={vn} isParty p1 actions={{ run: noop, busy: null, status: '', error: '' }} />;
+  return <ContractView fund={fund} raw={s.fund} content={content} vn={vn} isParty p1 actions={{ run: noop, busy: null, status: '', error: '' }} releases={releases} now={s.now} />;
 }
