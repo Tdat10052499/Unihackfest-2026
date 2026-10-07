@@ -187,7 +187,7 @@ The boards are the source of truth; this is their written form. Where they diffe
 | ink | `#16161C` | Text, dark buttons, dark segmented thumb |
 | ink-2 | `#3F3F49` | Body on white |
 | muted | `#6B6B76` | Secondary text, inactive tabs |
-| subtle | `#8A8A96` | Captions, labels |
+| subtle | `#6E6E7A` | Captions, labels (was `#8A8A96`; darkened in H5 QA to reach 4.5:1 on white and `#F5F5F7`) |
 | tone-2 | `#9A9AA6` | Second part of two-tone headings (display sizes only) |
 | line | `#ECECF0` | Hairlines, grid gaps, inset card outline (`inset 0 0 0 1px`) |
 | soft | `#F5F5F7` | Grey sections, chips, inputs, page background of detail/post/applicants |
