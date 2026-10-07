@@ -7,6 +7,7 @@ import { Layout } from './components/Layout.tsx';
 import { FEATURES } from './config.ts';
 import { JobsLayout } from './jobs/JobsLayout.tsx';
 import { Find as JobsFind } from './jobs/pages/Find.tsx';
+import { Legal as JobsLegal } from './jobs/pages/Legal.tsx';
 import { Overview as JobsOverview } from './jobs/pages/Overview.tsx';
 import { Applicants } from './jobs/pages/Applicants.tsx';
 import { JobDetail } from './jobs/pages/JobDetail.tsx';
@@ -78,6 +79,7 @@ export function App() {
             <Route index element={<JobsOverview />} />
             <Route path="find" element={<JobsFind />} />
             <Route path="new" element={<PostJob />} />
+            <Route path="legal" element={<JobsLegal />} />
             <Route path=":job" element={<JobDetail />} />
             <Route path=":job/applicants" element={<Applicants />} />
           </Route>

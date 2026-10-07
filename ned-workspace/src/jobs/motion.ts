@@ -53,7 +53,10 @@ export function useAutoAdvance(count: number, interval: number = HUB_MS.autoAdva
   return { index, select, round };
 }
 
-/** Id of the last section whose top has passed `offset` px from the top of the window (the first one before that) */
+/**
+ * Id of the last section whose top has passed `offset` px from the top of the window (the first one before that).
+ * At the bottom of the page the last section is the active one, since short last sections never reach the line.
+ */
 export function useScrollSpy(ids: readonly string[], offset: number = HUB_SPY_OFFSET): string | null {
   const [active, setActive] = useState<string | null>(ids[0] ?? null);
   const key = ids.join('|');
@@ -65,7 +68,9 @@ export function useScrollSpy(ids: readonly string[], offset: number = HUB_SPY_OF
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top - offset <= 0) current = id;
       }
-      setActive(current);
+      const doc = document.documentElement;
+      const atBottom = doc.scrollHeight > window.innerHeight + 1 && window.innerHeight + window.scrollY >= doc.scrollHeight - 2;
+      setActive(atBottom && list.length ? list[list.length - 1] : current);
     };
     update();
     window.addEventListener('scroll', update, { passive: true });

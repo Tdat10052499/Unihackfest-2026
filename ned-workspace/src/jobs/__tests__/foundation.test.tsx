@@ -176,7 +176,12 @@ describe('footer (V9)', () => {
     expect(links()).toEqual(['Overview', 'Find jobs', 'Post a job', 'Workspace', 'Legal']);
     expect(screen.getByText('Student project · UniHackFest 2026')).toBeTruthy();
     expect(screen.getByText(FOOT.intl)).toBeTruthy();
-    expect(Array.from(screen.getByRole('navigation', { name: 'Legal' }).querySelectorAll('a')).map((a) => a.textContent)).toEqual(['Terms of use', 'Privacy', 'Disclosures']);
+    expect(Array.from(screen.getByRole('navigation', { name: 'Legal' }).querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['Terms of use', '/jobs/legal?doc=terms'],
+      ['Privacy', '/jobs/legal?doc=privacy'],
+      ['Disclosures', '/jobs/legal?doc=disclosures'],
+    ]);
+    expect(screen.getByRole('link', { name: 'Legal' }).getAttribute('href')).toBe('/jobs/legal');
     expect(screen.queryByTestId('cta-band')).toBeNull();
     cleanup();
     render(

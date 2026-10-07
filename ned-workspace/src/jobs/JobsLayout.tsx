@@ -10,7 +10,6 @@ import { useAuth } from '../auth/AuthProvider.tsx';
 import { PANEL_ID } from '../components/TopBar.tsx';
 import { ConsentGate } from '../components/ConsentGate.tsx';
 import { DeviceKeyGate } from '../components/DeviceKeyGate.tsx';
-import { LEGAL_LINKS } from '../components/LegalLinks.tsx';
 import { NotificationBell } from '../components/NotificationBell.tsx';
 import { RegionPrompt } from '../components/RegionPrompt.tsx';
 import { WalletExtension } from '../components/WalletExtension.tsx';
@@ -24,6 +23,7 @@ import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { HubButton } from './components/HubButton.tsx';
 import { HubIcon } from './components/HubIcon.tsx';
 import { ProfileMenu, viewLabelFor, type ProfileMenuProps } from './ProfileMenu.tsx';
+import { legalHref } from './pages/Legal.tsx';
 import hub from './hub.module.css';
 import './motion.css';
 
@@ -50,8 +50,12 @@ export const CTA = {
   text: 'N.E.D holds no funds and charges no fee in this version. The money waits in the program until the work is accepted or a deadline passes.',
 } as const;
 
-/** Footer labels for the legal pages; the links stay on LEGAL_LINKS (/wallet/…) until H4 adds /jobs/legal */
-const FOOT_LEGAL = ['Terms of use', 'Privacy', 'Disclosures'] as const;
+/** Footer legal links: the hub's own Legal page (H4). The Workspace pages keep LEGAL_LINKS (/wallet/…) */
+export const FOOT_LEGAL = [
+  { label: 'Terms of use', to: legalHref('terms') },
+  { label: 'Privacy', to: legalHref('privacy') },
+  { label: 'Disclosures', to: legalHref('disclosures') },
+] as const;
 
 export function JobsLayout() {
   const location = useLocation();
@@ -234,19 +238,19 @@ export function JobsFooter({ vn, client, cta = false }: { vn: boolean; client: b
             <Link to="/" className={`${hub.footLink} hb-ul`}>
               Workspace
             </Link>
-            <a href={LEGAL_LINKS[0].href} className={`${hub.footLink} hb-ul`}>
+            <Link to={legalHref()} className={`${hub.footLink} hb-ul`}>
               Legal
-            </a>
+            </Link>
           </nav>
           <span className={hub.footStudent}>Student project · UniHackFest 2026</span>
         </div>
         <div className={hub.footBottom}>
           <span className={hub.footNote}>{vn ? FOOT.vn : FOOT.intl}</span>
           <nav aria-label="Legal" className={hub.footLegal}>
-            {LEGAL_LINKS.map((l, i) => (
-              <a key={l.href} href={l.href} className="hb-ul">
-                {FOOT_LEGAL[i]}
-              </a>
+            {FOOT_LEGAL.map((l) => (
+              <Link key={l.to} to={l.to} className="hb-ul">
+                {l.label}
+              </Link>
             ))}
           </nav>
         </div>
