@@ -199,6 +199,7 @@ Mọi nhánh dưới đây đã nằm trong `main`; từ N12, mỗi thay đổi 
 | F3 Final files — docs, copy, e2e (07/10, `main`): `review-decision-plan.md` mục "Amendment 7 Oct (final files)" (bảng Rules của `prompts-final-files.md` + những gì đã build); README dòng D27 thêm câu amended 7 Oct; `system-tracker.md` 3.2 (dòng handover), F-5 (promised list, nhắc 48 h, receipt), 7 ("Handover missing" không tính khi client Close trước; app chưa hiện dòng "closed by the client before handover"), 9 (thông báo mới), 12 (B-22 F1–F3); `final-pitch.md` Q&A P7 (tiếng Việt) + slide 3 bước 1:30 chọn 2 file cuối (bắt buộc từ F1) + bước tuỳ chọn xem thẻ Final files "Waiting". Copy (2 câu, **chờ CL duyệt trước khi push**): GUIDE "List your final files when you submit. Hand them over after release, with a link that allows download." (core + sheet trên Workspace), Terms "After release, N.E.D cannot make the freelancer hand over files. The promised list and fingerprints show what was agreed." (thêm sau câu Terms CL đã sửa). E2E 2 tài khoản Google: PO làm theo `review-preview-e2e.md` phần B (B1–B6) — cập nhật cả phần A cho luật F1; ảnh dựng bằng dữ liệu mẫu đã có ở `docs/02-thiet-ke/screenshots/f2-final-files/`, ảnh e2e thật lưu vào `f3-e2e/` | `main` | docs đã push; copy chờ CL |
 | V0 pre-flight (07/10, `main`, không đổi code): công cụ — rustc 1.89.0 (khớp `rust-toolchain.toml`), cargo build-sbf / solana-cli 3.1.10 (platform-tools v1.52), anchor-cli 1.1.2 (khớp anchor-lang 1.1.2), node v24.10.0, pnpm 11.24.0. Baseline trên `main`: `anchor build` đạt, program 54/54 test (1 + 4 + 10 + 10 + 29), ned-core 171/171, ví 38/38, Workspace node 22/22 + Vitest 106/106. Backup v1.3: `ned_program/target/rollback/ned_program-v1.3.so` (661,424 byte, SHA-256 `6af5898d476d2becfbe6b0d46b7cadd28e365d877ee4108d1d0047be548b071e`) và `ned_program-v1.3.json` (IDL, SHA-256 `967fe395…65ed`, giống hệt IDL trong `packages/ned-core`). **Khớp devnet:** `solana program dump` 8azx4Hdo… = 668,464 byte; 661,424 byte đầu có cùng SHA-256 với file backup, phần còn lại toàn số 0 (vùng đệm sau `extend`). Lưu ý: so bằng cách cắt hết số 0 ở cuối sẽ sai vì chính file .so kết thúc bằng 15 byte 0. `target/` đã gitignore (`ned_program/.gitignore`), backup không vào git | `main` | V0 xong, chờ PO đọc trước V1 |
 | V1 program v1.4 built and tested (07/10, `main`): `git am --3way` bản nháp `ned-v14-program-draft.patch` áp sạch (commit `d7411e4`), `anchor build` đạt ngay, không lỗi, không cảnh báo, không cần commit sửa. `cargo test`: **61/61** (54 test v1.3 giữ nguyên + 7 test `v14_*`): lib 1, helpers 4, identity 10, jobs 17 (10 + 7), milestone 29. Đọc code: `unfunded == 0` giữ đúng đường v1.3 (post_job vẫn `transfer_checked` total rồi emit `JobPosted`; select_job chỉ thêm `require!(unfunded == 0)`; withdraw trả `job.total`); `lock_from_job` thêm G1 (`fund.freelancer == job.selected`, `fund.brief_hash == job.brief_hash`, lỗi `JobFundMismatch` có sẵn) cho mọi listing, đúng spec mục 11; lỗi `JobNotFunded`, `JobAlreadyFunded` và event `JobPostedOpen`, `JobFunded` thêm ở cuối (không đánh số lại); `JobListing::SPACE == 576` vẫn còn const assert (`unfunded: u8` lấy từ `_reserved`, nay `[u8; 31]`); `fund_job` dùng `transfer_checked` với `job.total` đã lưu, không đọc số dư vault. **Kích thước:** `ned_program.so` v1.4 = **683,040 byte** (SHA-256 `4f5a8ceb9edda53614fd0bf5112f4c1866716f32e6b35829216b3a9a213c3aa5`) so với program data devnet 668,464 byte → V3 cần `solana program extend` ít nhất **14,576 byte** trước khi upgrade (chưa làm, tốn SOL) | `main` | V1 xong, chờ PO đọc trước V2 |
+| V2 tự review v1.4 (07/10, `main`): đối chiếu diff từ `1b85d94` với `program-spec.md` §11 từng dòng. Code đúng spec. Đã sửa tài liệu ở 3 chỗ: (1) trạng thái §11 "chưa build" → đã build và test; (2) `lock-at-hire-plan.md` P5 ghi "đóng listing": sai, listing ở lại trạng thái `Withdrawn` như v1.3, chỉ job vault bị đóng; (3) P2 chốt event `JobPostedOpen`, P3 thêm điều kiện `select_by`. Kiểm tra đủ 5 điểm; thêm **5 test** cho các trường hợp chưa có (cộng 1 test đo CU = 6 test mới): `fund_job` bị từ chối trên listing Filled/Withdrawn (vault đã đóng nên Anchor từ chối account; Selected đã có test); withdraw listing chưa khoá trả lại tiền donate và đóng vault; `select_job` báo `SelectClosed`/`JobNotOpen` trước `JobNotFunded`; G1 cùng freelancer nhưng khác brief → `JobFundMismatch`; kích thước giao dịch (R-2). Thêm test đo CU theo từng instruction (`cu_each`). Re-select không khoá lần hai (đã có test). G1 khác freelancer (các trường khác khớp) đã có test. **CU** (LiteSVM, v1.4, 07/10): bảng ở mục Program P0. Instruction trên 40.000 ở một số lần chạy: `post_job` tối đa 49.173, `lock_from_job` 45.045, `accept_cancel` 43.015 (bump PDA ngẫu nhiên; v1.3 cũng vậy; v1.4 chỉ thêm ≤ ~80 CU) → đề nghị CL đổi "dưới 20%" thành "dưới 25%". **Đếm từ source:** 29 instruction / 55 lỗi / 26 event (khớp IDL build). Test: **67/67** (lib 1, helpers 4, identity 10, jobs 23, milestone 29). **Kích thước giao dịch** `fund_job + create_fund + select_job` (title 32 byte, 5 milestone): 737 byte, thêm 2 lệnh compute-budget là 789 byte ≤ 1.232 → giữ một giao dịch, không cần ALT. **Clippy:** code program sạch; 2 cảnh báo cũ `map_or` ở helper `closed()` của test v1.3, không sửa. Code program không đổi; `.so` vẫn 683.040 byte | `main` | V2 xong, chờ PO đọc trước V3 |
 
 **W0 (03/10/2026):**
 - **Đã chọn pnpm workspace ở gốc repo**, chạy được ngay, không cần phương án path-alias. Lockfile chuyển lên gốc; giữ nguyên version (không tải gì mới); chỉ còn **một** bản `@solana/web3.js` 1.98.4, kiểm tra cả trên đĩa và trong bundle web.
@@ -795,7 +796,35 @@ Nếu bản thiết kế chưa có, chạy trước: *"Run the non-ui-plan secti
 - Kiểm tra: `anchor build && cargo test` đều pass: 10 test identity, 17 test milestone (nhóm 1–6, 9–15 của program-spec mục 8; nhóm 13 mới làm nửa approve + auto-release + refund) và 4 test helper. `program_autofixer`: 0 issue.
 - `.so` mới 420 000 byte, bản identity là 231 520 byte.
 
-**Compute units mỗi instruction** (LiteSVM, test `g15_compute_units_per_instruction`; fund 3 milestone, đường Vietnam trừ dòng `accept (OwnWallet)`):
+**Compute units mỗi instruction — LiteSVM, v1.4, 07/10/2026** (bảng hiện hành; chi tiết và cách đo ở `program-spec.md` §11.5). 10 lần chạy `cargo test -- --nocapture --test-threads=1`, ghi thấp nhất–cao nhất: keypair test ngẫu nhiên mỗi lần chạy, mỗi lần thử thêm bump PDA tốn 1.500 CU.
+
+| Instruction | CU (thấp nhất–cao nhất) |
+| --- | ---: |
+| `post_job` (2 milestone) | 34.173–49.173 |
+| `post_job_open` (2 milestone) | 26.120–36.620 |
+| `post_job_brief` (900 byte) | 3.937 |
+| `apply_job` | 12.904–20.404 |
+| `fund_job` | 21.154–24.154 |
+| `create_fund` (2 milestone, trong giao dịch chọn) | 24.060–37.560 |
+| `select_job` | 12.105 |
+| `accept` | 7.925–7.996 |
+| `lock_from_job` | 37.545–45.045 |
+| `withdraw_job` (đã khoá / chưa khoá) | 26.148–33.648 / 18.046–24.046 |
+| `create_fund` (3 milestone) | 24.142–33.142 |
+| `lock` | 22.482–28.482 |
+| `submit` | 7.774–7.781 |
+| `approve` | 22.907–31.938 |
+| `release_after_review` | 23.077–32.108 |
+| `refund` | 22.765–28.765 |
+| `close` | 17.030–23.030 |
+| `dispute` · `propose_cancel` | 7.686 · 7.583 |
+| `concede` | 22.842–34.842 |
+| `accept_cancel` | 35.515–43.015 |
+| `post_note` (900 byte) | 4.612–4.626 |
+
+Giao dịch: `fund_job + create_fund + select_job` 57.319–67.819 (2 milestone) / 57.985–71.485 (5 milestone); `accept + lock_from_job` 45.470–51.487. **Trên 40.000 CU ở một số lần chạy:** `post_job` (tối đa 49.173 = 24,6%), `lock_from_job` (45.045), `accept_cancel` (43.015); đã như vậy từ v1.3 (v1.4 chỉ thêm ≤ ~80 CU). "Dưới 20%" không còn an toàn cho pitch; "dưới 25%" đúng với mọi số đo (CL quyết).
+
+**Bảng cũ (v1.0, 01/10, giữ để tham khảo)** (LiteSVM, test `g15_compute_units_per_instruction`; fund 3 milestone, đường Vietnam trừ dòng `accept (OwnWallet)`):
 
 | Instruction | Compute units |
 | --- | ---: |
@@ -813,7 +842,7 @@ Nếu bản thiết kế chưa có, chạy trước: *"Run the non-ui-plan secti
 | `propose_cancel` (P1, N7) | 7 349 |
 | `accept_cancel` (P1, N7; hai lần chuyển) | 39 781 |
 
-Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 CU. Tất cả đều dưới 20% hạn mức mặc định 200 000.
+(Số cũ v1.0.) Mọi instruction P0 đều dưới 30 000 CU; `accept_cancel` (P1) là 39 781 CU. Tất cả đều dưới 20% hạn mức mặc định 200 000.
 
 ### Program P1 — N7 (nhánh `feat/n7-milestone-p1`, 02/10/2026)
 

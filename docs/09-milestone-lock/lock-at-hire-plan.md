@@ -26,10 +26,10 @@ All changes are backward compatible: every v1.3 listing and every v1.3 client ke
 | # | Change | Detail |
 | --- | --- | --- |
 | P1 | `JobListing.unfunded: u8` | Takes **1 byte from `_reserved`** (offset **544**, then `_reserved: [u8; 31]`). The size stays 576 bytes, so no realloc. **0 = budget locked** (every existing listing reads 0, so v1.3 listings stay funded), **1 = locks when hired**. |
-| P2 | New instruction **`post_job_open`** | Same arguments and checks as `post_job`. It creates the listing and an **empty** job vault, sets `unfunded = 1`, and transfers nothing. It emits `JobPosted` with a new field `funded: false`, or a new event `JobPostedOpen`; Dev chooses, the IDL shows it. |
-| P3 | New instruction **`fund_job`** | Signer: the business. Allowed only while `state == Open` and `unfunded == 1`. Transfers exactly `job.total` from the business ATA into the job vault (`transfer_checked`), sets `unfunded = 0`, emits `JobFunded { job, total }`. |
+| P2 | New instruction **`post_job_open`** | Same arguments and checks as `post_job`. It creates the listing and an **empty** job vault, sets `unfunded = 1`, and transfers nothing. It emits a new event `JobPostedOpen` (chosen; `JobPosted` keeps its v1.3 layout, CL R-1). |
+| P3 | New instruction **`fund_job`** | Signer: the business. Allowed only while `state == Open`, `unfunded == 1` and `now <= select_by`. Transfers exactly `job.total` from the business ATA into the job vault (`transfer_checked`), sets `unfunded = 0`, emits `JobFunded { job, total }`. |
 | P4 | `select_job` | Adds `require!(job.unfunded == 0, NedError::JobNotFunded)` (new error). The app sends `fund_job` just before `create_fund + select_job` in the same transaction. Its accounts are unchanged. |
-| P5 | `withdraw_job` | When `unfunded == 1`: transfers nothing except a donation (if the vault holds any), closes the vault and the listing, and sends the rent to the business. The rules on when it is allowed are unchanged. |
+| P5 | `withdraw_job` | When `unfunded == 1`: transfers nothing except a donation (if the vault holds any), closes the job vault and sends its rent to the business. The listing stays as `Withdrawn`, as in v1.3 (it is not closed). The rules on when it is allowed are unchanged. |
 | P6 | `lock_from_job` (G1) | Adds `require!(fund.freelancer == job.selected)` and `require!(fund.brief_hash == job.brief_hash)` (`NedError::JobFundMismatch`). |
 | P7 | Program size | Check the new `.so` size against the program data account (668,464 B after the 6 Oct extend). If it does not fit: `solana program extend` (PO approves the SOL in the session). |
 

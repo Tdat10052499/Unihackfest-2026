@@ -290,7 +290,7 @@ Same procedure as section 9. The v1.3 binary is larger than the v1.2 program acc
 
 ## 11. v1.4: Lock at hire (D29) and the G1 check
 
-**Status (7 Oct, evening):** code written in the cloud session; **not built or tested yet** (the session cannot run `anchor build`). Prompt L1 in [`lock-at-hire-plan.md`](lock-at-hire-plan.md) builds it, runs every test and fixes compile errors before anything is deployed. Backward compatible with v1.3.
+**Status (7 Oct, V2):** built and tested locally (V1: `anchor build` clean, no fix needed; V2: self-review, 67 tests pass). **Not deployed yet** (V3). Backward compatible with v1.3.
 
 ### 11.1 Account change
 
@@ -306,22 +306,61 @@ Same procedure as section 9. The v1.3 binary is larger than the v1.2 program acc
 | Instruction | Signer | Rules | Effect |
 | --- | --- | --- | --- |
 | `post_job_open` (new) | business (+ payer) | Same arguments, accounts and checks as `post_job` | Listing + empty job vault, `unfunded = 1`, no transfer; event `JobPostedOpen` |
-| `fund_job` (new) | business | `state == Open`, `unfunded == 1`, `now <= select_by` | `transfer_checked` of exactly `total` from the business ATA to the job vault; `unfunded = 0`; event `JobFunded` |
-| `select_job` (changed) | business | Adds `unfunded == 0` (`JobNotFunded`) | The app sends `fund_job + create_fund + select_job` in one transaction for an unfunded listing |
-| `withdraw_job` (changed) | business | Same rules | Returns 0 (plus any donation) when `unfunded == 1`; v1.3 path unchanged |
+| `fund_job` (new) | business (`has_one = business`) | `state == Open` (`JobNotOpen`), `unfunded == 1` (`JobAlreadyFunded`), `now <= select_by` (`SelectClosed`). On a `Filled` or `Withdrawn` listing the job vault is already closed, so Anchor refuses the account before the handler runs | `transfer_checked` of exactly the stored `total` (never the vault balance) from the business ATA to the job vault; `unfunded = 0`; event `JobFunded` |
+| `select_job` (changed) | business | Adds `unfunded == 0` (`JobNotFunded`), **after** the state and `select_by` checks (so a closed or late listing still reports `JobNotOpen` / `SelectClosed`) | The app sends `fund_job + create_fund + select_job` in one transaction for an unfunded listing. A re-select (after the accept window) finds `unfunded == 0` and sends no `fund_job`, so the budget is never locked twice |
+| `withdraw_job` (changed) | business | Same rules | When `unfunded == 1`: `amount = 0`, any donation in the job vault goes to the business, the job vault is closed (rent to the business), the listing stays as `Withdrawn` (as in v1.3, it is not closed); event `JobWithdrawn { amount: 0 }`. v1.3 path unchanged |
 | `lock_from_job` (changed, G1) | anyone | Adds `fund.freelancer == job.selected` and `fund.brief_hash == job.brief_hash` (`JobFundMismatch`) | A contract closed and recreated at `job.fund` for someone else cannot take the budget |
 
 ### 11.3 Events and errors (appended, never renumber)
 
 - **Events:** `JobPostedOpen { job, business, job_id, category, total, apply_by, select_by, brief_hash }` (`total` is the planned budget) · `JobFunded { job, total }`.
 - **Errors:** after `SummaryTooLong`: `JobNotFunded`, `JobAlreadyFunded`.
-- **Counts:** v1.3 had 27 instructions, 53 errors and 24 events. v1.4 has **29 instructions, 55 errors and 26 events**. Update the pitch numbers only after L1 is green.
+- **Counts (counted from the source on 7 Oct, V2; the built IDL gives the same):** v1.3 had 27 instructions, 53 errors and 24 events. v1.4 has **29 instructions** (`pub fn` in the `#[program]` module of `lib.rs`), **55 error variants** (`NedError` in `errors.rs`) and **26 events** (`#[event]` structs in `events.rs`). No new error for G1: it reuses `JobFundMismatch`. Tests: **67** (lib 1, helpers 4, identity 10, jobs 23, milestone 29). Update the pitch numbers only after V3 is green on devnet.
 
 ### 11.4 Tests (`tests/jobs.rs`, new)
 
 `v14_post_job_open_locks_nothing_and_sets_unfunded` (offset 544) · `v14_post_job_keeps_v13_behaviour` · `v14_select_needs_the_budget_locked_in_the_same_transaction` (CU of the 3-instruction transaction) · `v14_fund_job_rules` (only the business, exact total, once, balance too low, after select_by) · `v14_reselect_does_not_lock_again` · `v14_withdraw_an_unfunded_listing_moves_nothing` · `v14_g1_a_recreated_contract_for_someone_else_cannot_take_the_budget`. All v1.3 tests must still pass unchanged.
 
-### 11.5 Deploy
+Added in the V2 self-review: `v14_fund_job_refused_on_filled_and_withdrawn_listings` · `v14_withdraw_an_unfunded_listing_returns_a_donation_and_closes_the_vault` · `v14_select_on_an_unfunded_listing_checks_state_and_select_by_first` · `v14_g1_a_recreated_contract_with_another_brief_cannot_take_the_budget` (same freelancer, other brief) · `v14_fund_create_select_transaction_fits_1232_bytes` (CL R-2) · `v14_compute_units_per_job_instruction` (CU per instruction from the program logs).
+
+### 11.5 Measurements (LiteSVM, v1.4, 7 Oct 2026)
+
+**Compute units per instruction.** Ten runs of `cargo test -- --nocapture --test-threads=1`, lowest–highest. The spread comes from the test keypairs, which are random on every run: each extra try of the PDA bump search (`init`, ATA constraints) costs 1,500 CU. For a given address the cost is fixed. Below, "job tx" means the instruction is measured inside that transaction from the program logs (`cu_each`).
+
+| Instruction | CU (lowest–highest) |
+| --- | ---: |
+| `post_job` (2 milestones, locks the budget) | 34,173–49,173 |
+| `post_job_open` (2 milestones, locks nothing) | 26,120–36,620 |
+| `post_job_brief` (900 bytes) | 3,937 |
+| `apply_job` | 12,904–20,404 |
+| `fund_job` | 21,154–24,154 |
+| `create_fund` (2 milestones, job tx) | 24,060–37,560 |
+| `select_job` | 12,105 |
+| `accept` | 7,925–7,996 |
+| `lock_from_job` | 37,545–45,045 |
+| `withdraw_job` (funded / unfunded) | 26,148–33,648 / 18,046–24,046 |
+| `create_fund` (3 milestones) | 24,142–33,142 |
+| `lock` | 22,482–28,482 |
+| `submit` | 7,774–7,781 |
+| `approve` | 22,907–31,938 |
+| `release_after_review` | 23,077–32,108 |
+| `refund` | 22,765–28,765 |
+| `close` | 17,030–23,030 |
+| `dispute` · `propose_cancel` | 7,686 · 7,583 |
+| `concede` | 22,842–34,842 |
+| `accept_cancel` | 35,515–43,015 |
+| `post_note` (900 bytes) | 4,612–4,626 |
+| `init_device_keys + add_device_key` (one tx) | 11,554–16,054 |
+
+Transactions: `fund_job + create_fund + select_job` 57,319–67,819 (2 milestones), 57,985–71,485 (5 milestones); `create_fund + select_job` 36,165–40,665; `accept + lock_from_job` 45,470–51,487.
+
+**Above 40,000 CU in some runs:** `post_job` (up to 49,173, 24.6% of 200,000), `lock_from_job` (up to 45,045) and `accept_cancel` (up to 43,015). The lowest value of every instruction is under 40,000 (the top lowest is `lock_from_job`, 37,545 = 18.8%). So "dưới 20%" is not safe for the pitch; "dưới 25%" holds for every value measured. CL decides the wording (pre-pitch-check §5).
+
+**v1.4 against v1.3** (the same tests on the v1.3 binary from `target/rollback/`, 8 runs, lowest): the v1.3 paths cost at most about 80 CU more on v1.4 (`accept + lock_from_job` 45,393 → 45,470 for the G1 checks; `create_fund + select_job` 36,109 → 36,165; `withdraw_job` 26,096 → 26,148). The values above 40,000 were already there in v1.3. The old 39,781 figure was an earlier `accept_cancel` measurement, and the job instructions had only been measured on devnet.
+
+**Transaction size (CL R-2).** `fund_job + create_fund + select_job` with a 32-byte title (the limit) and 5 milestones is **737 bytes**. With `SetComputeUnitLimit` and `SetComputeUnitPrice` added it is **789 bytes**, against Solana's 1,232. The app adds no compute-budget instruction today (`packages/ned-core` has none), so 789 is the case where a wallet adds both. **Choice:** one transaction, no address lookup table, no split. That leaves 443 bytes of headroom. The app already checks `txSize <= 1,232` before sending (`runCreate`).
+
+### 11.6 Deploy
 
 Prompt L2, only after the PO's go. Steps:
 1. Save the v1.3 `.so` and its SHA-256 for rollback.
