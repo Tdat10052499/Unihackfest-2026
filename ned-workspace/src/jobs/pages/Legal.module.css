@@ -44,7 +44,7 @@
 }
 .tocLink:hover { color: var(--hub-ink) !important; }
 .tocOn { color: var(--hub-ink) !important; font-weight: 600; background: var(--hub-soft); box-shadow: inset 2px 0 0 var(--hub-purple); }
-.tocN { width: 22px; flex-shrink: 0; font-size: 12px; color: var(--hub-tone-2); }
+.tocN { width: 22px; flex-shrink: 0; font-size: 12px; color: var(--hub-subtle); }
 .contact { margin-top: 24px; padding: 16px; border-radius: 16px; background: var(--hub-soft); font-size: 13px; line-height: 1.55; color: var(--hub-muted); }
 .placeholder { font-weight: 600; color: var(--hub-ink); }
 
@@ -55,7 +55,7 @@
 .kicker { margin: 10px 0 0; font-size: 16px; color: var(--hub-muted); }
 .sections { margin-top: 36px; display: flex; flex-direction: column; }
 .section { padding: 28px 0; box-shadow: inset 0 1px 0 var(--hub-line); display: flex; gap: 22px; scroll-margin-top: 96px; }
-.sectionN { width: 34px; flex-shrink: 0; padding-top: 3px; font-size: 13px; font-weight: 600; color: var(--hub-tone-2); }
+.sectionN { width: 34px; flex-shrink: 0; padding-top: 3px; font-size: 13px; font-weight: 600; color: var(--hub-subtle); }
 .sectionBody { flex: 1; min-width: 0; }
 .sectionTitle { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.3px; }
 .para { margin: 10px 0 0; font-size: 15px; line-height: 1.75; color: var(--hub-ink-2); }

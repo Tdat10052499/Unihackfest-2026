@@ -103,7 +103,8 @@
 .moreRow { margin-top: 28px; display: flex; justify-content: center; }
 .noMatch { margin-top: 20px; padding: 56px 24px; border-radius: 24px; background: var(--hub-soft); text-align: center; }
 .noMatchTitle { font-size: 22px; font-weight: 300; letter-spacing: -0.5px; }
-.noMatchTone { color: var(--hub-tone-2); }
+/* 22 px: under the 30 px display size where #9A9AA6 is allowed */
+.noMatchTone { color: var(--hub-subtle); }
 .noMatchBody { margin-top: 8px; font-size: 14px; color: var(--hub-muted); }
 .noMatchButton { margin-top: 18px; }
 .error {
