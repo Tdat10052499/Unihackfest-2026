@@ -1,94 +1,278 @@
-<img width="2816" height="1536" alt="N.E.D Wallet Banner" src="./assets/images/banner.jpg" />
+<div align="center">
 
-> A Next-Generation Web3 Smart Wallet on Solana Network
+<img src="./assets/images/ned-logo-banner.png" alt="N.E.D, Network of Employment Deals" width="560" />
 
-> **Being updated.** The product description, features and screenshots below describe the earlier wallet demo. The current product is **Milestone Lock** (see [`docs/09-milestone-lock/`](docs/09-milestone-lock/README.md)); new text and screenshots come with the redesigned screens. The technical sections from [Status](#status-what-runs-today) down are current.
+# N.E.D: Network of Employment Deals
 
-> **Team docs (VN):** định hướng dự án, 40 màn hình thiết kế và bàn giao kỹ thuật nằm ở [`docs/`](docs/README.md). Đọc trước khi code.
+**The budget is locked by code before the work starts. Each milestone is released by rules written at creation.<br/>Freelancers in Vietnam receive VND through a payout partner and never hold USDC.**
 
-[![Solana Network](https://img.shields.io/badge/Solana-14F195?style=flat&logo=solana&logoColor=white)](https://solana.com/)
-[![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+[![Solana devnet](https://img.shields.io/badge/Solana-devnet-14F195?style=flat&logo=solana&logoColor=white)](https://explorer.solana.com/address/8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh?cluster=devnet)
+[![Anchor 1.1.2](https://img.shields.io/badge/Anchor-1.1.2-6A22B0?style=flat)](https://www.anchor-lang.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Jupiter](https://img.shields.io/badge/Jupiter-C7F284?style=flat&logoColor=black)](https://jup.ag/)
-[![Dynamic](https://img.shields.io/badge/Dynamic-4779FE?style=flat&logoColor=white)](https://www.dynamic.xyz/)
+[![Dynamic](https://img.shields.io/badge/Dynamic-embedded_wallet-4779FE?style=flat)](https://www.dynamic.xyz/)
+[![UniHackFest 2026](https://img.shields.io/badge/UniHackFest-2026-B795F5?style=flat)](#team-and-competition)
 
-**N.E.D Wallet** is a smart Web3 wallet built on the Solana blockchain, focusing on delivering a seamless Web2.5 user experience. It combines a bold Neo-brutalism design language with stablecoin asset management, P2P USDC transfers and real market data from Jupiter — with **no custom backend**: shared data lives on-chain.
+[Workspace](https://unihackfest-2026.vercel.app) · [N.E.D Jobs](https://unihackfest-2026.vercel.app/jobs) · [Wallet app](https://tdat10052499.github.io/Unihackfest-2026/) · [Program on Explorer](https://explorer.solana.com/address/8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh?cluster=devnet) · [Decision log](docs/09-milestone-lock/README.md)
+
+</div>
+
+> **Student prototype on Solana devnet.** Test tokens only, not audited, payout partner simulated (candidates: Due, Nium). N.E.D holds no funds, converts nothing and charges no fee in this version. Nothing here is legal, tax or financial advice. See [Limits and disclosures](#limits-and-disclosures).
 
 ---
 
-## Table of Contents
+## Contents
 
-- [Overview](#overview)
-- [UI Showcase](#ui-showcase)
-- [Features](#features)
-- [Status: what runs today](#status-what-runs-today)
-- [Repository layout](#repository-layout)
-- [Program: build and test](#program-build-and-test)
-- [App: install, test and run](#app-install-test-and-run)
-- [Deploy the web build (GitHub Pages)](#deploy-the-web-build-github-pages)
-- [Workspace (ned-workspace): run, env, deploy](#workspace-ned-workspace-run-env-deploy)
-- [Landing page (site)](#landing-page-site)
+- [What N.E.D does](#what-ned-does)
+- [How it works](#how-it-works)
+- [Rules the program enforces](#rules-the-program-enforces)
+- [The apps](#the-apps)
+- [Architecture](#architecture)
+- [Status](#status-7-oct-2026)
+- [Build and test](#build-and-test)
+- [Run the apps](#run-the-apps)
+- [Deploy (owners only)](#deploy-owners-only)
 - [Environment variables](#environment-variables)
-- [Guidelines](#guidelines)
+- [Repository layout](#repository-layout)
+- [Limits and disclosures](#limits-and-disclosures)
+- [Documentation](#documentation)
+- [Team and competition](#team-and-competition)
+- [License](#license)
 
 ---
 
-## Overview
+## What N.E.D does
 
-N.E.D Wallet is a decentralized wallet (web first, Android via EAS) where users can:
-- Sign in with Google and get an embedded Solana wallet — no seed phrase.
-- Send USDC peer-to-peer to a wallet address, an `@username` or a phone number.
-- Swap tokens and explore tokenized stocks (xStocks) with real Jupiter prices *(in progress — Demo mode, not broadcast)*.
-- Browse Solana dApps in a built-in dApp Browser.
-- Switch between Vietnamese and English.
+Freelancers who work for clients abroad often finish the work before they know whether the money exists. Clients, in turn, often fund the whole job before they have seen any of the work. N.E.D puts the money in the middle, held by a Solana program rather than by a company:
 
-The application integrates:
-- **Solana** (devnet for P2P transfers) and the **`ned_program`** Anchor program for on-chain identity.
-- **Dynamic** for Google login and embedded MPC wallets.
-- **Helius** RPC for balances, history and incoming-transfer notifications.
-- **Jupiter** (mainnet) for swap quotes and xStocks prices; **SNS** for `.sol` names.
+- **Clients** split a job into milestones, each with its own "done when" points and deadlines. They lock the budget in a vault that belongs to the program, not to N.E.D.
+- **Freelancers** see that the budget is locked before they accept. They submit a watermarked preview for each milestone, and their earnings are released when the client accepts the work. If the client does not review in time, anyone can press **Release now**.
+- **Freelancers in Vietnam** choose "VND to my bank account" when they accept. The released amount goes to a payout partner's address, fixed on-chain at that moment, and the partner sends VND (simulated in this demo). Their screens show "≈ … VND (estimate)" and no USDC.
+- **N.E.D Jobs** is the board where businesses post work and freelancers apply. The budget is locked when the job is posted, or (program v1.4) when the business selects someone. It is always locked before the freelancer can accept.
 
 ---
 
-## UI Showcase
+## How it works
 
-| Home Dashboard | Analytics View | QR Scan & Transfer | Authentication |
-| :---: | :---: | :---: | :---: |
-| <img src="./assets/images/home.png" width="250" /> | <img src="./assets/images/analytics.png" width="250" /> | <img src="./assets/images/scan.png" width="250" /> | <img src="./assets/images/auth.png" width="250" /> |
+```mermaid
+flowchart LR
+    subgraph Start["Two ways to start"]
+        A1["Client creates a contract<br/>for a named freelancer"] --> A2["Freelancer accepts<br/>(destination fixed)"] --> A3["Client locks the budget"]
+        B1["Business posts a job<br/>(lock now, or lock at hire)"] --> B2["Freelancers apply<br/>(public pitch)"] --> B3["Business selects one:<br/>contract created, budget locked"] --> B4["Freelancer accepts:<br/>budget moves into the contract"]
+    end
+    A3 --> M
+    B4 --> M
+    subgraph M["Each milestone"]
+        S["Submit preview link<br/>+ promised final files"] --> R{"Client reviews"}
+        R -->|"Accept & release"| REL["Released to the freelancer<br/>or the payout partner"]
+        R -->|"Request changes"| CH["Money stays locked<br/>until both agree"]
+        R -->|"No review by the deadline"| RN["Release now<br/>(anyone)"] --> REL
+        CH -->|"Revised version accepted"| REL
+        CH -->|"Return to client / agreed split"| END2["Refunded or split"]
+        REL --> H["Freelancer hands over<br/>the final files"]
+    end
+```
+
+**Contract states:** `Created → Accepted → Funded → Settled → Closed`.
+
+**Milestone states:**
+- `Pending → Submitted → Released`;
+- `Pending → Refunded` (Refund now after the submission deadline);
+- `Submitted → Disputed ("Changes requested") → Released | Refunded | Cancelled`.
+
+While changes are requested, no deadline runs.
+
+**Job states:** `Open → Selected → Filled`, or `Withdrawn`.
+
+The full lifecycle tables, with every scenario and its status, are in [`docs/09-milestone-lock/system-tracker.md`](docs/09-milestone-lock/system-tracker.md).
 
 ---
 
-## Features
+## Rules the program enforces
 
-### Core Capabilities
-- **P2P USDC transfers**: send to an address, `@username` or phone number (identity via on-chain PDAs — Phase 1).
-- **Neo-brutalism Design**: thick black borders, hard shadows, vibrant colors and haptic feedback.
-- **Stablecoin Management**: USDC-first balance cards and sub-wallet cards stored on-device.
-- **dApp Browser**: open Solana dApps in a WebView with an injected wallet bridge and a signing prompt.
-- **Multi-language Support (i18n)**: Vietnamese and English.
-
-### User Security
-- **Embedded wallet, no seed phrase**: Google login + MPC wallet via Dynamic.
-- **No secrets in the app**: every `EXPO_PUBLIC_*` value is public by design; there is no server holding user data.
-- **Phone numbers never go on-chain in clear**: only a scrypt hash is used as the PDA key (Phase 1).
-
-> Network fees: users pay devnet SOL for now. Dynamic SVM Gas Sponsorship requires an Enterprise plan — see [`docs/poc-dynamic.md`](docs/poc-dynamic.md).
+| Rule | How |
+| --- | --- |
+| **No instruction lets N.E.D move locked funds** | Each contract and each job has its own vault, a PDA owned by the program. Release and refund go only to addresses fixed on-chain. |
+| **Nobody takes the money alone** | Money moves only when:<br/>• the client accepts;<br/>• the review deadline passes (**Release now**, anyone can call it);<br/>• the submission deadline passes (**Refund now**);<br/>• the freelancer returns it;<br/>• both sides agree a split. |
+| **Request changes never refunds the client** | A disputed milestone can only be released, returned by the freelancer, or split by agreement. |
+| **The destination is fixed at accept** | Set when the freelancer accepts. The Vietnam path only accepts an allow-listed partner address. |
+| **The budget is locked before the freelancer accepts** | `select_job` refuses a job whose budget is not in its vault. `accept + lock_from_job` runs in one transaction. |
+| **Accounting always adds up** | `released + refunded + unsettled = total` for every contract, checked in tests. Payouts use stored amounts, never vault balances, so token donations change nothing. |
+| **Limits** | 1–5 milestones; at most 1,000 USDC per contract; minimum work and review windows; one application per person per job. |
 
 ---
 
-## Status: what runs today
+## The apps
 
-*Updated 3 Oct 2026. Details and test results: [`docs/tong-hop-tien-do.md`](docs/tong-hop-tien-do.md).*
+| App | For | Where |
+| --- | --- | --- |
+| **Workspace** (`ned-workspace/`, Vite + React) | Contracts on a computer: brief editor, contract page, submit with preview link, review with an embedded preview, final files, records. Includes the **wallet panel**: sign-in, the confirm step of every signature, and Slide to accept / Slide to lock. | [unihackfest-2026.vercel.app](https://unihackfest-2026.vercel.app) |
+| **N.E.D Jobs** (inside the Workspace, `/jobs`) | Overview, Find jobs (search by what, field and budget; filters), job detail and apply, post a job, applicants and select. Legal pages (Terms, Privacy, Disclosures, Job posting rules) are linked from the footer. | [/jobs](https://unihackfest-2026.vercel.app/jobs) |
+| **Wallet app** (`ned-wallet/`, Expo, web first) | The phone side: Google sign-in with an embedded wallet (no seed phrase), the Vietnam view in ≈ VND, accept and lock, contract screens, records CSV | [GitHub Pages](https://tdat10052499.github.io/Unihackfest-2026/) and `/wallet` inside the Workspace |
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/02-thiet-ke/screenshots/h2-overview-v4/desktop-client.png" width="420" alt="N.E.D Jobs overview" /><br/><sub>N.E.D Jobs · Overview</sub></td>
+    <td align="center"><img src="docs/02-thiet-ke/screenshots/h3-find-v4/d-client-grid.png" width="420" alt="Find jobs" /><br/><sub>Find jobs · search and filters</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/02-thiet-ke/screenshots/r2-review-preview/d-review-drive-after.png" width="420" alt="Review with preview" /><br/><sub>Review · the preview loads only after a click</sub></td>
+    <td align="center"><img src="docs/02-thiet-ke/screenshots/f2-final-files/d-card-handed-over.png" width="420" alt="Final files" /><br/><sub>Final files · download, check, receipt</sub></td>
+  </tr>
+</table>
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    W["Workspace + N.E.D Jobs<br/>(ned-workspace, Vercel)"] --> C
+    P["Wallet app<br/>(ned-wallet, Expo web / Android)"] --> C
+    C["@ned/core<br/>(packages/ned-core: builders, decoding, rules,<br/>encryption, legal copy)"] --> RPC["Solana devnet RPC (Helius)"]
+    C --> D["Dynamic: Google login,<br/>embedded MPC wallet"]
+    RPC --> PR["ned_program (Anchor 1.1.2)<br/>8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh"]
+    PR --> PDA["PDAs: SharedFund (740 B) + vault · JobListing (576 B) + job vault ·<br/>JobApplication (364 B) · DeviceKeys · identity records"]
+    PDA --> USDC["Circle devnet USDC (SPL Token Interface, transfer_checked)"]
+```
+
+- **N.E.D runs no database or server of its own.** Shared state lives on Solana and the apps read accounts and transactions directly. Hosting (Vercel, GitHub Pages) serves the app files and keeps its usual logs.
+- **Private content on a public chain.** Briefs, deliveries and review notes are encrypted on the device with **XChaCha20-Poly1305** and posted as notes. Each contract key is wrapped for every registered device with **X25519 + HKDF-SHA256**; device public keys are on-chain and private keys never leave the device. N.E.D has no key. Anyone holding a contract's invite link can read its content.
+- **Public by design.** Job listings (title, summary, brief, milestones, budget) and applications (pitch, wallet, @username) are plain text on Solana, for good.
+- **Files are never uploaded.** Deliveries carry links (Drive, Figma, YouTube, Loom, image links) and SHA-256 fingerprints of files that stay on the freelancer's computer.
+
+---
+
+## Status (7 Oct 2026)
 
 | Part | State |
 | --- | --- |
-| `ned_program` on **devnet** (`8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh`, Anchor 1.1.2) | Identity (`@username`, optional phone hash) and **Milestone Lock**: `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close`, plus `dispute`, `concede`, `propose_cancel`, `accept_cancel`. 17 instructions; IDL on-chain. Not audited |
-| Web app (`ned-wallet/`, Expo SDK 57, web first) | Google sign-in with an embedded Solana wallet (Dynamic), onboarding, on-chain identity lookup, USDC send on devnet |
-| Milestone Lock in the app | `services/milestone/` (builders, decoding, rules, labels) and the hooks the screens will use (`useFunds`, `useFund`, `useMilestoneActions`, `useChainTime`, `useRegion`). The contract **screens are being redesigned**; until then a dev-only harness at `/dev/milestone` runs every action |
-| Hidden or removed | Swap and xStocks: code kept, routes redirect home (`constants/features.ts`). dApp browser and Mobile Wallet Adapter: removed |
-| Backend | None. Shared data lives on-chain; the payout partner is simulated by a team-controlled devnet wallet |
+| **Program on devnet** | **v1.3**: Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and Funded Jobs (`post_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 27 instructions, 53 errors, 24 events, 54 tests. Not audited. |
+| **Program v1.4** (lock at hire, D29) | Built and tested: 29 instructions, 55 errors, 26 events, **61/61 tests**. Adds `post_job_open` and `fund_job`, and the selected-applicant check in `lock_from_job`. Devnet upgrade pending (needs a 14,576-byte program extend). |
+| **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages |
+| **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions and splits are **Workspace only** for now. |
+| **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
+| **Tests on `main`** | Program 61 (v1.4) · `@ned/core` 171 · wallet 38 · Workspace 22 (node) + 106 (Vitest). Last full run: `docs/tong-hop-tien-do.md` (rows V0, V1). |
 
-Everything runs on **devnet with test money**. N.E.D holds no funds and charges no fee.
+**Compute units** (from `docs/tong-hop-tien-do.md`; v1.4 figures are re-measured in step V2 of [`prompts-program-v14.md`](docs/09-milestone-lock/prompts-program-v14.md)):
+
+| Instruction | CU | Source |
+| --- | ---: | --- |
+| `create_fund` (3 milestones) | 29,824 | LiteSVM, 2 Oct |
+| `lock` | 22,260 | LiteSVM, 2 Oct |
+| `approve` | 27,185 | LiteSVM, 2 Oct |
+| `release_after_review` | 27,355 | LiteSVM, 2 Oct |
+| `post_job` | 25,482 | devnet smoke, v1.3, 6 Oct |
+| `create_fund + select_job` (1 tx) | 36,594 | devnet smoke, v1.3, 6 Oct |
+| `accept + lock_from_job` (1 tx) | 36,411 | devnet smoke, v1.3, 6 Oct |
+| `accept_cancel` (highest measured) | 39,781 | LiteSVM, 2 Oct |
+
+Every measured instruction uses less than 20% of the default 200,000 CU budget.
+
+---
+
+## Build and test
+
+**Prerequisites:**
+- Rust 1.89 (pinned in `ned_program/rust-toolchain.toml`);
+- Solana CLI 3.x (platform-tools v1.52);
+- Anchor CLI **1.1.2** (`avm install 1.1.2 && avm use 1.1.2`);
+- Node.js 22+;
+- pnpm.
+
+```bash
+git clone https://github.com/Tdat10052499/Unihackfest-2026.git
+cd Unihackfest-2026
+
+# Program: build, then the LiteSVM tests (they load target/deploy/ned_program.so)
+cd ned_program
+anchor build
+cargo test --manifest-path programs/ned-program/Cargo.toml -- --nocapture
+cd ..
+
+# Apps and shared core (pnpm workspace at the repo root)
+pnpm install
+npm test                                  # @ned/core, wallet and Workspace node tests
+cd ned-workspace && npm run test:ui       # Workspace UI tests (Vitest)
+```
+
+**What the program tests cover:**
+- happy paths, and the Vietnam payout path;
+- every settlement deadline at the exact second and the second after;
+- attacks (wrong mint, wrong signer, double release, token donations);
+- the accounting invariant;
+- account byte layouts;
+- D27 note rules, Funded Jobs, lock at hire, and the selected-applicant check;
+- compute units.
+
+**Check the deployed program without spending anything:**
+
+```bash
+cd ned-wallet
+npm run jobs:smoke -- --check     # deployed binary == local build, core IDL == built IDL
+```
+
+`npm run jobs:smoke` without `--check` replays the Funded Jobs flow on devnet with throwaway keys (`ned-wallet/.smoke-keys/`, gitignored). It stops and prints the addresses to fund when they need devnet SOL or USDC (Circle faucet). It never moves funds from team wallets.
+
+---
+
+## Run the apps
+
+**Workspace and N.E.D Jobs**
+
+```bash
+cd ned-workspace
+cp .env.example .env.local        # fill in (see Environment variables)
+npm run dev                       # http://localhost:5173
+npm run build:all                 # Workspace + the wallet build served at /wallet
+```
+
+**Wallet app**
+
+```bash
+cd ned-wallet
+cp .env.example .env
+npm run web                       # http://localhost:8081
+```
+
+Both apps sign in through the same Dynamic environment, so the same Google account opens the same wallet. Add your local origin to the Dynamic dashboard's CORS origins.
+
+---
+
+## Deploy (owners only)
+
+**Program** (spends devnet SOL; the upgrade authority is the team's deploy wallet):
+
+1. `solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet`. If the new `.so` is larger than *Data Length*, run `solana program extend <program id> <bytes> --url devnet`.
+2. `anchor deploy --provider.cluster devnet --no-idl`.
+3. Upload the IDL with `npx @solana-program/program-metadata@0.5.1` (create-buffer → update idl --close-buffer). Copy `target/idl/ned_program.json` and `target/types/ned_program.ts` to `packages/ned-core/src/idl/` and `ned-wallet/idl/`.
+4. `npm run jobs:smoke -- --check` must pass.
+
+**Workspace:** Vercel project with Root Directory `ned-workspace`.
+- `vercel.json` sets the pnpm install, the build, the SPA rewrite and the security headers. The `Content-Security-Policy` is enforced; frames are allowed only from Dynamic and the five preview hosts.
+- `main` deploys to production.
+- When the app uses a new runtime host, add it to the CSP.
+
+**Wallet app (GitHub Pages):**
+- Run `npm run predeploy && npm run deploy` in `ned-wallet/`.
+- The base URL is `/Unihackfest-2026`.
+- Never set `EXPO_PUBLIC_DEV_TOOLS` for the public build.
+
+---
+
+## Environment variables
+
+Every `VITE_*` and `EXPO_PUBLIC_*` value is bundled into a public web build. Never put a secret in one, and restrict API keys to the deployed domains. The examples are in `ned-workspace/.env.example` and `ned-wallet/.env.example`.
+
+| Name | Required | Used for |
+| --- | --- | --- |
+| `VITE_DYNAMIC_ENVIRONMENT_ID` / `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` | yes | Google login and embedded wallet (same value in both apps) |
+| `VITE_HELIUS_DEVNET_URL` / `EXPO_PUBLIC_HELIUS_DEVNET_URL` | recommended | Devnet RPC; empty uses the public RPC, which rate-limits |
+| `VITE_PROGRAM_ID` / `EXPO_PUBLIC_ANCHOR_PROGRAM_ID` | no | Override the program ID. Keep empty in production. |
+| `VITE_FEATURE_JOBS`, `VITE_FEATURE_DISPUTE` | no | `false` switches N.E.D Jobs or the request-changes group off (`VITE_FEATURE_LOCK_AT_HIRE` comes with v1.4) |
+| `VITE_MOBILE_ORIGIN`, `VITE_WORKSPACE_ORIGIN` | no | Origins used in invite links |
+| `VITE_DEV_TOOLS` / `EXPO_PUBLIC_DEV_TOOLS` | no | Development previews only. Never in a public build. |
+
+Keypairs (deploy wallet, demo payout partner, smoke-test keys) live outside the repository.
 
 ---
 
@@ -96,156 +280,59 @@ Everything runs on **devnet with test money**. N.E.D holds no funds and charges 
 
 ```text
 Unihackfest-2026/
-├── docs/                    # Product, research, legal (VN/EN). Start with docs/09-milestone-lock/
-├── ned_program/             # Anchor program
+├── ned_program/                 # Anchor program (Rust)
 │   └── programs/ned-program/
-│       ├── src/             # lib.rs, constants, errors, events, state/, instructions/{identity,transfer,milestone/}
-│       └── tests/           # LiteSVM tests: identity.rs, milestone.rs, helpers.rs, common/
-└── ned-wallet/              # Expo app — folder map and data flow: ned-wallet/ARCHITECTURE.md
-    ├── app/                 # Expo Router routes ((onboarding), (tabs), send, dev/milestone…)
-    ├── constants/           # chain.ts (cluster, program ID, mints, rate), features.ts, design.ts
-    ├── hooks/               # Screen hooks, incl. Milestone Lock hooks
-    ├── services/            # auth/, chain/ (connection, send, errors, ATA, IDL coder), identity/, milestone/
-    ├── stores/              # Zustand stores (region, consent, user, network…)
-    ├── idl/                 # ned_program IDL copied from anchor build (do not edit by hand)
-    └── scripts/             # devnet scripts (identity, milestone smoke run, USDC recycle)
+│       ├── src/                 # lib.rs, state/, instructions/{identity, milestone, job}, errors, events
+│       └── tests/               # LiteSVM: identity.rs, milestone.rs, jobs.rs, helpers.rs, common/
+├── packages/ned-core/           # Shared TypeScript core: builders, decoding, rules, encryption, jobs, legal copy, IDL
+├── ned-workspace/               # Workspace + N.E.D Jobs (Vite + React), deployed on Vercel
+├── ned-wallet/                  # Wallet app (Expo), deployed on GitHub Pages and at /wallet
+├── docs/                        # Decisions, specs, research, legal, design boards (start at docs/09-milestone-lock/)
+├── site/                        # Earlier static landing page, kept for reference (not deployed)
+└── assets/images/               # Logo and README images
 ```
 
 ---
 
-## Program: build and test
+## Limits and disclosures
 
-**Prerequisites:** Rust 1.89 (pinned by `ned_program/rust-toolchain.toml`), Solana CLI 3.x, Anchor CLI **1.1.2** (`avm install 1.1.2 && avm use 1.1.2`).
-
-```bash
-cd ned_program
-anchor build                                                          # builds target/deploy/ned_program.so and target/idl/
-cargo test --manifest-path programs/ned-program/Cargo.toml -- --nocapture
-```
-
-The tests run in [LiteSVM](https://github.com/LiteSVM/litesvm) against the built `.so`, so run `anchor build` first. They cover identity (10 tests), Milestone Lock (24 tests: happy paths, the Vietnam payout path, every deadline boundary, attacks, donations, the `released + refunded == total` invariant, account layout, compute units) and the shared test helpers.
-
-**Deploy (owner only, spends devnet SOL).** The upgrade authority is the deploy wallet in `~/.config/solana/id.json`.
-
-1. `solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet`: if the new `.so` is larger than *Data Length*, run `solana program extend <program id> <extra bytes> --url devnet`.
-2. `anchor deploy --provider.cluster devnet --no-idl`
-3. If the IDL changed, write it through a buffer, check it, then set it:
-   ```bash
-   npx @solana-program/program-metadata@0.5.1 create-buffer target/idl/ned_program.json --rpc https://api.devnet.solana.com -k ~/.config/solana/id.json
-   npx @solana-program/program-metadata@0.5.1 update idl <program id> --buffer <buffer> --close-buffer --rpc https://api.devnet.solana.com -k ~/.config/solana/id.json
-   ```
-   (`anchor deploy` without `--no-idl` and `anchor idl upgrade` failed at their last step with Anchor 1.1.2; see `docs/tong-hop-tien-do.md`.)
-4. Copy `target/idl/ned_program.json` and the type part of `target/types/ned_program.ts` into `ned-wallet/idl/`.
+- **Network:** devnet only. Test USDC (Circle faucet) and test SOL have no value.
+- **Audit:** none. The team's deploy wallet still holds the upgrade authority, so the team could change the program. A multisig or an immutable program is planned before any real money.
+- **Payout partner:** simulated by a team-controlled devnet address. Real partners (candidates: Due, Nium) and their KYC are not connected.
+- **No neutral arbiter:** if changes are requested and the two sides never agree, the amount stays locked.
+- **Final files:** after release, N.E.D cannot make anyone hand them over. Fingerprints show what was promised; they do not enforce delivery.
+- **Who can read content:** anyone with a contract's invite link can read its encrypted content. Job listings and applications are public and permanent.
+- **Residence:** the Vietnam view is self-declared and is not checked.
+- **Fees:** none from N.E.D in v1. Network fees are test SOL on devnet.
 
 ---
 
-## App: install, test and run
+## Documentation
 
-**Prerequisites:** Node.js 22+, pnpm (installs) — `npm run <script>` works for every script below. A **Dynamic** environment ID with Google sign-in, Solana + Solana Devnet and embedded wallets enabled; add your web origin (for example `http://localhost:8081`) to its CORS origins.
-
-```bash
-git clone https://github.com/Tdat10052499/Unihackfest-2026.git
-cd Unihackfest-2026/ned-wallet
-pnpm install
-cp .env.example .env          # fill in; see Environment variables
-```
-
-| Command | What it does |
+| Topic | Where |
 | --- | --- |
-| `npm test` | All unit tests (`node --test` over `services/**` and `utils/**`): chain helpers, Milestone Lock rules and labels, decoding, builders, identity, formatting |
-| `npx tsc --noEmit` | Type check |
-| `npm run lint` | ESLint |
-| `npm run web` | Dev server on http://localhost:8081 |
-| `npm run identity:check` | Read-only identity check: devnet identity records plus a mainnet `.sol` lookup (needs `EXPO_PUBLIC_HELIUS_MAINNET_URL`) |
-| `npm run milestone:devnet` | Milestone Lock smoke run on devnet with local keypairs (`-- --refund`, `-- --own-wallet`); needs devnet USDC on the test client |
-| `npm run recycle:demo-usdc -- --to <wallet>` | Sends the demo payout partner's devnet USDC back to the client |
+| Product direction and decision log (D1–D29) | [`docs/09-milestone-lock/README.md`](docs/09-milestone-lock/README.md) |
+| Program specification (byte layouts, instructions, errors, tests; v1.4 in §11) | [`docs/09-milestone-lock/program-spec.md`](docs/09-milestone-lock/program-spec.md) |
+| Product spec and word table | [`docs/09-milestone-lock/product-spec.md`](docs/09-milestone-lock/product-spec.md) |
+| How the system must behave, scenarios, build tracker | [`docs/09-milestone-lock/system-tracker.md`](docs/09-milestone-lock/system-tracker.md) |
+| Progress log with every test run and devnet record (Vietnamese) | [`docs/tong-hop-tien-do.md`](docs/tong-hop-tien-do.md) |
+| Research, market and law | [`docs/08-research/ned-research-and-compliance.md`](docs/08-research/ned-research-and-compliance.md) |
+| Compliance reviews | [`docs/05-legal/`](docs/05-legal/) |
+| Design boards | [`docs/02-thiet-ke/canvas-v2/`](docs/02-thiet-ke/canvas-v2/README.md) |
 
-Android builds use EAS (`npx eas-cli build --profile development --platform android`); the web build is the main target.
-
----
-
-## Deploy the web build (GitHub Pages)
-
-```bash
-cd ned-wallet
-npm run predeploy     # expo export --platform web → dist/, adds 404.html and .nojekyll
-npm run deploy        # publishes dist/ to the gh-pages branch
-```
-
-The site is served at `https://tdat10052499.github.io/Unihackfest-2026/` (base URL `/Unihackfest-2026`, set in `app.json`). The Dynamic environment must list `https://tdat10052499.github.io` in its CORS origins. Do **not** set `EXPO_PUBLIC_DEV_TOOLS` for the public build.
+**Contributing:**
+- Commits go straight to `main` as Conventional Commits; run the tests before each push.
+- Product copy follows the word table: lock, release, refund, receive earnings, request changes. USDC is never called a payment.
+- Anything users or judges can see is checked by the Compliance Lead.
 
 ---
 
-## Workspace (ned-workspace): run, env, deploy
+## Team and competition
 
-`ned-workspace/` is the computer side of N.E.D (Vite + React, decision D20): Overview, contracts, the brief editor (`/new`), submit and review pages, the wallet panel (sign-in and the confirm step of every signature) and the invite-link router `/c/:fund` (phones go on to the GitHub Pages build with `#k=` kept). Shared logic comes from `packages/ned-core`.
-
-```bash
-pnpm install                      # once, at the repo root (pnpm workspace)
-cd ned-workspace
-cp .env.example .env.local        # fill the values (names below)
-npm run dev                       # http://localhost:5173
-npm test                          # node --test (form model, file fingerprints, invite router)
-npm run build                     # tsc --noEmit + vite build → dist/
-```
-
-| Name | Required | Used for |
-| --- | --- | --- |
-| `VITE_DYNAMIC_ENVIRONMENT_ID` | yes | Dynamic login and embedded wallet; the **same** value as `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` (same users, same wallets) |
-| `VITE_HELIUS_DEVNET_URL` | recommended | Devnet RPC (Helius key restricted to the Workspace domain); empty = public devnet RPC, which rate-limits |
-| `VITE_PROGRAM_ID` | no | Overrides the program ID from the IDL |
-| `VITE_MOBILE_ORIGIN` | no | Mobile build for phones (default `https://tdat10052499.github.io/Unihackfest-2026`) |
-| `VITE_WORKSPACE_ORIGIN` | no | Origin put in invite links (default `https://unihackfest-2026.vercel.app`, also from previews and localhost) |
-| `VITE_DEV_TOOLS` | no | `1` enables the read-only `?previewWallet=<address>` mode for screenshots. **Never on Vercel.** |
-
-**Deploy (Vercel).** The Vercel project uses Root Directory `ned-workspace`; `ned-workspace/vercel.json` sets the install command (pnpm workspace), the build, the SPA rewrite and the security headers (enforced `Content-Security-Policy`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options`, `Permissions-Policy`). Every push to a branch gives a preview URL; `main` is production at `https://unihackfest-2026.vercel.app`. Login works only on origins listed in the Dynamic dashboard (CORS origins), so preview URLs other than production cannot sign in. When a new host is used at runtime (RPC, Dynamic, fonts), add it to the CSP in `vercel.json`, or the browser blocks it.
-
----
-
-## Landing page (site)
-
-The introduction landing page is built in a separate repository (decision D21). `site/` is an earlier static version kept for reference and is not deployed. Visitors of `https://unihackfest-2026.vercel.app` (the Workspace) start on `/sign-in`, sign in with Google and enter the Workspace.
-
----
-
-## Environment variables
-
-All live in `ned-wallet/.env` (gitignored); `ned-wallet/.env.example` lists them without values. **Every `EXPO_PUBLIC_*` value is bundled into the public web build: never put a secret in one, and restrict API keys to the deployed domain.**
-
-| Name | Required | Used for |
-| --- | --- | --- |
-| `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` | yes | Dynamic login and embedded wallet |
-| `EXPO_PUBLIC_HELIUS_DEVNET_URL` | recommended | Devnet RPC (falls back to `EXPO_PUBLIC_SOLANA_DEVNET_RPC`, then the public devnet RPC) |
-| `EXPO_PUBLIC_HELIUS_MAINNET_URL` | for `.sol` names | Mainnet read-only RPC for SNS lookups |
-| `EXPO_PUBLIC_ANCHOR_PROGRAM_ID` | no | Overrides the program ID from the IDL |
-| `EXPO_PUBLIC_JUPITER_API_KEY` | no | Jupiter Tokens API (Swap / xStocks, hidden) |
-| `EXPO_PUBLIC_SOLANA_DEVNET_RPC`, `EXPO_PUBLIC_SOLANA_MAINNET_RPC`, `EXPO_PUBLIC_HELIUS_API_KEY` | no | RPC fallbacks |
-| `EXPO_PUBLIC_DEV_TOOLS` | no | `1` shows the `/dev/milestone` harness in an exported build |
-
-Keypairs (deploy wallet, demo payout partner, smoke-run test wallets) live in `~/.config/solana/`, never in the repo.
-
----
-
-## Guidelines
-
-- **Specs first:** product and program rules are in [`docs/09-milestone-lock/`](docs/09-milestone-lock/README.md). If code and a spec disagree, fix one of them in the same change.
-- **Words:** follow the word table in [`product-spec.md`](docs/09-milestone-lock/product-spec.md#6-words): never call USDC a "payment"; no "escrow", "safe", "free" or "invest" in the UI.
-- **App code:** screens call hooks only (no `@solana/web3.js` or instruction builders in screens); chain constants come from `constants/chain.ts`; money is `bigint` base units, never floats; UI uses `components/design`.
-- **Program code:** follow `program-spec.md` exactly; keep the `SharedFund` byte layout (708 bytes, `client` at 12, `freelancer` at 44); run `anchor build && cargo test` before every deploy.
-- **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
+Built by team **N.E.D** for **UniHackFest 2026** (final round, 10 Oct 2026; Best Product & Business and Best Technical Build tracks). This is a student project, not a company or a licensed service.
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**.
-
----
-
-<div align="center">
-
-**Built with dedication for Unihackfest 2026**
-
-[⬆ Back to Top](#table-of-contents)
-
-</div>
+No license file has been added yet, so all rights are reserved by the team until one is chosen.
