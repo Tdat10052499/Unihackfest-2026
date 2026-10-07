@@ -1,30 +1,47 @@
-// /jobs/find — every open listing with filters (WebJobsFind board; appendix H.15), plus the tabs My applications and
-// My listings. The tab, every filter and the sort live in the URL (filtersToQuery / filtersFromQuery + `tab`), so a
-// reload or a shared link shows the same view; nothing is stored. Listings refresh every 30 s and on focus.
-import { useEffect, useMemo, useState } from 'react';
+// /jobs/find — Find jobs v4 (board WebJobsFind; prompts-hub-v4.md V6; funded-jobs-plan section 6.1): every open listing
+// with the segmented search bar (What · Field · Budget), removable filter chips, the Filters sheet, grid or list results,
+// and the tabs My applications and My listings. Every filter, the sort, the view and the tab live in the URL
+// (filtersToQuery / filtersFromQuery), so a reload or a shared link shows the same page; nothing is stored. Filtering
+// stays in @ned/core (filterJobs, sortJobs) and ../find.ts. Listings refresh every 30 s and on focus.
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import type { JobApplicationAccount, JobListingAccount } from '@ned/core/jobs/decode.ts';
-import { filterJobs, sortJobs, type JobDuration, type JobFilters, type JobMilestoneRange, type JobSort } from '@ned/core/jobs/search.ts';
-import { JOB_CATEGORIES, JOB_SKILLS, categoryById } from '@ned/core/jobs/taxonomy.ts';
+import { filterJobs, sortJobs, type JobBudget, type JobFilters, type JobSort } from '@ned/core/jobs/search.ts';
+import { JOB_CATEGORIES, JOB_SKILLS, categoryById, skillById } from '@ned/core/jobs/taxonomy.ts';
 import { Avatar } from '../../components/Avatar.tsx';
 import { useChainTime } from '../../hooks/useChainTime.ts';
 import { shortAddress } from '../../lib/format.ts';
-import { Chip } from '../components/Chip.tsx';
+import { CATEGORY_LOOK } from '../components/categoryLook.ts';
+import { Chip, RemovableChip } from '../components/Chip.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon } from '../components/HubIcon.tsx';
-import { JobCard, type JobMine } from '../components/JobCard.tsx';
-import { MoneyText } from '../components/MoneyText.tsx';
+import { JobCard, JobRow, JobRowList, type JobMine } from '../components/JobCard.tsx';
+import { MoneyText, moneyLabel } from '../components/MoneyText.tsx';
+import { Popover } from '../components/Popover.tsx';
+import { SectionHeading } from '../components/SectionHeading.tsx';
+import { Segmented } from '../components/Segmented.tsx';
+import { Sheet } from '../components/Sheet.tsx';
+import { Switch } from '../components/Switch.tsx';
 import {
   applicationRows,
   BUDGETS,
+  budgetCounts,
   budgetLabel,
-  budgetPreset,
+  budgetValue,
   categoryCounts,
+  clearAll,
+  clearSheet,
   countLabel,
+  DURATIONS,
+  filterChips,
   filtersOn,
   listingRows,
+  openJobsCount,
   PAGE_SIZE,
+  RANGES,
+  sheetCount,
+  SHEET_SKILLS,
   viewFromQuery,
   viewToQuery,
   type FindTab,
@@ -36,7 +53,7 @@ import hub from '../hub.module.css';
 import styles from './Find.module.css';
 import { ERROR_TEXT } from './Overview.tsx';
 
-export const NO_MATCH = 'No open jobs match these filters.';
+export const NO_MATCH = 'No open jobs match, yet';
 
 export function Find() {
   const viewer = useHubViewer();
@@ -82,30 +99,27 @@ export interface FindViewProps {
   now: number;
 }
 
-const DURATIONS: { id: JobDuration; label: string }[] = [
-  { id: '1w', label: 'Up to 1 week' },
-  { id: '2w', label: 'Up to 2 weeks' },
-  { id: '1m', label: 'Up to 1 month' },
-];
-const RANGES: { id: JobMilestoneRange; label: string }[] = [
-  { id: '1', label: '1 milestone' },
-  { id: '2-3', label: '2–3 milestones' },
-  { id: '4-5', label: '4–5 milestones' },
-];
 const SORTS: { id: JobSort; label: string }[] = [
   { id: 'new', label: 'Newest' },
   { id: 'soon', label: 'Apply by soonest' },
-  { id: 'budget', label: 'Budget: high to low' },
+  { id: 'budget', label: 'Highest budget' },
 ];
+
+type Pop = 'cat' | 'budget' | null;
 
 export function FindView(p: FindViewProps) {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const { filters: f, tab: wanted } = viewFromQuery(params);
+  // Visibility as before: My listings never in the Vietnam view
   const tab: FindTab = p.vn && wanted === 'listings' ? 'open' : wanted;
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
-  // The search box writes to the URL 150 ms after the last key (results follow the URL)
+  const [pop, setPop] = useState<Pop>(null);
+  const [sheet, setSheet] = useState(false);
+  const catRef = useRef<HTMLButtonElement>(null);
+  const budgetRef = useRef<HTMLButtonElement>(null);
+  // The What box writes to the URL 150 ms after the last key (results follow the URL)
   const [q, setQ] = useState(f.q ?? '');
   useEffect(() => setQ(f.q ?? ''), [f.q]);
 
@@ -126,23 +140,19 @@ export function FindView(p: FindViewProps) {
   const all = p.open ?? [];
   const results = sortJobs(filterJobs(all, f, ctx), f.sort);
   const shown = showAll ? results : results.slice(0, PAGE_SIZE);
-  const counts = categoryCounts(all, f, ctx, JOB_CATEGORIES.map((c) => c.id));
   const on = filtersOn(f);
+  const chips = filterChips(f, p.vn);
+  const more = sheetCount(f);
   const name = (w: string) => p.names[w] ?? shortAddress(w);
   const mine = (j: JobListingAccount): JobMine => (p.me && j.business.toBase58() === p.me ? 'own' : appliedSet.has(j.address.toBase58()) ? 'applied' : null);
-  const cat = f.cat ? categoryById(f.cat) : undefined;
-  const skillsHere = cat ? JOB_SKILLS.filter((k) => k.category === cat.index) : JOB_SKILLS;
-  const skillValue = f.skills?.length === 1 ? f.skills[0] : f.skills?.length ? 'many' : '';
-  const budget = budgetPreset(f);
+  const lockedAll = all.reduce((s, j) => s + j.total, 0n);
+  const list = f.view === 'list';
 
   const tabs: { id: FindTab; label: string; count: number | null }[] = [
     { id: 'open', label: 'Open jobs', count: p.open ? all.length : null },
     { id: 'applied', label: 'My applications', count: p.signedIn && p.applications ? p.applications.length : null },
     ...(p.vn ? [] : [{ id: 'listings' as const, label: 'My listings', count: p.signedIn && p.listings ? p.listings.length : null }]),
   ];
-  const title = tab === 'applied' ? 'My applications' : tab === 'listings' ? 'My listings' : cat ? `${cat.label} jobs` : 'Open jobs';
-  const sub =
-    tab === 'open' ? 'Every budget below is already locked on Solana.' : tab === 'applied' ? 'Where each of your applications stands.' : 'Jobs you posted and what happened to each budget.';
 
   const copyLink = async () => {
     try {
@@ -152,131 +162,135 @@ export function FindView(p: FindViewProps) {
     }
     setCopied(true);
   };
-  const selectCls = (active: boolean) => `${styles.select} ${active ? styles.selectOn : ''}`;
 
   return (
     <>
-      <section aria-labelledby="fj-h1" className={styles.band}>
-        <div className={`${hub.container} ${styles.bandInner}`}>
-          <h1 id="fj-h1" className={styles.h1}>
-            Find jobs
-          </h1>
-          <p className={styles.lead}>Every job here has its whole budget locked on Solana. Filter by field, skill, budget and time to deliver.</p>
-          <div role="group" aria-label="Category" className={styles.chips}>
-            {[{ id: '', label: 'All', n: counts.all }, ...JOB_CATEGORIES.map((c) => ({ id: c.id, label: c.label, n: counts.byId[c.id] }))].map((c) => {
-              const active = (f.cat ?? '') === c.id;
-              return (
-                <button
-                  key={c.id || 'all'}
-                  type="button"
-                  aria-pressed={active}
-                  className={`${styles.chip} ${active ? styles.chipOn : ''}`}
-                  onClick={() => go({ ...f, cat: c.id || undefined, skills: undefined }, 'open')}
-                >
-                  {c.label}
-                  <span className={styles.count}>{p.open ? c.n : '…'}</span>
-                </button>
-              );
-            })}
-          </div>
+      <section aria-labelledby="fj-h1" className={`${hub.container} ${styles.top}`}>
+        <div className={`${styles.titleRow} hb-in`}>
+          <SectionHeading id="fj-h1" level={1} size="page" title="Find jobs, " tone="already funded" />
+          <p className={styles.summary} data-testid="find-summary">
+            {p.open ? (
+              <>
+                <strong>{all.length}</strong> open {all.length === 1 ? 'job' : 'jobs'} · <strong>{moneyLabel(lockedAll, p.vn)}</strong> locked on Solana
+              </>
+            ) : (
+              'Reading jobs from Solana…'
+            )}
+          </p>
+        </div>
+        <div role="tablist" aria-label="Jobs view" className={`${styles.tabs} hb-in-2`}>
+          {tabs.map((t) => {
+            const sel = tab === t.id;
+            return (
+              <button key={t.id} type="button" role="tab" aria-selected={sel} className={`${styles.tab} ${sel ? styles.tabOn : ''}`} onClick={() => go(f, t.id)}>
+                {t.label}
+                {t.count !== null ? <span className={styles.badge}>{t.count}</span> : null}
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      <section aria-labelledby="fj-board" className={`${hub.container} ${styles.board}`}>
-        <div className={styles.head}>
-          <div>
-            <h2 id="fj-board" className={styles.h2}>
-              {title}
-            </h2>
-            <p className={styles.sub}>{sub}</p>
-          </div>
-          <div role="tablist" aria-label="Jobs view" className={styles.tabs}>
-            {tabs.map((t) => (
-              <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`${styles.tab} ${tab === t.id ? styles.tabOn : ''}`} onClick={() => go(f, t.id)}>
-                {t.label}
-                {t.count !== null ? <span className={styles.count}>{t.count}</span> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {tab === 'open' ? (
-          <>
-            <div role="group" aria-label="Filters" className={styles.filters}>
-              <label className={styles.searchBox}>
-                <span className={styles.srOnly}>Search jobs</span>
-                <span className={styles.searchIcon}>
-                  <HubIcon name="search" size={16} />
-                </span>
-                <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, summary, skills" />
-              </label>
-              <label>
-                <span className={styles.srOnly}>Category</span>
-                <select className={selectCls(Boolean(f.cat))} value={f.cat ?? ''} onChange={(e) => go({ ...f, cat: e.target.value || undefined, skills: undefined })}>
-                  <option value="">All categories</option>
-                  {JOB_CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={styles.srOnly}>Skill</span>
-                <select className={selectCls(Boolean(skillValue))} value={skillValue} onChange={(e) => go({ ...f, skills: e.target.value && e.target.value !== 'many' ? [e.target.value] : undefined })}>
-                  <option value="">Any skill</option>
-                  {skillValue === 'many' ? <option value="many">{f.skills!.length} skills</option> : null}
-                  {skillsHere.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={styles.srOnly}>Budget</span>
-                <select
-                  className={selectCls(Boolean(budget))}
-                  value={budget}
-                  onChange={(e) => {
-                    const b = BUDGETS.find((x) => x.id === e.target.value);
-                    go({ ...f, min: b?.min, max: b?.max });
+      {tab === 'open' ? (
+        <>
+          <div className={styles.barWrap}>
+            <div className={styles.barInner}>
+              <div role="search" aria-label="Search jobs" className={`${styles.bar} ${pop ? styles.barOpen : ''} hb-in-3`}>
+                <label className={`${styles.seg} ${styles.segWhat}`}>
+                  <span className={styles.segLabel}>What</span>
+                  <input
+                    type="search"
+                    aria-label="Search jobs"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    onFocus={() => setPop(null)}
+                    placeholder="Title, skill or keyword"
+                    className={styles.segInput}
+                  />
+                </label>
+                <span aria-hidden className={styles.divider} />
+                <button
+                  ref={catRef}
+                  type="button"
+                  className={`${styles.seg} ${pop === 'cat' ? styles.segOn : ''}`}
+                  aria-haspopup="dialog"
+                  aria-expanded={pop === 'cat'}
+                  onClick={() => setPop((cur) => (cur === 'cat' ? null : 'cat'))}
+                >
+                  <span className={styles.segLabel}>Field</span>
+                  <span className={`${styles.segValue} ${f.cat ? '' : styles.segEmpty}`}>
+                    {f.cat ? categoryById(f.cat)?.label : 'All fields'}
+                    <HubIcon name="chevronDown" size={14} width={2.4} />
+                  </span>
+                </button>
+                <span aria-hidden className={styles.divider} />
+                <button
+                  ref={budgetRef}
+                  type="button"
+                  className={`${styles.seg} ${pop === 'budget' ? styles.segOn : ''}`}
+                  aria-haspopup="dialog"
+                  aria-expanded={pop === 'budget'}
+                  onClick={() => setPop((cur) => (cur === 'budget' ? null : 'budget'))}
+                >
+                  <span className={styles.segLabel}>Budget</span>
+                  <span className={`${styles.segValue} ${budgetValue(f, p.vn) ? '' : styles.segEmpty}`}>
+                    {budgetValue(f, p.vn) ?? 'Any budget'}
+                    <HubIcon name="chevronDown" size={14} width={2.4} />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.go}
+                  aria-label="Search"
+                  onClick={() => {
+                    setPop(null);
+                    if ((f.q ?? '') !== q.trim()) go({ ...f, q: q.trim() || undefined });
                   }}
                 >
-                  <option value="">Any budget</option>
-                  {budget === 'custom' ? <option value="custom">Custom budget</option> : null}
-                  {BUDGETS.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {budgetLabel(b.id, p.vn)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={styles.srOnly}>Time to deliver</span>
-                <select className={selectCls(Boolean(f.dur))} value={f.dur ?? ''} onChange={(e) => go({ ...f, dur: (e.target.value || undefined) as JobDuration | undefined })}>
-                  <option value="">Any duration</option>
-                  {DURATIONS.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={styles.srOnly}>Milestones</span>
-                <select className={selectCls(Boolean(f.ms))} value={f.ms ?? ''} onChange={(e) => go({ ...f, ms: (e.target.value || undefined) as JobMilestoneRange | undefined })}>
-                  <option value="">Any milestones</option>
-                  {RANGES.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={styles.srOnly}>Sort</span>
-                <select className={selectCls(Boolean(f.sort && f.sort !== 'new'))} value={f.sort ?? 'new'} onChange={(e) => go({ ...f, sort: e.target.value as JobSort })}>
+                  <HubIcon name="search" size={18} width={2.4} />
+                </button>
+              </div>
+              <Popover open={pop === 'cat'} onClose={() => setPop(null)} anchorRef={catRef} label="Choose a field" width={520} className={styles.popField}>
+                <FieldOptions all={all} f={f} ctx={ctx} onPick={(cat) => {
+                  setPop(null);
+                  go({ ...f, cat });
+                }} />
+              </Popover>
+              <Popover open={pop === 'budget'} onClose={() => setPop(null)} anchorRef={budgetRef} label="Choose a budget" width={340} align="end" className={styles.popBudget}>
+                <BudgetOptions all={all} f={f} ctx={ctx} vn={p.vn} onPick={(budget) => {
+                  setPop(null);
+                  go({ ...f, budget, min: undefined, max: undefined });
+                }} />
+              </Popover>
+            </div>
+          </div>
+
+          <section aria-label="Results" className={`${hub.container} ${styles.results}`}>
+            <div className={styles.toolbar}>
+              <button type="button" className={styles.filtersButton} aria-haspopup="dialog" onClick={() => setSheet(true)}>
+                <HubIcon name="sliders" size={15} />
+                Filters
+                {more ? (
+                  <span className={styles.filtersBadge} aria-label={`${more} on`}>
+                    {more}
+                  </span>
+                ) : null}
+              </button>
+              {chips.map((c) => (
+                <RemovableChip key={c.key} label={c.label} onRemove={() => go(c.without)} />
+              ))}
+              {chips.length ? (
+                <button type="button" className={`${styles.textButton} hb-ul`} onClick={() => go(clearAll(f))}>
+                  Clear all
+                </button>
+              ) : null}
+              <span className={styles.grow} />
+              <span aria-live="polite" className={styles.count} data-testid="result-count">
+                {p.open ? countLabel(results.length, on) : 'Reading jobs…'}
+              </span>
+              <label className={styles.sort}>
+                Sort
+                <select value={f.sort ?? 'new'} onChange={(e) => go({ ...f, sort: e.target.value as JobSort })}>
                   {SORTS.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.label}
@@ -284,33 +298,32 @@ export function FindView(p: FindViewProps) {
                   ))}
                 </select>
               </label>
-              <div className={styles.ticks}>
-                <label className={styles.tick}>
-                  <input type="checkbox" checked={Boolean(f.soon)} onChange={(e) => go({ ...f, soon: e.target.checked || undefined })} />
-                  Apply by within 24 h
-                </label>
-                <label className={styles.tick}>
-                  <input type="checkbox" checked={Boolean(f.hide)} onChange={(e) => go({ ...f, hide: e.target.checked || undefined })} />
-                  Hide jobs I applied to
-                </label>
-                <span className={styles.grow} />
-                <span aria-live="polite" className={styles.result} data-testid="result-count">
-                  {p.open ? countLabel(results.length, on) : 'Reading jobs from Solana…'}
-                </span>
-                <button type="button" className={styles.small} onClick={() => go({ sort: f.sort })}>
-                  Clear
-                </button>
-                <button type="button" className={styles.small} onClick={() => void copyLink()}>
-                  <HubIcon name="link" size={13} />
-                  {copied ? 'Link copied' : 'Copy link'}
-                </button>
-              </div>
+              <Segmented
+                label="Layout"
+                mode="toggle"
+                value={list ? 'list' : 'grid'}
+                onChange={(v) => go({ ...f, view: v === 'list' ? 'list' : undefined })}
+                options={[
+                  { value: 'grid', name: 'Grid', label: <HubIcon name="grid" size={15} /> },
+                  { value: 'list', name: 'List', label: <HubIcon name="list" size={15} /> },
+                ]}
+              />
+              <button
+                type="button"
+                className={`${styles.share} ${copied ? styles.shareDone : ''}`}
+                aria-label={copied ? 'Link to this search copied' : 'Copy a link to this search'}
+                title={copied ? 'Link to this search copied' : 'Copy a link to this search'}
+                onClick={() => void copyLink()}
+              >
+                <HubIcon name="share" size={15} />
+                {copied ? 'Copied' : 'Share'}
+              </button>
             </div>
 
             {p.openError ? (
               <div className={styles.error} role="alert">
                 {ERROR_TEXT}
-                <HubButton variant="outline" size="small" onClick={p.onRetry}>
+                <HubButton variant="white" size="small" onClick={p.onRetry}>
                   <HubIcon name="refresh" size={14} />
                   Retry
                 </HubButton>
@@ -323,31 +336,72 @@ export function FindView(p: FindViewProps) {
               </div>
             ) : results.length ? (
               <>
-                <div className={styles.grid}>
-                  {shown.map((j, i) => (
-                    <JobCard key={j.address.toBase58()} job={j} vn={p.vn} now={p.now} dark={i === 0} businessName={name(j.business.toBase58())} mine={mine(j)} />
-                  ))}
-                </div>
+                {list ? (
+                  <div className={styles.listWrap}>
+                    <JobRowList>
+                      {shown.map((j) => (
+                        <JobRow key={j.address.toBase58()} job={j} vn={p.vn} now={p.now} businessName={name(j.business.toBase58())} mine={mine(j)} />
+                      ))}
+                    </JobRowList>
+                  </div>
+                ) : (
+                  <div className={styles.grid}>
+                    {shown.map((j) => (
+                      <JobCard key={j.address.toBase58()} job={j} vn={p.vn} now={p.now} businessName={name(j.business.toBase58())} mine={mine(j)} />
+                    ))}
+                  </div>
+                )}
                 {results.length > PAGE_SIZE ? (
-                  <HubButton variant="dark" className={styles.more} onClick={() => setShowAll(!showAll)}>
-                    {showAll ? 'Show fewer jobs' : `Show all ${results.length} jobs`}
-                    <HubIcon name="arrowRight" size={15} />
-                  </HubButton>
+                  <div className={styles.moreRow}>
+                    <HubButton variant="dark" onClick={() => setShowAll(!showAll)} style={{ height: 46 }}>
+                      {showAll ? 'Show fewer jobs' : `Show all ${results.length} jobs`}
+                    </HubButton>
+                  </div>
                 ) : null}
               </>
             ) : (
               <div className={styles.noMatch} role="status">
-                <span className={styles.noMatchTitle}>{NO_MATCH}</span>
-                <span className={styles.noMatchBody}>{all.length ? 'Try another category or a wider budget.' : 'No job is open right now. New jobs show up here as soon as a business locks a budget.'}</span>
+                <div className={styles.noMatchTitle}>
+                  {on || all.length ? (
+                    <>
+                      No open jobs match, <span className={styles.noMatchTone}>yet</span>
+                    </>
+                  ) : (
+                    'No open jobs yet'
+                  )}
+                </div>
+                <div className={styles.noMatchBody}>
+                  {on ? 'Try another field, a wider budget, or fewer filters.' : 'New jobs show up here as soon as a business locks a budget.'}
+                </div>
                 {on ? (
-                  <HubButton variant="dark" size="small" onClick={() => go({ sort: f.sort })}>
-                    Clear filters
+                  <HubButton variant="dark" onClick={() => go(clearAll(f))} className={styles.noMatchButton}>
+                    Clear all filters
                   </HubButton>
                 ) : null}
               </div>
             )}
-          </>
-        ) : !p.signedIn ? (
+          </section>
+
+          <Sheet
+            open={sheet}
+            onClose={() => setSheet(false)}
+            title="Filters"
+            footer={
+              <>
+                <button type="button" className={`${styles.clearThese} hb-ul`} onClick={() => go(clearSheet(f))}>
+                  Clear these
+                </button>
+                <HubButton variant="dark" onClick={() => setSheet(false)} style={{ height: 48, fontSize: 15 }}>
+                  Show {results.length === 1 ? '1 job' : `${results.length} jobs`}
+                </HubButton>
+              </>
+            }
+          >
+            <SheetFilters f={f} go={go} signedIn={p.signedIn} />
+          </Sheet>
+        </>
+      ) : !p.signedIn ? (
+        <section className={`${hub.container} ${styles.rowsSection}`}>
           <EmptyState
             icon="lock"
             title={tab === 'applied' ? 'Sign in to see your applications' : 'Sign in to see your listings'}
@@ -358,22 +412,139 @@ export function FindView(p: FindViewProps) {
               </HubButton>
             }
           />
-        ) : (
+        </section>
+      ) : (
+        <section aria-label={tab === 'applied' ? 'My applications' : 'My listings'} className={`${hub.container} ${styles.rowsSection}`}>
+          <p className={styles.rowsSub}>{tab === 'applied' ? 'Where each of your applications stands.' : 'Jobs you posted and what happened to each budget.'}</p>
           <Rows
             rows={tab === 'applied' ? (p.applications ? applicationRows(p.applications, p.me!, name, p.now) : null) : p.listings ? listingRows(p.listings, p.me!, name) : null}
             vn={p.vn}
             empty={
               tab === 'applied'
-                ? { title: "You haven't applied to a job yet.", body: 'Every open job shows its locked budget, so the money is there before you apply.' }
-                : { title: "You haven't posted a job yet.", body: 'Post a job: lock its budget and publish it.' }
+                ? { title: "You haven't applied to a job yet", body: 'Every open job shows its locked budget, so the money is there before you apply.' }
+                : { title: "You haven't posted a job yet", body: 'Post a job: lock its budget and publish it.' }
             }
           />
-        )}
+        </section>
+      )}
+    </>
+  );
+}
+
+type Ctx = { now: number; applied: ReadonlySet<string> };
+
+/** V6.3 Field: "All fields" and the eight categories, two columns, live counts (every other filter applied) */
+function FieldOptions({ all, f, ctx, onPick }: { all: JobListingAccount[]; f: JobFilters; ctx: Ctx; onPick(cat: string | undefined): void }) {
+  const counts = categoryCounts(all, f, ctx, JOB_CATEGORIES.map((c) => c.id));
+  const options = [
+    { id: '', label: 'All fields', n: counts.all, icon: 'grid' as const, ink: '#16161C', tint: '#F5F5F7' },
+    ...JOB_CATEGORIES.map((c) => {
+      const look = CATEGORY_LOOK[c.index] ?? CATEGORY_LOOK[CATEGORY_LOOK.length - 1];
+      return { id: c.id, label: c.label, n: counts.byId[c.id], icon: look.icon, ink: look.ink, tint: look.tint };
+    }),
+  ];
+  return (
+    <div className={styles.fieldGrid}>
+      {options.map((o) => {
+        const sel = (f.cat ?? '') === o.id;
+        return (
+          <button key={o.id || 'all'} type="button" aria-pressed={sel} className={`${styles.fieldOption} ${sel ? styles.optionOn : ''}`} onClick={() => onPick(o.id || undefined)}>
+            <span className={styles.fieldIcon} style={{ background: o.tint }}>
+              <HubIcon name={o.icon} size={17} width={2} color={o.ink} />
+            </span>
+            <span className={styles.optionText}>
+              <span className={styles.optionLabel}>{o.label}</span>
+              <span className={styles.optionCount}>{openJobsCount(o.n)}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** V6.3 Budget: radio rows with live counts; ≈ VND ranges in the Vietnam view */
+function BudgetOptions({ all, f, ctx, vn, onPick }: { all: JobListingAccount[]; f: JobFilters; ctx: Ctx; vn: boolean; onPick(b: JobBudget | undefined): void }) {
+  const counts = budgetCounts(all, f, ctx);
+  const custom = !f.budget && (f.min !== undefined || f.max !== undefined);
+  const options = [{ id: '' as const, label: 'Any budget', n: counts.any }, ...BUDGETS.map((b) => ({ id: b.id, label: budgetLabel(b.id, vn), n: counts.byId[b.id] }))];
+  return (
+    <div role="radiogroup" aria-label="Budget">
+      {options.map((o) => {
+        const sel = o.id ? f.budget === o.id : !f.budget && !custom;
+        return (
+          <button key={o.id || 'any'} type="button" role="radio" aria-checked={sel} className={styles.budgetOption} onClick={() => onPick(o.id || undefined)}>
+            <span className={`${styles.radio} ${sel ? styles.radioOn : ''}`} aria-hidden />
+            <span className={styles.optionText}>
+              <span className={styles.optionLabel}>{o.label}</span>
+              <span className={styles.optionCount}>{openJobsCount(o.n)}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** V6.4 the Filters sheet body; every change writes the URL at once */
+function SheetFilters({ f, go, signedIn }: { f: JobFilters; go(next: JobFilters): void; signedIn: boolean }) {
+  const cat = f.cat ? categoryById(f.cat) : undefined;
+  const ids = cat ? JOB_SKILLS.filter((k) => k.category === cat.index).map((k) => k.id) : SHEET_SKILLS;
+  const picked = f.skills ?? [];
+  const skillIds = [...ids, ...picked.filter((id) => !ids.includes(id))];
+  const toggle = (id: string) => {
+    const next = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
+    go({ ...f, skills: next.length ? next : undefined });
+  };
+  return (
+    <>
+      <SheetSection title="Skills" sub="Show jobs that ask for any of these.">
+        <div className={styles.skillPills}>
+          {skillIds.map((id) => {
+            const sel = picked.includes(id);
+            return (
+              <button key={id} type="button" aria-pressed={sel} className={`${styles.skillPill} ${sel ? styles.skillOn : ''}`} onClick={() => toggle(id)}>
+                {skillById(id)?.label ?? id}
+              </button>
+            );
+          })}
+        </div>
+      </SheetSection>
+      <SheetSection title="Time to deliver">
+        <Segmented
+          label="Time to deliver"
+          value={f.dur ?? 'any'}
+          onChange={(v) => go({ ...f, dur: v === 'any' ? undefined : v })}
+          options={[{ value: 'any' as const, label: 'Any' }, ...DURATIONS.map((d) => ({ value: d.id, label: d.label }))]}
+        />
+      </SheetSection>
+      <SheetSection title="Milestones">
+        <Segmented
+          label="Milestones"
+          value={f.ms ?? 'any'}
+          onChange={(v) => go({ ...f, ms: v === 'any' ? undefined : v })}
+          options={[{ value: 'any' as const, label: 'Any' }, ...RANGES.map((r) => ({ value: r.id, label: r.label }))]}
+        />
+      </SheetSection>
+      <section className={styles.sheetSwitches}>
+        <Switch checked={Boolean(f.soon)} onChange={(v) => go({ ...f, soon: v || undefined })} label="Apply by within 24 hours" sub="Jobs that close soon" />
+        {signedIn ? <Switch checked={Boolean(f.hide)} onChange={(v) => go({ ...f, hide: v || undefined })} label="Hide jobs I applied to" sub="Keep your list fresh" /> : null}
       </section>
     </>
   );
 }
 
+function SheetSection({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
+  return (
+    <section className={styles.sheetSection}>
+      <h3 className={styles.sheetH3}>{title}</h3>
+      {sub ? <p className={styles.sheetSub}>{sub}</p> : null}
+      <div className={styles.sheetBody}>{children}</div>
+    </section>
+  );
+}
+
+/** V6.6: My applications / My listings rows in one hairline box */
 function Rows({ rows, vn, empty }: { rows: Row[] | null; vn: boolean; empty: { title: string; body: string } }) {
   if (!rows)
     return (
@@ -383,11 +554,19 @@ function Rows({ rows, vn, empty }: { rows: Row[] | null; vn: boolean; empty: { t
         ))}
       </div>
     );
-  if (!rows.length) return <EmptyState title={empty.title} body={empty.body} />;
+  if (!rows.length)
+    return (
+      <div className={styles.rows}>
+        <div className={styles.rowsEmpty}>
+          <div className={styles.rowsEmptyTitle}>{empty.title}</div>
+          <div className={styles.rowsEmptyBody}>{empty.body}</div>
+        </div>
+      </div>
+    );
   return (
     <ul className={styles.rows}>
       {rows.map((r) => (
-        <li key={r.key} className={styles.row} data-testid="job-row">
+        <li key={r.key} className={`${styles.row} rv`} data-testid="my-row">
           <Avatar seed={r.seed} size={40} decorative />
           <span className={styles.rowMain}>
             <span className={styles.rowTitle}>{r.title}</span>
@@ -397,7 +576,7 @@ function Rows({ rows, vn, empty }: { rows: Row[] | null; vn: boolean; empty: { t
             <MoneyText units={r.units} vn={vn} sub={r.sub} size={14} />
           </span>
           <Chip tone={r.tone}>{r.status}</Chip>
-          <HubButton variant={r.primary ? 'purple' : 'outline'} size="small" to={r.href}>
+          <HubButton variant={r.primary ? 'purple' : 'ghost'} size="small" to={r.href} className={r.primary ? '' : styles.rowCta}>
             {r.cta}
           </HubButton>
         </li>
@@ -405,4 +584,3 @@ function Rows({ rows, vn, empty }: { rows: Row[] | null; vn: boolean; empty: { t
     </ul>
   );
 }
-

@@ -72,7 +72,8 @@ describe('JobCard', () => {
   it('Vietnam view: ≈ VND, never USDC; dark featured variant and "Applied"', () => {
     inRouter(<JobCard job={job} vn now={T0} dark mine="applied" />);
     const card = screen.getByRole('link');
-    expect(card.textContent).toContain('≈ 260,000 VND (estimate)');
+    expect(card.textContent).toContain('≈ 260,000 VND');
+    expect(card.textContent).toContain('Estimate · 2 milestones');
     expect(card.getAttribute('aria-label')).toContain('≈ 260,000 VND (estimate)');
     expect(card.textContent).not.toContain('USDC');
     expect(card.textContent).toContain('Applied');
@@ -83,7 +84,7 @@ describe('JobCard', () => {
     inRouter(<JobRow job={job} vn now={T0} businessName="@orbit_cafe" />);
     const row = screen.getByTestId('job-row');
     expect(row.getAttribute('href')).toBe(`/jobs/${address.toBase58()}`);
-    for (const text of ['Logo refresh for a coffee brand', '@orbit_cafe · Design · Up to 1 week · 2 milestones', '4 applicants', '≈ 260,000 VND (estimate)', 'Budget locked'])
+    for (const text of ['Logo refresh for a coffee brand', '@orbit_cafe · Design · Up to 1 week · 2 milestones', '4 applicants', '≈ 260,000 VND', 'Estimate · budget locked'])
       expect(row.textContent).toContain(text);
     expect(row.textContent).not.toContain('USDC');
   });

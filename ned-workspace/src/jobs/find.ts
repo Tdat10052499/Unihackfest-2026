@@ -1,49 +1,98 @@
-// Find jobs (appendix H.15): the URL ↔ view state, the board's budget presets and the rows of the two "My" tabs.
-// Pure: no React, no RPC.
+// Find jobs v4 (prompts-hub-v4.md V6; appendix H.15 for the rows): the URL ↔ view state, the budget presets, the
+// filter chips and counts, and the rows of the two "My" tabs. Pure: no React, no RPC. Filtering stays in @ned/core.
 import type { JobApplicationAccount, JobListingAccount } from '@ned/core/jobs/decode.ts';
 import { JOB_ACCEPT_WINDOW_SECS } from '@ned/core/jobs/layout.ts';
-import { filterJobs, filtersFromQuery, filtersToQuery, type FilterContext, type JobFilters } from '@ned/core/jobs/search.ts';
+import {
+  filterJobs,
+  filtersFromQuery,
+  filtersToQuery,
+  JOB_BUDGETS,
+  type FilterContext,
+  type JobBudget,
+  type JobDuration,
+  type JobFilters,
+  type JobMilestoneRange,
+  type JobTab,
+} from '@ned/core/jobs/search.ts';
+import { categoryById, skillById } from '@ned/core/jobs/taxonomy.ts';
 import { formatDeadline, vndFromUnits } from '@ned/core/milestone/format.ts';
 
-export type FindTab = 'open' | 'applied' | 'listings';
+export type FindTab = JobTab;
 export const PAGE_SIZE = 9;
 
-/** View state from the URL: the core filters plus the tab (`tab=applied|listings`; open is the default) */
+/** View state from the URL: the core filters (with view) and the tab, which the page reads apart */
 export function viewFromQuery(query: string | URLSearchParams): { filters: JobFilters; tab: FindTab } {
-  const p = typeof query === 'string' ? new URLSearchParams(query.startsWith('?') ? query.slice(1) : query) : query;
-  const t = p.get('tab');
-  return { filters: filtersFromQuery(p), tab: t === 'applied' || t === 'listings' ? t : 'open' };
+  const { tab, ...filters } = filtersFromQuery(query);
+  return { filters, tab: tab ?? 'open' };
 }
 
-/** URL query for a view (filters first, in the core's fixed order, then the tab) */
-export function viewToQuery(filters: JobFilters, tab: FindTab): string {
-  const q = filtersToQuery(filters);
-  const t = tab === 'open' ? '' : `tab=${tab}`;
-  return [q, t].filter(Boolean).join('&');
+/** URL query for a view, in the core's fixed key order (q, cat, budget, skills, …, sort, view, tab) */
+export const viewToQuery = (filters: JobFilters, tab: FindTab): string => filtersToQuery({ ...filters, tab });
+
+/** Filters that narrow the results (sort and view do not) */
+export const filtersOn = (f: JobFilters) =>
+  Boolean(f.q || f.cat || f.budget || f.skills?.length || f.min !== undefined || f.max !== undefined || f.dur || f.ms || f.soon || f.hide);
+
+/** Only the filters of the Filters sheet: skills, time to deliver, milestones, the two switches (the button's badge) */
+export const sheetCount = (f: JobFilters) => (f.skills?.length ?? 0) + (f.dur ? 1 : 0) + (f.ms ? 1 : 0) + (f.soon ? 1 : 0) + (f.hide ? 1 : 0);
+export const clearSheet = (f: JobFilters): JobFilters => ({ ...f, skills: undefined, dur: undefined, ms: undefined, soon: undefined, hide: undefined });
+/** Clear all keeps the sort and the grid / list choice */
+export const clearAll = (f: JobFilters): JobFilters => ({ sort: f.sort, view: f.view });
+
+export const BUDGETS = JOB_BUDGETS;
+const vnd = (usdc: number) => vndFromUnits(BigInt(usdc) * 1_000_000n).toLocaleString('en-US');
+/** "Under 20 USDC", or the ≈ VND range of the same amounts in the Vietnam view */
+export function budgetLabel(id: JobBudget, vn: boolean): string {
+  if (id === 'lt20') return vn ? `Under ≈ ${vnd(20)} VND` : 'Under 20 USDC';
+  if (id === '20to50') return vn ? `≈ ${vnd(20)} – ${vnd(50)} VND` : '20 – 50 USDC';
+  return vn ? `Over ≈ ${vnd(50)} VND` : 'Over 50 USDC';
+}
+/** The budget segment's value: the preset, an older min / max link, or "Any budget" */
+export function budgetValue(f: JobFilters, vn: boolean): string | null {
+  if (f.budget) return budgetLabel(f.budget, vn);
+  if (f.min !== undefined || f.max !== undefined) return 'Custom budget';
+  return null;
 }
 
-export const filtersOn = (f: JobFilters) => Boolean(f.q || f.cat || f.skills?.length || f.min !== undefined || f.max !== undefined || f.dur || f.ms || f.soon || f.hide);
+export const DURATIONS: { id: JobDuration; label: string; chip: string }[] = [
+  { id: '1w', label: '1 week', chip: 'Up to 1 week' },
+  { id: '2w', label: '2 weeks', chip: 'Up to 2 weeks' },
+  { id: '1m', label: '1 month', chip: 'Up to 1 month' },
+];
+export const RANGES: { id: JobMilestoneRange; label: string; chip: string }[] = [
+  { id: '1', label: '1', chip: '1 milestone' },
+  { id: '2-3', label: '2–3', chip: '2–3 milestones' },
+  { id: '4-5', label: '4–5', chip: '4–5 milestones' },
+];
+/** The board's skill pills when no field is chosen (taxonomy ids); with a field, its own skills */
+export const SHEET_SKILLS = ['logo-brand', 'ui-ux', 'illustration', 'figma', 'frontend', 'backend', 'mobile', 'solana', 'en-vi', 'copywriting', 'social-media', 'motion', 'video-editing', 'spreadsheets'];
 
-/** Budget presets of the board (whole USDC; the Vietnam view shows the ≈ VND range of the same amounts) */
-export const BUDGETS = [
-  { id: 'lt20', min: undefined, max: 20 },
-  { id: '20to50', min: 20, max: 50 },
-  { id: 'gt50', min: 50, max: undefined },
-] as const;
-
-const vnd = (usdc: number) => `≈ ${vndFromUnits(BigInt(usdc) * 1_000_000n).toLocaleString('en-US')} VND`;
-export function budgetLabel(id: (typeof BUDGETS)[number]['id'], vn: boolean): string {
-  if (id === 'lt20') return vn ? `Under ${vnd(20)}` : 'Under 20 USDC';
-  if (id === '20to50') return vn ? `${vnd(20)} – ${vnd(50).slice(2)}` : '20 – 50 USDC';
-  return vn ? `Over ${vnd(50)}` : 'Over 50 USDC';
+export interface FilterChip {
+  key: string;
+  label: string;
+  /** The filters without this one */
+  without: JobFilters;
 }
-/** The preset that matches the URL's min/max, '' for none, 'custom' for another range */
-export function budgetPreset(f: JobFilters): string {
-  if (f.min === undefined && f.max === undefined) return '';
-  return BUDGETS.find((b) => b.min === f.min && b.max === f.max)?.id ?? 'custom';
+
+/** One removable chip per active filter (V6.4), in the board's order; the search text stays in the What box */
+export function filterChips(f: JobFilters, vn: boolean): FilterChip[] {
+  const out: FilterChip[] = [];
+  const cat = f.cat ? categoryById(f.cat) : undefined;
+  if (cat) out.push({ key: 'cat', label: cat.label, without: { ...f, cat: undefined } });
+  const budget = budgetValue(f, vn);
+  if (budget) out.push({ key: 'budget', label: budget, without: { ...f, budget: undefined, min: undefined, max: undefined } });
+  for (const id of f.skills ?? []) {
+    const k = skillById(id);
+    if (k) out.push({ key: `skill-${id}`, label: k.label, without: { ...f, skills: f.skills!.filter((x) => x !== id) } });
+  }
+  if (f.dur) out.push({ key: 'dur', label: DURATIONS.find((d) => d.id === f.dur)!.chip, without: { ...f, dur: undefined } });
+  if (f.ms) out.push({ key: 'ms', label: RANGES.find((r) => r.id === f.ms)!.chip, without: { ...f, ms: undefined } });
+  if (f.soon) out.push({ key: 'soon', label: 'Apply by within 24 h', without: { ...f, soon: undefined } });
+  if (f.hide) out.push({ key: 'hide', label: 'Hiding applied', without: { ...f, hide: undefined } });
+  return out.map((c) => ({ ...c, without: { ...c.without, skills: c.without.skills?.length ? c.without.skills : undefined } }));
 }
 
-/** Open jobs that pass every filter except the category (for the chip counts), per category id and in total */
+/** Open jobs that pass every filter except the category (Field popover counts), per category id and in total */
 export function categoryCounts(jobs: readonly JobListingAccount[], f: JobFilters, ctx: FilterContext, ids: readonly string[]) {
   const rest = filterJobs(jobs, { ...f, cat: undefined }, ctx);
   const byId: Record<string, number> = {};
@@ -51,7 +100,16 @@ export function categoryCounts(jobs: readonly JobListingAccount[], f: JobFilters
   return { all: rest.length, byId };
 }
 
-export const countLabel = (n: number, on: boolean) => `${n === 1 ? '1 open job' : `${n} open jobs`}${on ? ' match' : ''}`;
+/** Open jobs that pass every filter except the budget (Budget popover counts), per preset and for any budget */
+export function budgetCounts(jobs: readonly JobListingAccount[], f: JobFilters, ctx: FilterContext) {
+  const rest = filterJobs(jobs, { ...f, budget: undefined, min: undefined, max: undefined }, ctx);
+  const byId = Object.fromEntries(BUDGETS.map((b) => [b.id, filterJobs(rest, { budget: b.id }, ctx).length])) as Record<JobBudget, number>;
+  return { any: rest.length, byId };
+}
+
+export const openJobsCount = (n: number) => (n === 1 ? '1 open job' : `${n} open jobs`);
+/** "12 jobs", or "3 jobs match" while a filter is on */
+export const countLabel = (n: number, on: boolean) => `${n === 1 ? '1 job' : `${n} jobs`}${on ? ' match' : ''}`;
 
 export type Tone = 'info' | 'purple' | 'success' | 'neutral' | 'warning';
 export interface Row {

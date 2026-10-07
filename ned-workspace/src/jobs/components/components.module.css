@@ -70,11 +70,11 @@
 .cardSummary { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--hub-muted); }
 .skills { display: flex; flex-wrap: wrap; gap: 6px; }
 .skill { height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: var(--hub-r-pill); font-size: 12px; font-weight: 500; background: var(--hub-soft); color: var(--hub-ink-2); }
-.cardFoot { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 10px; box-shadow: inset 0 1px 0 var(--hub-hair); }
-.cardWho { flex: 1; min-width: 0; font-size: 12px; color: var(--hub-muted); }
+.cardFoot { margin-top: auto; padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; box-shadow: inset 0 1px 0 var(--hub-hair); }
+.cardWho { flex: 1 1 130px; min-width: 0; font-size: 12px; color: var(--hub-muted); }
 .cardBiz { display: block; font-weight: 600; color: var(--hub-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cardSub { display: block; }
-.cardAmount { text-align: right; }
+.cardAmount { margin-left: auto; text-align: right; white-space: nowrap; }
 .cardMoney { display: block; font-family: var(--font-mono); font-size: 17px; font-weight: 700; }
 .cardMs { display: block; font-size: 11px; color: var(--hub-subtle); }
 .cardDark .cardCat, .cardDark .cardSummary, .cardDark .cardWho, .cardDark .cardMs, .cardDark .moneySub { color: var(--hub-dark-soft); }

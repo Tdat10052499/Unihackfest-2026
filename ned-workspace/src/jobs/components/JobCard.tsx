@@ -63,6 +63,9 @@ function cardFacts(job: JobListingAccount, now: number, businessName?: string) {
   };
 }
 
+/** The card's amount: "10.00 USDC", or "≈ 260,000 VND" with "Estimate" moved to the line under it */
+const cardAmount = (units: bigint, vn: boolean) => moneyLabel(units, vn).replace(' (estimate)', '');
+
 const MineChip = ({ mine }: { mine: JobMine }) =>
   mine === 'applied' ? (
     <Chip tone="info" small>
@@ -109,8 +112,8 @@ export function JobCard({ job, vn, now, dark = false, businessName, mine = null,
           </span>
         </span>
         <span className={styles.cardAmount}>
-          <span className={styles.cardMoney}>{moneyLabel(job.total, vn)}</span>
-          <span className={styles.cardMs}>{f.milestones}</span>
+          <span className={styles.cardMoney}>{cardAmount(job.total, vn)}</span>
+          <span className={styles.cardMs}>{vn ? `Estimate · ${f.milestones}` : f.milestones}</span>
         </span>
       </div>
     </>
@@ -159,10 +162,10 @@ export function JobRow({ job, vn, now, businessName, mine = null }: Omit<JobCard
         {f.applicants}
       </span>
       <span className={styles.rowMoney}>
-        <span className={styles.rowAmount}>{moneyLabel(job.total, vn)}</span>
+        <span className={styles.rowAmount}>{cardAmount(job.total, vn)}</span>
         <span className={styles.rowLocked}>
           <HubIcon name="lock" size={11} width={2.6} />
-          Budget locked
+          {vn ? 'Estimate · budget locked' : 'Budget locked'}
         </span>
       </span>
       <span className={`hb-arrow ${styles.rowArrow}`}>

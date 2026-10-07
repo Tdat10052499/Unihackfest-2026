@@ -12,11 +12,11 @@ export const HUB_NAMES: Record<string, string> = Object.fromEntries(BUSINESSES.m
 
 // title, business index, category, skills, USDC per milestone with work days, applicants
 const SAMPLES: [string, number, number, number[], [number, number][], number][] = [
-  ['Social posts for a launch week', 0, 3, [20], [[12, 7]], 1],
-  ['Clean up a product spreadsheet', 5, 5, [24], [[10, 3]], 0],
-  ['Four blog posts on remote work', 2, 2, [13], [[7.5, 7], [7.5, 14], [7.5, 21], [7.5, 30]], 2],
+  ['Social posts for a launch week', 0, 3, [17], [[12, 7]], 1],
+  ['Clean up a product spreadsheet', 5, 6, [34], [[10, 3]], 0],
+  ['Four blog posts on remote work', 2, 2, [13, 15], [[7.5, 7], [7.5, 14], [7.5, 21], [7.5, 30]], 2],
   ['Mobile app bug fixes (React Native)', 3, 1, [7, 6], [[25, 7], [25, 14]], 3],
-  ['60-second explainer video', 4, 4, [17], [[15, 5], [30, 14]], 3],
+  ['60-second explainer video', 4, 4, [23, 22], [[15, 5], [30, 14]], 3],
   ['Review a small Solana program', 3, 1, [9], [[50, 9], [30, 14]], 1],
   ['Landing page in Framer', 2, 0, [1, 3], [[15, 4], [25, 9], [20, 14]], 7],
   ['Translate app onboarding, EN → VI', 1, 2, [12], [[15, 3]], 2],
@@ -52,3 +52,20 @@ export const HUB_JOBS: JobListingAccount[] = SAMPLES.map(([title, biz, category,
     vaultBump: 254,
   } as JobListingAccount;
 });
+
+/** My tabs for /dev/hub?page=find: the freelancer's applications and the client's listings (fixture, not chain data) */
+export function hubMine(me: PublicKey) {
+  const at = (j: JobListingAccount, over: Partial<JobListingAccount>): JobListingAccount => ({ ...j, ...over });
+  const apps = [
+    at(HUB_JOBS[9], { state: 'Selected', selected: me, selectedAt: HUB_NOW - 600, fund: key(300) }),
+    at(HUB_JOBS[8], {}),
+    at(HUB_JOBS[6], { state: 'Filled', selected: key(301), fund: key(302) }),
+  ].map((job, i) => ({ application: { address: key(400 + i), version: 1, job: job.address, freelancer: me, createdAt: HUB_NOW - (i + 1) * DAY, pitch: '', bump: 255 }, job }));
+  const listings = [
+    at(HUB_JOBS[8], { business: me }),
+    at(HUB_JOBS[7], { business: me }),
+    at(HUB_JOBS[3], { business: me, state: 'Filled', selected: key(301), fund: key(302) }),
+    at(HUB_JOBS[1], { business: me, state: 'Withdrawn', applicationCount: 0 }),
+  ];
+  return { apps, listings };
+}
