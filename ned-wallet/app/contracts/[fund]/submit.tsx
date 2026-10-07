@@ -77,7 +77,7 @@ export default function SubmitScreen() {
               Submitted · in review
             </Text>
             <Text style={u.body}>
-              Released automatically when the review time ends, or earlier when {other} approves. {other} reads your delivery in the contract.
+              Released when {other} approves. If {other} does not review or request changes before the review deadline, anyone can release it (Release now). {other} reads your delivery in the contract.
             </Text>
             <Card>
               <View style={u.row}>

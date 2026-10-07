@@ -219,7 +219,7 @@ export default function ContractDetail() {
 
         <Card style={d.infoCard}>
           <Text style={d.infoTitle}>How this contract works</Text>
-          <RulesList items={['Each milestone is released when the client approves, or automatically when its review time ends.', 'If a submission deadline passes with nothing submitted, anyone can refund that milestone to the client.', 'The money sits in a program vault. Nobody, including N.E.D, can move it any other way.']} />
+          <RulesList items={['Each milestone is released when the client approves. If the client does not review or request changes before the review deadline, anyone can release it (Release now).', 'If a submission deadline passes with nothing submitted, anyone can refund that milestone to the client.', 'The money sits in a program vault. No instruction in the program lets anyone at N.E.D move it.']} />
           <PressableScale accessibilityRole="link" onPress={() => router.push('/disclosures')} style={[d.infoRow, d.divider]}>
             <Text style={d.infoRowText}>Disclosures</Text>
             <Feather name="chevron-right" size={18} color={palette.muted} />
@@ -270,9 +270,9 @@ function waitText(f: FundView, fl: boolean, other: string, clientBlocked: boolea
   if (f.state === 'funded') {
     const pending = f.milestones.find((m) => m.status === 'pending' && m.countdown);
     const submitted = f.milestones.find((m) => m.status === 'submitted' && m.countdown);
-    if (submitted && fl) return `In review. It is released automatically when the review time ends, or earlier when ${other} approves.`;
+    if (submitted && fl) return `In review. Released when ${other} approves. If ${other} does not review or request changes before the review deadline, anyone can release it (Release now).`;
     if (pending && !fl && !submitted) return `Waiting for ${other} to submit milestone ${pending.index + 1}.`;
-    if (clientBlocked && submitted) return `${other} submitted milestone ${submitted.index + 1}. It is released automatically when the review time ends.`;
+    if (clientBlocked && submitted) return `${other} submitted milestone ${submitted.index + 1}. You accept, or anyone can release it after the review deadline unless you request changes.`;
   }
   return '';
 }

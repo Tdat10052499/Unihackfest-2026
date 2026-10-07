@@ -65,7 +65,7 @@ export default function SetupScreen() {
   const walletReady = status === 'ready' && Boolean(walletAddress);
   const steps: { label: string; state: StepState }[] = [
     { label: 'Signed in with Google', state: isAuthenticated ? 'done' : 'active' },
-    { label: 'Securing your wallet', state: walletReady ? 'done' : isAuthenticated ? 'active' : 'waiting' },
+    { label: 'Creating your wallet', state: walletReady ? 'done' : isAuthenticated ? 'active' : 'waiting' },
     {
       label: returning ? 'Found your N.E.D profile' : 'Checking for a N.E.D profile',
       state: finished ? 'done' : walletReady ? 'active' : 'waiting',
@@ -135,7 +135,7 @@ export default function SetupScreen() {
           ) : (
             <View style={styles.secure}>
               <Feather name="lock" size={14} color={colors.textTertiary} />
-              <Text style={styles.secureText}>Secured with MPC. No recovery phrase to write down.</Text>
+              <Text style={styles.secureText}>Your key is managed by Dynamic (MPC). No recovery phrase to write down.</Text>
             </View>
           )}
         </View>

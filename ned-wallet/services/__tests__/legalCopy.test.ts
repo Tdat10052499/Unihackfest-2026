@@ -49,7 +49,7 @@ test('A4: the fee disclosure shows no SOL amount', async () => {
 
 test('H4: the Disclosures list is shared (fourteen lines: the upgrade line, F11, and v1.4 locks when hired), disputes line by flag', async () => {
   const { disclosureItems } = await import('../legalCopy.ts');
-  assert.equal(disclosureItems(false).length, 14);
+  assert.equal(disclosureItems(false).length, 15);
   assert.equal(disclosureItems(false).find((d) => d.id === 'unfunded')?.title, 'Some listings lock only when they hire');
   assert.equal(disclosureItems(false).find((d) => d.id === 'disputes')?.title, 'No disputes in this demo');
   assert.equal(disclosureItems(true).find((d) => d.id === 'disputes')?.title, 'No neutral arbiter');

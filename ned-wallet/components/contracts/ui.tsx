@@ -89,9 +89,9 @@ export function FeesCard({ partner, extra }: { partner?: boolean; extra?: { labe
 }
 
 export const RULES = [
-  'Released when the client approves, or automatically after the review time.',
+  'Released when the client approves. If the client does not review or request changes before the review deadline, anyone can release it (Release now).',
   'Refunded to the client if a submission deadline is missed.',
-  'Nobody, including N.E.D, can move it any other way.',
+  'No instruction in the program lets anyone at N.E.D move it.',
 ];
 
 export function RulesList({ items = RULES }: { items?: string[] }) {

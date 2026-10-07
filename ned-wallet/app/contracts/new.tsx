@@ -385,7 +385,7 @@ export default function NewContractScreen() {
                 `${who} accepts and chooses where earnings go.`,
                 `You lock ${formatUsdc(total)} in the program vault.`,
                 `${who} submits each milestone.`,
-                'You approve, or it is released automatically after the review time.',
+                'You accept, or anyone can release it after the review deadline unless you request changes.',
                 'If a submission deadline is missed, that milestone can be refunded to you.',
               ].map((t, i) => (
                 <View key={t} style={n.next}>

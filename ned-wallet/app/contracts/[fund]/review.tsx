@@ -161,7 +161,7 @@ export default function ReviewScreen() {
               {/* F2: the promised list, read-only (names, sizes and fingerprints; the files stay with the freelancer) */}
               {delivery.content.finals?.length ? (
                 <>
-                  <Text style={r.cardTitle}>What you will receive after release</Text>
+                  <Text style={r.cardTitle}>{fund.role === 'freelancer' ? 'Final files you promised' : `Final files ${other} promises to hand over after release`}</Text>
                   {delivery.content.finals.map((f) => (
                     <Text key={`final-${f.sha256}`} style={r.small}>
                       {f.name} · {f.size.toLocaleString('en-US')} bytes · <Text style={r.monoSmall}>{f.sha256.slice(0, 6)}…{f.sha256.slice(-4)}</Text>

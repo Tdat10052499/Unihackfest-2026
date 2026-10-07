@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
           </NoticeCard>
         ) : null}
         <GoogleButton onPress={handleLogin} loading={starting || status === 'initializing'} />
-        <Text style={styles.terms}>By continuing you agree to our Terms and Privacy Policy.</Text>
+        <Text style={styles.terms}>By continuing you agree to the Terms. Read the Privacy notice; we ask for your consent next.</Text>
       </View>
     </OnbScreen>
   );
