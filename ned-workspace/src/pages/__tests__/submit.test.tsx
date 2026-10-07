@@ -7,7 +7,7 @@ import { SCENARIOS, scenarioView } from '../../dev/states.ts';
 import { png } from '../../lib/__tests__/images.ts';
 import { MESSAGES, OVERRIDE_LABEL, writePngMarker } from '../../lib/preview.ts';
 import { FILES_HINT, GUIDE_TITLE, PREVIEW_LINK_HINT, SubmitView, WHAT_THEY_SEE, workTypeForCategory, type SubmitMode, type WorkType } from '../Submit.tsx';
-import { PREVIEW_LINK_NEEDED, type DeliveryDraft } from '@ned/core/milestone/content.ts';
+import { FINALS_NEEDED, HANDOVER_LINK_NEEDED, PREVIEW_LINK_NEEDED, type DeliveryDraft } from '@ned/core/milestone/content.ts';
 
 afterEach(cleanup);
 const wrap = (ui: ReactNode) => render(<WalletPanelProvider><MemoryRouter>{ui}</MemoryRouter></WalletPanelProvider>);
@@ -153,10 +153,12 @@ describe('R2 preview link', () => {
     expect(document.querySelector('iframe')).toBeNull();
     fireEvent.click(within(box).getByRole('button', { name: 'Load preview' }));
     expect(document.querySelector('iframe')?.getAttribute('src')).toBe('https://drive.google.com/file/d/1AbC/preview');
+    // F1: a Drive link is not a fixed version, so the promised list of final files is also required (its field comes in F2)
     await act(async () => {
       fireEvent.click(submitButton());
     });
-    expect(send).toHaveBeenCalledOnce();
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByText(FINALS_NEEDED)).toBeTruthy();
   });
 
   it('revision also needs a link', async () => {
@@ -168,7 +170,7 @@ describe('R2 preview link', () => {
     expect(screen.getByText(PREVIEW_LINK_NEEDED)).toBeTruthy();
   });
 
-  it('handover still works with files only', async () => {
+  it('handover (F1): files alone are not enough, the download link is required', async () => {
     const send = view('released', 'handover');
     expect(screen.queryByTestId('submit-preview')).toBeNull();
     await drop(screen.getByRole('region', { name: /Files \(optional\)/ }), new File(['svg'], 'logo-final.svg'));
@@ -176,7 +178,14 @@ describe('R2 preview link', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
     });
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByText(HANDOVER_LINK_NEEDED('the client'))).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Add a link'), { target: { value: 'https://drive.google.com/drive/folders/final' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
+    });
     expect(send).toHaveBeenCalledOnce();
-    expect((send.mock.calls as unknown as [DeliveryDraft][])[0][0]).toMatchObject({ links: [], files: [{ name: 'logo-final.svg' }] });
+    expect((send.mock.calls as unknown as [DeliveryDraft][])[0][0]).toMatchObject({ files: [{ name: 'logo-final.svg' }] });
   });
 });
