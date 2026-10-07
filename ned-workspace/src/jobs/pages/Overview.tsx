@@ -84,7 +84,7 @@ const RULE_LOCKED = {
 /** V5.3 */
 export const RULES: { icon: HubIconName; title: string; text: string }[] = [
   RULE_LOCKED,
-  { icon: 'check', title: 'Released per milestone', text: 'Each milestone is released after the client accepts the work, or when the review time ends.' },
+  { icon: 'check', title: 'Released per milestone', text: 'Each milestone is released after the client accepts the work, or anyone can release it once the review time ends (unless the client requested changes).' },
   { icon: 'undo', title: 'Request changes, not refunds', text: 'A client who refuses a delivery names what is missing. The amount stays locked; it never goes back alone.' },
   { icon: 'eye', title: 'Preview first, final files after', text: 'Share a watermarked preview to be reviewed. Hand over the final files after release, checked against their fingerprints.' },
   { icon: 'bank', title: 'VND for freelancers in Vietnam', text: 'Choose VND to your bank when you accept, and never hold USDC. The payout partner is simulated in this demo.' },
@@ -137,7 +137,7 @@ export function howSteps(vn: boolean, lockAtHire = true): HowStep[] {
     {
       role: 'Freelancer',
       title: 'Apply with a short pitch',
-      text: "Read the verified brief and the business's track record, then apply with up to 280 bytes. Your pitch is public on Solana, so keep personal details out.",
+      text: "Read the brief (it matches its fingerprint on Solana) and the business's track record, then apply with up to 280 bytes. Your pitch is public on Solana, so keep personal details out.",
       note: 'One wallet confirmation; the network fee is test SOL on devnet.',
       mockLabel: 'Job detail',
       mockTitle: 'Logo refresh for a coffee brand',
@@ -424,7 +424,7 @@ function Hero(p: OverviewViewProps & { stats: OverviewStats; ready: boolean; aud
                   </>
                 }
               />
-              <StatCounter value={p.stats.openCount} label={p.lockAtHire ? 'open jobs, each locked before you accept' : 'open jobs, each with its budget already locked'} />
+              <StatCounter value={p.stats.openCount} label={p.lockAtHire ? 'open jobs, each with the budget locked before you accept' : 'open jobs, each with its budget already locked'} />
               <StatCounter value={p.stats.applications} label="applications on open jobs" />
             </>
           ) : (

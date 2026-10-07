@@ -50,7 +50,7 @@ export function Applicants() {
       <Frame back={back}>
         <EmptyState
           icon="lock"
-          title="Only the business that posted this job can see its applicants"
+          title="Only the business that posted this job can select here. Applications are public on Solana."
           body={viewer.signedIn ? 'Sign in with the wallet that posted it.' : 'Sign in first.'}
           action={<HubButton to={`/jobs/${job.data.address.toBase58()}`}>View public listing</HubButton>}
         />

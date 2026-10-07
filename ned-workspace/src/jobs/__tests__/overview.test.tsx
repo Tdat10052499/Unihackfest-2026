@@ -79,7 +79,7 @@ describe('Overview v4', () => {
     expect(screen.getByText(HERO.client.sub)).toBeTruthy();
     expect(notch()).toContain('115.00 USDC');
     expect(notch()).toContain('locked in open jobs, read from Solana now');
-    expect(notch()).toContain('3open jobs, each locked before you accept');
+    expect(notch()).toContain('3open jobs, each with the budget locked before you accept');
     expect(notch()).toContain('7applications on open jobs');
     expect(screen.getByTestId('glass-card').textContent).toContain('Review a Solana program');
     expect(screen.getByTestId('glass-card').textContent).toContain('80.00 USDC');

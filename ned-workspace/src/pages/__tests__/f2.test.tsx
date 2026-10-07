@@ -112,11 +112,11 @@ describe('Submit: the promised list', () => {
 const content = { hasKey: true, ready: true, contentStatus: 'ok' as const, importKey: async () => false };
 
 describe('Review before the decision', () => {
-  it('"What you will receive after release" and the no-enforcement line', () => {
+  it('"Final files {name} promises to hand over after release" (F-5) and the no-enforcement line', () => {
     const s = S('submitted');
     wrap(<ReviewView fund={scenarioView(s, 'client')} raw={s.fund} index={0} now={s.now} vn={false} me={scenarioView(s, 'client').milestones[0] ? s.fund.client.toBase58() : ''} content={content} p1 status="" onRelease={async () => {}} onRequestChanges={async () => {}} />);
     const card = screen.getByTestId('will-receive');
-    expect(card.textContent).toContain('What you will receive after release');
+    expect(card.textContent).toContain('Final files @vinh promises to hand over after release');
     for (const f of FINALS) expect(card.textContent).toContain(f.name);
     expect(screen.getByTestId('no-enforcement').textContent).toBe(NO_ENFORCEMENT('@vinh'));
   });
@@ -168,11 +168,12 @@ describe('Final files card', () => {
     const onSave = vi.fn();
     const el = card('final-files', 'client', { release: release('final-files', 10), onSave });
     expect(el.getAttribute('data-state')).toBe('handed-over');
-    expect(el.textContent).toMatch(/Handed over .* · for Version 1, accepted /);
+    expect(el.textContent).toMatch(/Hand-over link shared .* · for Version 1, accepted /);
+    expect(el.textContent).toContain('As listed by');
     const dl = within(el).getByTestId('download');
     expect(dl.getAttribute('href')).toBe('https://drive.google.com/uc?export=download&id=1FinalLogoFilesZip');
     expect(dl.getAttribute('rel')).toBe('noopener noreferrer');
-    expect(within(el).getAllByText('Same as promised')).toHaveLength(3);
+    expect(within(el).getAllByText('Listed: same fingerprint')).toHaveLength(3);
     expect(el.textContent).toContain(LINKS_EXPIRE('@vinh'));
     fireEvent.click(within(el).getByRole('button', { name: 'Save receipt' }));
     const [name, data] = onSave.mock.calls[0] as [string, Record<string, unknown>];
@@ -266,11 +267,11 @@ describe('download address and bell notices', () => {
   it('freelancer: due at 24 h and 48 h without a hand-over; client: received once', () => {
     const r = 1_000_000;
     const w = (handed: boolean, role: 'client' | 'freelancer') => [{ fund: 'F', index: 0, title: 'Logo refresh', role, releasedAt: r, handed }];
-    expect(finalsNotices(w(false, 'freelancer'), { 'F:0': false }, r + 23 * H, r + 25 * H).map((n) => n.title)).toEqual(['Final files for milestone 1 are due']);
+    expect(finalsNotices(w(false, 'freelancer'), { 'F:0': false }, r + 23 * H, r + 25 * H).map((n) => n.title)).toEqual(['Reminder: hand over the final files for milestone 1']);
     expect(finalsNotices(w(false, 'freelancer'), { 'F:0': false }, r + 47 * H, r + 49 * H).map((n) => n.id)).toEqual(['finals:F:0:due48']);
     expect(finalsNotices(w(true, 'freelancer'), { 'F:0': false }, r + 23 * H, r + 49 * H)).toEqual([]);
     expect(finalsNotices(w(false, 'freelancer'), {}, null, r + 49 * H)).toEqual([]);
-    expect(finalsNotices(w(true, 'client'), { 'F:0': false }, r, r + H).map((n) => n.title)).toEqual(['Final files received · milestone 1']);
+    expect(finalsNotices(w(true, 'client'), { 'F:0': false }, r, r + H).map((n) => n.title)).toEqual(['Final files shared · milestone 1']);
     expect(finalsNotices(w(true, 'client'), { 'F:0': true }, r, r + H)).toEqual([]);
     expect(finalsNotices(w(true, 'client'), {}, r, r + H)).toEqual([]);
   });

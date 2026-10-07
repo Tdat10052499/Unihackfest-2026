@@ -77,7 +77,7 @@ describe('URL state', () => {
 describe('Find jobs v4', () => {
   it('title row and tabs with count badges', () => {
     show('/jobs/find');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Find jobs, locked before you accept');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Find jobs · budget locked before you accept');
     expect(screen.getByTestId('find-summary').textContent).toBe('12 open jobs · 125.00 USDC locked on Solana');
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Open jobs12', 'My applications0', 'My listings0']);
   });

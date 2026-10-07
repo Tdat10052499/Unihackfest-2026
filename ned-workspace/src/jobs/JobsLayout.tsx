@@ -39,17 +39,17 @@ export function useHubViewer() {
 
 /** V9 disclaimer line per view (board WebJobs) */
 export const FOOT = {
-  vn: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.',
-  intl: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing.',
+  vn: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D runs no database. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.',
+  intl: 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D runs no database.',
 };
 
 /** V9 CTA band, Overview only */
 export const CTA = {
-  client: ['Hire with the money on the table, ', 'and no fee from N.E.D'],
-  other: ['Work with the money on the table, ', 'and no fee from N.E.D'],
+  client: ['Hire with the money on the table, ', 'and no N.E.D fee in this pilot'],
+  other: ['Work with the money on the table, ', 'and no N.E.D fee in this pilot'],
   /** v1.4 (D29): locked at posting or at hire; v1.3 wording when FEATURES.lockAtHire is off */
   checks: [FEATURES.lockAtHire ? 'Budget locked before you accept' : 'Budget locked before posting', 'Checkable on Solana Explorer'],
-  text: 'N.E.D holds no funds and charges no fee in this version. The money waits in the program until the work is accepted or a deadline passes.',
+  text: 'N.E.D holds no funds and charges no fee in this pilot. The money waits in the program until the work is accepted or a deadline passes.',
 } as const;
 
 /** Footer legal links: the hub's own Legal page (H4). The Workspace pages keep LEGAL_LINKS (/wallet/…) */

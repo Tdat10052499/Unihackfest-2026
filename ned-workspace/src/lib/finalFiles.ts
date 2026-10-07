@@ -69,12 +69,12 @@ export function finalsNotices(watch: FinalsWatch[], prev: Record<string, boolean
     const n = w.index + 1;
     const href = `/contract/${w.fund}#files`;
     if (w.role === 'client' && w.handed && prev[key] === false) {
-      out.push({ id: `finals:${key}:received`, title: `Final files received · milestone ${n}`, message: `For ${w.title}. Download them and check them against the promised list.`, href });
+      out.push({ id: `finals:${key}:received`, title: `Final files shared · milestone ${n}`, message: `For ${w.title}. Download them and check them against the promised list.`, href });
     }
     if (w.role === 'freelancer' && !w.handed && w.releasedAt && prevNow !== null) {
       for (const after of FINALS_DUE_SECS) {
         const t = w.releasedAt + after;
-        if (prevNow < t && t <= now) out.push({ id: `finals:${key}:due${after / 3600}`, title: `Final files for milestone ${n} are due`, message: `${w.title} was released ${after / 3600} hours ago. Hand over the final files.`, href });
+        if (prevNow < t && t <= now) out.push({ id: `finals:${key}:due${after / 3600}`, title: `Reminder: hand over the final files for milestone ${n}`, message: `${w.title} was released ${after / 3600} hours ago. The time is a reminder only.`, href });
       }
     }
   }

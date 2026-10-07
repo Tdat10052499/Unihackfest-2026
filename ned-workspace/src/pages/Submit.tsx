@@ -65,13 +65,14 @@ export const QUICK_CHECK = [
   'Each done-when point is covered.',
 ];
 export const PREVIEW_LINK_HINT = 'Upload your watermarked preview to Google Drive (Anyone with the link · Viewer), Figma, YouTube or Loom, and paste the link.';
-export const FINALS_HINT = (client: string) => `Keep these files. ${client} sees only their names, sizes and fingerprints until the money is released.`;
+// F-8 (CL pre-pitch-check 8.2): no automatic reveal, no "only the client"
+export const FINALS_HINT = (_client: string) => 'Keep these files. Before release, only their names, sizes and fingerprints are shared. You hand the files over after release.';
 export const FIXED_FINAL = 'Your fixed version link is the final work.';
-export const HANDOVER_LINK_HINT = 'Share with download access (Google Drive: Anyone with the link · Viewer). Keep the link working for at least 30 days.';
+export const HANDOVER_LINK_HINT = 'Share with download access (Google Drive: Anyone with the link · Viewer). Keep the link working for at least 30 days. Anyone with this link, or with the contract link, can download the files.';
 export const HANDOVER_TOO_EARLY = 'Final files can be handed over only after the milestone is released.';
 export const WHAT_THEY_SEE = (name: string) => `This is what ${name} will see`;
-export const FILES_HINT = (name: string) =>
-  `Add files only if you send them to ${name} outside N.E.D. Files stay on your computer; we keep only a fingerprint so ${name} can check they match.`;
+// F-9 (CL pre-pitch-check 8.2)
+export const FILES_HINT = (_name: string) => 'Fingerprints of the preview files, saved in the encrypted delivery. The files stay on your computer.';
 
 interface Reading {
   name: string;
@@ -839,7 +840,7 @@ export function GuideSheet({ other, onClose }: { other: string; onClose(): void 
         <div className={styles.guide}>
           <h3>What happens to what you submit</h3>
           <ul>
-            <li>Your links and note are encrypted with the contract key. Only you and {other} can read them.</li>
+            <li>Your links and note are encrypted with the contract key. N.E.D has no key; anyone holding the contract link can read them.</li>
             <li>A fingerprint of the delivery is saved on Solana. It proves what you submitted and reveals nothing about it.</li>
             <li>Files never leave your device. N.E.D keeps only their fingerprints.</li>
             <li>A link is only as private as its sharing setting.</li>
@@ -851,6 +852,7 @@ export function GuideSheet({ other, onClose }: { other: string; onClose(): void 
             <li>Share previews (watermarked or lower resolution) if you prefer to hand over final files after release.</li>
             <li>Say which done-when point each part covers.</li>
             <li>Keep your own copy of everything you submit.</li>
+            <li>List your final files when you submit. Hand them over after release, with a link that allows download.</li>
           </ul>
           <h3>Don't</h3>
           <ul>

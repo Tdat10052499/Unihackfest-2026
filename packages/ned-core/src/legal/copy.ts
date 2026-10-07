@@ -24,9 +24,9 @@ export const PRIVACY: LegalSection[] = [
       'Google account name and email, to sign you in. Login is run by Dynamic (United States).',
       'Wallet address, to run your account and your contracts.',
       '@username, so the other party can find you.',
-      'Phone number (optional): only a hash goes on Solana. The number itself stays on your device.',
+      'Phone number (optional): only a hash goes on Solana. The number itself stays on your device. The hash can be reversed by trying every Vietnamese number, so treat a linked number as public.',
       'Device key: a public key on Solana, so your contracts open on your other devices.',
-      'Contract data: titles, amounts and deadlines are public on Solana. Briefs and deliveries are encrypted, and only the two parties hold the key.',
+      'Contract data: titles, amounts and deadlines are public on Solana. Briefs and deliveries are encrypted. N.E.D has no key; anyone holding the contract link can read them.',
       'Bank details and ID: never processed by N.E.D. In a real launch, a payout partner would collect them in its own flow. In this demo the partner is simulated.',
     ],
   },
@@ -39,7 +39,7 @@ export const PRIVACY: LegalSection[] = [
       'Vercel and GitHub Pages: hosting. Their servers keep standard request logs (such as IP address and time).',
       'Solana devnet: public blockchain.',
       // R3 (7 Oct): the preview frame in Review and Submit loads only after the click
-      'If you press Load preview, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.',
+      'If you press Load preview or Download, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.',
     ],
   },
   { title: 'Data on Solana is public or permanent', body: ['It cannot be deleted by anyone, including N.E.D.'] },
@@ -63,13 +63,15 @@ export const TERMS: LegalSection[] = [
   {
     title: 'What N.E.D is',
     body: [
-      'Software that lets a client lock test USDC per milestone in a Solana program and release it to the destination the freelancer chose, or refund it to the client after a missed deadline. N.E.D holds no funds, converts nothing and charges no fee.',
+      'Software that lets a client lock test USDC per milestone in a Solana program and release it to the destination the freelancer chose, or refund it to the client after a missed deadline. N.E.D holds no funds, converts nothing and charges no fee in this pilot.',
     ],
   },
   {
     title: 'What N.E.D is not',
     body: [
       'It is not a bank or an exchange, and no instruction in the program lets anyone at N.E.D move locked funds. N.E.D shows job listings that businesses post. A listing\'s budget is locked in the program either when it is posted or when the business selects a freelancer, and always before the freelancer accepts. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
+      // F3 (7 Oct): final files; CL to review
+      'After release, N.E.D cannot make the freelancer hand over files. The promised list and fingerprints show what was agreed.',
     ],
   },
   {
@@ -103,7 +105,7 @@ export const GUIDE: LegalSection[] = [
     title: 'What happens to what you submit',
     list: 'bullet',
     body: [
-      'Your links and note are encrypted with the contract key. Only you and the client can read them.',
+      'Your links and note are encrypted with the contract key. Briefs and deliveries are encrypted. N.E.D has no key; anyone holding the contract link can read them.',
       'A fingerprint of the delivery is saved on Solana. It proves what you submitted and reveals nothing about it.',
       'Files never leave your device. N.E.D keeps only their fingerprints.',
       'A link is only as private as its sharing setting.',
@@ -118,6 +120,8 @@ export const GUIDE: LegalSection[] = [
       'Share previews (watermarked or lower resolution) if you prefer to hand over final files after release.',
       'Say which done-when point each part covers.',
       'Keep your own copy of everything you submit.',
+      // F3 (7 Oct): final files; CL to review
+      'List your final files when you submit. Hand them over after release, with a link that allows download.',
     ],
   },
   {
@@ -182,15 +186,17 @@ export function disclosureItems(disputesOn: boolean): DisclosureItem[] {
     { id: 'audit', title: 'The program is not audited', body: 'The Solana program that locks and releases USDC has not had a security audit.' },
     // F11: no instruction moves locked funds for N.E.D, but the upgrade authority is still the team's deploy wallet
     { id: 'upgrade', title: 'The team can still upgrade the program', body: 'Until the final, the team’s deploy wallet can upgrade the Solana program to fix bugs. Before any mainnet launch it moves to a multisig, or the program is made unchangeable.' },
-    { id: 'partner', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank.' },
+    { id: 'partner', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank. Candidates: Due, Nium.' },
+    // D15 (CL pre-pitch-check 7 Oct)
+    { id: 'residence', title: 'Residence is self-declared', body: 'Residence is self-declared; N.E.D does not check it.' },
     { id: 'fees', title: 'Network fees use test SOL', body: 'Each action you sign has a small network fee, paid in test SOL on devnet, which has no value. N.E.D charges no fee during the pilot.' },
     { id: 'disputes', ...disputeDisclosure(disputesOn) },
     { id: 'vn-release', title: 'After release in the Vietnam path', body: 'Once a milestone is released to the payout partner, you rely on that partner to send you the VND.' },
     { id: 'freeze', title: 'Circle can freeze USDC addresses', body: 'USDC is issued by Circle, which can freeze an address. N.E.D cannot undo that.' },
     // D15 (product-spec 5.1): the invite link carries the key that opens the brief and the delivery
-    { id: 'link', title: 'Anyone with the contract link can read it', body: 'The contract link holds the key to the brief and the delivery. Anyone who has the link can read them, but cannot move money. Share it only with the other party.' },
+    { id: 'link', title: 'Anyone with the contract link can read it', body: 'The contract link holds the key to the brief, the delivery and the final-file links. Anyone who has the link can read them, but cannot move money. Share it only with the other party.' },
     // B1: the brief and delivery are stored encrypted on Solana
-    { id: 'public', title: 'Public on-chain', body: 'Contract titles and the fingerprints of the brief and the delivery are public. The brief and the delivery are stored encrypted on Solana. N.E.D never stores your bank details.' },
+    { id: 'public', title: 'Public on-chain', body: 'Contract titles and the fingerprints of the brief and the delivery are public. The brief and the delivery are stored encrypted on Solana. N.E.D never stores your bank details. Job titles, summaries, briefs and pitches on N.E.D Jobs are public plain text on Solana, permanently.' },
     // v1.4 (D29), CL pre-pitch-check 9.3 item 3
     { id: 'unfunded', title: 'Some listings lock only when they hire', body: 'Listings marked Locks when hired have no locked budget until the business selects someone. Your application and pitch are public even if the listing is never funded.' },
     { id: 'advice', title: 'Not advice', body: 'This is not legal, tax or financial advice.' },

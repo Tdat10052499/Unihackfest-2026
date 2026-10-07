@@ -266,7 +266,7 @@ function NextStep({ fund, raw, actions }: { fund: FundView; raw: FundAccount; ac
 
 /** F2: closing ends the page for both sides, after which the freelancer cannot hand over */
 export const CLOSE_WARNING = (name: string, milestones: string) =>
-  `${name} has not handed over the final files for ${milestones}. Closing ends this contract's page for both of you, and ${name} can no longer hand them over.`;
+  `${name} ${name === 'You' ? 'have' : 'has'} not handed over the final files for ${milestones}. Closing ends this contract's page for both of you, and ${name === 'You' ? 'you' : name} can no longer hand them over.`;
 /** "milestone 1", "milestones 1 and 2", "milestones 1, 2 and 3" */
 export const milestonesLabel = (indices: number[]) => {
   const n = indices.map((i) => String(i + 1));
@@ -301,7 +301,7 @@ function CloseWarning({ fund, pending, onKeep, onClose }: { fund: FundView; pend
 const FILE_STATUS: Record<HandoverStatus, string> = {
   'not-due': 'Before release',
   waiting: 'Waiting for final files',
-  late: 'Late · after 48 hours',
+  late: 'Late · after 48 hours (a reminder only)',
   'handed-over': 'Handed over',
   'not-applicable': 'No final files',
 };
@@ -629,7 +629,7 @@ function D27Banner({ fund, ms, other, actions, onSplit }: { fund: FundView; ms: 
         <span className={styles.bannerTitle}>{ms.statusLabel}</span>
         {client ? (
           <p className={styles.bannerText}>
-            {handed ? 'Download them and check them against the list promised before you accepted.' : `${other} shares the final files after release. You can check them against the list promised before you accepted.`}
+            {handed ? 'Download them and check them against the list promised before you accepted.' : `${other} can now hand over the final files; N.E.D cannot make them. You can check them against the list promised before you accepted.`}
           </p>
         ) : (
           <p className={styles.bannerText}>Share the final files now. {other} can check them against the list you promised before they accepted.</p>

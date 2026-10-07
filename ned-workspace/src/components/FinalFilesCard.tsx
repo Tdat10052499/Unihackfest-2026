@@ -29,7 +29,9 @@ export const CHECK_CHIP: Record<FileResult['state'], string> = {
   extra: 'Not in the promised list',
   missing: 'Not in your download',
 };
-export const HANDOVER_CHIP: Record<'same' | 'missing' | 'extra', string> = { same: 'Same as promised', missing: 'Missing', extra: 'Extra' };
+export const HANDOVER_CHIP: Record<'same' | 'missing' | 'extra', string> = { same: 'Listed: same fingerprint', missing: 'Missing', extra: 'Extra' };
+export const LISTED_LINE = (name: string) =>
+  name === 'your' ? 'This is your own list. The client checks the files they download against the promised list.' : `This is ${name}'s own list. Check your download below to compare the files you received.`;
 
 export interface FinalFilesCardProps {
   fundAddress: string;
@@ -164,8 +166,9 @@ export function FinalFilesCard(p: FinalFilesCardProps) {
       <h2 id={`ff-${index}`} className={flow.h2}>
         Final files
       </h2>
-      <p className={`${styles.finalTitle} ${styles.finalOk}`}>
-        Handed over {handover?.time ? formatDeadline(handover.time) : ''} · for Version {accepted?.index ?? 1}
+      {/* F-3 (CL pre-pitch-check 8.2): it only means a link was shared, so no success colour */}
+      <p className={styles.finalTitle}>
+        Hand-over link shared {handover?.time ? formatDeadline(handover.time) : ''} · for Version {accepted?.index ?? 1}
         {accepted?.time ? `, accepted ${formatDeadline(accepted.time)}` : ''}
       </p>
       <ul className={flow.list}>
@@ -193,7 +196,9 @@ export function FinalFilesCard(p: FinalFilesCardProps) {
       ) : null}
       {promised.length ? (
         <div>
-          <div className={styles.sectionLabel}>Promised before you accepted</div>
+          {/* F-2 (CL pre-pitch-check 8.2): the chips compare the freelancer's own hand-over list */}
+          <div className={styles.sectionLabel}>As listed by {client ? other : 'you'} at hand-over</div>
+          <p className={flow.hint}>{LISTED_LINE(client ? other : 'your')}</p>
           <FileList files={promised} chips={(f) => ({ text: HANDOVER_CHIP[byShaPromised.get(f.sha256.toLowerCase()) ?? 'missing'], ok: byShaPromised.get(f.sha256.toLowerCase()) === 'same' })} />
           {extras.length ? <FileList files={extras} chips={() => ({ text: HANDOVER_CHIP.extra, ok: false })} /> : null}
         </div>

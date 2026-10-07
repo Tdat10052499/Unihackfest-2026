@@ -54,7 +54,7 @@ export function releaseOf(records: readonly ReleaseRecord[], fund: string, index
   return records.find((r) => r.fund === fund && r.index === index);
 }
 
-export const RECEIPT_LINE = "Built on the client's device. Not legal advice.";
+export const RECEIPT_LINE = 'Built on this device. Not legal advice.';
 
 export interface ReceiptInput {
   fund: string;

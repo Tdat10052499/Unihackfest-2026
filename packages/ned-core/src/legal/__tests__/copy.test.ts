@@ -10,7 +10,7 @@ test('one source: the four documents of /jobs/legal, in order, built from the sh
   assert.deepEqual(docs.map((d) => d.id), [...LEGAL_DOC_IDS]);
   assert.equal(docs[0].sections, TERMS);
   assert.equal(docs[1].sections, PRIVACY);
-  assert.equal(docs[2].sections.length, 14, 'v1.4 adds "Some listings lock only when they hire"');
+  assert.equal(docs[2].sections.length, 15, 'v1.4 adds "Some listings lock only when they hire"; D15 adds "Residence is self-declared"');
   assert.equal(docs[3].sections, JOB_POSTING_RULES);
   assert.equal(typeof core.legalDocs, 'function', 'exported from @ned/core');
 });
@@ -42,7 +42,7 @@ test('F11: the upgrade authority is disclosed, and no text says "no one at N.E.D
 
 test('R3: the Privacy notice names the preview sites under "Where data goes"', () => {
   const where = PRIVACY.find((s) => s.title === 'Where data goes')!;
-  assert.ok(where.body.includes('If you press Load preview, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.'));
+  assert.ok(where.body.includes('If you press Load preview or Download, your browser connects to the site that hosts the link (for example Google Drive, Figma or YouTube). That site receives your IP address and may use its own cookies. N.E.D sends it nothing else.'));
 });
 
 test('v1.4 lock at hire (CL pre-pitch-check 9.3 items 1–3)', () => {

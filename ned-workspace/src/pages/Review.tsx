@@ -321,7 +321,7 @@ export function ReviewView(p: ReviewViewProps) {
 
           <Integrity ms={ms} delivery={shown.content} isRevision={isRevision} other={other} hasKey={p.content.hasKey} />
 
-          {(ms.status === 'submitted' || ms.status === 'disputed') && shown.content ? <WillReceive delivery={shown.content} /> : null}
+          {(ms.status === 'submitted' || ms.status === 'disputed') && shown.content ? <WillReceive delivery={shown.content} client={client} other={other} /> : null}
 
           {canDecide ? (
             <section aria-label="Decision" className={flow.card}>
@@ -446,13 +446,14 @@ function Integrity({ ms, delivery, isRevision, other, hasKey }: { ms: MilestoneV
 }
 
 /** F2: the promised list of the version on screen, before the decision */
-function WillReceive({ delivery }: { delivery: DeliveryDraft }) {
+function WillReceive({ delivery, client, other }: { delivery: DeliveryDraft; client: boolean; other: string }) {
   const finals = delivery.finals ?? [];
   const fixed = delivery.links.some(isFixedVersion);
   return (
     <section aria-labelledby="rv-receive" className={`${flow.card} ${styles.receiveCard}`} data-testid="will-receive">
       <h2 id="rv-receive" className={flow.h2}>
-        What you will receive after release
+        {/* F-5 (CL pre-pitch-check 8.2): not a promise */}
+        {client ? `Final files ${other} promises to hand over after release` : 'Final files you promised'}
       </h2>
       {finals.length ? (
         <ul className={flow.list}>

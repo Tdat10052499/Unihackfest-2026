@@ -176,7 +176,7 @@ export function FindView(p: FindViewProps) {
     <>
       <section aria-labelledby="fj-h1" className={`${hub.container} ${styles.top}`}>
         <div className={`${styles.titleRow} hb-in`}>
-          <SectionHeading id="fj-h1" level={1} size="page" title="Find jobs, " tone={lockAtHire ? 'locked before you accept' : 'already funded'} />
+          <SectionHeading id="fj-h1" level={1} size="page" title={lockAtHire ? 'Find jobs · ' : 'Find jobs, '} tone={lockAtHire ? 'budget locked before you accept' : 'already funded'} />
           <p className={styles.summary} data-testid="find-summary">
             {p.open ? (
               <>

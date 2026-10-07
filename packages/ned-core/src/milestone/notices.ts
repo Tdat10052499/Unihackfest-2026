@@ -51,7 +51,7 @@ export function contractNotice(e: ContractEvent, vn: boolean, name: string): Not
       if (client) return { title: `Milestone ${n} released`, message: `${amount} for ${job} was released to ${name}.` };
       // F2: the freelancer's next step after release is the hand-over
       return e.viaPartner
-        ? { title: 'Released · hand over the final files', message: `Milestone ${n}: ${amount} for ${job} was released to the payout partner (VND transfer simulated in this demo). Hand over the final files.` }
+        ? { title: `Milestone ${n} released to payout partner · hand over the final files`, message: `Milestone ${n}: ${amount} for ${job} was released to the payout partner (VND transfer simulated in this demo). Hand over the final files.` }
         : { title: 'Released · hand over the final files', message: `Milestone ${n}: ${amount} for ${job} was released to your N.E.D wallet. Hand over the final files.` };
     case 'refunded':
       return client

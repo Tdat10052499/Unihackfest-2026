@@ -163,7 +163,7 @@ test('buildReceipt: contract, accepted version, promised list, hand-over, releas
   assert.deepEqual(receipt.check?.results.map((r) => r.state), ['same', 'same']);
   assert.deepEqual(receipt.program, { id: '8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh', cluster: 'devnet' });
   assert.equal(receipt.note, RECEIPT_LINE);
-  assert.equal(RECEIPT_LINE, "Built on the client's device. Not legal advice.");
+  assert.equal(RECEIPT_LINE, 'Built on this device. Not legal advice.');
   assert.doesNotThrow(() => JSON.stringify(receipt));
   const bare = buildReceipt({ fund: 'F', title: 'T', index: 1, accepted, programId: 'P', cluster: 'devnet' });
   assert.equal(bare.handover, null);

@@ -34,7 +34,7 @@ import styles from './Job.module.css';
 
 const explorer = (address: string) => `https://explorer.solana.com/address/${address}?cluster=devnet`;
 export const PITCH_HINT = "Public on Solana. Don't put names or personal details here.";
-export const BRIEF_OK = 'Brief verified · matches its fingerprint on Solana';
+export const BRIEF_OK = 'Brief matches its fingerprint on Solana';
 export const BRIEF_BAD = "The public brief does not match its fingerprint on Solana. Don't apply until the business saves it again.";
 export const BRIEF_MISSING = 'The public brief is not on Solana yet.';
 /** v1.4 (D29) chip hint, CL pre-pitch-check 9.3 item 9 */
@@ -299,7 +299,7 @@ function ApplyCard(p: JobDetailViewProps) {
       ],
       note: job.unfunded
         ? { tone: 'warning', text: UNFUNDED_APPLY_NOTICE }
-        : { tone: 'purple', text: 'Nothing is locked from your wallet. If you are selected, the business creates the contract and you accept it.' },
+        : { tone: 'purple', text: 'Nothing is locked from your wallet. If you are selected, the business creates the contract and you accept it. Your wallet, @username, pitch, and whether you were selected are public and permanent on Solana.' },
       confirmLabel: 'Apply',
     });
     if (!ok) return;
@@ -419,7 +419,7 @@ function HowItWorks(p: JobDetailViewProps) {
     ['Get selected', `${p.businessName} picks one applicant and creates the contract.`],
     ['Accept', p.vn ? 'Choose VND to your bank. The budget moves into your contract.' : 'Choose where earnings go. The budget moves into your contract.'],
     ['Submit each milestone', 'Share a watermarked preview first; final files after release.'],
-    ['Released', 'After the client accepts, or when review time ends.'],
+    ['Released', 'After the client accepts, or anyone can release it once the review time ends (unless the client requested changes).'],
   ];
   return (
     <div className={`${styles.card} rv`}>

@@ -37,7 +37,7 @@ test('exact U3 titles', () => {
   assert.equal(t('released', 'client'), 'Milestone 2 released');
   // F2: after release the freelancer's next step is the hand-over
   assert.equal(t('released', 'freelancer'), 'Released · hand over the final files');
-  assert.equal(t('released', 'freelancer', true), 'Released · hand over the final files');
+  assert.equal(t('released', 'freelancer', true), 'Milestone 2 released to payout partner · hand over the final files', 'CL low list: names the payout partner');
   assert.equal(t('refunded', 'client'), 'Milestone 2 refunded to you');
   assert.equal(t('refunded', 'freelancer'), 'Milestone 2 refunded to the client');
 });
