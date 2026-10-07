@@ -16,6 +16,8 @@
 | Compliance | [`../05-legal/compliance-fix-list.md`](../05-legal/compliance-fix-list.md), [`../05-legal/compliance-fix-list-review.md`](../05-legal/compliance-fix-list-review.md) |
 | Screens | [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md) |
 
+> **Update 7 Oct (hub v4):** the community hub was redesigned (canvas version 113). The S5/S6 code stays; its visuals are updated by **H1–H5 in [`prompts-hub-v4.md`](prompts-hub-v4.md)**, which also adds the Legal page. Appendix H below is **superseded** by appendix V of that file and kept for reference.
+
 ## 0. Rules every prompt refers to
 
 Each prompt starts with "Follow prompts-6oct.md section 0". Those rules:
@@ -416,6 +418,8 @@ final row.
 ```
 
 ## Appendix H · N.E.D Jobs hub spec (taken from the WebJobs and WebJobsFind boards)
+
+> **Superseded (7 Oct):** replaced by appendix V of [`prompts-hub-v4.md`](prompts-hub-v4.md) (canvas version 113). Kept for reference; where they differ, appendix V wins.
 
 Added on 6 Oct 2026 for S5. The S5 prompt referred to this appendix before it existed; the PO chose to take it from
 the boards `docs/02-thiet-ke/canvas-v2/WebJobs.dc.html` and `WebJobsFind.dc.html`. If a board and this appendix

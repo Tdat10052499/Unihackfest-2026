@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Jobs — Legal</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#FFFFFF;color:#16161C}
+a{color:#6A22B0}a:hover{color:#4C1782}
+:root{--ink:#16161C;--ink2:#3F3F49;--mute:#8A8A96;--line:#ECECF0;--soft:#F5F5F7;--purple:#7B2FBE;--purple-ink:#6A22B0;--tint:#F2EAFB;--ease:cubic-bezier(.2,0,0,1);--ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes hb-fade{from{opacity:0}to{opacity:1}}
+@keyframes hb-rise{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:none}}
+@keyframes hb-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
+@keyframes hb-sheet{from{transform:translate3d(100%,0,0)}to{transform:none}}
+@keyframes hb-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-8px,0)}}
+@keyframes hb-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.hb-screen{animation:hb-fade 240ms var(--ease) both}
+.hb-in{animation:hb-rise 520ms var(--ease-out) both}
+.hb-in-2{animation:hb-rise 520ms var(--ease-out) 90ms both}
+.hb-in-3{animation:hb-rise 520ms var(--ease-out) 180ms both}
+.hb-in-4{animation:hb-rise 520ms var(--ease-out) 270ms both}
+.hb-pop{animation:hb-pop 200ms var(--ease-out) both;transform-origin:top right}
+.hb-sheet{animation:hb-sheet 360ms var(--ease-out) both}
+.hb-float{animation:hb-float 7s ease-in-out infinite}
+.hb-fill{transform-origin:0 50%;animation:hb-fill 6s linear both}
+.hb-nav{position:relative;transition:color 160ms var(--ease)}
+.hb-nav:hover{color:#16161C!important}
+.hb-lift{transition:transform 260ms var(--ease-out),box-shadow 260ms var(--ease-out),background-color 200ms var(--ease)}
+.hb-lift:hover{transform:translate3d(0,-4px,0);box-shadow:0 2px 4px rgba(17,17,22,.05),0 22px 40px -20px rgba(17,17,22,.28)!important}
+.hb-mi:hover{background:#F5F5F7!important}
+.hb-ul{background-image:linear-gradient(currentColor,currentColor);background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;transition:background-size 260ms var(--ease)}
+.hb-ul:hover{background-size:100% 1px}
+.hb-arrow{transition:transform 200ms var(--ease)}
+a:hover .hb-arrow,button:hover .hb-arrow{transform:translate3d(2px,-2px,0)}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ease),background-color 200ms var(--ease),color 200ms var(--ease),box-shadow 200ms var(--ease),opacity 200ms var(--ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ease),background-color 180ms var(--ease)}
+input:focus,select:focus,textarea:focus{outline:none}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #7B2FBE;outline-offset:3px}
+/* Scroll effects: run where the browser supports scroll-driven animations; content stays visible elsewhere */
+@supports (animation-timeline: view()) {
+  .rv{animation:hb-rv linear both;animation-timeline:view();animation-range:entry 0% cover 26%}
+  @keyframes hb-rv{from{opacity:0;transform:translate3d(0,36px,0)}to{opacity:1;transform:none}}
+  .rv-x{animation:hb-rvx linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+  @keyframes hb-rvx{from{opacity:0;transform:translate3d(-28px,0,0)}to{opacity:1;transform:none}}
+  .rv-scale{animation:hb-rvs linear both;animation-timeline:view();animation-range:entry 0% cover 34%}
+  @keyframes hb-rvs{from{opacity:.4;transform:scale(.94)}to{opacity:1;transform:none}}
+  .hb-hdr{animation:hb-hdr linear both;animation-timeline:scroll(root);animation-range:0 140px}
+  @keyframes hb-hdr{from{box-shadow:0 0 0 rgba(0,0,0,0)}to{box-shadow:0 1px 0 #ECECF0,0 12px 30px -20px rgba(17,17,22,.3);background-color:rgba(255,255,255,.86)}}
+  .hb-hdr-in{animation:hb-hdr-in linear both;animation-timeline:scroll(root);animation-range:0 140px}
+  @keyframes hb-hdr-in{from{padding-top:18px;padding-bottom:18px}to{padding-top:10px;padding-bottom:10px}}
+  .px-1{animation:hb-px1 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px1{to{transform:translate3d(0,26px,0)}}
+  .px-2{animation:hb-px2 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px2{to{transform:translate3d(0,54px,0)}}
+  .px-3{animation:hb-px3 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px3{to{transform:translate3d(0,90px,0)}}
+  .px-sky{animation:hb-pxs linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-pxs{to{transform:translate3d(0,-18px,0) scale(1.04)}}
+  .hb-progress{transform-origin:0 50%;animation:hb-grow linear both;animation-timeline:scroll(root)}
+  @keyframes hb-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+@media (max-width: 860px){.hb-notch{position:static!important;margin-top:-28px;border-radius:28px 28px 0 0!important;width:auto!important}.hb-notch-c{display:none}.hb-glass{display:none!important}.hb-nav-tabs{order:3;width:100%}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div class="hb-screen" style="min-height: 100vh; background: #FFFFFF; color: #16161C; font-family: 'Inter', system-ui, sans-serif">
+  <div aria-hidden="true" style="position: fixed; left: 0; right: 0; top: 0; z-index: 70; height: 3px; pointer-events: none"><div class="hb-progress" style="height: 100%; background: #7B2FBE"></div></div>
+  <header class="hb-hdr" style="position: sticky; top: 0; z-index: 30; background: #FFFFFF">
+    <div class="hb-hdr-in" style="max-width: 1240px; margin: 0 auto; padding: 18px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px">
+      <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #16161C">
+        <span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.2px">Jobs</span>
+      </a>
+      <nav aria-label="Jobs" class="hb-nav-tabs" style="display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: 14px">
+        <a href="WebJobs.dc.html" class="hb-nav" style="padding: 6px 0; color: #6B6B76; font-weight: 500; text-decoration: none">Overview</a>
+        <a href="WebJobsFind.dc.html" class="hb-nav" style="padding: 6px 0; color: #6B6B76; font-weight: 500; text-decoration: none">Find jobs</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 9999px; background: #F5F5F7; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ false }}">
+        <a href="WebJobPost.dc.html" style="height: 42px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Post a job<svg class="hb-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+      </sc-if>
+      <sc-if value="{{isGuest}}" hint-placeholder-val="{{ false }}">
+        <a href="WebSignIn.dc.html" style="height: 42px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Sign in</a>
+      </sc-if>
+      <sc-if value="{{isSignedIn}}" hint-placeholder-val="{{ true }}">
+      <div style="position: relative">
+        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @{{handle}}" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F5F5F7; color: #16161C; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #6B6B76">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+          <div role="menu" aria-label="Account" class="hb-pop" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px); padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 24px 48px -20px rgba(17,17,22,0.35)">
+            <div style="padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F0F3">
+              <dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import>
+              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@{{handle}}</span><span style="display: block; font-size: 12px; color: #6B6B76">{{walletSub}}</span></span>
+            </div>
+            <button role="menuitem" onClick="{{openWallet}}" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12l2 3M16 13.5h.01"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #6B6B76">The N.E.D Wallet, as on your phone</span></span>
+            </button>
+            <a role="menuitem" href="WebWorkspace.dc.html" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
+              <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #6B6B76">Contracts, milestones and records</span></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+            </a>
+          </div>
+        </sc-if>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="app" start-screen="home" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+    </div>
+  </header>
+
+  <section aria-labelledby="lg-h1" style="max-width: 1240px; margin: 0 auto; padding: 44px 24px 0; box-sizing: border-box">
+    <span class="hb-in" style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #6B6B76"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #7B2FBE"></span>Legal</span>
+    <div class="hb-in-2" style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 40px">
+      <h1 id="lg-h1" style="margin: 0; font-size: clamp(38px, 5vw, 64px); line-height: 1.04; font-weight: 300; letter-spacing: -2px">Legal, <span style="color: #9A9AA6">in plain words</span></h1>
+      <p style="margin: 0; max-width: 420px; font-size: 15px; line-height: 1.65; color: #6B6B76">The rules and notices for N.E.D Jobs and the N.E.D Wallet pilot. Pilot version 1 · 6 Oct 2026.</p>
+    </div>
+    <div class="hb-in-3" role="note" style="margin-top: 26px; padding: 14px 18px; border-radius: 16px; background: #FFF5E1; display: flex; align-items: center; gap: 12px; font-size: 14px; color: #6B4300">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B26B00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01"></path></svg>
+      <span>These are drafts for the devnet pilot. They have not been reviewed by a lawyer yet and are not legal advice.</span>
+    </div>
+    <div class="hb-in-4" role="tablist" aria-label="Documents" style="margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px">
+      <sc-for list="{{docs}}" as="d" hint-placeholder-count="4">
+        <a href="#lg-doc" role="tab" aria-selected="{{d.sel}}" onClick="{{d.pick}}" class="hb-lift" style="{{d.style}}">
+          <span style="{{d.iconBox}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{d.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{d.icon}}"></path></svg></span>
+          <span style="display: block; margin-top: 18px; font-size: 16px; font-weight: 600">{{d.title}}</span>
+          <span style="display: block; margin-top: 4px; font-size: 13px; line-height: 1.45; color: #6B6B76">{{d.kicker}}</span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="lg-doc" aria-labelledby="lg-doc-h" style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 96px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 32px 64px; align-items: flex-start; scroll-margin-top: 90px">
+    <aside aria-label="On this page" style="flex: 1 1 240px; max-width: 100%; position: sticky; top: 100px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #8A8A96">On this page</div>
+      <ol style="margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+        <sc-for list="{{toc}}" as="t" hint-placeholder-count="8">
+          <li><a href="{{t.href}}" onClick="{{t.pick}}" aria-current="{{t.cur}}" style="{{t.style}}"><span style="width: 22px; flex-shrink: 0; font-size: 12px; color: #9A9AA6">{{t.n}}</span>{{t.title}}</a></li>
+        </sc-for>
+      </ol>
+      <div style="margin-top: 24px; padding: 16px; border-radius: 16px; background: #F5F5F7; font-size: 13px; line-height: 1.55; color: #6B6B76">Questions about these documents? Write to <span style="font-weight: 600; color: #16161C">[team email]</span>.</div>
+    </aside>
+    <article style="flex: 999 1 560px; min-width: 0; max-width: 760px">
+      <div class="hb-in" style="display: flex; align-items: center; gap: 12px">
+        <span style="{{cur.iconBox}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{cur.icon}}"></path></svg></span>
+        <span style="font-size: 13px; color: #8A8A96">Pilot version 1 · last updated 6 Oct 2026</span>
+      </div>
+      <h2 id="lg-doc-h" class="hb-in" style="margin: 18px 0 0; font-size: clamp(30px, 3.4vw, 42px); line-height: 1.1; font-weight: 300; letter-spacing: -1.2px">{{cur.title}}</h2>
+      <p style="margin: 10px 0 0; font-size: 16px; color: #6B6B76">{{cur.kicker}}</p>
+      <div style="margin-top: 36px; display: flex; flex-direction: column">
+        <sc-for list="{{sections}}" as="s" hint-placeholder-count="6">
+          <section id="{{s.id}}" class="rv" style="padding: 28px 0; box-shadow: inset 0 1px 0 #ECECF0; display: flex; gap: 22px; scroll-margin-top: 96px">
+            <span style="width: 34px; flex-shrink: 0; padding-top: 3px; font-size: 13px; font-weight: 600; color: #9A9AA6">{{s.n}}</span>
+            <div style="flex: 1; min-width: 0">
+              <h3 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.3px">{{s.title}}</h3>
+              <sc-for list="{{s.paras}}" as="p" hint-placeholder-count="1"><p style="margin: 10px 0 0; font-size: 15px; line-height: 1.75; color: #3F3F49">{{p}}</p></sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </div>
+      <div class="rv" style="margin-top: 20px; padding: 22px; border-radius: 20px; background: #F5F5F7; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <span style="font-size: 15px">Next: <span style="font-weight: 600">{{next.title}}</span></span>
+        <a href="#lg-doc" onClick="{{next.pick}}" style="height: 42px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Read it<svg class="hb-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+      </div>
+    </article>
+  </section>
+
+  <footer style="background: #0E0E12; color: #D7D7DE">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 44px 24px 0; box-sizing: border-box">
+      <div style="padding: 28px 0; border-top: none; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px">
+        <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF"><span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 9px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700">N.E.D</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Jobs</span></a>
+        <nav aria-label="Footer" style="flex: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; font-size: 13px">
+          <a href="WebJobs.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Overview</a>
+          <a href="WebJobsFind.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Find jobs</a>
+          <a href="WebJobPost.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Post a job</a>
+          <a href="WebWorkspace.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Workspace</a>
+          <a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Legal</a>
+        </nav>
+        <span style="font-size: 12px; color: #8F8F9B">Student project · UniHackFest 2026</span>
+      </div>
+      <div style="padding: 18px 0 30px; border-top: 1px solid #24242C; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; font-size: 12px; line-height: 1.6; color: #8F8F9B">
+        <span style="flex: 1 1 520px">{{foot}}</span>
+        <span style="display: flex; gap: 18px"><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Terms of use</a><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Privacy</a><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Disclosures</a></span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["guest", "vinh", "mia"], "default": "guest"}, "doc": {"editor": "enum", "options": ["terms", "privacy", "disclosures", "rules"], "default": "terms"}, "$preview": {"width": 1440, "height": 2600}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var d = props.doc;
+    this.state = { open: false, menu: false, doc: ['privacy', 'disclosures', 'rules'].indexOf(d) >= 0 ? d : 'terms', active: null };
+  }
+  componentDidMount() {
+    var self = this;
+    this._onScroll = function () {
+      var ids = self._ids || [], cur = ids[0] || null;
+      for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el && el.getBoundingClientRect().top < 170) cur = ids[i]; }
+      if (cur !== self.state.active) self.setState({ active: cur });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); }
+  renderVals() {
+    var self = this, st = this.state;
+    var whoP = this.props.who ?? 'guest';
+    var guest = whoP === 'guest', vn = whoP === 'vinh', client = whoP === 'mia';
+    var RATE = 26019.5;
+    function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
+    function money(usd) { return vn ? vnd(usd) : usd.toFixed(2) + ' USDC'; }
+    function moneySub(usd) { return vn ? '$' + usd.toFixed(2) + ' · estimate' : 'test USDC, locked'; }
+    var DOCS = {"terms": {"title": "Terms of use", "kicker": "How the pilot works and what N.E.D is not", "icon": "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5", "sections": [["Pilot only", ["N.E.D runs on Solana devnet with test tokens that have no value. Do not send real money."]], ["What N.E.D is", ["Software that lets a client lock test USDC per milestone in a Solana program, then release it to the freelancer, or refund it to the client after a missed deadline.", "N.E.D holds no funds, converts nothing and charges no fee."]], ["Job listings", ["N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work."]], ["What N.E.D is not", ["It is not a bank, an exchange or a money-transfer service. It gives no legal, tax or financial advice."]], ["Vietnam", ["Users who choose the Vietnam view see amounts in VND as estimates and never hold crypto.", "The payout partner is simulated in this demo; no VND is sent."]], ["Reviews and change requests", ["After a milestone is submitted, the client can accept it or request changes. A request for changes keeps the amount locked until both sides agree: the client accepts a revised version, the freelancer returns it, or both agree a split. Nobody outside the contract decides.", "If the client does not review before the review deadline, anyone can release the milestone to the freelancer."]], ["Your keys, your actions", ["Transactions you sign cannot be reversed. Release and refund follow the deadlines written into the contract."]], ["Public data", ["Contract titles, job titles and summaries, pitches and amounts are public on Solana and cannot be deleted. Do not put names or personal details in them."]], ["No warranty", ["The program has not been audited. Use the pilot at your own risk."]], ["Changes", ["These terms may change before any launch. A real launch needs a legal review and new terms."]]]}, "privacy": {"title": "Privacy notice", "kicker": "What we process, where it goes, your choices", "icon": "M12 3 5 6v6c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6zM9 12l2 2 4-4", "sections": [["Who we are", ["N.E.D is a student project for UniHackFest 2026. It runs on Solana devnet with test money."]], ["What we process and why", ["Google account name and email, to sign you in. Login is run by Dynamic (United States).", "Wallet address, to run your account, your contracts and your job listings or applications.", "@username, so the other party can find you.", "Phone number (optional): only a hash goes on Solana. The number itself stays on your device.", "Device key: a public key on Solana, so your contracts open on your other devices.", "Contract and job data: titles, summaries, amounts, deadlines and pitches are public on Solana. Briefs and deliveries of contracts are encrypted, and only the two parties hold the key."]], ["What N.E.D never processes", ["Bank details and ID. In a real launch, a payout partner would collect them in its own flow. In this demo the partner is simulated."]], ["Where data goes", ["Dynamic (login, United States), Helius (blockchain data, United States), Ably (used by Dynamic), Vercel and GitHub Pages (hosting and their access logs), Solana devnet (public blockchain)."]], ["Data on Solana", ["Data on Solana is public or permanent and cannot be deleted by anyone, including N.E.D."]], ["Your choices", ["You can withdraw consent in Settings, and N.E.D then stops running your account. Data stored on your device is removed when you clear the app's data. We keep a record of when you gave or withdrew consent."]], ["Contact", ["[team email]. This notice follows Personal Data Protection Law 91/2025 and Decree 356/2025 as we understand them. It has not been reviewed by a lawyer yet."]]]}, "disclosures": {"title": "Disclosures", "kicker": "The limits of this pilot, stated plainly", "icon": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01", "sections": [["Devnet, test money only", ["Every amount on N.E.D Jobs and in the N.E.D Wallet is test USDC on Solana devnet. It has no value."]], ["No KYC yet", ["N.E.D does not check anyone's identity. In a real launch, the payout partner would do KYC in its own flow."]], ["No neutral arbiter", ["After a milestone is submitted, the client can request changes instead of releasing. The amount then stays locked until both sides agree: the client accepts a revised version, the freelancer returns it, or both agree a split. Nobody outside the contract decides."]], ["The payout partner is simulated", ["The VND path ends at a team-controlled devnet address. Candidate partners are Due and Nium. In a real launch, the freelancer in Vietnam relies on the partner after release."]], ["The program is not audited", ["The Solana program has not been audited. Until launch, the team's deploy wallet can upgrade it; a multisig comes before any mainnet use."]], ["Network fees use test SOL", ["Signing a transaction costs a small network fee in test SOL. Before launch, a fee payer would cover it."]], ["USDC can be frozen", ["Circle, the issuer of USDC, can freeze USDC addresses."]], ["Phone hash is public", ["If you add a phone number, a hash of it is stored on Solana and cannot be deleted. Phone numbers have few possible values, so someone could work out the number."]], ["Listings and pitches are public", ["Job titles, summaries, budgets and pitches are written to Solana and stay there."]], ["Not advice", ["Nothing on N.E.D is legal, tax or financial advice."]]]}, "rules": {"title": "Job posting rules", "kicker": "How to post, apply and hire on N.E.D Jobs", "icon": "M4 8h16v11H4zM9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 13h16", "sections": [["Lock the whole budget to post", ["A job is published only when its whole budget is locked in the program. The budget moves into the contract when the selected freelancer accepts.", "With no applicants you can withdraw the budget at any time. Once someone has applied, it stays locked until the select-by date, and until the accept window of a selected applicant has passed."]], ["Describe the work so others can check it", ["Write a short title, a summary for the job card and done-when points someone else could check. Reviews are made against those points."]], ["Keep personal data out", ["Titles, summaries and pitches are public on Solana forever. Do not put names, phone numbers, addresses, bank details, passwords or keys in them."]], ["Lawful work only", ["Do not post work that breaks the law, asks for passwords, keys or identity documents, or asks a freelancer to send money."]], ["Selecting and accepting", ["Select one applicant before the select-by date. Selecting creates the contract. The applicant accepts within 48 hours (2 minutes on devnet); if not, you can select someone else."]], ["Delivering and reviewing", ["Freelancers share watermarked previews to be reviewed and hand over final files after release. Clients accept and release, or request changes; a request never refunds the amount on its own."]], ["Problems with a listing", ["There is no report button in this pilot yet. Write to [team email] with the link to the listing."]]]}};
+    var ORDER = ["terms", "privacy", "disclosures", "rules"];
+    var cur = DOCS[st.doc];
+    var ids = cur.sections.map(function (s, i) { return 'lg-' + st.doc + '-' + (i + 1); });
+    this._ids = ids;
+    var active = ids.indexOf(st.active) >= 0 ? st.active : ids[0];
+    var nextKey = ORDER[(ORDER.indexOf(st.doc) + 1) % ORDER.length];
+    function pickDoc(k) { return function () { self.setState({ doc: k, active: null }); }; }
+    var box = 'width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; display: flex; align-items: center; justify-content: center; background: #F2EAFB';
+    return {
+      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
+      isGuest: guest, isSignedIn: !guest, isClient: client,
+      foot: vn ? 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.' : 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing.',
+      open: st.open, openStr: st.open ? 'true' : 'false', menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
+      toggle: function () { self.setState({ open: !st.open, menu: false }); },
+      toggleMenu: function () { self.setState({ menu: !st.menu, open: false }); },
+      openWallet: function () { self.setState({ menu: false, open: true }); },
+      close: function () { self.setState({ open: false }); },
+      docs: ORDER.map(function (k) { var d = DOCS[k], on = k === st.doc; return { title: d.title, kicker: d.kicker, icon: d.icon, sel: on ? 'true' : 'false', pick: pickDoc(k),
+        ink: on ? '#FFFFFF' : '#6A22B0', iconBox: box.replace('#F2EAFB', on ? '#7B2FBE' : '#F2EAFB'),
+        style: 'display: block; padding: 20px; border-radius: 20px; text-decoration: none; color: #16161C; background: ' + (on ? '#FFFFFF' : '#F5F5F7') + '; box-shadow: ' + (on ? 'inset 0 0 0 1.5px #16161C, 0 18px 36px -24px rgba(17,17,22,0.35)' : 'none') }; }),
+      cur: { title: cur.title, kicker: cur.kicker, icon: cur.icon, iconBox: box },
+      toc: cur.sections.map(function (s, i) { var id = ids[i], on = id === active; return { n: String(i + 1).padStart(2, '0'), title: s[0], href: '#' + id, cur: on ? 'true' : 'false',
+        pick: function () { self.setState({ active: id }); },
+        style: 'display: flex; align-items: baseline; gap: 6px; padding: 9px 12px; border-radius: 10px; text-decoration: none; font-size: 14px; line-height: 1.35; color: ' + (on ? '#16161C' : '#6B6B76') + '; font-weight: ' + (on ? 600 : 500) + '; background: ' + (on ? '#F5F5F7' : 'transparent') + '; box-shadow: ' + (on ? 'inset 2px 0 0 #7B2FBE' : 'none') }; }),
+      sections: cur.sections.map(function (s, i) { return { id: ids[i], n: String(i + 1).padStart(2, '0'), title: s[0], paras: s[1] }; }),
+      next: { title: DOCS[nextKey].title, pick: pickDoc(nextKey) }
+    };
+  }
+}
+</script>
+</body>
+</html>

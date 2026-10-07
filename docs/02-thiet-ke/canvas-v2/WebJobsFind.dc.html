@@ -9,83 +9,107 @@
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#FFFFFF}
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#FFFFFF;color:#16161C}
 a{color:#6A22B0}a:hover{color:#4C1782}
-.hb-nav{position:relative;transition:color .15s ease}
-.hb-nav:hover{color:#111116!important}
-.hb-card{transition:box-shadow 220ms cubic-bezier(.2,0,0,1),transform 220ms cubic-bezier(.2,0,0,1)}
-.hb-card:hover{transform:translate3d(0,-3px,0);box-shadow:0 2px 4px rgba(17,17,22,0.05),0 18px 34px -14px rgba(17,17,22,0.22)!important}
-.hb-tile{transition:box-shadow 220ms cubic-bezier(.2,0,0,1),transform 220ms cubic-bezier(.2,0,0,1)}
-.hb-tile:hover{transform:translate3d(0,-2px,0);box-shadow:0 2px 4px rgba(17,17,22,0.05),0 14px 28px -12px rgba(17,17,22,0.18)!important}
-.ned-wallet-btn:hover{background:#ECECF0!important}
-.hb-card:focus-visible,.hb-tile:focus-visible,.hb-nav:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:3px}
-:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
-@keyframes ned-fade{from{opacity:0}to{opacity:1}}
-@keyframes ned-rise{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:none}}
-@keyframes hb-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-6px,0)}}
-.ned-screen{animation:ned-fade 200ms var(--ned-ease) both}
-.hb-rise{animation:ned-rise 420ms var(--ned-ease-out) both}
-.hb-rise-2{animation:ned-rise 420ms var(--ned-ease-out) 80ms both}
-.hb-rise-3{animation:ned-rise 420ms var(--ned-ease-out) 160ms both}
-.hb-float{animation:hb-float 6s ease-in-out infinite}
-.hb-float-2{animation:hb-float 7s ease-in-out 1.2s infinite}
-.ned-stagger>*{animation:ned-rise 360ms var(--ned-ease-out) both}
-.ned-stagger>*:nth-child(2){animation-delay:40ms}
-.ned-stagger>*:nth-child(3){animation-delay:80ms}
-.ned-stagger>*:nth-child(4){animation-delay:120ms}
-.ned-stagger>*:nth-child(5){animation-delay:160ms}
-.ned-stagger>*:nth-child(n+6){animation-delay:200ms}
-a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
-a:active,button:active{transform:scale(.98)}
-input,select{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
-input:focus,select:focus{outline:none;box-shadow:0 0 0 3px rgba(123,47,190,.22)!important}
-input[type=checkbox]{accent-color:#7B2FBE}
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+:root{--ink:#16161C;--ink2:#3F3F49;--mute:#8A8A96;--line:#ECECF0;--soft:#F5F5F7;--purple:#7B2FBE;--purple-ink:#6A22B0;--tint:#F2EAFB;--ease:cubic-bezier(.2,0,0,1);--ease-out:cubic-bezier(.16,1,.3,1)}
+@keyframes hb-fade{from{opacity:0}to{opacity:1}}
+@keyframes hb-rise{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:none}}
 @keyframes hb-pop{from{opacity:0;transform:translate3d(0,-6px,0) scale(.97)}to{opacity:1;transform:none}}
-.hb-pop{animation:hb-pop 200ms cubic-bezier(.16,1,.3,1) both;transform-origin:top right}
-.hb-mi:hover{background:#F6F4F9!important}
+@keyframes hb-sheet{from{transform:translate3d(100%,0,0)}to{transform:none}}
+@keyframes hb-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-8px,0)}}
+@keyframes hb-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.hb-screen{animation:hb-fade 240ms var(--ease) both}
+.hb-in{animation:hb-rise 520ms var(--ease-out) both}
+.hb-in-2{animation:hb-rise 520ms var(--ease-out) 90ms both}
+.hb-in-3{animation:hb-rise 520ms var(--ease-out) 180ms both}
+.hb-in-4{animation:hb-rise 520ms var(--ease-out) 270ms both}
+.hb-pop{animation:hb-pop 200ms var(--ease-out) both;transform-origin:top right}
+.hb-sheet{animation:hb-sheet 360ms var(--ease-out) both}
+.hb-float{animation:hb-float 7s ease-in-out infinite}
+.hb-fill{transform-origin:0 50%;animation:hb-fill 6s linear both}
+.hb-nav{position:relative;transition:color 160ms var(--ease)}
 .hb-nav:hover{color:#16161C!important}
-.hb-mi:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+.hb-lift{transition:transform 260ms var(--ease-out),box-shadow 260ms var(--ease-out),background-color 200ms var(--ease)}
+.hb-lift:hover{transform:translate3d(0,-4px,0);box-shadow:0 2px 4px rgba(17,17,22,.05),0 22px 40px -20px rgba(17,17,22,.28)!important}
+.hb-mi:hover{background:#F5F5F7!important}
+.hb-ul{background-image:linear-gradient(currentColor,currentColor);background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;transition:background-size 260ms var(--ease)}
+.hb-ul:hover{background-size:100% 1px}
+.hb-arrow{transition:transform 200ms var(--ease)}
+a:hover .hb-arrow,button:hover .hb-arrow{transform:translate3d(2px,-2px,0)}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ease),background-color 200ms var(--ease),color 200ms var(--ease),box-shadow 200ms var(--ease),opacity 200ms var(--ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ease),background-color 180ms var(--ease)}
+input:focus,select:focus,textarea:focus{outline:none}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #7B2FBE;outline-offset:3px}
+/* Scroll effects: run where the browser supports scroll-driven animations; content stays visible elsewhere */
+@supports (animation-timeline: view()) {
+  .rv{animation:hb-rv linear both;animation-timeline:view();animation-range:entry 0% cover 26%}
+  @keyframes hb-rv{from{opacity:0;transform:translate3d(0,36px,0)}to{opacity:1;transform:none}}
+  .rv-x{animation:hb-rvx linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+  @keyframes hb-rvx{from{opacity:0;transform:translate3d(-28px,0,0)}to{opacity:1;transform:none}}
+  .rv-scale{animation:hb-rvs linear both;animation-timeline:view();animation-range:entry 0% cover 34%}
+  @keyframes hb-rvs{from{opacity:.4;transform:scale(.94)}to{opacity:1;transform:none}}
+  .hb-hdr{animation:hb-hdr linear both;animation-timeline:scroll(root);animation-range:0 140px}
+  @keyframes hb-hdr{from{box-shadow:0 0 0 rgba(0,0,0,0)}to{box-shadow:0 1px 0 #ECECF0,0 12px 30px -20px rgba(17,17,22,.3);background-color:rgba(255,255,255,.86)}}
+  .hb-hdr-in{animation:hb-hdr-in linear both;animation-timeline:scroll(root);animation-range:0 140px}
+  @keyframes hb-hdr-in{from{padding-top:18px;padding-bottom:18px}to{padding-top:10px;padding-bottom:10px}}
+  .px-1{animation:hb-px1 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px1{to{transform:translate3d(0,26px,0)}}
+  .px-2{animation:hb-px2 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px2{to{transform:translate3d(0,54px,0)}}
+  .px-3{animation:hb-px3 linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-px3{to{transform:translate3d(0,90px,0)}}
+  .px-sky{animation:hb-pxs linear both;animation-timeline:scroll(root);animation-range:0 800px}
+  @keyframes hb-pxs{to{transform:translate3d(0,-18px,0) scale(1.04)}}
+  .hb-progress{transform-origin:0 50%;animation:hb-grow linear both;animation-timeline:scroll(root)}
+  @keyframes hb-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+@media (max-width: 860px){.hb-notch{position:static!important;margin-top:-28px;border-radius:28px 28px 0 0!important;width:auto!important}.hb-notch-c{display:none}.hb-glass{display:none!important}.hb-nav-tabs{order:3;width:100%}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </helmet>
-<div class="ned-screen" style="min-height: 100vh; background: #FFFFFF; color: #16161C; font-family: 'Inter', system-ui, sans-serif">
-
-  <!-- Header -->
-  <header style="position: relative; z-index: 30; background: #EFE6FB">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+<div class="hb-screen" style="min-height: 100vh; background: #FFFFFF; color: #16161C; font-family: 'Inter', system-ui, sans-serif">
+  <header class="hb-hdr" style="position: sticky; top: 0; z-index: 30; background: #FFFFFF">
+    <div class="hb-hdr-in" style="max-width: 1240px; margin: 0 auto; padding: 18px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px">
       <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #16161C">
-        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
-        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Jobs</span>
+        <span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.2px">Jobs</span>
       </a>
-      <nav aria-label="Jobs" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 600">
-        <a href="WebJobs.dc.html" class="hb-nav" style="padding: 8px 0; color: #4B4B57; text-decoration: none">Overview</a>
-        <a href="WebJobsFind.dc.html" aria-current="page" class="hb-nav" style="padding: 8px 0; color: #6A22B0; box-shadow: inset 0 -2px 0 #7B2FBE; text-decoration: none">Find jobs</a>
+      <nav aria-label="Jobs" class="hb-nav-tabs" style="display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: 14px">
+        <a href="WebJobs.dc.html" class="hb-nav" style="padding: 6px 0; color: #6B6B76; font-weight: 500; text-decoration: none">Overview</a>
+        <a href="WebJobsFind.dc.html" aria-current="page" class="hb-nav" style="padding: 6px 0; color: #16161C; font-weight: 600; box-shadow: inset 0 -2px 0 #7B2FBE; text-decoration: none">Find jobs</a>
       </nav>
       <div style="flex: 1"></div>
-      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
-      <sc-if value="{{isClient}}" hint-placeholder-val="{{ true }}"><a href="WebJobPost.dc.html" style="height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; background: #7B2FBE; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Post a job<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></a></sc-if>
+      <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 9999px; background: #F5F5F7; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ false }}">
+        <a href="WebJobPost.dc.html" style="height: 42px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Post a job<svg class="hb-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+      </sc-if>
+      <sc-if value="{{isGuest}}" hint-placeholder-val="{{ false }}">
+        <a href="WebSignIn.dc.html" style="height: 42px; padding: 0 20px; display: inline-flex; align-items: center; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Sign in</a>
+      </sc-if>
+      <sc-if value="{{isSignedIn}}" hint-placeholder-val="{{ true }}">
       <div style="position: relative">
-        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #FFFFFF; color: #16161C; font-family: inherit; cursor: pointer; border: none">
+        <button onClick="{{toggleMenu}}" aria-expanded="{{menuStr}}" aria-haspopup="menu" aria-label="Account menu, @{{handle}}" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F5F5F7; color: #16161C; font-family: inherit; cursor: pointer; border: none">
           <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
-          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #6B6B76">{{walletSub}}</span></span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
         </button>
         <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
           <div role="menu" aria-label="Account" class="hb-pop" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 290px; max-width: calc(100vw - 32px); padding: 8px; box-sizing: border-box; border-radius: 18px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 24px 48px -20px rgba(17,17,22,0.35)">
             <div style="padding: 10px 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F0F3">
               <dc-import name="Avatar" seed="{{handle}}" size="40" hint-size="40px,40px"></dc-import>
-              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@{{handle}}</span><span style="display: block; font-size: 12px; color: #5E5E6A">{{walletSub}}</span></span>
+              <span style="line-height: 1.25"><span style="display: block; font-size: 15px; font-weight: 700">@{{handle}}</span><span style="display: block; font-size: 12px; color: #6B6B76">{{walletSub}}</span></span>
             </div>
             <button role="menuitem" onClick="{{openWallet}}" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
               <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F2EAFB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A22B0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12l2 3M16 13.5h.01"></path></svg></span>
-              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #5E5E6A">The N.E.D Wallet, as on your phone</span></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Open wallet</span><span style="display: block; font-size: 12px; color: #6B6B76">The N.E.D Wallet, as on your phone</span></span>
             </button>
             <a role="menuitem" href="WebWorkspace.dc.html" class="hb-mi" style="width: 100%; min-height: 52px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; border: none; border-radius: 12px; background: transparent; color: #16161C; font-family: inherit; text-align: left; text-decoration: none; cursor: pointer">
               <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #16161C; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
-              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #5E5E6A">Contracts, milestones and records</span></span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">Go to Workspace</span><span style="display: block; font-size: 12px; color: #6B6B76">Contracts, milestones and records</span></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
             </a>
           </div>
         </sc-if>
@@ -95,154 +119,246 @@ input[type=checkbox]{accent-color:#7B2FBE}
           </div>
         </sc-if>
       </div>
+      </sc-if>
     </div>
   </header>
 
-  <!-- Title band -->
-  <section aria-labelledby="fj-h1" style="background: #EFE6FB">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 28px 24px 36px; box-sizing: border-box">
-      <h1 id="fj-h1" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 44px; line-height: 1.05; font-weight: 700; letter-spacing: -1.4px">Find jobs</h1>
-      <p style="margin: 10px 0 0; max-width: 560px; font-size: 15px; line-height: 1.6; color: #3F3F49">Every job here has its whole budget locked on Solana. Filter by field, skill, budget and time to deliver.</p>
-      <div role="group" aria-label="Category" style="margin-top: 20px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px">
-        <sc-for list="{{catChips}}" as="c" hint-placeholder-count="9">
-          <button aria-pressed="{{c.sel}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}<span style="{{c.countStyle}}">{{c.count}}</span></button>
-        </sc-for>
-      </div>
+  <section aria-labelledby="fj-h1" style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 0; box-sizing: border-box">
+    <div class="hb-in" style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 32px">
+      <h1 id="fj-h1" style="margin: 0; font-size: clamp(34px, 4.4vw, 54px); line-height: 1.05; font-weight: 300; letter-spacing: -1.8px">Find jobs, <span style="color: #9A9AA6">already funded</span></h1>
+      <p style="margin: 0; font-size: 14px; color: #6B6B76"><span style="font-weight: 600; color: #16161C">{{openCount}}</span> open jobs · <span style="font-weight: 600; color: #16161C">{{lockedTotal}}</span> locked on Solana</p>
+    </div>
+    <div role="tablist" aria-label="Jobs view" class="hb-in-2" style="margin-top: 26px; display: flex; flex-wrap: wrap; gap: 4px 28px; box-shadow: inset 0 -1px 0 #ECECF0">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></button>
+      </sc-for>
     </div>
   </section>
 
-  <!-- Board -->
-  <section id="board" aria-labelledby="hb-board" style="background: #FFFFFF">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 28px 24px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
-        <div><h2 id="hb-board" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.6px">{{boardTitle}}</h2><p style="margin: 4px 0 0; font-size: 14px; color: #5E5E6A">{{boardSub}}</p></div>
-      <div role="tablist" aria-label="Jobs view" style=" display: inline-flex; flex-wrap: wrap; justify-content: center; padding: 4px; border-radius: 14px; background: #F6F4F9">
-        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
-          <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></button>
-        </sc-for>
-      </div>
-      </div>
-
-      <sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-direction: column; gap: 18px">
-          <div role="group" aria-label="Filters" style="padding: 12px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
-            <label style="flex: 1 1 220px; position: relative; display: block"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search jobs</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 14px; top: 14px"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-              <input type="search" value="{{q}}" onChange="{{onQ}}" placeholder="Search title, summary, skills" style="width: 100%; height: 44px; padding: 0 12px 0 40px; box-sizing: border-box; border: none; border-radius: 12px; background: #F6F4F9; color: #16161C; font-family: inherit; font-size: 14px">
-            </label>
-            <sc-for list="{{selects}}" as="f" hint-placeholder-count="5">
-              <label style="display: inline-flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">{{f.label}}</span>
-                <select value="{{f.value}}" onChange="{{f.onChange}}" style="{{f.style}}">
-                  <sc-for list="{{f.options}}" as="o" hint-placeholder-count="4"><option value="{{o.value}}">{{o.label}}</option></sc-for>
-                </select>
-              </label>
-            </sc-for>
-            <div style="flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 2px 4px 0">
-              <label style="min-height: 36px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #3F3F49; cursor: pointer"><input type="checkbox" checked="{{soon}}" onChange="{{toggleSoon}}" style="width: 17px; height: 17px; margin: 0">Apply by within 24 h</label>
-              <label style="min-height: 36px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #3F3F49; cursor: pointer"><input type="checkbox" checked="{{hideApplied}}" onChange="{{toggleHide}}" style="width: 17px; height: 17px; margin: 0">Hide jobs I applied to</label>
-              <span style="flex: 1"></span>
-              <span aria-live="polite" style="font-size: 13px; font-weight: 600; color: #4B4B57">{{countLabel}}</span>
-              <button onClick="{{clearAll}}" style="height: 34px; padding: 0 12px; border: none; border-radius: 10px; background: transparent; color: #6A22B0; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Clear</button>
-              <button onClick="{{copyLink}}" style="height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 10px; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>{{copyLabel}}</button>
-            </div>
+  <!-- OPEN JOBS -->
+  <sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
+    <div>
+      <!-- Segmented search bar: one line, details in popovers and the Filters sheet -->
+      <div style="position: sticky; top: 78px; z-index: 20; padding: 18px 24px 10px; background: linear-gradient(#FFFFFF 78%, rgba(255,255,255,0))">
+        <div style="position: relative; max-width: 1192px; margin: 0 auto">
+          <sc-if value="{{popOpen}}" hint-placeholder-val="{{ false }}">
+            <button aria-label="Close" onClick="{{closePop}}" style="position: fixed; inset: 0; z-index: 1; border: none; background: transparent; cursor: default"></button>
+          </sc-if>
+          <div role="search" class="hb-in-3" style="position: relative; z-index: 2; display: flex; align-items: stretch; padding: 6px; border-radius: 9999px; background: {{barBg}}; box-shadow: 0 1px 2px rgba(17,17,22,0.05), 0 14px 34px -18px rgba(17,17,22,0.3)">
+            <label style="{{segQ}}"><span style="font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: #16161C">What</span><input type="search" value="{{q}}" onChange="{{onQ}}" onFocus="{{closePop}}" placeholder="Title, skill or keyword" style="width: 100%; height: 22px; padding: 0; border: none; background: transparent; color: #16161C; font-family: inherit; font-size: 14px"></label>
+            <span aria-hidden="true" style="width: 1px; margin: 12px 0; background: #ECECF0"></span>
+            <button onClick="{{openCat}}" aria-expanded="{{catOpenStr}}" aria-haspopup="dialog" style="{{segCat}}"><span style="font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: #16161C">Field</span><span style="display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 14px; color: {{catColor}}">{{catValue}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+            <span aria-hidden="true" style="width: 1px; margin: 12px 0; background: #ECECF0"></span>
+            <button onClick="{{openBudget}}" aria-expanded="{{budgetOpenStr}}" aria-haspopup="dialog" style="{{segBudget}}"><span style="font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: #16161C">Budget</span><span style="display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 14px; color: {{budgetColor}}">{{budgetValue}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+            <button onClick="{{closePop}}" aria-label="Search" style="width: 52px; height: 52px; flex-shrink: 0; align-self: center; border: none; border-radius: 9999px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
           </div>
 
-          <div class="ned-stagger" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+          <sc-if value="{{catOpen}}" hint-placeholder-val="{{ false }}">
+            <div role="dialog" aria-label="Choose a field" class="hb-pop" style="position: absolute; z-index: 3; left: 30%; top: calc(100% + 10px); width: 520px; max-width: calc(100vw - 48px); padding: 14px; box-sizing: border-box; border-radius: 26px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 30px 60px -26px rgba(17,17,22,0.35); transform-origin: top left">
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+                <sc-for list="{{catOptions}}" as="c" hint-placeholder-count="9">
+                  <button onClick="{{c.pick}}" aria-pressed="{{c.sel}}" class="hb-mi" style="{{c.style}}">
+                    <span style="{{c.iconBox}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.icon}}"></path></svg></span>
+                    <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{c.label}}</span><span style="display: block; font-size: 12px; color: #8A8A96">{{c.count}}</span></span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{budgetOpen}}" hint-placeholder-val="{{ false }}">
+            <div role="dialog" aria-label="Choose a budget" class="hb-pop" style="position: absolute; z-index: 3; right: 64px; top: calc(100% + 10px); width: 340px; max-width: calc(100vw - 48px); padding: 10px; box-sizing: border-box; border-radius: 24px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(17,17,22,0.06), 0 30px 60px -26px rgba(17,17,22,0.35)">
+              <sc-for list="{{budgetOptions}}" as="b" hint-placeholder-count="4">
+                <button role="radio" aria-checked="{{b.sel}}" onClick="{{b.pick}}" class="hb-mi" style="{{b.style}}">
+                  <span style="{{b.dot}}"></span>
+                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{b.label}}</span><span style="display: block; font-size: 12px; color: #8A8A96">{{b.count}}</span></span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <section aria-label="Results" style="max-width: 1240px; margin: 0 auto; padding: 6px 24px 80px; box-sizing: border-box">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px">
+          <button onClick="{{openDrawer}}" aria-haspopup="dialog" style="height: 38px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 9999px; background: #F5F5F7; color: #16161C; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>Filters<sc-if value="{{hasMore}}" hint-placeholder-val="{{ false }}"><span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-size: 11px; font-weight: 700">{{moreCount}}</span></sc-if></button>
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="2">
+            <button onClick="{{c.remove}}" aria-label="Remove filter {{c.label}}" class="hb-pop" style="height: 34px; padding: 0 8px 0 12px; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 9999px; background: #F2EAFB; color: #6A22B0; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{c.label}}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          </sc-for>
+          <sc-if value="{{hasChips}}" hint-placeholder-val="{{ false }}"><button onClick="{{clearAll}}" class="hb-ul" style="height: 34px; padding: 0 4px; border: none; background: transparent; color: #6B6B76; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Clear all</button></sc-if>
+          <span style="flex: 1"></span>
+          <span aria-live="polite" style="font-size: 13px; color: #6B6B76">{{countLabel}}</span>
+          <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #6B6B76">Sort
+            <select value="{{sort}}" onChange="{{onSort}}" style="height: 34px; padding: 0 6px; border: none; border-radius: 10px; background: transparent; color: #16161C; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">
+              <option value="new">Newest</option>
+              <option value="soon">Apply by soonest</option>
+              <option value="budget">Highest budget</option>
+            </select>
+          </label>
+          <div role="group" aria-label="Layout" style="display: inline-flex; padding: 3px; border-radius: 9999px; background: #F5F5F7">
+            <button onClick="{{gridView}}" aria-pressed="{{isGridStr}}" aria-label="Grid" style="{{gridBtn}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></button>
+            <button onClick="{{listView}}" aria-pressed="{{isListStr}}" aria-label="List" style="{{listBtn}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg></button>
+          </div>
+          <button onClick="{{copyLink}}" aria-label="{{copyLabel}}" title="{{copyLabel}}" style="height: 38px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 9999px; background: transparent; color: {{copyColor}}; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>{{copyShort}}</button>
+        </div>
+
+        <sc-if value="{{isGrid}}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px">
             <sc-for list="{{jobs}}" as="j" hint-placeholder-count="6">
-              <a href="WebJobDetail.dc.html" class="hb-card" aria-label="{{j.aria}}" style="{{j.cardStyle}}">
-                <div style="display: flex; align-items: flex-start; gap: 10px">
-                  <span style="flex: 1; min-width: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.3px">{{j.title}}</span>
+              <a href="WebJobDetail.dc.html" class="hb-lift rv" aria-label="{{j.aria}}" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 22px; background: #FFFFFF; box-shadow: inset 0 0 0 1px #ECECF0; color: #16161C; text-decoration: none">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="width: 8px; height: 8px; border-radius: 9999px; background: {{j.catInk}}"></span>
+                  <span style="flex: 1; font-size: 12px; font-weight: 600; color: #6B6B76">{{j.catLabel}} · {{j.durLabel}}</span>
                   <sc-if value="{{j.hasMine}}" hint-placeholder-val="{{ false }}"><span style="{{j.mineChip}}">{{j.mine}}</span></sc-if>
+                  <span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 5px; border-radius: 9999px; background: #E7F6EC; color: #127A3A; font-size: 11px; font-weight: 700"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Locked</span>
                 </div>
-                <div style="{{j.metaStyle}}">
-                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>{{j.catLabel}}</span>
-                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{j.durLabel}}</span>
-                  <span style="display: inline-flex; align-items: center; gap: 5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{j.msLabel}}</span>
+                <div>
+                  <h2 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.3">{{j.title}}</h2>
+                  <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #6B6B76">{{j.summary}}</p>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px">
-                  <sc-for list="{{j.skills}}" as="k" hint-placeholder-count="2"><span style="{{j.skillStyle}}">{{k}}</span></sc-for>
+                  <sc-for list="{{j.skills}}" as="k" hint-placeholder-count="2"><span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; background: #F5F5F7; color: #3F3F49; font-size: 12px; font-weight: 500">{{k}}</span></sc-for>
                 </div>
-                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
-                  <span><span style="display: block; font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700">{{j.money}}</span><span style="{{j.subStyle}}">{{j.moneySub}}</span></span>
-                  <span style="{{j.lockStyle}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Budget locked</span>
-                </div>
-                <div style="{{j.footStyle}}">
-                  <dc-import name="Avatar" seed="{{j.biz}}" size="34" hint-size="34px,34px"></dc-import>
-                  <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 600">@{{j.biz}}</span><span style="{{j.subStyle}}">Apply by {{j.applyBy}} · {{j.applicants}}</span></span>
-                  <span style="{{j.ctaStyle}}">{{j.cta}}</span>
+                <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #F0F0F3; display: flex; align-items: center; gap: 10px">
+                  <dc-import name="Avatar" seed="{{j.biz}}" size="30" hint-size="30px,30px"></dc-import>
+                  <span style="flex: 1; min-width: 0; font-size: 12px; color: #6B6B76"><span style="display: block; font-weight: 600; color: #16161C">@{{j.biz}}</span>Apply by {{j.applyBy}} · {{j.applicants}}</span>
+                  <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700">{{j.money}}</span><span style="display: block; font-size: 11px; color: #8A8A96">{{j.msLabel}}</span></span>
                 </div>
               </a>
             </sc-for>
           </div>
+        </sc-if>
+        <sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 20px; border-radius: 22px; box-shadow: inset 0 0 0 1px #ECECF0; overflow: hidden">
+            <sc-for list="{{jobs}}" as="j" hint-placeholder-count="6">
+              <a href="WebJobDetail.dc.html" class="hb-mi" aria-label="{{j.aria}}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 18px 22px; border-top: {{j.border}}; color: #16161C; text-decoration: none; background: #FFFFFF">
+                <dc-import name="Avatar" seed="{{j.biz}}" size="38" hint-size="38px,38px"></dc-import>
+                <span style="flex: 1 1 300px; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{j.title}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #6B6B76">@{{j.biz}} · {{j.catLabel}} · {{j.durLabel}} · {{j.msLabel}}</span></span>
+                <span style="width: 150px; font-size: 13px; color: #6B6B76">Apply by {{j.applyBy}}<br>{{j.applicants}}</span>
+                <span style="width: 170px; text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700">{{j.money}}</span><span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #127A3A"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Budget locked</span></span>
+                <svg class="hb-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
 
-          <sc-if value="{{noJobs}}" hint-placeholder-val="{{ false }}">
-            <div style="padding: 36px 24px; border-radius: 20px; background: #FFFFFF; text-align: center">
-              <div style="font-size: 16px; font-weight: 600">No open jobs match these filters.</div>
-              <div style="margin-top: 6px; font-size: 14px; color: #5E5E6A">Try another category or a wider budget.</div>
-              <button onClick="{{clearAll}}" style="margin-top: 14px; height: 44px; padding: 0 18px; border: none; border-radius: 12px; background: #16161C; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Clear filters</button>
-            </div>
-          </sc-if>
-          <sc-if value="{{hasMore}}" hint-placeholder-val="{{ true }}">
-            <button onClick="{{showMore}}" style="align-self: center; height: 48px; padding: 0 24px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 12px; background: #16161C; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{moreLabel}}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
-          </sc-if>
-        </div>
-      </sc-if>
+        <sc-if value="{{noJobs}}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 20px; padding: 56px 24px; border-radius: 24px; background: #F5F5F7; text-align: center">
+            <div style="font-size: 22px; font-weight: 300; letter-spacing: -0.5px">No open jobs match, <span style="color: #9A9AA6">yet</span></div>
+            <div style="margin-top: 8px; font-size: 14px; color: #6B6B76">Try another field, a wider budget, or fewer filters.</div>
+            <button onClick="{{clearAll}}" style="margin-top: 18px; height: 44px; padding: 0 20px; border: none; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Clear all filters</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{hasMoreJobs}}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top: 28px; display: flex; justify-content: center"><button onClick="{{showMore}}" style="height: 46px; padding: 0 24px; border: none; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{moreLabel}}</button></div>
+        </sc-if>
+      </section>
 
-      <sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
-        <div style="display: flex; flex-direction: column; gap: 10px">
-          <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
-            <div style="padding: 16px 20px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
-              <dc-import name="Avatar" seed="{{r.seed}}" size="40" hint-size="40px,40px"></dc-import>
-              <span style="flex: 1 1 240px; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{r.title}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #5E5E6A">{{r.meta}}</span></span>
-              <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{r.money}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{r.moneySub}}</span></span>
-              <span style="{{r.chip}}">{{r.status}}</span>
-              <a href="{{r.href}}" style="{{r.ctaStyle}}">{{r.cta}}</a>
+      <!-- Filters sheet -->
+      <sc-if value="{{drawer}}" hint-placeholder-val="{{ false }}">
+        <div style="position: fixed; inset: 0; z-index: 60">
+          <button aria-label="Close filters" onClick="{{closeDrawer}}" class="hb-screen" style="position: absolute; inset: 0; border: none; background: rgba(17,17,22,0.32); cursor: default"></button>
+          <div role="dialog" aria-modal="true" aria-labelledby="fj-filters" class="hb-sheet" style="position: absolute; top: 0; right: 0; bottom: 0; width: 440px; max-width: 100%; background: #FFFFFF; display: flex; flex-direction: column; box-shadow: -24px 0 60px -30px rgba(17,17,22,0.4)">
+            <div style="padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: inset 0 -1px 0 #ECECF0">
+              <h2 id="fj-filters" style="margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -0.4px">Filters</h2>
+              <button onClick="{{closeDrawer}}" aria-label="Close" style="width: 40px; height: 40px; border: none; border-radius: 9999px; background: #F5F5F7; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16161C" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
             </div>
-          </sc-for>
-          <sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
-            <div style="padding: 28px 20px; border-radius: 18px; background: #FFFFFF; text-align: center"><div style="font-size: 15px; font-weight: 600">You haven't applied to a job yet.</div><div style="margin-top: 4px; font-size: 14px; color: #5E5E6A">Every open job shows its locked budget, so the money is there before you apply.</div></div>
-          </sc-if>
+            <div style="flex: 1; overflow-y: auto; padding: 8px 24px 24px">
+              <section style="padding: 20px 0; box-shadow: inset 0 -1px 0 #F0F0F3">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600">Skills</h3>
+                <p style="margin: 4px 0 0; font-size: 13px; color: #8A8A96">Show jobs that ask for any of these.</p>
+                <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px">
+                  <sc-for list="{{skillChips}}" as="s" hint-placeholder-count="10"><button aria-pressed="{{s.sel}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button></sc-for>
+                </div>
+              </section>
+              <section style="padding: 20px 0; box-shadow: inset 0 -1px 0 #F0F0F3">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600">Time to deliver</h3>
+                <div role="radiogroup" aria-label="Time to deliver" style="margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: 14px; background: #F5F5F7">
+                  <sc-for list="{{durations}}" as="d" hint-placeholder-count="4"><button role="radio" aria-checked="{{d.sel}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button></sc-for>
+                </div>
+              </section>
+              <section style="padding: 20px 0; box-shadow: inset 0 -1px 0 #F0F0F3">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600">Milestones</h3>
+                <div role="radiogroup" aria-label="Milestones" style="margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: 14px; background: #F5F5F7">
+                  <sc-for list="{{msOptions}}" as="m" hint-placeholder-count="4"><button role="radio" aria-checked="{{m.sel}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button></sc-for>
+                </div>
+              </section>
+              <section style="padding: 12px 0">
+                <sc-for list="{{toggles}}" as="t" hint-placeholder-count="2">
+                  <button role="switch" aria-checked="{{t.sel}}" onClick="{{t.pick}}" style="width: 100%; padding: 14px 0; display: flex; align-items: center; gap: 14px; border: none; background: transparent; color: #16161C; font-family: inherit; text-align: left; cursor: pointer">
+                    <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{t.label}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #8A8A96">{{t.sub}}</span></span>
+                    <span style="{{t.track}}"><span style="{{t.knob}}"></span></span>
+                  </button>
+                </sc-for>
+              </section>
+            </div>
+            <div style="padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: inset 0 1px 0 #ECECF0">
+              <button onClick="{{clearMore}}" class="hb-ul" style="height: 44px; padding: 0 4px; border: none; background: transparent; color: #16161C; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Clear these</button>
+              <button onClick="{{closeDrawer}}" style="height: 48px; padding: 0 24px; border: none; border-radius: 9999px; background: #16161C; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{showLabel}}</button>
+            </div>
+          </div>
         </div>
       </sc-if>
     </div>
-  </section>
+  </sc-if>
 
-  <!-- Footer -->
-  <footer style="background: #16161C; color: #D7D7DE">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 48px 24px 28px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 32px 48px">
-      <div style="flex: 2 1 280px">
-        <div style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #FFFFFF">Jobs</span></div>
-        <p style="margin: 14px 0 0; max-width: 360px; font-size: 13px; line-height: 1.6; color: #A9A9B4">Jobs with budgets locked on Solana. N.E.D does not choose, vet or employ anyone, holds no funds and charges no fee in this version.</p>
+  <!-- MY APPLICATIONS / MY LISTINGS -->
+  <sc-if value="{{isRows}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="{{rowsTitle}}" style="max-width: 1240px; margin: 0 auto; padding: 28px 24px 80px; box-sizing: border-box">
+      <p style="margin: 0 0 16px; font-size: 14px; color: #6B6B76">{{rowsSub}}</p>
+      <div style="border-radius: 22px; box-shadow: inset 0 0 0 1px #ECECF0; overflow: hidden">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+          <div class="rv" style="padding: 18px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; border-top: {{r.border}}; background: #FFFFFF">
+            <dc-import name="Avatar" seed="{{r.seed}}" size="40" hint-size="40px,40px"></dc-import>
+            <span style="flex: 1 1 260px; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{r.title}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #6B6B76">{{r.meta}}</span></span>
+            <span style="text-align: right"><span style="display: block; font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700">{{r.money}}</span><span style="display: block; font-size: 11px; color: #8A8A96">{{r.moneySub}}</span></span>
+            <span style="{{r.chip}}">{{r.status}}</span>
+            <a href="{{r.href}}" style="{{r.ctaStyle}}">{{r.cta}}</a>
+          </div>
+        </sc-for>
+        <sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 48px 24px; text-align: center; background: #FFFFFF"><div style="font-size: 20px; font-weight: 300">You haven't applied to a job yet</div><div style="margin-top: 6px; font-size: 14px; color: #6B6B76">Every open job shows its locked budget, so the money is there before you apply.</div></div>
+        </sc-if>
       </div>
-      <nav aria-label="Jobs" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Jobs</span><a href="#board" style="color: #D7D7DE; text-decoration: none">Find jobs</a><a href="WebJobPost.dc.html" style="color: #D7D7DE; text-decoration: none">Post a job</a></nav>
-      <nav aria-label="Workspace links" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Workspace</span><a href="WebWorkspace.dc.html" style="color: #D7D7DE; text-decoration: none">Overview</a><a href="WebRecords.dc.html" style="color: #D7D7DE; text-decoration: none">Records</a></nav>
-      <nav aria-label="Legal" style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 10px; font-size: 13px"><span style="font-weight: 700; color: #FFFFFF">Legal</span><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Terms</a><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Privacy</a><a href="WebSignIn.dc.html" style="color: #D7D7DE; text-decoration: none">Disclosures</a></nav>
+    </section>
+  </sc-if>
+
+  <footer style="background: #0E0E12; color: #D7D7DE">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 44px 24px 0; box-sizing: border-box">
+      <div style="padding: 28px 0; border-top: none; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px">
+        <a href="WebJobs.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF"><span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 9px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700">N.E.D</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Jobs</span></a>
+        <nav aria-label="Footer" style="flex: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; font-size: 13px">
+          <a href="WebJobs.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Overview</a>
+          <a href="WebJobsFind.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Find jobs</a>
+          <a href="WebJobPost.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Post a job</a>
+          <a href="WebWorkspace.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Workspace</a>
+          <a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #D7D7DE; text-decoration: none">Legal</a>
+        </nav>
+        <span style="font-size: 12px; color: #8F8F9B">Student project · UniHackFest 2026</span>
+      </div>
+      <div style="padding: 18px 0 30px; border-top: 1px solid #24242C; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; font-size: 12px; line-height: 1.6; color: #8F8F9B">
+        <span style="flex: 1 1 520px">{{foot}}</span>
+        <span style="display: flex; gap: 18px"><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Terms of use</a><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Privacy</a><a href="WebJobsLegal.dc.html" class="hb-ul" style="color: #B9B9C4; text-decoration: none">Disclosures</a></span>
+      </div>
     </div>
-    <div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px 28px; box-sizing: border-box; border-top: 1px solid #2A2A33; font-size: 12px; line-height: 1.6; color: #8F8F9B">{{foot}}</div>
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["vinh", "mia"], "default": "vinh"}, "tab": {"editor": "enum", "options": ["open", "applied", "listings"], "default": "open"}, "$preview": {"width": 1440, "height": 2100}}'>
+<script type="text/x-dc" data-dc-script data-props='{"who": {"editor": "enum", "options": ["vinh", "mia", "guest"], "default": "vinh"}, "tab": {"editor": "enum", "options": ["open", "applied", "listings"], "default": "open"}, "drawer": {"editor": "boolean", "default": false}, "$preview": {"width": 1440, "height": 2200}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
     var t = props.tab;
-    this.state = { open: false, tab: (t === 'applied' || t === 'listings') ? t : 'open', q: '', cat: 'all', skill: 'any', budget: 'any', dur: 'any', ms: 'any', soon: false, hideApplied: false, sort: 'new', copied: false, showAll: false };
+    this.state = { open: false, menu: false, tab: (t === 'applied' || t === 'listings') ? t : 'open', q: '', cat: 'all', budget: 'any', skills: {}, dur: 'any', ms: 'any', soon: false, hideApplied: false, sort: 'new', view: 'grid', pop: null, drawer: props.drawer === true || props.drawer === 'true', showAll: false, copied: false };
   }
   renderVals() {
     var self = this, st = this.state;
-    var vn = (this.props.who ?? 'vinh') === 'vinh';
+    var whoP = this.props.who ?? 'guest';
+    var guest = whoP === 'guest', vn = whoP === 'vinh', client = whoP === 'mia';
     var RATE = 26019.5;
     function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     function vnd(usd) { return '≈ ' + grp(Math.round(usd * RATE / 10000) * 10000) + ' VND'; }
     function money(usd) { return vn ? vnd(usd) : usd.toFixed(2) + ' USDC'; }
     function moneySub(usd) { return vn ? '$' + usd.toFixed(2) + ' · estimate' : 'test USDC, locked'; }
-    function fold(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd'); }
-    var TONE = { info: ['#EEEFFE', '#3730A3'], purple: ['#F2EAFB', '#6A22B0'], success: ['#E7F6EC', '#127A3A'], neutral: ['#EFEFF3', '#4B4B57'] };
-    function chip(t) { var c = TONE[t]; return 'display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1]; }
-    function cta(primary) { return 'height: 38px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; background: ' + (primary ? '#7B2FBE' : '#FFFFFF') + '; color: ' + (primary ? '#FFFFFF' : '#16161C') + '; box-shadow: ' + (primary ? 'none' : 'inset 0 0 0 1.5px #16161C'); }
-    function sel(on) { return 'height: 44px; padding: 0 12px; border: none; border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: ' + (on ? '#F2EAFB' : '#F6F4F9') + '; color: ' + (on ? '#6A22B0' : '#3F3F49'); }
-
     var CATS = [
       ['design', 'Design', 'M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.6 7.6', '#7B2FBE', '#F2EAFB'],
       ['dev', 'Development', 'm8 7-5 5 5 5M16 7l5 5-5 5', '#C2410C', '#FFE4CF'],
@@ -254,67 +370,69 @@ class Component extends DCLogic {
       ['other', 'Other', 'M5 12h.01M12 12h.01M19 12h.01', '#4B4B57', '#EFEFF3']
     ];
     var CATLABEL = { all: 'All categories' }; CATS.forEach(function (c) { CATLABEL[c[0]] = c[1]; });
-    var SKILLS = ['Logo & brand', 'UI/UX', 'Illustration', 'Figma', 'Web front end', 'Back end', 'Mobile', 'Solana programs', 'English ↔ Vietnamese', 'Copywriting', 'Social media', 'Motion graphics', 'Editing', 'Spreadsheets'];
-
     var J = [
-      { id: 'logo', n: 10, biz: 'orbit_cafe', title: 'Logo refresh for a coffee brand', cat: 'design', skills: ['Logo & brand', 'Illustration'], summary: 'A cleaner wordmark and a small cup icon.', usd: 20, ms: 2, days: 7, applyBy: '9 Oct', h: 62, apps: 4 },
-      { id: 'icons', n: 9, biz: 'mia', title: 'Icon set, 24 icons', cat: 'design', skills: ['Illustration', 'Figma'], summary: 'Outline icons for a wallet app.', usd: 15, ms: 1, days: 7, applyBy: '10 Oct', h: 90, apps: 5, mine: 'Applied' },
-      { id: 'translate', n: 8, biz: 'mia', title: 'Translate app onboarding, EN → VI', cat: 'writing', skills: ['English ↔ Vietnamese'], summary: 'About 900 words across six screens.', usd: 15, ms: 1, days: 3, applyBy: 'tomorrow', h: 20, apps: 2 },
-      { id: 'framer', n: 7, biz: 'lumen_labs', title: 'Landing page in Framer', cat: 'design', skills: ['UI/UX', 'Figma'], summary: 'One-page site for a note-taking app.', usd: 60, ms: 3, days: 14, applyBy: '12 Oct', h: 140, apps: 7 },
-      { id: 'audit', n: 6, biz: 'pixel_harbor', title: 'Review a small Solana program', cat: 'dev', skills: ['Solana programs', 'Back end'], summary: 'Read an Anchor program and write up findings.', usd: 80, ms: 2, days: 14, applyBy: '11 Oct', h: 110, apps: 1 },
-      { id: 'video', n: 5, biz: 'fernway', title: '60-second explainer video', cat: 'video', skills: ['Motion graphics', 'Editing'], summary: 'Simple 2D motion with captions.', usd: 45, ms: 2, days: 14, applyBy: '13 Oct', h: 160, apps: 3 },
-      { id: 'rn', n: 4, biz: 'pixel_harbor', title: 'Mobile app bug fixes (React Native)', cat: 'dev', skills: ['Mobile', 'Web front end'], summary: 'Five known bugs with steps to reproduce.', usd: 50, ms: 2, days: 14, applyBy: '9 Oct', h: 58, apps: 3 },
-      { id: 'posts', n: 3, biz: 'lumen_labs', title: 'Four blog posts on remote work', cat: 'writing', skills: ['Copywriting'], summary: 'One post per milestone.', usd: 30, ms: 4, days: 30, applyBy: '14 Oct', h: 190, apps: 2 },
-      { id: 'sheet', n: 2, biz: 'tanaka_studio', title: 'Clean up a product spreadsheet', cat: 'data', skills: ['Spreadsheets'], summary: 'About 400 rows to tidy.', usd: 10, ms: 1, days: 3, applyBy: 'tomorrow', h: 22, apps: 0 },
-      { id: 'social', n: 1, biz: 'orbit_cafe', title: 'Social posts for a launch week', cat: 'marketing', skills: ['Social media'], summary: 'Seven square posts and captions.', usd: 12, ms: 1, days: 7, applyBy: '10 Oct', h: 80, apps: 1 }
+      { id: 'logo', n: 10, biz: 'orbit_cafe', title: 'Logo refresh for a coffee brand', cat: 'design', skills: ['Logo & brand', 'Illustration'], summary: 'A cleaner wordmark and a small cup icon. Concepts first, final files after release.', usd: 20, ms: 2, days: 7, applyBy: '9 Oct', h: 62, apps: 4, plan: [['Two logo concepts', 8, 3], ['Final logo files', 12, 7]] },
+      { id: 'icons', n: 9, biz: 'mia', title: 'Icon set, 24 icons', cat: 'design', skills: ['Illustration', 'Figma'], summary: 'Outline icons for a wallet app, 24 px grid, SVG and PNG.', usd: 15, ms: 1, days: 7, applyBy: '10 Oct', h: 90, apps: 5, applied: true, plan: [['All 24 icons', 15, 7]] },
+      { id: 'translate', n: 8, biz: 'mia', title: 'Translate app onboarding, EN → VI', cat: 'writing', skills: ['English ↔ Vietnamese'], summary: 'About 900 words across six screens, same tone as the English.', usd: 15, ms: 1, days: 3, applyBy: 'tomorrow', h: 20, apps: 2, plan: [['Six translated screens', 15, 3]] },
+      { id: 'framer', n: 7, biz: 'lumen_labs', title: 'Landing page in Framer', cat: 'design', skills: ['UI/UX', 'Figma'], summary: 'One-page site for a note-taking app: hero, features, pricing, FAQ.', usd: 60, ms: 3, days: 14, applyBy: '12 Oct', h: 140, apps: 7, plan: [['Wireframe', 15, 4], ['Visual design', 25, 9], ['Built in Framer', 20, 14]] },
+      { id: 'audit', n: 6, biz: 'pixel_harbor', title: 'Review a small Solana program', cat: 'dev', skills: ['Solana programs', 'Back end'], summary: 'Read an Anchor program of about 600 lines and write up the findings.', usd: 80, ms: 2, days: 14, applyBy: '11 Oct', h: 110, apps: 1, plan: [['Findings report', 50, 9], ['Fix review', 30, 14]] },
+      { id: 'video', n: 5, biz: 'fernway', title: '60-second explainer video', cat: 'video', skills: ['Motion graphics', 'Editing'], summary: 'Script is ready. Simple 2D motion with captions in English and Vietnamese.', usd: 45, ms: 2, days: 14, applyBy: '13 Oct', h: 160, apps: 3, plan: [['Storyboard', 15, 5], ['Final video', 30, 14]] },
+      { id: 'rn', n: 4, biz: 'pixel_harbor', title: 'Mobile app bug fixes (React Native)', cat: 'dev', skills: ['Mobile', 'Web front end'], summary: 'Five known bugs with steps to reproduce; each milestone ships a group of fixes.', usd: 50, ms: 2, days: 14, applyBy: '9 Oct', h: 58, apps: 3, plan: [['Bugs 1–3', 25, 7], ['Bugs 4–5', 25, 14]] },
+      { id: 'posts', n: 3, biz: 'lumen_labs', title: 'Four blog posts on remote work', cat: 'writing', skills: ['Copywriting'], summary: 'Around 1,000 words each, one post per milestone.', usd: 30, ms: 4, days: 30, applyBy: '14 Oct', h: 190, apps: 2, plan: [['Post 1', 7.5, 7], ['Post 2', 7.5, 14], ['Post 3', 7.5, 21], ['Post 4', 7.5, 30]] },
+      { id: 'sheet', n: 2, biz: 'tanaka_studio', title: 'Clean up a product spreadsheet', cat: 'data', skills: ['Spreadsheets'], summary: 'About 400 rows: fix duplicates and split sizes into columns.', usd: 10, ms: 1, days: 3, applyBy: 'tomorrow', h: 22, apps: 0, plan: [['Clean sheet', 10, 3]] },
+      { id: 'social', n: 1, biz: 'orbit_cafe', title: 'Social posts for a launch week', cat: 'marketing', skills: ['Social media'], summary: 'Seven square posts and captions for a new seasonal drink.', usd: 12, ms: 1, days: 7, applyBy: '10 Oct', h: 80, apps: 1, plan: [['Seven posts', 12, 7]] }
     ];
-    if (!vn) J.forEach(function (j) { j.mine = j.biz === 'mia' ? 'Your job' : null; });
-
-    function passes(j, ignoreCat) {
-      if (!ignoreCat && st.cat !== 'all' && j.cat !== st.cat) return false;
-      if (st.skill !== 'any' && j.skills.indexOf(st.skill) < 0) return false;
-      if (st.budget === 'lt20' && !(j.usd < 20)) return false;
-      if (st.budget === '20to50' && !(j.usd >= 20 && j.usd <= 50)) return false;
-      if (st.budget === 'gt50' && !(j.usd > 50)) return false;
+    function durLabel(d) { return d <= 3 ? 'Up to 3 days' : d <= 7 ? 'Up to 1 week' : d <= 14 ? 'Up to 2 weeks' : 'Up to 1 month'; }
+    if (client) J.forEach(function (j) { j.mine = j.biz === 'mia' ? 'Your job' : null; });
+    else J.forEach(function (j) { j.mine = j.applied && !guest ? 'Applied' : null; });
+    var CATINK = {}; CATS.forEach(function (c) { CATINK[c[0]] = c[3]; });
+    var SKILLS = ['Logo & brand', 'UI/UX', 'Illustration', 'Figma', 'Web front end', 'Back end', 'Mobile', 'Solana programs', 'English ↔ Vietnamese', 'Copywriting', 'Social media', 'Motion graphics', 'Editing', 'Spreadsheets'];
+    var BUDGETS = vn
+      ? [['any', 'Any budget'], ['lt20', 'Under ≈ 520,000 VND'], ['20to50', '≈ 520,000 – 1,300,000 VND'], ['gt50', 'Over ≈ 1,300,000 VND']]
+      : [['any', 'Any budget'], ['lt20', 'Under 20 USDC'], ['20to50', '20 – 50 USDC'], ['gt50', 'Over 50 USDC']];
+    var BL = {}; BUDGETS.forEach(function (b) { BL[b[0]] = b[1]; });
+    var DURS = [['any', 'Any'], ['7', '1 week'], ['14', '2 weeks'], ['31', '1 month']];
+    var DL = { '7': 'Up to 1 week', '14': 'Up to 2 weeks', '31': 'Up to 1 month' };
+    var MSO = [['any', 'Any'], ['1', '1'], ['2-3', '2–3'], ['4-5', '4–5']];
+    function inBudget(j, b) { return b === 'any' || (b === 'lt20' && j.usd < 20) || (b === '20to50' && j.usd >= 20 && j.usd <= 50) || (b === 'gt50' && j.usd > 50); }
+    function fold(x) { return String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd'); }
+    function passes(j, skip) {
+      if (skip !== 'cat' && st.cat !== 'all' && j.cat !== st.cat) return false;
+      if (skip !== 'budget' && !inBudget(j, st.budget)) return false;
+      var picked = Object.keys(st.skills).filter(function (k) { return st.skills[k]; });
+      if (picked.length && !j.skills.some(function (s) { return picked.indexOf(s) >= 0; })) return false;
       if (st.dur !== 'any' && j.days > Number(st.dur)) return false;
       if (st.ms === '1' && j.ms !== 1) return false;
       if (st.ms === '2-3' && !(j.ms >= 2 && j.ms <= 3)) return false;
       if (st.ms === '4-5' && !(j.ms >= 4)) return false;
       if (st.soon && j.h > 24) return false;
       if (st.hideApplied && j.mine === 'Applied') return false;
-      if (st.q.trim()) {
-        var hay = fold(j.title + ' ' + j.summary + ' ' + j.skills.join(' ') + ' ' + CATLABEL[j.cat]);
-        if (!fold(st.q).split(/\s+/).filter(Boolean).every(function (w) { return hay.indexOf(w) >= 0; })) return false;
-      }
+      if (st.q.trim()) { var hay = fold(j.title + ' ' + j.summary + ' ' + j.skills.join(' ') + ' ' + CATLABEL[j.cat]); if (!fold(st.q).split(/\s+/).filter(Boolean).every(function (w) { return hay.indexOf(w) >= 0; })) return false; }
       return true;
     }
-    var list = J.filter(function (j) { return passes(j, false); });
+    var list = J.filter(function (j) { return passes(j); });
     list.sort(function (a, b) { return st.sort === 'soon' ? a.h - b.h : st.sort === 'budget' ? b.usd - a.usd : b.n - a.n; });
     var LIMIT = 9, shown = st.showAll ? list : list.slice(0, LIMIT);
+    var picked = Object.keys(st.skills).filter(function (k) { return st.skills[k]; });
+    var moreCount = picked.length + (st.dur !== 'any' ? 1 : 0) + (st.ms !== 'any' ? 1 : 0) + (st.soon ? 1 : 0) + (st.hideApplied ? 1 : 0);
+    var chips = [];
+    if (st.cat !== 'all') chips.push({ label: CATLABEL[st.cat], remove: function () { self.setState({ cat: 'all', showAll: false }); } });
+    if (st.budget !== 'any') chips.push({ label: BL[st.budget], remove: function () { self.setState({ budget: 'any', showAll: false }); } });
+    picked.forEach(function (k) { chips.push({ label: k, remove: function () { var x = Object.assign({}, st.skills); x[k] = false; self.setState({ skills: x, showAll: false }); } }); });
+    if (st.dur !== 'any') chips.push({ label: DL[st.dur], remove: function () { self.setState({ dur: 'any' }); } });
+    if (st.ms !== 'any') chips.push({ label: (st.ms === '1' ? '1 milestone' : st.ms.replace('-', '–') + ' milestones'), remove: function () { self.setState({ ms: 'any' }); } });
+    if (st.soon) chips.push({ label: 'Apply by within 24 h', remove: function () { self.setState({ soon: false }); } });
+    if (st.hideApplied) chips.push({ label: 'Hiding applied', remove: function () { self.setState({ hideApplied: false }); } });
+    var anyFilter = chips.length > 0 || !!st.q.trim();
+    var TONE = { info: ['#EEEFFE', '#3730A3'], purple: ['#F2EAFB', '#6A22B0'], success: ['#E7F6EC', '#127A3A'], neutral: ['#EFEFF3', '#4B4B57'] };
+    function chip(t) { var c = TONE[t]; return 'display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1]; }
+    function seg(on, grow) { return 'flex: ' + grow + '; min-width: 0; padding: 8px 22px; display: flex; flex-direction: column; justify-content: center; gap: 2px; border: none; border-radius: 9999px; font-family: inherit; text-align: left; cursor: pointer; background: ' + (on ? '#FFFFFF' : 'transparent') + '; box-shadow: ' + (on ? '0 6px 20px -8px rgba(17,17,22,0.3)' : 'none'); }
+    function seg2(on) { return 'height: 40px; padding: 0 8px; border: none; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: ' + (on ? '#16161C' : '#6B6B76') + '; box-shadow: ' + (on ? '0 1px 2px rgba(17,17,22,0.08), 0 4px 10px -6px rgba(17,17,22,0.2)' : 'none'); }
+    function pill(on) { return 'height: 36px; padding: 0 14px; border: none; border-radius: 9999px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ' + (on ? '#16161C' : '#F5F5F7') + '; color: ' + (on ? '#FFFFFF' : '#3F3F49'); }
+    function cta(primary) { return 'height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 9999px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; background: ' + (primary ? '#7B2FBE' : '#F5F5F7') + '; color: ' + (primary ? '#FFFFFF' : '#16161C'); }
+    var popOpen = st.pop !== null;
 
-    var jobs = shown.map(function (j, i) {
-      var dark = i === 0;
-      var ink = dark ? '#FFFFFF' : '#16161C', soft = dark ? '#B9B9C4' : '#5E5E6A';
-      return {
-        biz: j.biz, title: j.title, catLabel: CATLABEL[j.cat], skills: j.skills,
-        money: money(j.usd), moneySub: moneySub(j.usd),
-        msLabel: j.ms === 1 ? '1 milestone' : j.ms + ' milestones',
-        durLabel: j.days <= 3 ? '3 days' : j.days <= 7 ? '1 week' : j.days <= 14 ? '2 weeks' : '1 month',
-        applyBy: j.applyBy, applicants: j.apps === 0 ? 'no applicants yet' : j.apps === 1 ? '1 applicant' : j.apps + ' applicants',
-        hasMine: !!j.mine, mine: j.mine || '', mineChip: chip(j.mine === 'Applied' ? 'info' : 'purple'),
-        cta: j.mine === 'Applied' ? 'View' : j.mine === 'Your job' ? 'Manage' : 'Apply now',
-        cardStyle: 'display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 20px; text-decoration: none; color: ' + ink + '; background: ' + (dark ? '#16161C' : '#FFFFFF') + '; box-shadow: ' + (dark ? '0 18px 36px -18px rgba(17,17,22,0.55)' : '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)'),
-        metaStyle: 'display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; font-weight: 500; color: ' + soft,
-        skillStyle: 'height: 26px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 9999px; font-size: 12px; font-weight: 600; background: ' + (dark ? 'rgba(255,255,255,0.10)' : '#F6F4F9') + '; color: ' + (dark ? '#E7E7EE' : '#3F3F49'),
-        subStyle: 'display: block; font-size: 11px; color: ' + soft,
-        lockStyle: 'display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ' + (dark ? 'rgba(74,222,128,0.16)' : '#E7F6EC') + '; color: ' + (dark ? '#86EFAC' : '#127A3A'),
-        footStyle: 'display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid ' + (dark ? 'rgba(255,255,255,0.12)' : '#F0F0F3'),
-        ctaStyle: 'height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 600; white-space: nowrap; background: ' + (dark ? '#FFFFFF' : 'transparent') + '; color: #16161C; box-shadow: ' + (dark ? 'none' : 'inset 0 0 0 1.5px #16161C'),
-        aria: j.title + ', ' + money(j.usd) + ', budget locked'
-      };
-    });
-
-    var appsRows = vn ? [
+    var appsRows = (vn || (!client && !guest)) ? [
       { seed: 'orbit_cafe', title: 'Poster for a tea shop', meta: '@orbit_cafe · selected 6 Oct, 10:12 · accept within 48 h', usd: 10, status: 'Selected · accept now', tone: 'success', href: 'WebJobDetail.dc.html', cta: 'Review & accept', primary: true },
       { seed: 'mia', title: 'Icon set, 24 icons', meta: '@mia · applied 6 Oct, 08:40 · selects by 12 Oct', usd: 15, status: 'Applied', tone: 'info', href: 'WebJobDetail.dc.html', cta: 'View job', primary: false },
       { seed: 'lumen_labs', title: 'Landing page in Framer (earlier listing)', meta: '@lumen_labs · applied 1 Oct · filled 4 Oct', usd: 60, status: 'Not selected', tone: 'neutral', href: 'WebJobDetail.dc.html', cta: 'View job', primary: false }
@@ -325,85 +443,75 @@ class Component extends DCLogic {
       { seed: 'vinh', title: 'Logo refresh', meta: 'Hired @vinh · contract created 2 Oct', usd: 10, status: 'Filled', tone: 'purple', href: 'WebWorkspace.dc.html', cta: 'Open contract', primary: false, sub: 'moved into the contract' },
       { seed: 'mia', title: 'Banner set', meta: 'No applicants · budget returned 1 Oct', usd: 8, status: 'Withdrawn', tone: 'neutral', href: 'WebRecords.dc.html', cta: 'View record', primary: false, sub: 'returned to you' }
     ];
-    var tab = (!vn || st.tab !== 'listings') ? st.tab : 'open';
+    var TABS = [['open', 'Open jobs', J.length]];
+    if (!guest) TABS.push(['applied', 'My applications', appsRows.length]);
+    if (client) TABS.push(['listings', 'My listings', listingRows.length]);
+    var tab = TABS.some(function (t) { return t[0] === st.tab; }) ? st.tab : 'open';
     var rowsSrc = tab === 'applied' ? appsRows : tab === 'listings' ? listingRows : [];
-    var rows = rowsSrc.map(function (r) { return { seed: r.seed, title: r.title, meta: r.meta, money: money(r.usd), moneySub: r.sub || moneySub(r.usd), status: r.status, chip: chip(r.tone), href: r.href, cta: r.cta, ctaStyle: cta(r.primary) }; });
-
     var total = J.reduce(function (s, j) { return s + j.usd; }, 0);
-    var maxUsd = 80;
-    var TABS = vn ? [['open', 'Open jobs', J.length], ['applied', 'My applications', appsRows.length]] : [['open', 'Open jobs', J.length], ['applied', 'My applications', 0], ['listings', 'My listings', listingRows.length]];
-    function opts(arr) { return arr.map(function (o) { return { value: o[0], label: o[1] }; }); }
-    function mkSel(label, key, arr) { return { label: label, value: st[key], style: sel(st[key] !== arr[0][0]), options: opts(arr), onChange: function (e) { var u = { copied: false, showAll: false }; u[key] = e.target.value; self.setState(u); } }; }
-    var filtersOn = st.q || st.cat !== 'all' || st.skill !== 'any' || st.budget !== 'any' || st.dur !== 'any' || st.ms !== 'any' || st.soon || st.hideApplied;
 
     return {
-      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet', isClient: !vn,
-      heroTitle: vn ? 'Find work that is already funded' : 'Hire for work you can fund today',
-      heroSub: vn ? 'Every job here has its full budget locked on Solana before it is posted. Apply with a short pitch; if you are hired, you receive VND milestone by milestone.' : 'Browse what others post, or post your own job with its budget locked. Pick one applicant and the contract is created for you.',
-      heroMoney: money(20),
-      lockedTotal: money(total), openCount: String(J.length), appsTotal: String(J.reduce(function (s, j) { return s + j.apps; }, 0)),
-      bars: J.map(function (j) { return 'width: 6px; border-radius: 3px; background: ' + (j.usd >= 45 ? '#7B2FBE' : '#F4A261') + '; height: ' + Math.max(6, Math.round(j.usd / maxUsd * 30)) + 'px'; }),
-      q: st.q, onQ: function (e) { self.setState({ q: e.target.value, copied: false, showAll: false }); },
-      cat: st.cat, onCat: function (e) { self.setState({ cat: e.target.value, copied: false, showAll: false }); },
-      catOptions: [{ value: 'all', label: 'All categories' }].concat(CATS.map(function (c) { return { value: c[0], label: c[1] }; })),
-      searchSubmit: function (e) { if (e && e.preventDefault) e.preventDefault(); },
-      noop: function () {},
-      popular: ['Logo & brand', 'Figma', 'English ↔ Vietnamese', 'Solana programs'].map(function (s) { return { label: s, pick: function () { self.setState({ skill: s, tab: 'open', showAll: false, copied: false }); } }; }),
-      steps: (vn
-        ? [['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 8l-2 6-6 2 2-6z', 'Find a funded job', 'Budget locked, checkable on Explorer'], ['M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16zM13.5 6.5l4 4', 'Apply with a short pitch', 'Public, up to 280 bytes'], ['M5 12.5l4.5 4.5L19 7.5', 'Accept and deliver', 'Receive VND per milestone']]
-        : [['M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', 'Post and lock the budget', 'One page, three short steps'], ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM19 8v6M22 11h-6', 'Pick one applicant', 'That creates the contract'], ['M5 12.5l4.5 4.5L19 7.5', 'Release per milestone', 'After you accept the work']]
-      ).map(function (s) { return { icon: s[0], title: s[1], sub: s[2] }; }),
-      catTiles: CATS.map(function (c) {
-        var n = J.filter(function (j) { return j.cat === c[0]; }).length, on = st.cat === c[0];
-        return { label: c[1], count: n === 0 ? 'No open jobs yet' : n === 1 ? '1 open job' : n + ' open jobs', icon: c[2], ink: c[3], aria: c[1] + ', ' + n + ' open jobs',
-          iconBox: 'width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: ' + c[4],
-          subStyle: 'display: block; margin-top: 3px; font-size: 12px; color: ' + (n === 0 ? '#8A8A96' : '#5E5E6A'),
-          style: 'display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 18px; text-decoration: none; color: #16161C; background: #FFFFFF; box-shadow: ' + (on ? 'inset 0 0 0 2px #7B2FBE, 0 6px 16px -6px rgba(17,17,22,0.10)' : '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)'),
-          pick: function () { self.setState({ cat: on ? 'all' : c[0], tab: 'open', showAll: false, copied: false }); } };
-      }),
-      boardTitle: tab === 'applied' ? 'My applications' : tab === 'listings' ? 'My listings' : (st.cat === 'all' ? 'Open jobs' : CATLABEL[st.cat] + ' jobs'),
-      boardSub: tab === 'open' ? 'Every budget below is already locked on Solana.' : tab === 'applied' ? 'Where each of your applications stands.' : 'Jobs you posted and what happened to each budget.',
-      tabs: TABS.map(function (t) { var on = tab === t[0]; return { label: t[1], count: String(t[2]), sel: on ? 'true' : 'false', pick: function () { self.setState({ tab: t[0] }); },
-        style: 'height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: ' + (on ? '#16161C' : 'transparent') + '; color: ' + (on ? '#FFFFFF' : '#4B4B57'),
-        countStyle: 'min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 11px; font-weight: 700; background: ' + (on ? 'rgba(255,255,255,0.18)' : '#EFEFF3') + '; color: ' + (on ? '#FFFFFF' : '#4B4B57') }; }),
-      isBoard: tab === 'open', isList: tab !== 'open',
-      selects: [
-        mkSel('Category', 'cat', [['all', 'All categories']].concat(CATS.map(function (c) { return [c[0], c[1]]; }))),
-        mkSel('Skill', 'skill', [['any', 'Any skill']].concat(SKILLS.map(function (s) { return [s, s]; }))),
-        mkSel('Budget', 'budget', vn ? [['any', 'Any budget'], ['lt20', 'Under ≈ 520,000 VND'], ['20to50', '≈ 520,000 – 1,300,000 VND'], ['gt50', 'Over ≈ 1,300,000 VND']] : [['any', 'Any budget'], ['lt20', 'Under 20 USDC'], ['20to50', '20 – 50 USDC'], ['gt50', 'Over 50 USDC']]),
-        mkSel('Time to deliver', 'dur', [['any', 'Any duration'], ['7', 'Up to 1 week'], ['14', 'Up to 2 weeks'], ['31', 'Up to 1 month']]),
-        mkSel('Milestones', 'ms', [['any', 'Any milestones'], ['1', '1 milestone'], ['2-3', '2–3 milestones'], ['4-5', '4–5 milestones']]),
-        mkSel('Sort', 'sort', [['new', 'Newest'], ['soon', 'Apply by soonest'], ['budget', 'Budget: high to low']])
-      ],
-      soon: st.soon, toggleSoon: function () { self.setState({ soon: !st.soon, copied: false, showAll: false }); },
-      hideApplied: st.hideApplied, toggleHide: function () { self.setState({ hideApplied: !st.hideApplied, copied: false, showAll: false }); },
-      clearAll: function () { self.setState({ q: '', cat: 'all', skill: 'any', budget: 'any', dur: 'any', ms: 'any', soon: false, hideApplied: false, copied: false, showAll: false }); },
-      countLabel: (list.length === 1 ? '1 open job' : list.length + ' open jobs') + (filtersOn ? ' match' : ''),
-      copyLabel: st.copied ? 'Link copied' : 'Copy link', copyLink: function () { self.setState({ copied: true }); },
-      jobs: jobs, noJobs: list.length === 0,
-      hasMore: list.length > LIMIT, moreLabel: st.showAll ? 'Show fewer jobs' : 'Show all ' + list.length + ' jobs', showMore: function () { self.setState({ showAll: !st.showAll }); },
-      rows: rows, noRows: rows.length === 0,
-      catChips: [['all', 'All']].concat(CATS.map(function (c) { return [c[0], c[1]]; })).map(function (c) {
-        var on = st.cat === c[0], n = J.filter(function (j) { return (c[0] === 'all' || j.cat === c[0]) && passes(j, true); }).length;
-        return { label: c[1], count: String(n), sel: on ? 'true' : 'false', pick: function () { self.setState({ cat: c[0], tab: 'open', showAll: false, copied: false }); },
-          style: 'height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; border: none; border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; background: ' + (on ? '#16161C' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#3F3F49'),
-          countStyle: 'min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 11px; font-weight: 700; background: ' + (on ? 'rgba(255,255,255,0.18)' : '#EFEFF3') + '; color: ' + (on ? '#FFFFFF' : '#4B4B57') };
-      }),
-      whyMoney: money(20),
-      whys: [
-        { icon: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', label: 'Budget locked first' },
-        { icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2', label: 'Track record from Solana' },
-        { icon: 'M12 3v18M17 7.5a4 4 0 0 0-4-2.5h-1.5a3.5 3.5 0 0 0 0 7h1a3.5 3.5 0 0 1 0 7H11a4 4 0 0 1-4-2.5', label: 'No fee from N.E.D' },
-        { icon: vn ? 'M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z' : 'M12 3 5 6v6c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6z', label: vn ? 'Receive earnings in VND' : 'Release only accepted work' }
-      ],
-      whyPrimary: vn ? 'Browse open jobs' : 'Post a job', whyPrimaryHref: vn ? '#board' : 'WebJobPost.dc.html',
-      foot: vn ? 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated. Your pitch is public on Solana.' : 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. Filters live in the page address, so a search can be shared.',
-      open: st.open, openStr: st.open ? 'true' : 'false',
+      who: vn ? 'vinh' : 'mia', handle: vn ? 'vinh' : 'mia', walletSub: vn ? 'Vietnam view · VND' : 'USDC wallet',
+      isGuest: guest, isSignedIn: !guest, isClient: client,
+      foot: vn ? 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing. VND amounts are estimates at 26,019.5 VND per USD (2 Oct 2026); the payout partner is simulated.' : 'Devnet demo with test money. Listings, budgets and applications are read from Solana; N.E.D stores nothing.',
+      open: st.open, openStr: st.open ? 'true' : 'false', menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
       toggle: function () { self.setState({ open: !st.open, menu: false }); },
-      menu: !!st.menu, menuStr: st.menu ? 'true' : 'false',
       toggleMenu: function () { self.setState({ menu: !st.menu, open: false }); },
       openWallet: function () { self.setState({ menu: false, open: true }); },
-      close: function () { self.setState({ open: false }); }
+      close: function () { self.setState({ open: false }); },
+      openCount: String(J.length), lockedTotal: money(total),
+      tabs: TABS.map(function (t) { var on = tab === t[0]; return { label: t[1], count: String(t[2]), sel: on ? 'true' : 'false', pick: function () { self.setState({ tab: t[0], pop: null }); },
+        style: 'height: 46px; padding: 0; display: inline-flex; align-items: center; gap: 8px; border: none; background: transparent; font-family: inherit; font-size: 14px; cursor: pointer; color: ' + (on ? '#16161C' : '#6B6B76') + '; font-weight: ' + (on ? 600 : 500) + '; box-shadow: ' + (on ? 'inset 0 -2px 0 #16161C' : 'none'),
+        countStyle: 'min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 11px; font-weight: 700; background: ' + (on ? '#16161C' : '#F0F0F3') + '; color: ' + (on ? '#FFFFFF' : '#6B6B76') }; }),
+      isBoard: tab === 'open', isRows: tab !== 'open',
+      barBg: popOpen ? '#F5F5F7' : '#FFFFFF',
+      segQ: seg(false, '1.5 1 220px').replace('cursor: pointer; ', 'cursor: text; '),
+      segCat: seg(st.pop === 'cat', '1 1 180px'), segBudget: seg(st.pop === 'budget', '1 1 180px'),
+      q: st.q, onQ: function (e) { self.setState({ q: e.target.value, copied: false, showAll: false }); },
+      popOpen: popOpen, closePop: function () { if (st.pop) self.setState({ pop: null }); },
+      catOpen: st.pop === 'cat', catOpenStr: st.pop === 'cat' ? 'true' : 'false', openCat: function () { self.setState({ pop: st.pop === 'cat' ? null : 'cat' }); },
+      budgetOpen: st.pop === 'budget', budgetOpenStr: st.pop === 'budget' ? 'true' : 'false', openBudget: function () { self.setState({ pop: st.pop === 'budget' ? null : 'budget' }); },
+      catValue: st.cat === 'all' ? 'All fields' : CATLABEL[st.cat], catColor: st.cat === 'all' ? '#8A8A96' : '#16161C',
+      budgetValue: BL[st.budget], budgetColor: st.budget === 'any' ? '#8A8A96' : '#16161C',
+      catOptions: [['all', 'All fields', 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', '#16161C', '#F5F5F7']].concat(CATS).map(function (c) {
+        var on = st.cat === c[0], n = J.filter(function (j) { return (c[0] === 'all' || j.cat === c[0]) && passes(j, 'cat'); }).length;
+        return { label: c[1], count: n === 1 ? '1 open job' : n + ' open jobs', icon: c[2], ink: c[3], sel: on ? 'true' : 'false',
+          iconBox: 'width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: ' + c[4],
+          style: 'width: 100%; padding: 10px; display: flex; align-items: center; gap: 12px; border: none; border-radius: 16px; color: #16161C; font-family: inherit; text-align: left; cursor: pointer; background: ' + (on ? '#F5F5F7' : 'transparent') + '; box-shadow: ' + (on ? 'inset 0 0 0 1.5px #16161C' : 'none'),
+          pick: function () { self.setState({ cat: c[0], pop: null, showAll: false, copied: false }); } }; }),
+      budgetOptions: BUDGETS.map(function (b) { var on = st.budget === b[0], n = J.filter(function (j) { return inBudget(j, b[0]) && passes(j, 'budget'); }).length;
+        return { label: b[1], count: n === 1 ? '1 open job' : n + ' open jobs', sel: on ? 'true' : 'false',
+          dot: 'width: 18px; height: 18px; flex-shrink: 0; box-sizing: border-box; border-radius: 9999px; box-shadow: inset 0 0 0 ' + (on ? '6px #7B2FBE' : '1.5px #C9C9D2'),
+          style: 'width: 100%; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: none; border-radius: 14px; background: transparent; color: #16161C; font-family: inherit; text-align: left; cursor: pointer',
+          pick: function () { self.setState({ budget: b[0], pop: null, showAll: false, copied: false }); } }; }),
+      openDrawer: function () { self.setState({ drawer: true, pop: null }); }, closeDrawer: function () { self.setState({ drawer: false }); }, drawer: st.drawer,
+      hasMore: moreCount > 0, moreCount: String(moreCount),
+      chips: chips, hasChips: chips.length > 0,
+      clearAll: function () { self.setState({ q: '', cat: 'all', budget: 'any', skills: {}, dur: 'any', ms: 'any', soon: false, hideApplied: false, showAll: false, copied: false }); },
+      clearMore: function () { self.setState({ skills: {}, dur: 'any', ms: 'any', soon: false, hideApplied: false }); },
+      countLabel: (list.length === 1 ? '1 job' : list.length + ' jobs') + (anyFilter ? ' match' : ''),
+      sort: st.sort, onSort: function (e) { self.setState({ sort: e.target.value }); },
+      isGrid: st.view === 'grid', isList: st.view === 'list', isGridStr: st.view === 'grid' ? 'true' : 'false', isListStr: st.view === 'list' ? 'true' : 'false',
+      gridBtn: 'width: 34px; height: 32px; border: none; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: ' + (st.view === 'grid' ? '#FFFFFF' : 'transparent') + '; color: ' + (st.view === 'grid' ? '#16161C' : '#8A8A96') + '; box-shadow: ' + (st.view === 'grid' ? '0 1px 3px rgba(17,17,22,0.12)' : 'none'),
+      listBtn: 'width: 34px; height: 32px; border: none; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: ' + (st.view === 'list' ? '#FFFFFF' : 'transparent') + '; color: ' + (st.view === 'list' ? '#16161C' : '#8A8A96') + '; box-shadow: ' + (st.view === 'list' ? '0 1px 3px rgba(17,17,22,0.12)' : 'none'),
+      gridView: function () { self.setState({ view: 'grid' }); }, listView: function () { self.setState({ view: 'list' }); },
+      copyLink: function () { self.setState({ copied: true }); }, copyLabel: st.copied ? 'Link to this search copied' : 'Copy a link to this search', copyShort: st.copied ? 'Copied' : 'Share', copyColor: st.copied ? '#127A3A' : '#6B6B76',
+      jobs: shown.map(function (j, i) { return { biz: j.biz, title: j.title, summary: j.summary, skills: j.skills, catLabel: CATLABEL[j.cat], catInk: CATINK[j.cat], durLabel: durLabel(j.days),
+        money: money(j.usd), msLabel: j.ms === 1 ? '1 milestone' : j.ms + ' milestones', applyBy: j.applyBy, applicants: j.apps === 0 ? 'no applicants yet' : j.apps === 1 ? '1 applicant' : j.apps + ' applicants',
+        hasMine: !!j.mine, mine: j.mine || '', mineChip: chip(j.mine === 'Applied' ? 'info' : 'purple'), border: i ? '1px solid #F0F0F3' : 'none', aria: j.title + ', ' + money(j.usd) + ', budget locked' }; }),
+      noJobs: list.length === 0, hasMoreJobs: list.length > LIMIT, moreLabel: st.showAll ? 'Show fewer jobs' : 'Show all ' + list.length + ' jobs', showMore: function () { self.setState({ showAll: !st.showAll }); },
+      skillChips: SKILLS.map(function (s) { var on = !!st.skills[s]; return { label: s, sel: on ? 'true' : 'false', style: pill(on), pick: function () { var x = Object.assign({}, st.skills); x[s] = !on; self.setState({ skills: x, showAll: false }); } }; }),
+      durations: DURS.map(function (d) { var on = st.dur === d[0]; return { label: d[1], sel: on ? 'true' : 'false', style: seg2(on), pick: function () { self.setState({ dur: d[0] }); } }; }),
+      msOptions: MSO.map(function (m) { var on = st.ms === m[0]; return { label: m[1], sel: on ? 'true' : 'false', style: seg2(on), pick: function () { self.setState({ ms: m[0] }); } }; }),
+      toggles: [['soon', 'Apply by within 24 hours', 'Jobs that close soon'], ['hideApplied', 'Hide jobs I applied to', 'Keep your list fresh']].map(function (t) { var on = !!st[t[0]];
+        return { label: t[1], sub: t[2], sel: on ? 'true' : 'false', pick: function () { var u = {}; u[t[0]] = !on; self.setState(u); },
+          track: 'width: 46px; height: 28px; flex-shrink: 0; position: relative; border-radius: 9999px; transition: background-color 200ms; background: ' + (on ? '#7B2FBE' : '#DCDCE3'),
+          knob: 'position: absolute; top: 3px; left: ' + (on ? 21 : 3) + 'px; width: 22px; height: 22px; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(17,17,22,0.25); transition: left 220ms cubic-bezier(.2,0,0,1)' }; }),
+      showLabel: 'Show ' + (list.length === 1 ? '1 job' : list.length + ' jobs'),
+      rowsTitle: tab === 'applied' ? 'My applications' : 'My listings',
+      rowsSub: tab === 'applied' ? 'Where each of your applications stands.' : 'Jobs you posted and what happened to each budget.',
+      rows: rowsSrc.map(function (r, i) { return { seed: r.seed, title: r.title, meta: r.meta, money: money(r.usd), moneySub: r.sub || moneySub(r.usd), status: r.status, chip: chip(r.tone), href: r.href, cta: r.cta, ctaStyle: cta(r.primary), border: i ? '1px solid #F0F0F3' : 'none' }; }),
+      noRows: rowsSrc.length === 0
     };
   }
 }
