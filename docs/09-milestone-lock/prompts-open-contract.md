@@ -2,6 +2,8 @@
 
 **Owner:** PO (Hồ Du Tuấn Đạt) · **Written:** 7 Oct 2026 · **Base:** `main` at `1e446ad` · **Builds on:** D25 (Funded Jobs), D28 (Jobs site)
 
+> **Update 7 Oct (evening), D29:** the PO decided to change the program so an open contract can lock **now** or **when the client hires** (program v1.4). Run L1–L4 of [`lock-at-hire-plan.md`](lock-at-hire-plan.md) first, then N1–N3 with the changes in its section 5. Decision 5 below becomes "locked at publish or at hire, always before the freelancer accepts".
+
 ## Why
 
 On the Workspace "New contract" page (`/new`), the client must pick a freelancer first. `buildDraft` returns null and `validateForm` says "Choose the freelancer first." when the field is empty (`ned-workspace/src/lib/newContract.ts:71–85`). The PO wants:

@@ -10,6 +10,11 @@
 - Accept và Lock nằm trong panel ví (Slide to accept / Slide to lock).
 
 Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (docs, copy, e2e) còn lại.
+**Thông báo 7 Oct (tối, PO) · D29, tính năng cuối cùng:**
+- **Thay đổi:** client đăng contract không cần chỉ định freelancer; freelancer apply; tiền **khoá lúc đăng hoặc khoá lúc chọn người** (Lock at hire). Freelancer vẫn luôn thấy tiền đã khoá trước khi accept.
+- **Program v1.4:** thêm `post_job_open`, `fund_job`, byte `unfunded` ở offset 544, và sửa G1 trong `lock_from_job`.
+- **Hạn:** cut line 8 Oct 18:00; nếu không kịp thì rollback về v1.3.
+- **Tài liệu:** [`lock-at-hire-plan.md`](lock-at-hire-plan.md). Việc của CL ở mục 6 của file đó (slide 4, Q&A, Job posting rules, Disclosures, tracker 3.1/4.2/6B).
 **Nguồn ưu tiên khi có mâu thuẫn:** decision log D1–D28 trong [`README.md`](README.md) thắng về product và program; file này tóm tắt và theo dõi, không thay thế decision log. Không phải legal advice. Đây là devnet prototype, tiền thử.
 
 **Ký hiệu:** ✅ đã chạy trên `main` · 🔧 đang làm hoặc còn thiếu một phần · 🆕 đề xuất mới (7 Oct, chưa duyệt) · 🗺 roadmap (sau final) · ⛔ cố ý không làm
@@ -371,6 +376,8 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-22 | Review có khung xem trước (`prompts-review-preview.md`): R1 core, R2 Workspace, R3 CSP + Privacy + docs | Dev + CL | ✅ | — | Trên `main`; còn chạy e2e 2 login (danh sách thao tác trong progress log R3) |
 | B-23 | File cuối (`prompts-final-files.md`): F1 core, F2 Workspace (+ mobile chỉ đọc danh sách) | Dev | ✅ | — | Trên `main` `0b808d1` |
 | B-24 | F3: docs (D27 amendment, guide, Terms — CL duyệt), câu Q&A tiếng Việt, e2e | CL + PO + Dev | 🔧 | 8 Oct | Mục tracker đã cập nhật ở đây; còn review-decision-plan, README D27, copy, final-pitch, e2e |
+| B-25 | **D29 Lock at hire, program v1.4 (tính năng cuối)**: L1 program + test (kèm G1), L2 upgrade devnet + smoke Run 3–4, L3 core + hub (chip "Locks when hired", lọc "Funded only"), L4 docs + copy (CL) | Dev + PO + CL | 🔧 | 8 Oct 18:00 | Smoke Run 1–4 xanh trên devnet; nếu không: rollback v1.3 (`lock-at-hire-plan.md` §7) |
+| B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🔧 | 8 Oct | Sau L3 |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
@@ -397,3 +404,4 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Q6 | Câu hỏi chuyên gia mới: job board (Luật 74/2025, NĐ 352/2025, sàn TMĐT); record/cooldown | Thêm vào expert pack | CL | 8 Oct | Job board và lock không thời hạn đã thêm (câu 10, 11 trong `expert-check-pack.vi.md`, 7 Oct); record/cooldown chờ Q1 |
 | Q7 | Bond-based penalties | Roadmap, ngoài Việt Nam, cần luật sư | CL | sau final | |
 | Q8 | Q&A mới: "What stops a client from stalling?" và "Is this a job marketplace?" | D-5; câu trong funded-jobs-plan §9 | CL | 8 Oct | |
+| Q9 | Client đăng contract không chỉ định freelancer, chỉ khoá tiền khi hai bên thoả thuận | Lock at hire, program v1.4 (D29) | PO | 7 Oct | **Đã quyết (7 Oct tối): làm trước final, là tính năng cuối.** Kèm sửa G1. Rollback v1.3 nếu không xanh trước 8 Oct 18:00 |
