@@ -2,7 +2,7 @@
 
 **From:** Compliance Lead (Nguyễn Minh Chính, @F4ol4n) · **Checked against:** `main` at `09b1506`, re-based on `343faa6` · **Final:** **10 Oct 2026** (confirmed) · **Cut line:** 8 Oct 18:00 · **Freeze:** 9 Oct · Not legal advice.
 
-> **Status, 7 Oct (later), `main` at `b7ca253`: nothing in sections 3–4 is closed yet, and F2 (final files) added one new High item. Dev: start with section 8, then section 3.**
+> **Status, 7 Oct (evening), `main` at `1b85d94`: sections 3, 4 and 8 are still open (no code commit since `b7ca253`). New section 9 is the CL review of D29 (Lock at hire, program v1.4) with copy ready to paste for L1–L4 and N1–N3. Dev: section 8 (F-1 first), section 3, then section 9 alongside L1–L4.**
 
 **Team, please read sections 1 and 3–4 before you touch slides or code.** Every item has an owner and a date. Reply in the team chat with the commit when you close one, and I will tick it here.
 
@@ -198,3 +198,67 @@ Never call either check "verified": the hand-over list is the freelancer's own; 
 5. G1 decision with PO, then the Medium rows of section 3.
 
 Reply in the team chat with the commit for each item; CL re-checks on 8 Oct evening and signs off on 9 Oct.
+
+---
+
+## 9. D29 Lock at hire (program v1.4): CL review and ready copy
+
+Reviewed: `docs/09-milestone-lock/lock-at-hire-plan.md`, `prompts-open-contract.md`, the D25/D29 rows of the decision log and the tracker notice, against the v1.3 code and copy on `main` `1b85d94`. Not legal advice.
+
+### 9.1 Verdict
+
+**CL agrees with D29.** The freelancer's rule "never accept before the budget is locked" stays true and becomes a program rule (`select_job` refuses an unfunded listing), and the G1 fix (P6) closes the open item in section 3. Nothing in D29 changes the Vietnam path, D27, the fee position or the custody position: the budget still moves only by program rules, and N.E.D signs nothing.
+
+What D29 does change is **what we may say about the board**. Today the app, the Terms and the pitch say every listing is funded. With v1.4 that is false for "Locks when hired" listings. Every line in 9.3 and 9.4 must change in the same release as v1.4 (and stay as it is if the rollback in plan §7 is used).
+
+### 9.2 Points for L1–L3 (program and core)
+
+| # | Point | Why | Suggested |
+| --- | --- | --- | --- |
+| R-1 | P2 event: prefer a **new `JobPostedOpen` event** over adding `funded` to `JobPosted` | Plan L1 asks to keep v1.3 "byte for byte" for funded listings; changing `JobPosted` changes its layout for every listing. No TypeScript code reads `JobPosted` today (checked), so either works, but the new event keeps the v1.3 log format unchanged | `JobPostedOpen { job, business, job_id, category, total, apply_by, select_by, brief_hash }` |
+| R-2 | Size of the select transaction | `fund_job + create_fund + select_job` in one transaction adds the business ATA, job vault, mint and token program to an already large transaction (plus compute-budget instructions). Solana's limit is 1,232 bytes | Measure the serialized size in the L3 test and in smoke Run 3; if it is close, use an address lookup table or move `fund_job` into a separate transaction **only if** `select_job` still refuses unfunded listings (the guarantee stays) |
+| R-3 | CU | The table on Slide 6 needs the new transaction | Add `fund_job + create_fund + select_job` and `post_job_open` to `g15`; quote the highest value |
+| R-4 | Counts for the pitch | Slides 5 and 7 quote 27 instructions, 53 errors, 24 events, 54 tests | After L1, write the new counts (expected 29 instructions; errors +2: `JobNotFunded`, `JobFundMismatch`; events +1 or +2; tests) in the progress row so CL can update the slides from one place |
+| R-5 | G1 test | Plan lists it | Keep the exact attack: select A → close → recreate at the same `fund_id` for B → `accept + lock_from_job` fails with `JobFundMismatch` |
+| R-6 | Applicants on unfunded listings | A freelancer's pitch, wallet and @username become public and permanent for a listing that may never be funded | Apply-sheet notice (9.3, item 7). No program change |
+| R-7 | "Funded only" filter default | Plan: off by default | CL is fine with off, **if** the chip "Locks when hired" is on every unfunded card and on the detail page, and funded listings sort first (plan §3) |
+| R-8 | Default choice in `/new` and `/jobs/new` | Plan: default "Lock when I hire" (PO's intent) | PO's call. CL note: the board's headline promise is "budget locked before you accept", which holds either way; only Overview and Find wording must change (9.3). If the default stays "Lock when I hire", Overview stats must count only funded listings as "locked" (plan §3 already says so) |
+
+### 9.3 App and legal copy (English, ready to paste; L3, L4, N2)
+
+Legal copy goes to CL before the push, as plan L4 says. These are the CL-approved texts:
+
+1. **Terms, "What N.E.D is not"** (`packages/ned-core/src/legal/copy.ts:72`): replace "N.E.D shows job listings that businesses post with a budget locked in the program." with
+   > "N.E.D shows job listings that businesses post. A listing's budget is locked in the program either when it is posted or when the business selects a freelancer, and always before the freelancer accepts."
+2. **Job posting rules, first section** (`copy.ts:207-213`): title "Lock the whole budget to post" → **"Lock the budget now or when you hire"**; body:
+   > "Choose Lock now to lock the whole budget when you post, or Lock when I hire to lock it when you select a freelancer. Either way the budget is in the program before the freelancer can accept, and it moves into the contract when they accept."
+   > "Listings marked Locks when hired have no money locked until you select someone. N.E.D does not check that you can lock the budget; if you cannot, you cannot select."
+   > "Posting is open to businesses outside Vietnam. The Vietnam view cannot post jobs or lock funds."
+   > "With no applicants you can withdraw a listing at any time; nothing is returned for a listing that locks when you hire, because nothing was locked. Once someone has applied, a locked budget stays locked until the select-by date, and until the accept window of a selected applicant has passed."
+3. **Disclosures, new line** (`copy.ts` `disclosureItems`, after `public`): `{ id: 'unfunded', title: 'Some listings lock only when they hire', body: 'Listings marked Locks when hired have no locked budget until the business selects someone. Your application and pitch are public even if the listing is never funded.' }`. The Disclosures count in `cl-review-7oct.md` P15 (13 lines) becomes 14.
+4. **Overview** (`ned-workspace/src/jobs/pages/Overview.tsx:38-44`): title "Work that is already funded" → **"Work with the budget locked before you start"**; sub (international): "Every job here locks its full budget on Solana before you can accept: at posting, or when the business selects you. Each milestone is released when the client accepts it, or anyone can release it after the review deadline." Vietnam sub: same, ending "VND transfer simulated in this demo." (This also closes D9.)
+5. **Overview, client card** (`Overview.tsx:49`): "Post a job with its whole budget locked, pick one applicant, …" → "Post a job, lock its budget now or when you hire, pick one applicant, and release each milestone after you accept the work."
+6. **Find jobs heading** (`ned-workspace/src/jobs/pages/Find.tsx:170`, test `find.test.tsx:80`): "Find jobs, already funded" → **"Find jobs, locked before you accept"**. If the title must stay short: "Find jobs".
+7. **Apply sheet** (`JobDetail.tsx`, apply confirm), on an unfunded listing: "This listing locks its budget only when the business selects someone. Your pitch, wallet and @username are public on Solana even if it is never funded."
+8. **JobCard** (`ned-workspace/src/jobs/components/JobCard.tsx:132, 147, 168`): the aria-label and the chip follow the listing kind: "budget locked" / "locks when hired". Vietnam view: "Estimate · budget locked" / "Estimate · locks when hired" (no USDC or SOL).
+9. **Chip hint** (plan §3): keep "The budget is locked when the business selects someone, before you accept." CL approves.
+10. **PostJob and `/new` confirm sheet** (plan §3, N2): keep "Nothing is locked now. When you select a freelancer, X USDC is locked in the same step." Add for the international view only: "If your balance is too low at that moment, you cannot select."
+11. **Open contract from `/new` (N2, privacy):** prompts-open-contract Decision 6 says the public-brief notice "blocks nothing". CL asks for **one confirm row** in the publish sheet, not a new screen: "Public on Solana forever: title, summary, brief and budget. I have removed personal data." with a tick box that enables **Publish**. Reason: leaving one field empty turns a private, encrypted brief into public content, and PDP Law 91/2025 does not treat silence as consent.
+12. **Select sheet** (Applicants): "Select @x and lock X USDC" is fine. Keep USDC there (client view only; the Vietnam view cannot select).
+
+### 9.4 Pitch, Q&A and docs (Vietnamese; CL applies after L1–L2 are green on devnet)
+
+CL will apply these once smoke Runs 1–4 are green. If the rollback is used, none of them change.
+
+- **Slide 4, problem 3** (`final-pitch.md:103`): "**Funded Jobs, nguyên tử.** *Ngân sách bị khoá ngay lúc đăng job · …*" → "**Job board, tiền khoá trước khi accept.** *Khoá lúc đăng, hoặc ngay lúc chọn người (`fund_job + create_fund + select_job` trong một transaction) · `accept + lock_from_job` cũng là một transaction*".
+- **Slide 4 speech** (`final-pitch.md:106`), replace the "Ba: Funded Jobs: …" sentence with: "Ba: job board: ngân sách khoá lúc đăng, hoặc ngay lúc chọn người trong cùng một transaction; program không cho chọn người khi tiền chưa vào vault, nên freelancer không bao giờ accept việc chưa có tiền." (same length).
+- **Slides 5–7:** instruction, error, event and test counts and the CU table from R-3/R-4.
+- **Q&A, new (PO answers):** "Doanh nghiệp đăng job không có tiền thì sao?" → "Thẻ job ghi rõ 'Locks when hired'. Program không cho chọn người khi tiền chưa vào vault, nên freelancer không bao giờ accept một việc chưa có tiền." (as plan §6).
+- **`qa-cheatsheet.md` Q11:** "businesses post jobs with the budget locked" → "businesses post jobs and lock the budget at posting or when they hire, always before the freelancer accepts".
+- **`expert-check-pack.vi.md` Q10:** "kèm ngân sách đã khoá" → "ngân sách khoá lúc đăng hoặc lúc chọn người". Note for the expert: listings without money look more like an ordinary job board, so the Law 74/2025 Art. 27 question matters more, not less.
+- **`ned-research-and-compliance.md`** 7 Oct status block: add v1.4 and D29.
+- **Word use:** keep "Funded Jobs" only for listings with a locked budget; call the board "N.E.D Jobs". Never say "every job is funded".
+
+### 9.5 Still open from sections 3 and 8
+
+No code commit since `b7ca253`, so D1–D17, F-1 to F-14 and O1–O3 are unchanged. G1 moves into v1.4 (P6): CL will mark it fixed when L1–L2 are green.

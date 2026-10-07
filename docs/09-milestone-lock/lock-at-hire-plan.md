@@ -153,6 +153,8 @@ Done when: the docs and copy are updated and the CL check is noted in the progre
 
 ## 6. What changes for the pitch, the legal copy and the tracker (CL)
 
+> **CL review, 7 Oct:** approved, with points R-1 to R-8 for L1–L3 and the exact app, legal and pitch copy in [`../05-legal/pre-pitch-check-7oct.md`](../05-legal/pre-pitch-check-7oct.md) §9. Use that text for L3, L4 and N2; it extends the table below (Terms, Overview, Find, apply sheet, open-contract confirm row).
+
 | Where | Now | Change |
 | --- | --- | --- |
 | `final-pitch.md` Slide 4, problem 3 | "Budget khoá ngay khi đăng job" | "Budget luôn được khoá **trước khi** freelancer accept: khoá lúc đăng, hoặc khoá ngay lúc chọn người (`fund_job + create_fund + select_job` trong một transaction)" |
