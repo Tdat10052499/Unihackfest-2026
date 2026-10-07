@@ -156,6 +156,8 @@ The ticks never block Submit.
 
 ## U6 · Preview check and watermark tool, then share by Google Drive link
 
+> **Amended 7 Oct 2026 (R1–R3):** a preview link is now **required** for the first delivery and for a revised version (hand-over keeps "a link or a file"). Review and Submit show the link in a preview frame that **loads only when the user presses Load preview** (Drive, Docs, Figma, YouTube, Loom or an image link; sandboxed, no referrer). The local design check and watermark tool below are unchanged. See [review-decision-plan.md](review-decision-plan.md), "Amendment 7 Oct".
+
 **PO decision (6 Oct):**
 - Previews are **not** stored on-chain. Writing a preview into notes costs the freelancer about 30 transactions per image, so that option was dropped.
 - Deliveries stay as links. The guide tells the freelancer to upload a **watermarked preview** to Google Drive and paste the link.

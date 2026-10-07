@@ -179,7 +179,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | ID | Tình huống | Today | Rủi ro | Solution | Status |
 | --- | --- | --- | --- | --- | --- |
 | F-1 | Accept rồi **không submit** | Hết `submit_by` → Refund now | Client mất thời gian | Reminders; record "missed submission"; cooldown | ✅ / 🆕 |
-| F-2 | **Nộp bài rác** | Client request changes (D27) | — | Done-when checklist trong Review | ✅ Workspace |
+| F-2 | **Nộp bài rác** | Client request changes (D27) | Bắt buộc link xem trước khi nộp (R1, 7/10) | Done-when checklist + khung xem trước trong Review (bấm Load preview, R2); mốc không có done-when → lý do 10–500 ký tự | ✅ Workspace |
 | F-3 | Trễ submit vài phút | Refund now mở ngay | Mất milestone | Reminders; `extend_deadline` 🗺 | 🆕 / 🗺 |
 | F-4 | Được chọn ở job nhưng **không accept** | Business chọn lại sau accept window | — | Record "no-show after selection" 🆕 | ✅ / 🆕 |
 | F-5 | **Giữ final files** sau release | Không cưỡng chế được | Client mất bài | Fingerprint + record công khai; record "handover missing" 🆕; final mã hoá, key mở khi release 🗺 | 🔧 / 🗺 |
@@ -253,6 +253,8 @@ Không tính lapse do bên kia gây ra, và không tính contract demo/test (có
 ---
 
 ## 8. Submit: "Before you submit" (U5 + U6, đã có trên Workspace)
+
+**Cập nhật 7/10 (R1–R3):** lần nộp đầu và bản sửa **bắt buộc có link xem trước** (Drive, Figma, YouTube, Loom hoặc link ảnh); file vẫn tuỳ chọn, chỉ lưu fingerprint; Hand over vẫn nhận link hoặc file. Ngay dưới ô link có **khung xem trước** ("This is what {client} will see") giống khung client thấy trong Review; khung chỉ tải khi bấm **Load preview**. CSP Workspace chỉ cho đúng các origin xem trước; Privacy nói rõ bấm Load preview thì trình duyệt kết nối tới trang đó.
 
 Hiện có trên Workspace (S8): sheet "Before you submit", kiểm tra watermark cho preview thiết kế (nút **Add watermark**), share bằng Google Drive link, "Files (optional)" chỉ lưu fingerprint, các chế độ Send revised version và Hand over final files. Mobile: 🔧 S13. Help guide `/help` trên mobile ✅ (S11).
 

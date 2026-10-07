@@ -147,3 +147,14 @@ Tests:
 - **Handover is not enforced.** After release, a freelancer could keep the final files. The client has the committed fingerprints and the public record, nothing more.
 - **Revisions are not hashed on-chain.** A revised version is an encrypted note in transaction history, signed by the freelancer and timestamped. The milestone's `evidence` field still holds the first delivery.
 - **A split ends the whole contract.** A per-milestone split would need a program change, so it stays on the roadmap.
+
+## Amendment 7 Oct: preview link and preview frame
+
+*(Added 7 Oct 2026 with R1–R3. The decisions are written from the R1–R3 build prompts, because `prompts-review-preview.md` is not in the repository; check them against that file when it is added.)*
+
+1. **A preview link is required to submit.** The first delivery and a revised version need at least one link the client can open (Google Drive, Figma, YouTube, Loom or an image link). Files stay optional and are fingerprints only. The hand-over after release still takes a link or a file. Only the draft check changes: the canonical delivery JSON and its on-chain fingerprint are as before, so older files-only deliveries still decode and match.
+2. **Review shows the preview in place.** A Drive, Docs, Figma, YouTube or Loom link, or an image link, gets a preview frame in Review (and under the link field in Submit). The frame loads only after the client presses **Load preview**, is sandboxed and sends no referrer. Any other link opens in a new tab. The Workspace CSP allows exactly these frame origins (`PREVIEW_FRAME_HOSTS`) and https images.
+3. **Review no longer compares files.** The drop zone and file comparison are removed from Review; the listed files show name, size and a short fingerprint only. After release, **Final files** keeps its own check against the committed fingerprints, unchanged.
+4. **Request changes without done-when points.** When the brief has no done-when points for the milestone (older briefs), the client cannot pick points, so the reason carries the request: 10–500 characters, "Say what is missing and what would make it acceptable." With points, the rule of section 1 is unchanged.
+5. **New briefs need done-when points.** A new contract or job draft needs at least one done-when point per milestone ("Add at least one done-when point, so the work can be checked."). Briefs already on Solana with an empty list still decode. The Privacy notice says that **Load preview** connects the browser to the site that hosts the link.
+
