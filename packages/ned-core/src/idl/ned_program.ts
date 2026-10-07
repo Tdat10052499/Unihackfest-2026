@@ -1170,6 +1170,151 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "fundJob",
+      "docs": [
+        "v1.4 (D29): locks the budget of a \"locks when hired\" job (same transaction as create_fund + select_job)"
+      ],
+      "discriminator": [
+        244,
+        198,
+        4,
+        15,
+        41,
+        178,
+        169,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job.business",
+                "account": "jobListing"
+              },
+              {
+                "kind": "account",
+                "path": "job.jobId",
+                "account": "jobListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "business",
+          "signer": true,
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "jobVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "businessToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "relations": [
+            "job"
+          ]
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initDeviceKeys",
       "docs": [
         "Creates the wallet's empty device-key list (sent with the first add_device_key)"
@@ -1918,6 +2063,203 @@ export type NedProgram = {
         {
           "name": "data",
           "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "postJobOpen",
+      "docs": [
+        "v1.4 (D29): publishes a job that locks its budget when the business selects someone (nothing locked now)"
+      ],
+      "discriminator": [
+        116,
+        180,
+        113,
+        39,
+        6,
+        218,
+        83,
+        4
+      ],
+      "accounts": [
+        {
+          "name": "business",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the rent of the listing and the job vault (may be the business)"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "job",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "arg",
+                "path": "jobId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "jobVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "businessToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "business"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "mint",
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "jobId",
+          "type": "u64"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "summary",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "u8"
+        },
+        {
+          "name": "skills",
+          "type": "u64"
+        },
+        {
+          "name": "milestones",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "jobMilestoneInput"
+              }
+            }
+          }
+        },
+        {
+          "name": "briefHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "applyBy",
+          "type": "i64"
+        },
+        {
+          "name": "selectBy",
+          "type": "i64"
         }
       ]
     },
@@ -3171,6 +3513,19 @@ export type NedProgram = {
       ]
     },
     {
+      "name": "jobFunded",
+      "discriminator": [
+        109,
+        177,
+        206,
+        113,
+        255,
+        142,
+        11,
+        19
+      ]
+    },
+    {
       "name": "jobPosted",
       "discriminator": [
         18,
@@ -3181,6 +3536,19 @@ export type NedProgram = {
         169,
         183,
         52
+      ]
+    },
+    {
+      "name": "jobPostedOpen",
+      "discriminator": [
+        123,
+        176,
+        17,
+        52,
+        0,
+        144,
+        62,
+        178
       ]
     },
     {
@@ -3605,6 +3973,16 @@ export type NedProgram = {
       "code": 6052,
       "name": "summaryTooLong",
       "msg": "The job summary must be 1 to 160 bytes."
+    },
+    {
+      "code": 6053,
+      "name": "jobNotFunded",
+      "msg": "The budget of this job is not locked yet. Lock it in the same step as selecting."
+    },
+    {
+      "code": 6054,
+      "name": "jobAlreadyFunded",
+      "msg": "The budget of this job is already locked."
     }
   ],
   "types": [
@@ -3994,6 +4372,25 @@ export type NedProgram = {
       }
     },
     {
+      "name": "jobFunded",
+      "docs": [
+        "v1.4 (D29): the budget of a \"locks when hired\" listing moved into its job vault (sent with create_fund + select_job)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "jobListing",
       "docs": [
         "PDA [JOB_SEED, business, job_id.to_le_bytes()]; 576 bytes with the discriminator"
@@ -4157,11 +4554,19 @@ export type NedProgram = {
             "type": "u8"
           },
           {
+            "name": "unfunded",
+            "docs": [
+              "v1.4 (D29, lock-at-hire-plan.md): 1 = \"locks when hired\" (post_job_open; nothing locked yet), 0 = the budget is",
+              "in the job vault (post_job, or after fund_job). Every v1.3 listing reads 0. memcmp \"funded only\" (offset 544)"
+            ],
+            "type": "u8"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                32
+                31
               ]
             }
           }
@@ -4222,6 +4627,55 @@ export type NedProgram = {
     },
     {
       "name": "jobPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "job",
+            "type": "pubkey"
+          },
+          {
+            "name": "business",
+            "type": "pubkey"
+          },
+          {
+            "name": "jobId",
+            "type": "u64"
+          },
+          {
+            "name": "category",
+            "type": "u8"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "applyBy",
+            "type": "i64"
+          },
+          {
+            "name": "selectBy",
+            "type": "i64"
+          },
+          {
+            "name": "briefHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "jobPostedOpen",
+      "docs": [
+        "v1.4 (D29): a listing that locks its budget when the business selects someone. `total` is the planned budget;",
+        "nothing is locked yet."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
