@@ -74,8 +74,11 @@ Read: docs/09-milestone-lock/lock-at-hire-plan.md (sections 1, 2, 7), program-sp
 section 4, docs/05-legal/pre-pitch-check-7oct.md §3 G1, ned_program/programs/ned-program/src/{state/job.rs,
 instructions/job/*,errors.rs,events.rs,lib.rs} and tests/jobs.rs.
 Task:
-1. Implement P1–P6 of lock-at-hire-plan.md section 2, with the tests listed there. Keep v1.3 behaviour byte for byte
-   for unfunded == 0.
+1. A first draft of P1–P6 and the tests is in the patch ned-v14-program-draft.patch (written 7 Oct in a session that
+   could not build, so it was never compiled). Apply it with `git am`, then build, run the tests, and fix every
+   compile or test failure until the code matches section 2 of lock-at-hire-plan.md and program-spec.md section 11.
+   Without the patch, implement P1–P6 and the tests from section 2. Keep v1.3 behaviour byte for byte for
+   unfunded == 0.
 2. Before any change, save the current v1.3 build:
    - copy target/deploy/ned_program.so to target/rollback/ned_program-v1.3.so (gitignored);
    - write its SHA-256 into the progress row.

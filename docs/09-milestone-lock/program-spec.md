@@ -287,3 +287,46 @@ Offsets of both accounts; the happy path (post → brief → apply ×2 → `crea
 ### 10.8 Deploy
 
 Same procedure as section 9. The v1.3 binary is larger than the v1.2 program account: extend first (numbers in `docs/tong-hop-tien-do.md`, S1 row), then upgrade. The PO runs it.
+
+## 11. v1.4: Lock at hire (D29) and the G1 check
+
+**Status (7 Oct, evening):** code written in the cloud session; **not built or tested yet** (the session cannot run `anchor build`). Prompt L1 in [`lock-at-hire-plan.md`](lock-at-hire-plan.md) builds it, runs every test and fixes compile errors before anything is deployed. Backward compatible with v1.3.
+
+### 11.1 Account change
+
+`JobListing`, 576 bytes, unchanged size:
+
+| Offset | Field | Note |
+| --- | --- | --- |
+| 544 | `unfunded: u8` | 1 = "locks when hired" (`post_job_open`, nothing locked); 0 = budget in the job vault. Taken from `_reserved`, so every v1.3 listing reads 0 (funded) |
+| 545..576 | `_reserved: [u8; 31]` | — |
+
+### 11.2 Instructions
+
+| Instruction | Signer | Rules | Effect |
+| --- | --- | --- | --- |
+| `post_job_open` (new) | business (+ payer) | Same arguments, accounts and checks as `post_job` | Listing + empty job vault, `unfunded = 1`, no transfer; event `JobPostedOpen` |
+| `fund_job` (new) | business | `state == Open`, `unfunded == 1`, `now <= select_by` | `transfer_checked` of exactly `total` from the business ATA to the job vault; `unfunded = 0`; event `JobFunded` |
+| `select_job` (changed) | business | Adds `unfunded == 0` (`JobNotFunded`) | The app sends `fund_job + create_fund + select_job` in one transaction for an unfunded listing |
+| `withdraw_job` (changed) | business | Same rules | Returns 0 (plus any donation) when `unfunded == 1`; v1.3 path unchanged |
+| `lock_from_job` (changed, G1) | anyone | Adds `fund.freelancer == job.selected` and `fund.brief_hash == job.brief_hash` (`JobFundMismatch`) | A contract closed and recreated at `job.fund` for someone else cannot take the budget |
+
+### 11.3 Events and errors (appended, never renumber)
+
+- **Events:** `JobPostedOpen { job, business, job_id, category, total, apply_by, select_by, brief_hash }` (`total` is the planned budget) · `JobFunded { job, total }`.
+- **Errors:** after `SummaryTooLong`: `JobNotFunded`, `JobAlreadyFunded`.
+- **Counts:** v1.3 had 27 instructions, 53 errors and 24 events. v1.4 has **29 instructions, 55 errors and 26 events**. Update the pitch numbers only after L1 is green.
+
+### 11.4 Tests (`tests/jobs.rs`, new)
+
+`v14_post_job_open_locks_nothing_and_sets_unfunded` (offset 544) · `v14_post_job_keeps_v13_behaviour` · `v14_select_needs_the_budget_locked_in_the_same_transaction` (CU of the 3-instruction transaction) · `v14_fund_job_rules` (only the business, exact total, once, balance too low, after select_by) · `v14_reselect_does_not_lock_again` · `v14_withdraw_an_unfunded_listing_moves_nothing` · `v14_g1_a_recreated_contract_for_someone_else_cannot_take_the_budget`. All v1.3 tests must still pass unchanged.
+
+### 11.5 Deploy
+
+Prompt L2, only after the PO's go. Steps:
+1. Save the v1.3 `.so` and its SHA-256 for rollback.
+2. Check the data size (668,464 B) and extend if needed.
+3. Upgrade.
+4. Check that the binary on devnet equals the local build.
+5. Upload the IDL with program-metadata.
+6. Run smoke Runs 1–4.
