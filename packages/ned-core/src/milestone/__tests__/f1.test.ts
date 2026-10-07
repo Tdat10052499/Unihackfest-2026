@@ -78,7 +78,8 @@ test('validateDelivery hand-over: a download link; a changed set needs a note of
   assert.deepEqual(msg(validateDelivery({ links: [link], files: [SVG], note: '', stage: 'handover' }, [SVG, PNG])), [HANDOVER_CHANGE_NOTE]);
   assert.deepEqual(msg(validateDelivery({ links: [link], files: [SVG, PNG, PREVIEW], note: 'short', stage: 'handover' }, [SVG, PNG])), [HANDOVER_CHANGE_NOTE]);
   assert.deepEqual(validateDelivery({ links: [link], files: [SVG], note: 'PNG exported as WebP, same artwork.', stage: 'handover' }, [SVG, PNG]), []);
-  // without the accepted finals only the link is checked
+  // without the accepted finals, or with an empty list, only the link is checked
+  assert.deepEqual(validateDelivery({ links: [link], files: [SVG], note: '', stage: 'handover' }, []), []);
   assert.deepEqual(validateDelivery({ links: [link], files: [], note: '', stage: 'handover' }), []);
 });
 

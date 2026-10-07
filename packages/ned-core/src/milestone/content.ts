@@ -229,7 +229,8 @@ export function validateDelivery(draft: DeliveryDraft, acceptedFinals?: readonly
 
   if (draft.stage === 'handover') {
     if (!links.length) out.push({ field: 'links', message: HANDOVER_LINK_NEEDED(client) });
-    if (acceptedFinals) {
+    // nothing promised (an older delivery or a fixed-version link): nothing to compare, no reason needed
+    if (acceptedFinals?.length) {
       const changed = compareHandover(acceptedFinals, files).some((r) => r.state !== 'same');
       if (changed && chars(draft.note) < HANDOVER_NOTE_MIN) out.push({ field: 'note', message: HANDOVER_CHANGE_NOTE });
     }

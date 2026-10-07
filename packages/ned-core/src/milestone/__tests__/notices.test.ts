@@ -35,8 +35,9 @@ test('exact U3 titles', () => {
   assert.equal(t('submitMissed', 'client'), 'Milestone 2 can be refunded to you');
   assert.equal(t('submitMissed', 'freelancer'), 'Submission deadline passed for milestone 2');
   assert.equal(t('released', 'client'), 'Milestone 2 released');
-  assert.equal(t('released', 'freelancer'), 'Milestone 2 released to you');
-  assert.equal(t('released', 'freelancer', true), 'Milestone 2 sent as VND');
+  // F2: after release the freelancer's next step is the hand-over
+  assert.equal(t('released', 'freelancer'), 'Released · hand over the final files');
+  assert.equal(t('released', 'freelancer', true), 'Released · hand over the final files');
   assert.equal(t('refunded', 'client'), 'Milestone 2 refunded to you');
   assert.equal(t('refunded', 'freelancer'), 'Milestone 2 refunded to the client');
 });
