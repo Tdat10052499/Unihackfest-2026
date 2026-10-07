@@ -9,7 +9,7 @@ Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · UniH
 > - **Contract content is on-chain, encrypted.** The brief and the delivery travel as encrypted `post_note` data; only the two parties' devices hold the key (D15, D22). Contract titles (≤ 32 bytes), hashes and device public keys are public. This replaces "hash only, never the file" in the data plan.
 > - **Disputes are built but switched off in the app** (`FEATURES.dispute = false`). In the demo build a client cannot stop release after the review deadline.
 > - **Payout design A** (client-side partner account) is the team decision (D9). The partner is a team devnet wallet in the demo: always say "payout partner (candidates: Due, Nium), simulated in the demo", never "licensed partner".
-> - **English only** for the product and the pitch (confirmed with the organisers); "turn on Vietnamese" in the day plan is dropped.
+> - **Language (7 Oct, confirmed with the organisers):** the product stays in English ("turn on Vietnamese" in the day plan is dropped); the pitch, slides and Q&A are in **Vietnamese only**. Script: [`../09-milestone-lock/final-pitch.md`](../09-milestone-lock/final-pitch.md).
 > - **Upgrade authority** stays with the deploy wallet through 10 Oct so bugs can be fixed on the day; a Squads multisig or an immutable program comes before mainnet (roadmap).
 > - The must-fix list for app copy, consent, keys and README is [`../05-legal/compliance-fix-list.md`](../05-legal/compliance-fix-list.md).
 >
@@ -466,7 +466,7 @@ Rent for the contract and vault accounts (about 0.008 SOL for 740 + 165 bytes \[
 
 See the word table in `../09-milestone-lock/product-spec.md` section 6 (single source).
 
-**Deck (10 slides, English)**
+**Deck (10 slides; superseded on 7 Oct by the 8-slide Vietnamese script in [`../09-milestone-lock/final-pitch.md`](../09-milestone-lock/final-pitch.md))**
 
 1. Problem: 68% of Vietnamese freelancers not paid at least once; 5–25% platform fees.
 2. Who: Vinh and Mia; survey results.
