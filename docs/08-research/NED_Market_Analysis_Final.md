@@ -572,7 +572,7 @@ Phân tích này chỉ dựa trên nghiên cứu tại bàn (desk research), s�
 Mã nguồn tương ứng với các mục trong `NED_Evidence_Base.md`.
 
 **Sản phẩm (sự thật sản phẩm)**
-- Repo `Tdat10052499/Unihackfest-2026`, `main` @ `3a1564a`: `ned_program/` (21 lệnh, v1.2; nay là v1.3, 27 lệnh, 07/10), `docs/09-milestone-lock/` (product-spec, program-spec, decision log), `docs/tong-hop-tien-do.md` (kết quả test, D1, thông tin devnet), `docs/08-research/ned-research-and-compliance.md` (bảng phí, kế hoạch GTM của team) — https://github.com/Tdat10052499/Unihackfest-2026
+- Repo `Tdat10052499/Unihackfest-2026`, `main` @ `3a1564a`: `ned_program/` (21 lệnh, v1.2; nay là v1.4, 29 lệnh, 07/10), `docs/09-milestone-lock/` (product-spec, program-spec, decision log), `docs/tong-hop-tien-do.md` (kết quả test, D1, thông tin devnet), `docs/08-research/ned-research-and-compliance.md` (bảng phí, kế hoạch GTM của team) — https://github.com/Tdat10052499/Unihackfest-2026
 
 **Vấn đề (Q1: P1–P23)**
 - [P1] PayPal Global Freelancer Survey (10/2017) — https://www.matterhorncommunications.com/half-freelancers-surveyed-four-southeast-asia-markets-experienced-not-paid-paypal-global-freelancer-survey/
