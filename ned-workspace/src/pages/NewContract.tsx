@@ -9,7 +9,7 @@ import QRCode from 'react-qr-code';
 import { BriefNotSavedError, describeActionError, runCreate } from '@ned/core/actions.ts';
 import { getConnection } from '@ned/core/config.ts';
 import { recipientLabel, type Recipient } from '@ned/core/identity/resolveCore.ts';
-import { briefHash } from '@ned/core/milestone/content.ts';
+import { briefHash, DONE_WHEN_NEEDED } from '@ned/core/milestone/content.ts';
 import { shortHash } from '@ned/core/milestone/evidence.ts';
 import { formatDeadline, formatUsdc, unitsFromUsdc } from '@ned/core/milestone/format.ts';
 import { FUND_SIZE, MAX_MILESTONES, MIN_REVIEW_WINDOW_SECS, MIN_WORK_WINDOW_SECS, TITLE_MAX_LEN } from '@ned/core/milestone/layout.ts';
@@ -606,6 +606,12 @@ function MilestoneCard({
             ))}
           </AnimatePresence>
         </ul>
+        {/* R1: the rule is shown on the milestone itself, not only when sending */}
+        {ms.criteria.length ? null : (
+          <p className={styles.ruleHint} data-testid="done-when-rule">
+            {DONE_WHEN_NEEDED}
+          </p>
+        )}
         <form
           className={styles.addRow}
           onSubmit={(e: FormEvent) => {

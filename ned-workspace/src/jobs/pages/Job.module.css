@@ -119,3 +119,6 @@
 .sheetRow { margin-top: 10px; display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--hub-soft); font-size: 13px; }
 .sheetList { margin: 14px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--hub-ink-2); }
 .sheetButtons { margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+/* R1: done-when rule shown on each milestone */
+.ruleHint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--tone-warning-ink); }

@@ -12,7 +12,7 @@ import type { JobListingAccount } from '@ned/core/jobs/decode.ts';
 import { JOB_SUMMARY_MAX_LEN } from '@ned/core/jobs/layout.ts';
 import { jobDraftTotal, validateJobDraft, type JobDraft } from '@ned/core/jobs/rules.ts';
 import { JOB_CATEGORIES, skillsMask, skillsOfCategory } from '@ned/core/jobs/taxonomy.ts';
-import { hashBytes } from '@ned/core/milestone/content.ts';
+import { DONE_WHEN_NEEDED, hashBytes } from '@ned/core/milestone/content.ts';
 import { formatDeadline, formatUsdc } from '@ned/core/milestone/format.ts';
 import { MAX_MILESTONES, TITLE_MAX_LEN } from '@ned/core/milestone/layout.ts';
 import { useWalletPanel } from '../../components/WalletPanelContext.tsx';
@@ -77,7 +77,7 @@ export function postProblems(f: PostForm, now: number, balance: bigint | undefin
   if (!f.scope.trim()) out.push('Describe the work in the scope.');
   if (f.milestones.some((m) => !m.name.trim())) out.push('Name every milestone.');
   if (f.milestones.some((m) => !(Number(m.amt) > 0))) out.push('Every milestone needs an amount above 0.');
-  if (f.milestones.some((m) => !lines(m.done).length)) out.push('Every milestone needs at least one done-when point.');
+  if (f.milestones.some((m) => !lines(m.done).length)) out.push(DONE_WHEN_NEEDED);
   if (f.milestones.some((m) => !(Number(m.due) >= 1) || !(Number(m.review) >= 1))) out.push('Give every milestone at least 1 day to deliver and 1 day to review.');
   const total = jobDraftTotal(d);
   if (total > 1_000_000_000n) out.push('The demo allows up to 1,000 USDC per job.');
@@ -325,6 +325,11 @@ export function PostJobForm({ wallet, name }: { wallet: string; name: string }) 
                       Done when <span className={styles.note}>· one point per line; you review against these</span>
                       <textarea rows={3} className={styles.textarea} value={m.done} onChange={(e) => setMs(i, { done: e.target.value })} />
                     </label>
+                    {lines(m.done).length ? null : (
+                      <p className={styles.ruleHint} data-testid="done-when-rule">
+                        {DONE_WHEN_NEEDED}
+                      </p>
+                    )}
                   </div>
                 ))}
                 {f.milestones.length < MAX_MILESTONES ? (

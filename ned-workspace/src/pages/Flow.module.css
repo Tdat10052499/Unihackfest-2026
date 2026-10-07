@@ -144,3 +144,6 @@
   font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .preset:hover { background: var(--tint-hover); }
+
+/* R1: done-when rule shown on each milestone */
+.ruleHint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--warning-ink); }
