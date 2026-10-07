@@ -34,6 +34,8 @@ export interface ReleaseRecord {
   /** the approve / release_after_review transaction */
   signature: string;
   destination: 'ownWallet' | 'payoutPartner';
+  /** F1: Accept & release (approve) or Release now (release_after_review); absent in records saved before */
+  by?: 'approve' | 'releaseNow';
 }
 
 export interface RecordsCache {
@@ -218,6 +220,7 @@ export async function readFundReleases(conn: TxConnection, fund: string, open?: 
           releasedAt: tx.blockTime ?? ok[i].blockTime ?? 0,
           signature: ok[i].signature,
           destination,
+          by: ix.name === 'approve' ? 'approve' : 'releaseNow',
         });
       }
     }

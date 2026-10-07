@@ -11,6 +11,8 @@ import {
   parseDelivery,
   PREVIEW_LINK_NEEDED,
   REVIEW_REASON_NEEDED,
+  FINALS_NEEDED,
+  HANDOVER_LINK_NEEDED,
   validateBrief,
   validateDelivery,
   validateReview,
@@ -24,14 +26,16 @@ import { validateJobDraft, type JobDraft } from '../../jobs/rules.ts';
 const FILE = { name: 'logo-final.svg', size: 2048, sha256: 'a'.repeat(64) };
 const messages = (p: { message: string }[]) => p.map((x) => x.message);
 
-test('validateDelivery: first delivery and revision need a preview link; hand-over keeps a link or a file', () => {
+test('validateDelivery: first delivery and revision need a preview link (R1); F1 adds the promised list and the hand-over link', () => {
   const filesOnly: DeliveryDraft = { links: [], files: [FILE], note: '' };
-  assert.deepEqual(messages(validateDelivery(filesOnly)), [PREVIEW_LINK_NEEDED]);
-  assert.deepEqual(messages(validateDelivery({ ...filesOnly, stage: 'revision' })), [PREVIEW_LINK_NEEDED]);
-  assert.deepEqual(validateDelivery({ ...filesOnly, stage: 'handover' }), []);
-  assert.deepEqual(messages(validateDelivery({ links: [], files: [], note: '', stage: 'handover' })), ['Add a link or a file to your delivery.']);
-  assert.deepEqual(validateDelivery({ links: ['https://drive.google.com/file/d/abc/view'], files: [], note: '' }), []);
-  assert.deepEqual(validateDelivery({ links: ['https://www.figma.com/design/k3y/x'], files: [FILE], note: '', stage: 'revision' }), []);
+  // F1: without a fixed-version link the promised list is also required
+  assert.deepEqual(messages(validateDelivery(filesOnly)), [PREVIEW_LINK_NEEDED, FINALS_NEEDED]);
+  assert.deepEqual(messages(validateDelivery({ ...filesOnly, stage: 'revision' })), [PREVIEW_LINK_NEEDED, FINALS_NEEDED]);
+  // F1 (amends R1): the hand-over needs the link where the client downloads
+  assert.deepEqual(messages(validateDelivery({ ...filesOnly, stage: 'handover' })), [HANDOVER_LINK_NEEDED('the client')]);
+  assert.deepEqual(validateDelivery({ links: ['https://drive.google.com/drive/folders/final'], files: [FILE], note: '', stage: 'handover' }), []);
+  assert.deepEqual(validateDelivery({ links: ['https://drive.google.com/file/d/abc/view'], files: [], note: '', finals: [{ ...FILE, sha256: 'b'.repeat(64) }] }), []);
+  assert.deepEqual(validateDelivery({ links: ['https://www.figma.com/design/k3y/x?version-id=7'], files: [FILE], note: '', stage: 'revision' }), []);
 });
 
 test('an old files-only delivery still decodes and matches its on-chain fingerprint', () => {

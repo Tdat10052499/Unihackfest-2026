@@ -99,11 +99,11 @@ test('content limits', () => {
   assert.match(validateBrief({ ...BRIEF, milestones: [{ name: 'a', criteria: Array(7).fill('c') }, BRIEF.milestones[1]] }, 2)[0].message, /6 done-when/);
   assert.deepEqual(validateDelivery(DELIVERY), []);
   assert.match(validateDelivery({ links: [], files: [], note: '' })[0].message, /preview link/);
-  assert.match(validateDelivery({ links: [], files: [], note: '', stage: 'handover' })[0].message, /link or a file/);
-  assert.match(validateDelivery({ ...DELIVERY, links: Array(6).fill('https://a.b') })[0].message, /5 links/);
+  assert.match(validateDelivery({ links: [], files: [], note: '', stage: 'handover' })[0].message, /link where the client can download/);
+  assert.match(validateDelivery({ ...DELIVERY, finals: [{ name: 'final.svg', size: 1, sha256: 'cd'.repeat(32) }], links: Array(6).fill('https://a.b') })[0].message, /5 links/);
   assert.match(validateDelivery({ ...DELIVERY, files: Array(11).fill(DELIVERY.files[0]) })[0].message, /10 files/);
   assert.match(validateDelivery({ ...DELIVERY, note: 'n'.repeat(501) })[0].message, /500/);
-  assert.match(validateDelivery({ ...DELIVERY, links: ['ftp://x'] })[0].message, /https/);
+  assert.match(validateDelivery({ ...DELIVERY, finals: [{ name: 'final.svg', size: 1, sha256: 'cd'.repeat(32) }], links: ['ftp://x'] })[0].message, /https/);
 });
 
 // ---- notes ----
