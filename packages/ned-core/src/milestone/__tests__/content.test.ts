@@ -90,13 +90,16 @@ test('hash vectors: brief_hash and evidence are SHA-256 of the canonical JSON by
 });
 
 test('content limits', () => {
-  assert.deepEqual(validateBrief(BRIEF, 2), []);
+  // R1: a draft needs a done-when point per milestone; BRIEF's second milestone has none (its hash is pinned elsewhere)
+  assert.deepEqual(validateBrief(BRIEF, 2), [{ field: 'milestones.1.criteria', message: 'Add at least one done-when point, so the work can be checked.' }]);
+  assert.deepEqual(validateBrief({ ...BRIEF, milestones: [BRIEF.milestones[0], { ...BRIEF.milestones[1], criteria: ['Shipped'] }] }, 2), []);
   assert.match(validateBrief(BRIEF, 3)[0].message, /milestone/);
   assert.match(validateBrief({ ...BRIEF, scope: 'x'.repeat(1501) }, 2)[0].message, /1,500/);
   assert.match(validateBrief({ ...BRIEF, references: Array(6).fill('https://a.b') }, 2)[0].message, /5 references/);
   assert.match(validateBrief({ ...BRIEF, milestones: [{ name: 'a', criteria: Array(7).fill('c') }, BRIEF.milestones[1]] }, 2)[0].message, /6 done-when/);
   assert.deepEqual(validateDelivery(DELIVERY), []);
-  assert.match(validateDelivery({ links: [], files: [], note: '' })[0].message, /link or a file/);
+  assert.match(validateDelivery({ links: [], files: [], note: '' })[0].message, /preview link/);
+  assert.match(validateDelivery({ links: [], files: [], note: '', stage: 'handover' })[0].message, /link or a file/);
   assert.match(validateDelivery({ ...DELIVERY, links: Array(6).fill('https://a.b') })[0].message, /5 links/);
   assert.match(validateDelivery({ ...DELIVERY, files: Array(11).fill(DELIVERY.files[0]) })[0].message, /10 files/);
   assert.match(validateDelivery({ ...DELIVERY, note: 'n'.repeat(501) })[0].message, /500/);

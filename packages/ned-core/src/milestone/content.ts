@@ -129,6 +129,12 @@ export const briefHash = (title: string, draft: BriefDraft) => hashContent(canon
 export const deliveryEvidence = (draft: DeliveryDraft) => hashContent(canonicalDelivery(draft));
 export const reviewHash = (draft: ReviewDraft) => hashContent(canonicalReview(draft));
 
+export const PREVIEW_LINK_NEEDED = 'Add a preview link the client can open (Google Drive, Figma, YouTube, Loom or an image link).';
+export const REVIEW_REASON_NEEDED = 'Say what is missing and what would make it acceptable.';
+export const DONE_WHEN_NEEDED = 'Add at least one done-when point, so the work can be checked.';
+/** Shortest reason when the milestone has no done-when points to pick from */
+export const REVIEW_REASON_MIN = 10;
+
 export interface ContentProblem {
   field: string;
   message: string;
@@ -152,6 +158,8 @@ export function validateBrief(draft: BriefDraft, milestoneCount: number): Conten
     if (!clean(m.name)) out.push({ field: `milestones.${i}.name`, message: `Name milestone ${i + 1}.` });
     if (chars(m.name) > LIMITS.nameChars) out.push({ field: `milestones.${i}.name`, message: `Keep the name of milestone ${i + 1} under ${LIMITS.nameChars} characters.` });
     const criteria = list(m.criteria);
+    // R1: only drafts are checked here; a brief already on Solana with an empty list still decodes
+    if (!criteria.length) out.push({ field: `milestones.${i}.criteria`, message: DONE_WHEN_NEEDED });
     if (criteria.length > LIMITS.criteriaPerMilestone) out.push({ field: `milestones.${i}.criteria`, message: `Add up to ${LIMITS.criteriaPerMilestone} done-when points per milestone.` });
     criteria.forEach((c, j) => {
       if (chars(c) > LIMITS.criterionChars) out.push({ field: `milestones.${i}.criteria.${j}`, message: `Keep each done-when point under ${LIMITS.criterionChars} characters.` });
@@ -160,11 +168,18 @@ export function validateBrief(draft: BriefDraft, milestoneCount: number): Conten
   return out;
 }
 
+/**
+ * R1: a first delivery or a revised version is reviewed through a preview, so it needs at least one link the client
+ * can open; the hand-over after release keeps "a link or a file". Only the draft check changes: decoding, the
+ * canonical JSON and deliveryEvidence are as before, so older files-only deliveries still decode and match.
+ */
 export function validateDelivery(draft: DeliveryDraft): ContentProblem[] {
   const out: ContentProblem[] = [];
   const links = list(draft.links);
   const files = draft.files ?? [];
-  if (!links.length && !files.length) out.push({ field: 'links', message: 'Add a link or a file to your delivery.' });
+  if (draft.stage === 'handover') {
+    if (!links.length && !files.length) out.push({ field: 'links', message: 'Add a link or a file to your delivery.' });
+  } else if (!links.length) out.push({ field: 'links', message: PREVIEW_LINK_NEEDED });
   if (links.length > LIMITS.links) out.push({ field: 'links', message: `Add up to ${LIMITS.links} links.` });
   links.forEach((l, i) => {
     if (!isUrl(l) || l.length > LIMITS.urlChars) out.push({ field: `links.${i}`, message: 'A link must start with https://.' });
@@ -179,12 +194,21 @@ export function validateDelivery(draft: DeliveryDraft): ContentProblem[] {
   return out;
 }
 
-/** `criteriaCount` = number of done-when points of the milestone in the brief */
+/**
+ * `criteriaCount` = number of done-when points of the milestone in the brief. With points, the client picks at least
+ * one that is not met. Without points (an older brief), no point can be picked, so the reason carries the request:
+ * 10–500 characters after trimming (R1).
+ */
 export function validateReview(draft: ReviewDraft, criteriaCount: number): ContentProblem[] {
   const out: ContentProblem[] = [];
   const unmet = draft.unmet ?? [];
-  if (!unmet.length) out.push({ field: 'unmet', message: 'Choose at least one done-when point that is not met.' });
-  if (unmet.some((i) => !Number.isInteger(i) || i < 0 || i >= criteriaCount)) out.push({ field: 'unmet', message: 'A done-when point is not valid.' });
+  if (criteriaCount === 0) {
+    if (unmet.length) out.push({ field: 'unmet', message: 'A done-when point is not valid.' });
+    if (chars(draft.reason) < REVIEW_REASON_MIN) out.push({ field: 'reason', message: REVIEW_REASON_NEEDED });
+  } else {
+    if (!unmet.length) out.push({ field: 'unmet', message: 'Choose at least one done-when point that is not met.' });
+    if (unmet.some((i) => !Number.isInteger(i) || i < 0 || i >= criteriaCount)) out.push({ field: 'unmet', message: 'A done-when point is not valid.' });
+  }
   if (chars(draft.reason) > LIMITS.reasonChars) out.push({ field: 'reason', message: `Keep the reason under ${LIMITS.reasonChars} characters.` });
   return out;
 }

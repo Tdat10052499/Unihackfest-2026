@@ -18,4 +18,5 @@ export * from './records.ts';
 export * from './events.ts';
 export * from './notices.ts';
 export * from './links.ts';
+export * from './embed.ts';
 export * from './devicekeys.ts';

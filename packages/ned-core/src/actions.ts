@@ -437,9 +437,13 @@ async function contractKey(env: ActionEnv, address: string): Promise<Uint8Array>
   return key;
 }
 
-/** Encrypted review note (kind 3) for milestone `index`; criteria count unknown here, so only the limits are checked */
+/**
+ * Encrypted review note (kind 3) for milestone `index`. The brief is not read here, so the done-when count is unknown:
+ * a review that names points is checked for the limits only; one that names none is checked as a milestone without
+ * points (R1: a reason of 10–500 characters). The page checks against the real count first.
+ */
 function reviewNote(key: Uint8Array, fund: PublicKey, index: number, review: ReviewDraft): EncryptedNote {
-  assertContent(validateReview(review, Number.MAX_SAFE_INTEGER));
+  assertContent(validateReview(review, review.unmet?.length ? Number.MAX_SAFE_INTEGER : 0));
   const bytes = contentBytes(canonicalReview(review));
   if (bytes.length > NOTE_MAX_PLAINTEXT) throw new UserFacingError('The review is too long to save. Shorten the reason.');
   return encryptNoteParts(key, fund, NOTE_KIND_REVIEW, index, bytes);
