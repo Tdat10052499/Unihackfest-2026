@@ -96,7 +96,7 @@ export function PostJob() {
   return <PostJobForm wallet={viewer.wallet!} name={viewer.name ?? ''} />;
 }
 
-function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
+export function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
   const now = useChainTime();
   const balance = useUsdcUnits(wallet).data;
   const { env, status } = useActionEnv();
@@ -225,7 +225,7 @@ function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
         <div className={styles.cols}>
           <main className={styles.main}>
             <fieldset disabled={locked} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
-              <section aria-labelledby="jp-1" className={styles.card}>
+              <section aria-labelledby="jp-1" className={`${styles.card} rv`}>
                 <h2 id="jp-1" className={styles.h2}>
                   <span className={styles.num}>1</span>About the job
                 </h2>
@@ -289,7 +289,7 @@ function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
                 <textarea id="jp-refs" rows={2} className={styles.textarea} value={f.references} onChange={(e) => set({ references: e.target.value })} />
               </section>
 
-              <section aria-labelledby="jp-2" className={styles.card}>
+              <section aria-labelledby="jp-2" className={`${styles.card} rv`}>
                 <h2 id="jp-2" className={styles.h2}>
                   <span className={styles.num}>2</span>Work
                 </h2>
@@ -335,7 +335,7 @@ function PostJobForm({ wallet, name }: { wallet: string; name: string }) {
                 <p className={styles.fine}>1 to 5 milestones · up to 1,000 USDC per job in this demo. Write done-when points someone else could check.</p>
               </section>
 
-              <section aria-labelledby="jp-3" className={styles.card}>
+              <section aria-labelledby="jp-3" className={`${styles.card} rv`}>
                 <h2 id="jp-3" className={styles.h2}>
                   <span className={styles.num}>3</span>Timing
                 </h2>

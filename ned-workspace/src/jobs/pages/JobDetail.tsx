@@ -49,7 +49,7 @@ export function JobDetail() {
   const records = useTrackRecords(business ? [business] : [], 'client');
   const names = useDisplayNames(business ? [business] : []).data ?? {};
   const now = useChainTime();
-  if (job.isPending) return <Shell><div className={styles.card} aria-busy="true">Reading the job from Solana…</div></Shell>;
+  if (job.isPending) return <Shell><div className={`${styles.card} rv`} aria-busy="true">Reading the job from Solana…</div></Shell>;
   if (!job.data)
     return (
       <Shell>
@@ -104,7 +104,7 @@ export function JobDetailView(p: JobDetailViewProps) {
     <Shell>
       <div className={styles.cols}>
         <main className={styles.main}>
-          <section aria-labelledby="jd-title" className={styles.card}>
+          <section aria-labelledby="jd-title" className={`${styles.card} rv`}>
             <div className={styles.chips}>
               <Chip tone="purple">{categoryLabel(job.category)}</Chip>
               {skills.map((k) => (
@@ -140,7 +140,7 @@ export function JobDetailView(p: JobDetailViewProps) {
           </section>
 
           {b ? (
-            <section aria-labelledby="jd-scope" className={styles.card}>
+            <section aria-labelledby="jd-scope" className={`${styles.card} rv`}>
               <h2 id="jd-scope" className={styles.h2}>
                 Scope
               </h2>
@@ -158,7 +158,7 @@ export function JobDetailView(p: JobDetailViewProps) {
             </section>
           ) : null}
 
-          <section aria-labelledby="jd-ms" className={styles.card}>
+          <section aria-labelledby="jd-ms" className={`${styles.card} rv`}>
             <div className={styles.h2Row}>
               <h2 id="jd-ms" className={styles.h2}>
                 Milestones
@@ -195,7 +195,7 @@ export function JobDetailView(p: JobDetailViewProps) {
           </section>
 
           <div className={styles.two}>
-            <section aria-labelledby="jd-proof" className={styles.card}>
+            <section aria-labelledby="jd-proof" className={`${styles.card} rv`}>
               <div className={styles.proofHead}>
                 <span className={styles.proofIcon} aria-hidden>
                   <HubIcon name="lock" size={16} />
@@ -219,7 +219,7 @@ export function JobDetailView(p: JobDetailViewProps) {
                 <HubIcon name="external" size={13} />
               </a>
             </section>
-            <section aria-labelledby="jd-rec" className={styles.card}>
+            <section aria-labelledby="jd-rec" className={`${styles.card} rv`}>
               <div className={styles.proofHead}>
                 <Avatar seed={job.business.toBase58()} size={36} decorative />
                 <h2 id="jd-rec" className={styles.h2}>
@@ -304,7 +304,7 @@ function ApplyCard(p: JobDetailViewProps) {
   };
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} rv`}>
       <div className={styles.small}>Budget</div>
       <MoneyText units={job.total} vn={p.vn} size={26} sub="test USDC on devnet" />
       <dl className={styles.dl}>
@@ -409,7 +409,7 @@ function HowItWorks(p: JobDetailViewProps) {
     ['Released', 'After the client accepts, or when review time ends.'],
   ];
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} rv`}>
       <h2 className={styles.h2}>How it works</h2>
       <ol className={styles.steps}>
         {steps.map(([title, sub], i) => (
