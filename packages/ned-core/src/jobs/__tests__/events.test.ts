@@ -64,3 +64,15 @@ test('jobLogEvents decodes JobPostedOpen and JobFunded and skips other lines', (
   assert.deepEqual(events[1], { name: 'JobFunded', job: JOB_ADDRESS.toBase58(), total: 20n * USDC });
   assert.deepEqual(jobLogEvents(null), []);
 });
+
+test('v1.4 budgetLocked: the business hears it when its unfunded listing is funded at selection; old snapshots stay quiet', () => {
+  const open = job({ applicationCount: 1, unfunded: true });
+  const funded = job({ state: 'Selected', applicationCount: 1, selected: FREELANCER, selectedAt: T0 + 400, fund: FUND_ADDRESS });
+  const ev = jobEvents(jobSnapshot([open]), [funded], [], BUSINESS.toBase58());
+  assert.deepEqual(ev.map((e) => e.kind), ['budgetLocked']);
+  assert.equal(ev[0].fund, FUND_ADDRESS.toBase58());
+  assert.deepEqual(jobEvents(jobSnapshot([funded]), [funded], [], BUSINESS.toBase58()), [], 'no repeat');
+  const old = { [JOB_ADDRESS.toBase58()]: { s: 'Open' as const, n: 1, sel: null } };
+  assert.deepEqual(jobEvents(old, [funded], [], BUSINESS.toBase58()), [], 'a snapshot from before v1.4');
+  assert.deepEqual(jobEvents(jobSnapshot([open]), [], [funded], FREELANCER.toBase58()).map((e) => e.kind), ['selected'], 'nothing new for the freelancer');
+});

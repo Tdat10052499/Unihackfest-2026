@@ -69,5 +69,7 @@ export function jobNotice(e: JobEvent): Notice {
       return { title: `You were selected for ${job} · accept by ${formatDeadline(e.acceptBy ?? 0)}`, message: 'Open the contract to read the brief and accept.' };
     case 'filled':
       return { title: `${job} was filled`, message: 'Another applicant was selected.' };
+    case 'budgetLocked':
+      return { title: `Budget locked for ${job}`, message: 'It moves into the contract when the freelancer you selected accepts.' };
   }
 }

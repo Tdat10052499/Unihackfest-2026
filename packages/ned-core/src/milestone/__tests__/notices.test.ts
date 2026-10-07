@@ -49,3 +49,10 @@ test('job notices (U3, D25 row)', () => {
   assert.equal(jobNotice({ ...e, kind: 'selected', acceptBy: 1_759_400_120 }).title, 'You were selected for “Logo” · accept by 2 Oct, 10:15');
   assert.equal(jobNotice({ ...e, kind: 'filled' }).title, '“Logo” was filled');
 });
+
+test('jobNotice budgetLocked (v1.4)', () => {
+  assert.deepEqual(jobNotice({ id: 'x', kind: 'budgetLocked', job: 'j', title: 'Logo', applicationCount: 1 }), {
+    title: 'Budget locked for “Logo”',
+    message: 'It moves into the contract when the freelancer you selected accepts.',
+  });
+});

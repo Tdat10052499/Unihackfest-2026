@@ -79,3 +79,20 @@ test('v4: budget presets, view and tab in the URL (key order q, cat, budget, ski
   const ctx = { now: 0 };
   assert.equal(filterJobs(ALL, { view: 'list', tab: 'applied' }, ctx).length, ALL.length, 'view and tab never filter');
 });
+
+test('v1.4 funded=1: filter, URL round trip after hide, and Newest puts funded first within the same day', () => {
+  const fundedOld = job({ address: PublicKey.unique(), title: 'A', createdAt: T0 });
+  const openNew = job({ address: PublicKey.unique(), title: 'B', createdAt: T0 + 60, unfunded: true });
+  const fundedNew = job({ address: PublicKey.unique(), title: 'C', createdAt: T0 + 30 });
+  const nextDay = job({ address: PublicKey.unique(), title: 'D', createdAt: T0 + 86_400, unfunded: true });
+  const list = [fundedOld, openNew, fundedNew, nextDay];
+  assert.deepEqual(filterJobs(list, { funded: true }, { now: T0 }).map((j) => j.title), ['A', 'C']);
+  assert.equal(filterJobs(list, {}, { now: T0 }).length, 4, 'off by default');
+  const titles = sortJobs(list).map((j) => j.title);
+  assert.equal(titles[0], 'D', 'a newer day still comes first');
+  const sameDay = titles.slice(1);
+  assert.ok(sameDay.indexOf('B') > sameDay.indexOf('C') && sameDay.indexOf('B') > sameDay.indexOf('A'), `funded first within the day: ${titles}`);
+  assert.equal(filtersToQuery({ hide: true, funded: true, sort: 'soon' }), 'hide=applied&funded=1&sort=soon');
+  assert.deepEqual(filtersFromQuery('funded=1'), { funded: true });
+  assert.deepEqual(filtersFromQuery('funded=yes'), {});
+});

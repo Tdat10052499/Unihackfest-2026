@@ -1,6 +1,6 @@
 // Search, filter and sort for the job board (funded-jobs-plan.md section 6.1). Pure functions over decoded listings:
 // the RPC only filters by state and category; everything else runs in the browser. The URL holds the filters and the
-// view (/jobs/find?q=logo&cat=design&budget=20to50&skills=figma,logo-brand&sort=soon&view=list&tab=applied), so a
+// view (/jobs/find?q=logo&cat=design&budget=20to50&skills=figma,logo-brand&funded=1&sort=soon&view=list&tab=applied), so a
 // reload or a shared link shows the same page and nothing is saved anywhere.
 import type { JobListingAccount } from './decode.ts';
 import { categoryById, JOB_CATEGORIES, skillById } from './taxonomy.ts';
@@ -32,6 +32,8 @@ export interface JobFilters {
   soon?: boolean;
   /** Hide jobs I applied to (needs `applied` in the context) */
   hide?: boolean;
+  /** v1.4 (D29) "Funded only": hide listings that lock when hired (URL funded=1) */
+  funded?: boolean;
   sort?: JobSort;
   /** Page view only (no effect on the results): grid (default) or list */
   view?: JobView;
@@ -99,15 +101,20 @@ export function filterJobs<T extends JobListingAccount>(jobs: readonly T[], f: J
     if (f.ms && !inRange(job.milestoneCount, f.ms)) return false;
     if (f.soon && !(job.applyBy >= ctx.now && job.applyBy - ctx.now <= DAY)) return false;
     if (f.hide && ctx.applied?.has(job.address.toBase58())) return false;
+    if (f.funded && job.unfunded) return false;
     return true;
   });
 }
 
-/** New list, never sorts in place; ties keep the newest first */
+/**
+ * New list, never sorts in place; ties keep the newest first. "Newest" puts funded listings first within the same UTC
+ * day (v1.4, D29), so a listing that locks when hired never pushes a funded one of the same day down.
+ */
 export function sortJobs<T extends JobListingAccount>(jobs: readonly T[], sort: JobSort = 'new'): T[] {
   const newest = (a: T, b: T) => b.createdAt - a.createdAt;
+  const day = (j: T) => Math.floor(j.createdAt / DAY);
   const by: Record<JobSort, (a: T, b: T) => number> = {
-    new: newest,
+    new: (a, b) => day(b) - day(a) || Number(a.unfunded) - Number(b.unfunded) || newest(a, b),
     soon: (a, b) => a.applyBy - b.applyBy || newest(a, b),
     budget: (a, b) => (a.total === b.total ? newest(a, b) : a.total > b.total ? -1 : 1),
   };
@@ -142,6 +149,7 @@ export function filtersFromQuery(query: string | URLSearchParams): JobFilters {
   if (ms && RANGES.includes(ms)) f.ms = ms;
   if (p.get('soon') === '24h') f.soon = true;
   if (p.get('hide') === 'applied') f.hide = true;
+  if (p.get('funded') === '1') f.funded = true;
   const sort = p.get('sort') as JobSort | null;
   if (sort && SORTS.includes(sort) && sort !== 'new') f.sort = sort;
   const view = p.get('view') as JobView | null;
@@ -152,7 +160,8 @@ export function filtersFromQuery(query: string | URLSearchParams): JobFilters {
 }
 
 /**
- * Filters → URL query without "?". Fixed key order q, cat, budget, skills, min, max, dur, ms, soon, hide, sort, view, tab;
+ * Filters → URL query without "?". Fixed key order q, cat, budget, skills, min, max, dur, ms, soon, hide, funded, sort, view,
+ * tab;
  * defaults (sort new, view grid, tab open) are left out, so an empty filter gives "".
  */
 export function filtersToQuery(f: JobFilters): string {
@@ -168,6 +177,7 @@ export function filtersToQuery(f: JobFilters): string {
   if (f.ms) p.set('ms', f.ms);
   if (f.soon) p.set('soon', '24h');
   if (f.hide) p.set('hide', 'applied');
+  if (f.funded) p.set('funded', '1');
   if (f.sort && f.sort !== 'new') p.set('sort', f.sort);
   if (f.view && f.view !== 'grid') p.set('view', f.view);
   if (f.tab && f.tab !== 'open') p.set('tab', f.tab);

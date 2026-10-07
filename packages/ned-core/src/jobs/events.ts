@@ -6,13 +6,14 @@ import { coder } from '../milestone/decode.ts';
 import type { JobListingAccount } from './decode.ts';
 import { JOB_ACCEPT_WINDOW_SECS, type JobStateName } from './layout.ts';
 
-/** job address → state, applicant count and selected wallet, as last seen on this device */
-export type JobSnapshot = Record<string, { s: JobStateName; n: number; sel: string | null }>;
+/** job address → state, applicant count, selected wallet and (v1.4) unfunded, as last seen on this device */
+export type JobSnapshot = Record<string, { s: JobStateName; n: number; sel: string | null; u?: boolean }>;
 
 export interface JobEvent {
   /** stable: `job:<job>:<kind>[:<count>]` */
   id: string;
-  kind: 'newApplicant' | 'selected' | 'filled';
+  /** budgetLocked (v1.4, D29): the business's "locks when hired" listing was funded (JobFunded) at selection */
+  kind: 'newApplicant' | 'selected' | 'filled' | 'budgetLocked';
   job: string;
   title: string;
   applicationCount: number;
@@ -24,7 +25,7 @@ export interface JobEvent {
 
 export function jobSnapshot(jobs: JobListingAccount[]): JobSnapshot {
   const out: JobSnapshot = {};
-  for (const j of jobs) out[j.address.toBase58()] = { s: j.state, n: j.applicationCount, sel: j.selected?.toBase58() ?? null };
+  for (const j of jobs) out[j.address.toBase58()] = { s: j.state, n: j.applicationCount, sel: j.selected?.toBase58() ?? null, u: j.unfunded };
   return out;
 }
 
@@ -39,6 +40,9 @@ export function jobEvents(prev: JobSnapshot | null, mine: JobListingAccount[], a
     const was = prev[job];
     if (j.applicationCount > (was?.n ?? 0))
       events.push({ id: `job:${job}:newApplicant:${j.applicationCount}`, kind: 'newApplicant', job, title: j.title, applicationCount: j.applicationCount });
+    // v1.4: last seen unfunded, now funded (only from a snapshot that recorded `u`)
+    if (was?.u === true && !j.unfunded)
+      events.push({ id: `job:${job}:budgetLocked`, kind: 'budgetLocked', job, title: j.title, applicationCount: j.applicationCount, ...(j.fund ? { fund: j.fund.toBase58() } : {}) });
   }
   for (const j of applied) {
     const job = j.address.toBase58();
