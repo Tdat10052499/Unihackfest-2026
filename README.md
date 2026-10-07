@@ -146,12 +146,11 @@ flowchart TB
 
 | Part | State |
 | --- | --- |
-| **Program on devnet** | **v1.3**: Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and Funded Jobs (`post_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 27 instructions, 53 errors, 24 events, 54 tests. Not audited. |
-| **Program v1.4** (lock at hire, D29) | Built and tested: 29 instructions, 55 errors, 26 events, **67/67 tests**. Adds `post_job_open` and `fund_job`, and the selected-applicant check in `lock_from_job`. Devnet upgrade pending (needs a 14,576-byte program extend). |
-| **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages |
+| **Program on devnet** | **v1.4** (lock at hire, D29; upgraded from v1.3 on 7 Oct): Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and N.E.D Jobs (`post_job`, `post_job_open`, `fund_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 29 instructions, 55 errors, 26 events, **67/67 tests**. `select_job` refuses a listing whose budget is not locked, and `lock_from_job` checks the selected applicant and the brief. Devnet upgrade done, IDL on-chain, smoke Runs 1–4 green. Not audited. |
+| **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages. Lock at hire: **Lock now** / **Lock when I hire** on `/jobs/new`, "Budget locked" / "Locks when hired" chips, a "Funded only" filter, and "Select @x and lock X USDC". An open contract from `/new` is not built yet. |
 | **Wallet app** | Live on GitHub Pages: Vietnam view, accept and lock, contract screens, records. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
-| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 171 · wallet 38 · Workspace 22 (node) + 106 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V2). |
+| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 184 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V7). |
 
 **Compute units:**
 - Measured with LiteSVM on v1.4, 7 Oct 2026, over 10 runs.
@@ -217,7 +216,7 @@ cd ned-wallet
 npm run jobs:smoke -- --check     # deployed binary == local build, core IDL == built IDL
 ```
 
-`npm run jobs:smoke` without `--check` replays the Funded Jobs flow on devnet with throwaway keys (`ned-wallet/.smoke-keys/`, gitignored). It stops and prints the addresses to fund when they need devnet SOL or USDC (Circle faucet). It never moves funds from team wallets.
+`npm run jobs:smoke` without `--check` replays the N.E.D Jobs flow on devnet (Runs 1–4, including lock at hire in Run 3 and an open listing withdrawn in Run 4) with throwaway keys (`ned-wallet/.smoke-keys/`, gitignored). It stops and prints the addresses to fund when they need devnet SOL or USDC (Circle faucet). It never moves funds from team wallets.
 
 ---
 
@@ -274,7 +273,7 @@ Every `VITE_*` and `EXPO_PUBLIC_*` value is bundled into a public web build. Nev
 | `VITE_DYNAMIC_ENVIRONMENT_ID` / `EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID` | yes | Google login and embedded wallet (same value in both apps) |
 | `VITE_HELIUS_DEVNET_URL` / `EXPO_PUBLIC_HELIUS_DEVNET_URL` | recommended | Devnet RPC; empty uses the public RPC, which rate-limits |
 | `VITE_PROGRAM_ID` / `EXPO_PUBLIC_ANCHOR_PROGRAM_ID` | no | Override the program ID. Keep empty in production. |
-| `VITE_FEATURE_JOBS`, `VITE_FEATURE_DISPUTE` | no | `false` switches N.E.D Jobs or the request-changes group off (`VITE_FEATURE_LOCK_AT_HIRE` comes with v1.4) |
+| `VITE_FEATURE_JOBS`, `VITE_FEATURE_DISPUTE` | no | `false` switches N.E.D Jobs or the request-changes group off; `VITE_FEATURE_LOCK_AT_HIRE=false` hides lock at hire (v1.3 screens) |
 | `VITE_MOBILE_ORIGIN`, `VITE_WORKSPACE_ORIGIN` | no | Origins used in invite links |
 | `VITE_DEV_TOOLS` / `EXPO_PUBLIC_DEV_TOOLS` | no | Development previews only. Never in a public build. |
 

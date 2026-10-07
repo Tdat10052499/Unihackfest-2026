@@ -1,6 +1,6 @@
 # N.E.D Milestone Lock: System Tracker
 
-**Owner:** Compliance Lead (Nguyễn Minh Chính) · **Cập nhật:** 7 Oct 2026 (tối) · **Build tham chiếu:** `main` at `0b808d1` (program **v1.3** live on devnet: Milestone Lock + Funded Jobs + D27 note rules)
+**Owner:** Compliance Lead (Nguyễn Minh Chính) · **Cập nhật:** 7 Oct 2026 (tối) · **Build tham chiếu:** `main` at `0b808d1` (program **v1.3** live on devnet: Milestone Lock + Funded Jobs + D27 note rules) · **cập nhật V7 (7 Oct):** program **v1.4** live trên devnet (D29 Lock at hire; 29 instruction · 55 lỗi · 26 event · 67 test), mục 1, 3.1, 4.2, 6B, 12, 13
 **Mục đích:** một chỗ duy nhất để cả team biết hệ thống *phải* chạy thế nào, theo dõi mọi tình huống (positive và negative) và từng việc còn phải làm. Mỗi khi code hoặc quyết định thay đổi, cập nhật mục 12 (build tracker) và mục 13 (decisions).
 **Rà soát 7 Oct (PO, đối chiếu với program v1.3 và code trên `main`):** workflow lõi (mục 1–5) khớp với code. Đã sửa: I6 chuyển thành đề xuất (chờ Q1); câu D-5 bỏ phần chưa build; mục 7.1 ghi rõ nguồn dữ liệu; trạng thái hint "Public on Solana" và record của business; câu C-1; thêm hub v4 vào build tracker (B-21); `close` ở bảng 3.2; thay từ cấm ở mục 7.2 và 11 bằng "bond".
 **Cập nhật workflow 7 Oct (tối, PO):** mục 3.2, 4 và 6–12 theo code trên `main` `0b808d1`, gồm:
@@ -13,9 +13,9 @@ Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (
 **Thông báo 7 Oct (tối, PO) · D29, tính năng cuối cùng:**
 - **Thay đổi:** client đăng contract không cần chỉ định freelancer; freelancer apply; tiền **khoá lúc đăng hoặc khoá lúc chọn người** (Lock at hire). Freelancer vẫn luôn thấy tiền đã khoá trước khi accept.
 - **Program v1.4:** thêm `post_job_open`, `fund_job`, byte `unfunded` ở offset 544, và sửa G1 trong `lock_from_job`.
-- **Hạn:** cut line 8 Oct 18:00; nếu không kịp thì rollback về v1.3.
+- **Hạn:** cut line 8 Oct 18:00; nếu không kịp thì rollback về v1.3. **7 Oct (V3–V4): v1.4 đã lên devnet, smoke Run 1–4 xanh, không cần rollback.**
 - **Tài liệu:** [`lock-at-hire-plan.md`](lock-at-hire-plan.md). Việc của CL ở mục 6 của file đó (slide 4, Q&A, Job posting rules, Disclosures, tracker 3.1/4.2/6B).
-**Nguồn ưu tiên khi có mâu thuẫn:** decision log D1–D28 trong [`README.md`](README.md) thắng về product và program; file này tóm tắt và theo dõi, không thay thế decision log. Không phải legal advice. Đây là devnet prototype, tiền thử.
+**Nguồn ưu tiên khi có mâu thuẫn:** decision log D1–D29 trong [`README.md`](README.md) thắng về product và program; file này tóm tắt và theo dõi, không thay thế decision log. Không phải legal advice. Đây là devnet prototype, tiền thử.
 
 **Ký hiệu:** ✅ đã chạy trên `main` · 🔧 đang làm hoặc còn thiếu một phần · 🆕 đề xuất mới (7 Oct, chưa duyệt) · 🗺 roadmap (sau final) · ⛔ cố ý không làm
 
@@ -27,7 +27,7 @@ Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (
 - freelancer quốc tế nhận USDC vào ví riêng;
 - freelancer ở Việt Nam nhận **VND vào ngân hàng** qua payout partner (demo: simulated).
 
-**Funded Jobs (D25)** là cách freelancer tìm việc đã có tiền: business đăng job và lock toàn bộ budget ngay lúc đăng.
+**N.E.D Jobs (D25, D29)** là nơi freelancer tìm việc: business đăng job và lock toàn bộ budget **ngay lúc đăng** (Lock now, chip "Budget locked") hoặc **lúc chọn người** (Lock when I hire, chip "Locks when hired"). Cả hai cách, budget luôn khoá trước khi freelancer accept (I13). "Funded Jobs" chỉ dùng cho listing đã khoá.
 
 **Invariants:** những điều luôn phải đúng. Nếu một thay đổi làm vỡ một trong các điều này thì không merge.
 
@@ -38,13 +38,14 @@ Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (
 | I3 | **Không bên nào tự ý lấy tiền.** Tiền chỉ đi theo rule: client accept · hết review deadline (Release now) · hết submission deadline (Refund now) · freelancer tự trả lại (concede) · hai bên đồng ý split | D1, D11, D27 |
 | I4 | **Request changes không bao giờ hoàn tiền cho client.** Tiền vẫn lock cho tới khi hai bên đồng ý | D27 (chống "copy bài rồi đòi tiền") |
 | I5 | Đích nhận tiền được **chốt lúc freelancer accept**, không đổi được; Vietnam path chỉ vào địa chỉ partner trong allowlist | D7, D13 |
-| I6 🆕 | **Hết hạn thì bên không có lỗi thắng.** Không có tiền phạt; hậu quả là mất quyền phản đối (đã có: Release now, Refund now), cộng thêm record và cooldown (mục 7, chưa build) | **Đề xuất** 7 Oct (thay cho "confirm 2 phía + phạt tiền"), CL đồng ý, **chờ PO ở Q1**. Khi PO duyệt: thêm D29 vào decision log trong `README.md` rồi bỏ 🆕 |
+| I6 🆕 | **Hết hạn thì bên không có lỗi thắng.** Không có tiền phạt; hậu quả là mất quyền phản đối (đã có: Release now, Refund now), cộng thêm record và cooldown (mục 7, chưa build) | **Đề xuất** 7 Oct (thay cho "confirm 2 phía + phạt tiền"), CL đồng ý, **chờ PO ở Q1**. Khi PO duyệt: thêm D29 vào decision log trong `README.md` rồi bỏ 🆕 *(7 Oct: D29 đã dùng cho Lock at hire; dùng D30)* |
 | I7 | **Không thu phí** trong v1; không có fee code | D2, NĐ 284/2026 Đ.7(4) |
 | I8 | `released + refunded + unsettled = total` cho mọi contract; job vault chuyển đúng số đã lưu | Có test |
 | I9 | Brief và delivery của **contract** được mã hoá; khoá chỉ ở thiết bị đã đăng ký của hai bên và trong link mời (ai có link cũng đọc được, S-4), N.E.D không có khoá; file không bao giờ bị upload, chỉ lưu fingerprint. (Brief của **job listing** là công khai, mục 10) | D15, D22, D26 |
 | I10 | Vietnam view **không đăng job**, không tạo contract với vai trò client | D18, D25 |
 | I11 | N.E.D **không chọn, không thẩm định, không tuyển dụng** ai và không phải một bên của công việc | Terms (funded-jobs-plan §9) |
 | I12 | Mọi chữ trên UI theo word table (product-spec §6): lock, release, refund, receive earnings, request changes; không dùng pay/payment/escrow/safe/licensed partner/auto-release | Compliance, rule cuộc thi, D26 |
+| I13 | **Freelancer không bao giờ accept trước khi budget đã khoá.** `select_job` từ chối listing chưa khoá (`JobNotFunded`); app gửi `fund_job + create_fund + select_job` trong một transaction; `lock_from_job` chỉ khoá vào contract của đúng người được chọn với đúng brief (G1, `JobFundMismatch`) | D29, program v1.4 (có test `v14_*`) |
 
 ---
 
@@ -63,18 +64,20 @@ Mục 4.3 mới tóm tắt quyền lợi của hai bên ở từng bước. F3 (
 
 ## 3. Lifecycle
 
-### 3.1 Job listing (D25, v1.3)
+### 3.1 Job listing (D25, D29; v1.4)
 
-`Open → Selected → Filled`, hoặc `→ Withdrawn`
+`Open → Selected → Filled`, hoặc `→ Withdrawn`. Từ v1.4 có hai loại listing: **đã khoá** (`unfunded = 0`, như v1.3) và **khoá khi chọn người** (`unfunded = 1`, byte 544 của `JobListing`). Mọi listing v1.3 đọc là đã khoá.
 
 | Từ | Instruction | Ai ký | Điều kiện chính | Sang |
 | --- | --- | --- | --- | --- |
-| — | `post_job` (+ `post_job_brief`) | Business | 1–5 milestone; total ≤ 1,000 USDC; `now < apply_by ≤ select_by`; budget chuyển vào job vault | Open |
+| — | `post_job` (+ `post_job_brief`) · **Lock now** | Business | 1–5 milestone; total ≤ 1,000 USDC; `now < apply_by ≤ select_by`; budget chuyển vào job vault | Open (đã khoá) |
+| — | `post_job_open` (+ `post_job_brief`) · **Lock when I hire** (v1.4) | Business | Như `post_job`, nhưng không chuyển tiền; job vault rỗng, `unfunded = 1`, event `JobPostedOpen` | Open (khoá khi chọn người) |
 | Open | `apply_job(pitch ≤ 280 bytes, public)` | Freelancer | `now ≤ apply_by`; không phải chính business; mỗi người 1 đơn | Open |
-| Open | `create_fund` + `select_job` (cùng một transaction) | Business | `now ≤ select_by`; contract khớp listing | Selected |
+| Open (đã khoá) | `create_fund` + `select_job` (cùng một transaction) | Business | `now ≤ select_by`; contract khớp listing | Selected |
+| Open (khoá khi chọn người) | `fund_job` + `create_fund` + `select_job` (cùng một transaction, v1.4) | Business | `fund_job`: `state == Open`, `unfunded == 1` (`JobAlreadyFunded`), `now ≤ select_by`; chuyển đúng `total` đã lưu vào job vault, `unfunded = 0`. `select_job` từ chối listing chưa khoá (`JobNotFunded`). Thiếu USDC thì không chọn được | Selected (đã khoá) |
 | Selected (quá accept window) | Re-select (đóng contract cũ trong cùng transaction) | Business | `now > selected_at + JOB_ACCEPT_WINDOW` (120 s trên devnet) | Selected (người mới) |
-| Selected | `accept` + `lock_from_job` (cùng một transaction) | Freelancer | Đích được chốt trước khi tiền vào contract | Filled (contract Funded) |
-| Open/Selected | `withdraw_job` | Business | Chưa ai apply; hoặc quá `select_by` (và quá accept window nếu đang Selected) | Withdrawn (budget về business) |
+| Selected | `accept` + `lock_from_job` (cùng một transaction) | Freelancer | Đích được chốt trước khi tiền vào contract; v1.4 (G1): `fund.freelancer == job.selected` và `fund.brief_hash == job.brief_hash` (`JobFundMismatch`) | Filled (contract Funded) |
+| Open/Selected | `withdraw_job` | Business | Chưa ai apply; hoặc quá `select_by` (và quá accept window nếu đang Selected) | Withdrawn (budget về business; listing chưa khoá trả 0, cộng tiền ai gửi lạc vào vault, và đóng job vault) |
 
 ### 3.2 Contract & milestone
 
@@ -124,17 +127,18 @@ Cập nhật theo `main` `0b808d1`. Cột "Status" ghi rõ app nào đã có.
 | 11 | Vinh | Records → CSV (≈ VND, kèm "estimate · simulated · not tax advice") | — | ✅ (app ví) |
 | 12 | Mia | Close contract, lấy lại rent. Còn milestone chưa bàn giao thì app cảnh báo trước | — | ✅ |
 
-### 4.2 Funded Job (N.E.D Jobs, hub v4)
+### 4.2 N.E.D Jobs (hub v4): listing đã khoá và listing khoá khi chọn người (v1.4)
 
 | Bước | Ai | Làm gì | Status |
 | --- | --- | --- | --- |
-| 1 | Business (non-VN) | `/jobs/new`: đăng job (mỗi milestone ≥ 1 điểm done-when), **lock toàn bộ budget** ("Budget locked" + Explorer link) | ✅ |
-| 2 | Freelancer | `/jobs` (Overview) hoặc `/jobs/find` (tìm theo What · Field · Budget, Filters) → job detail → **Apply** (pitch công khai ≤ 280 bytes, có hint "Public on Solana") | ✅ |
-| 3 | Business | Applicants → **Select** → `create_fund + select_job` trong 1 transaction (brief mã hoá + key wraps) | ✅ |
+| 1a | Business (non-VN) | `/jobs/new`: đăng job (mỗi milestone ≥ 1 điểm done-when), chọn **Lock now** → **lock toàn bộ budget** ("Budget locked" + Explorer link) | ✅ |
+| 1b | Business (non-VN) | `/jobs/new` → **Lock when I hire** (mặc định khi `FEATURES.lockAtHire` bật) → `post_job_open`, nút "Publish"; không khoá gì. Thẻ job hiện chip "Locks when hired" | ✅ (V6) |
+| 2 | Freelancer | `/jobs` (Overview) hoặc `/jobs/find` (tìm theo What · Field · Budget, Filters, switch **"Funded only"**; Newest xếp listing đã khoá trước) → job detail → **Apply** (pitch công khai ≤ 280 bytes, có hint "Public on Solana"; listing chưa khoá có thêm câu CL §9.3 mục 7) | ✅ |
+| 3 | Business | Applicants → **Select** → `create_fund + select_job` trong 1 transaction (brief mã hoá + key wraps). Listing chưa khoá: sheet "Select @x and lock X USDC" → `fund_job + create_fund + select_job` trong 1 transaction (789 byte với 5 milestone và 2 lệnh compute-budget, giới hạn 1,232) | ✅ (khoá khi chọn: V6) |
 | 4 | Freelancer | Mở invite → **Review & accept in wallet** → **Slide to accept** → chọn đích → `accept + lock_from_job` trong 1 transaction (không có bước Lock riêng) | ✅ |
 | 5 | Business | Người được chọn không accept trong accept window (120 s devnet) → chọn người khác | ✅ |
 | 6 | — | Từ đây chạy y như 4.1, bước 4–12 | ✅ |
-| 7 | Business | Không ai phù hợp → **Withdraw** (chưa ai apply, hoặc sau `select_by`) → budget về business | ✅ |
+| 7 | Business | Không ai phù hợp → **Withdraw** (chưa ai apply, hoặc sau `select_by`) → budget về business (listing chưa khoá: trả 0, đóng job vault; smoke Run 4) | ✅ |
 
 Trang Legal (`/jobs/legal`: Terms, Privacy, Disclosures, Job posting rules) chỉ có link ở footer, không có trên navbar.
 
@@ -191,14 +195,14 @@ Trang Legal (`/jobs/legal`: Terms, Privacy, Disclosures, Job posting rules) ch�
 
 | ID | Tình huống | Today | Rủi ro | Solution | Status |
 | --- | --- | --- | --- | --- | --- |
-| C-1 | Freelancer đã accept nhưng **client không bao giờ lock** (contract trực tiếp) | Không mất tiền | Freelancer làm trước khi thấy "Locked" | Banner "Don't start until this shows Locked"; lock deadline 🗺. (Funded Jobs không có vấn đề này vì budget đã lock sẵn) | 🆕 |
+| C-1 | Freelancer đã accept nhưng **client không bao giờ lock** (contract trực tiếp) | Không mất tiền | Freelancer làm trước khi thấy "Locked" | Banner "Don't start until this shows Locked"; lock deadline 🗺. (N.E.D Jobs không có vấn đề này vì budget khoá trước khi accept, lúc đăng hoặc lúc chọn người; I13) | 🆕 |
 | C-2 | **Client ngâm review** | Hết `review_by` → Release now | Freelancer phải chờ | Countdown + reminders; record "late review"; cooldown nếu lặp lại | ✅ / 🆕 |
 | C-3 | Client **copy preview rồi request changes** để ép giá | Tiền vẫn lock (I4), không về client | Ép freelancer nhận split thấp | Watermark preview (U6); số milestone đang bị request changes hiện trên record của business ở trang job ✅ (chỉ đếm yêu cầu **đang mở**, không tích luỹ; `labels.ts`); record "long hold" và "repeated change requests" 🆕; neutral reviewer 🗺 | ✅ / 🆕 |
 | C-4 | **Stalemate:** không bên nào nhường | Tiền lock không có hạn | Kẹt tiền vô thời hạn | Disclosure "No neutral arbiter"; record "long hold" sau 7 ngày 🆕; dispute timeout / `arbiter` 🗺 | 🔧 / 🗺 |
 | C-5 | Client lấy được final files rồi biến mất | Final chỉ giao sau release (D27); trước đó client chỉ thấy tên, cỡ, fingerprint của file cuối | — | "Before you submit" + handover chỉ mở khi Released (F1–F2) | ✅ |
 | C-6 | Client muốn **đổi đích** sang địa chỉ của mình | Program chặn | — | I5 | ✅ |
-| C-7 | Client không đủ USDC khi lock hoặc khi đăng job | App kiểm tra trước | — | — | ✅ |
-| C-8 | Business **đăng job ảo hoặc spam** | Không có moderation (chỉ có withdraw) | Uy tín board; dữ liệu công khai | Budget phải lock thật (cái giá của spam); nút report 🗺 | 🗺 |
+| C-7 | Client không đủ USDC khi lock, khi đăng job (Lock now) hoặc khi chọn người (Lock when I hire) | App kiểm tra trước ("You need X USDC to lock this budget when you select."); program không cho chọn khi chưa khoá | — | — | ✅ |
+| C-8 | Business **đăng job ảo hoặc spam** | Không có moderation (chỉ có withdraw). Từ v1.4 (D29), listing khoá khi chọn người chỉ tốn rent, không cần khoá tiền | Uy tín board; dữ liệu công khai; pitch của freelancer công khai vĩnh viễn trên listing có thể không bao giờ có tiền | Chip "Locks when hired" trên mọi listing chưa khoá ✅; filter "Funded only" ✅; record của business trên trang job ✅; listing Lock now vẫn phải khoá tiền thật; nút report 🗺 | ✅ / 🗺 |
 | C-9 | Business **không chọn ai** | Withdraw sau `select_by` | Applicant mất rent (devnet SOL) | Đóng application 🗺 | ✅ / 🗺 |
 | C-10 | Circle **freeze** USDC | Milestone hoặc job đó kẹt | Ngoài tầm kiểm soát | Disclosed; mỗi contract/job một vault | ✅ |
 | C-11 | Ví client bị sanction | **Không có screening** | AML | Không nói "we screen wallets" (A2); screening 🗺 | 🗺 |
@@ -312,6 +316,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | --- | --- | --- | --- |
 | Job: có đơn apply mới | "New applicant: @vinh" | — | ✅ Workspace |
 | Job: được chọn | — | "You were selected · review & accept" | ✅ |
+| Job: budget locked lúc chọn (v1.4, listing "Locks when hired" chuyển sang đã khoá, = `JobFunded`) | "Budget locked for “{job}”" | — (freelancer đã có "You were selected") | ✅ Workspace (V6) |
 | Contract mới / accepted / locked | ✓ | ✓ | ✅ |
 | Submitted | "Waiting for your review · review by …" | — | ✅ Workspace · 🔧 mobile |
 | Changes requested | — | "Changes requested · send a revised version" | ✅ Workspace · 🔧 mobile |
@@ -376,8 +381,16 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-22 | Review có khung xem trước (`prompts-review-preview.md`): R1 core, R2 Workspace, R3 CSP + Privacy + docs | Dev + CL | ✅ | — | Trên `main`; còn chạy e2e 2 login (danh sách thao tác trong progress log R3) |
 | B-23 | File cuối (`prompts-final-files.md`): F1 core, F2 Workspace (+ mobile chỉ đọc danh sách) | Dev | ✅ | — | Trên `main` `0b808d1` |
 | B-24 | F3: docs (D27 amendment, guide, Terms — CL duyệt), câu Q&A tiếng Việt, e2e | CL + PO + Dev | 🔧 | 8 Oct | Mục tracker đã cập nhật ở đây; còn review-decision-plan, README D27, copy, final-pitch, e2e |
-| B-25 | **D29 Lock at hire, program v1.4 (tính năng cuối)**: L1 program + test (kèm G1), L2 upgrade devnet + smoke Run 3–4, L3 core + hub (chip "Locks when hired", lọc "Funded only"), L4 docs + copy (CL) | Dev + PO + CL | 🔧 | 8 Oct 18:00 | Smoke Run 1–4 xanh trên devnet; nếu không: rollback v1.3 (`lock-at-hire-plan.md` §7) |
-| B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🔧 | 8 Oct | Sau L3 |
+| B-25 | **D29 Lock at hire, program v1.4 (tính năng cuối)**: L1 program + test (kèm G1), L2 upgrade devnet + smoke Run 3–4, L3 core + hub (chip "Locks when hired", lọc "Funded only"), L4 docs + copy (CL). L1–L4 được thay bằng V0–V7 (`prompts-program-v14.md`), các dòng bên dưới | Dev + PO + CL | 🔧 (V0–V6 ✅, V7 đang làm) | 8 Oct 18:00 | Smoke Run 1–4 xanh trên devnet ✅ (V4); không cần rollback |
+| B-25.V0 | Pre-flight: công cụ, baseline 54/54 test, backup v1.3 (`.so` + IDL) để rollback, binary devnet khớp | Dev | ✅ | — | `tong-hop-tien-do.md` dòng V0 |
+| B-25.V1 | Build + test v1.4: `anchor build` sạch, 61/61 test (54 v1.3 + 7 `v14_*`), G1 trong `lock_from_job` | Dev | ✅ | — | Dòng V1 |
+| B-25.V2 | Tự review + CU + đếm + kích thước giao dịch: thêm 6 test (67/67); 29 instruction · 55 lỗi (mới: `JobNotFunded`, `JobAlreadyFunded`) · 26 event; CU cao nhất `post_job` 49,173 (24.6%, "dưới 25%"); `fund_job + create_fund + select_job` 789 byte / 1,232 | Dev | ✅ | — | Dòng V2; `program-spec.md` §11 |
+| B-25.V3 | Upgrade devnet (PO "go"): extend +20,000 B, tx `4u1Gcc2v…SEdwg`, program data 688,464 B, binary = build local | Dev + PO | ✅ | — | Dòng V3 |
+| B-25.V4 | IDL on-chain (metadata `AMX7B6rj…KK8H`, tx `2AsdDUbn…uCC7`) + smoke Run 1–4 xanh (Run 3 lock at hire, Run 4 open → withdraw trả 0). CU smoke: `fund_job + create_fund + select_job` 51,633; `accept + lock_from_job` 36,505; `post_job_open` 22,080 | Dev | ✅ | — | Dòng V4 |
+| B-25.V5 | Core v1.4: `unfunded` @544, `fundedOnly`, event `JobPostedOpen`/`JobFunded`, `runPostJob({ lockNow })`, `runSelectJob` thêm `fund_job`; `CORE_FEATURES.lockAtHire`; core 184 test | Dev | ✅ | — | Dòng V5 |
+| B-25.V6 | UI Workspace: Lock now / Lock when I hire trên `/jobs/new`, chip "Budget locked" / "Locks when hired", filter "Funded only", sheet "Select @x and lock X USDC"; Workspace 22 node + 123 Vitest, ví 38 | Dev | ✅ | — | Dòng V6 |
+| B-25.V7 | Docs và copy, final check: pre-pitch-check §9.4 vào `final-pitch.md`, `qa-cheatsheet.md`, `expert-check-pack.vi.md`, research; tracker, README; legal copy (`copy.ts`) với CL | CL + PO + Dev | 🔧 đang làm | 8 Oct 18:00 | CL kiểm tra lại số trên slide 4–7 và câu §9.3 trên app live |
+| B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🔧 chưa làm (7 Oct, V7) | 8 Oct | Sau L3 (V5–V6) |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
@@ -396,7 +409,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 
 | # | Câu hỏi | Đề xuất | Ai quyết | Hạn | Kết quả |
 | --- | --- | --- | --- | --- | --- |
-| Q1 | Accountability layer (mục 7) thay cho "confirm 2 phía + phạt tiền"; kéo theo I6 | Dùng layer (roadmap, xem hệ quả dữ liệu ở 7.1) | PO | 8 Oct | CL đồng ý 7 Oct; chờ PO. Duyệt thì thêm D29 |
+| Q1 | Accountability layer (mục 7) thay cho "confirm 2 phía + phạt tiền"; kéo theo I6 | Dùng layer (roadmap, xem hệ quả dữ liệu ở 7.1) | PO | 8 Oct | CL đồng ý 7 Oct; chờ PO. Duyệt thì thêm D29 *(7 Oct: D29 nay là Lock at hire; nếu duyệt thì dùng số D tiếp theo, D30)* |
 | Q2 | Ngưỡng lapse (7 ngày long hold, 3 lần request changes, 48 h handover) và cooldown (2 lapse → 24 h) | Như mục 7 | PO + CL | 8 Oct | |
 | Q3 | Review mặc định khi launch | 72 h | PO | 8 Oct | |
 | Q4 | S-1: bật D27 trên mobile trước freeze hay chỉ demo trên Workspace? | Bật nếu S13 xong trước 8 Oct 18:00; nếu không, mobile hiện "Open in Workspace to respond" và disclosure bản "No neutral arbiter" | PO | 8 Oct | |
@@ -404,4 +417,4 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Q6 | Câu hỏi chuyên gia mới: job board (Luật 74/2025, NĐ 352/2025, sàn TMĐT); record/cooldown | Thêm vào expert pack | CL | 8 Oct | Job board và lock không thời hạn đã thêm (câu 10, 11 trong `expert-check-pack.vi.md`, 7 Oct); record/cooldown chờ Q1 |
 | Q7 | Bond-based penalties | Roadmap, ngoài Việt Nam, cần luật sư | CL | sau final | |
 | Q8 | Q&A mới: "What stops a client from stalling?" và "Is this a job marketplace?" | D-5; câu trong funded-jobs-plan §9 | CL | 8 Oct | |
-| Q9 | Client đăng contract không chỉ định freelancer, chỉ khoá tiền khi hai bên thoả thuận | Lock at hire, program v1.4 (D29) | PO | 7 Oct | **Đã quyết (7 Oct tối): làm trước final, là tính năng cuối.** Kèm sửa G1. Rollback v1.3 nếu không xanh trước 8 Oct 18:00 |
+| Q9 | Client đăng contract không chỉ định freelancer, chỉ khoá tiền khi hai bên thoả thuận | Lock at hire, program v1.4 (D29) | PO | 7 Oct | **Đã quyết (7 Oct tối): làm trước final, là tính năng cuối.** Kèm sửa G1. Rollback v1.3 nếu không xanh trước 8 Oct 18:00. **Đóng (7 Oct, V7): D29 đã build, v1.4 live trên devnet, smoke Run 1–4 xanh, G1 đã sửa; không rollback.** `/new` (N1–N3) còn ở B-26 |

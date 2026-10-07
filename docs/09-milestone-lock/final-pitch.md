@@ -2,7 +2,7 @@
 
 > **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · Network of Employment Deals**, gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
 
-**Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.3 trên devnet · **Người soạn:** Compliance Lead
+**Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.4 trên devnet (upgrade V3 và IDL on-chain V4, 7/10; trước đó v1.3) · **Người soạn:** Compliance Lead
 **Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **3 phút**
 **Ngôn ngữ (ban tổ chức xác nhận 7 Oct):**
 - Thuyết trình, slide và Q&A: **chỉ dùng tiếng Việt**.
@@ -17,10 +17,10 @@ Trong mọi slide, demo và Q&A: **người A** là client ở nước ngoài (S
 
 | Tiêu chí | Điểm | Ghi điểm ở đâu | Bằng chứng đưa ra |
 | --- | ---: | --- | --- |
-| **Technical Difficulty & Depth** | 30 | Demo (1:40) + Slide 4 | Tiền chỉ đi theo deadline và ai cũng gọi được lệnh; nơi nhận tiền chốt từ lúc accept; yêu cầu chỉnh sửa không hoàn tiền cho client; nội dung mã hoá đầu-cuối trên chain công khai; Funded Jobs ghép hai lệnh trong một transaction |
-| **Architecture & Smart Contract Quality** | 25 | Slide 5 | Sơ đồ PDA; bất biến `released + refunded + unsettled = total` được kiểm tra sau mỗi bước test; 54 test (49 test LiteSVM chạy trên program); 53 mã lỗi; 24 event; `transfer_checked` |
+| **Technical Difficulty & Depth** | 30 | Demo (1:40) + Slide 4 | Tiền chỉ đi theo deadline và ai cũng gọi được lệnh; nơi nhận tiền chốt từ lúc accept; yêu cầu chỉnh sửa không hoàn tiền cho client; nội dung mã hoá đầu-cuối trên chain công khai; job board khoá ngân sách lúc đăng hoặc lúc chọn người, luôn trước khi accept (`fund_job + create_fund + select_job` trong một transaction) |
+| **Architecture & Smart Contract Quality** | 25 | Slide 5 | Sơ đồ PDA; bất biến `released + refunded + unsettled = total` được kiểm tra sau mỗi bước test; 67 test (62 test LiteSVM chạy trên program); 55 mã lỗi; 26 event; `transfer_checked` |
 | **Solana Stack, Composability & Performance** | 25 | Slide 6 | Anchor 1.1.2, Token Interface, Circle devnet USDC, ví MPC của Dynamic; bảng compute units |
-| **Build Evidence, Documentation & Reproducibility** | 20 | Slide 7 + link trong Q&A | Repo công khai, hơn 420 commit; decision log D1–D28; program spec; build và test bằng 2 lệnh; script chạy lại luồng trên devnet |
+| **Build Evidence, Documentation & Reproducibility** | 20 | Slide 7 + link trong Q&A | Repo công khai, hơn 420 commit; decision log D1–D29; program spec; build và test bằng 2 lệnh; script chạy lại luồng trên devnet |
 
 Vòng Final ngày **10/10/2026** chấm theo đúng 4 tiêu chí trên (nhóm thi cả hai track; BTC đã xác nhận 7/10). Không có tiêu chí business model, nên pitch **không có slide đối thủ, cũng không có slide doanh thu**. Nếu giám khảo hỏi thì trả lời trong Q&A (mục 4, P2 và P6; số liệu trong `../05-legal/qa-cheatsheet.md`).
 
@@ -102,12 +102,12 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 **Trên slide** (3 cột, mỗi cột 1 icon + 2 dòng)
 1. **Không instruction nào cho một bên tự lấy tiền.** *Hết deadline thì ai cũng gọi được lệnh (trừ khi client đã yêu cầu chỉnh sửa) · nơi nhận tiền chốt từ lúc accept · yêu cầu chỉnh sửa không hoàn tiền cho client*
 2. **Nội dung riêng tư trên chain công khai.** *Mã hoá ngay trên thiết bị (XChaCha20-Poly1305) · khoá hợp đồng được bọc cho từng thiết bị (X25519 + HKDF) · N.E.D không chạy server riêng*
-3. **Funded Jobs, nguyên tử.** *Ngân sách bị khoá ngay lúc đăng job · `create_fund + select_job` và `accept + lock_from_job` đều nằm trong một transaction*
+3. **Job board, tiền khoá trước khi accept.** *Khoá lúc đăng, hoặc ngay lúc chọn người (`fund_job + create_fund + select_job` trong một transaction) · `accept + lock_from_job` cũng là một transaction*
 
 **Lời nói**
-> "Ba bài toán khó. Một: không instruction nào cho một bên tự lấy tiền. Hết deadline review mà client chưa yêu cầu chỉnh sửa thì ai cũng gọi được release; trễ hạn nộp thì ai cũng gọi được refund; nơi nhận chốt từ lúc accept; yêu cầu chỉnh sửa không bao giờ hoàn tiền. Hai: nội dung riêng tư trên chain công khai: mã hoá ngay trên thiết bị, khoá bọc cho từng thiết bị bằng X25519, N.E.D không giữ khoá. Ba: Funded Jobs: ngân sách khoá ngay khi đăng job; chọn người và accept đều là transaction nguyên tử, nên tiền chỉ vào hợp đồng khi nơi nhận đã chốt."
+> "Ba bài toán khó. Một: không instruction nào cho một bên tự lấy tiền. Hết deadline review mà client chưa yêu cầu chỉnh sửa thì ai cũng gọi được release; trễ hạn nộp thì ai cũng gọi được refund; nơi nhận chốt từ lúc accept; yêu cầu chỉnh sửa không bao giờ hoàn tiền. Hai: nội dung riêng tư trên chain công khai: mã hoá ngay trên thiết bị, khoá bọc cho từng thiết bị bằng X25519, N.E.D không giữ khoá. Ba: job board: ngân sách khoá lúc đăng, hoặc ngay lúc chọn người trong cùng một transaction; program không cho chọn người khi tiền chưa vào vault, nên freelancer không bao giờ accept việc chưa có tiền."
 
-*(7/10: rút gọn khoảng 15 chữ cho vừa 40 s, thêm ngoại lệ "chưa yêu cầu chỉnh sửa".)*
+*(7/10: rút gọn khoảng 15 chữ cho vừa 40 s, thêm ngoại lệ "chưa yêu cầu chỉnh sửa". 7/10, V7: bài toán 3 và câu "Ba: …" đổi theo D29 / v1.4, `pre-pitch-check-7oct.md` §9.4; bằng chứng lock at hire là link Explorer của smoke Run 3, không demo trực tiếp.)*
 
 **Hình gợi ý:** ảnh chụp một transaction `post_note` trên Explorer để thấy dữ liệu chỉ là ciphertext.
 
@@ -116,13 +116,13 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 **Trên slide**
 - Sơ đồ: `Workspace (web) · Wallet (mobile)` → `@ned/core` (dùng chung) → **`ned_program`** (Anchor) → PDA: `SharedFund` · `vault` · `JobListing` · `job_vault` · `JobApplication` · `DeviceKeys` → USDC (Token Interface)
 - Ô bên phải:
-  - **27 instruction** · **53 mã lỗi** · **24 event**
+  - **29 instruction** · **55 mã lỗi** · **26 event**
   - Bất biến: `released + refunded + unsettled = total` (test kiểm tra sau mỗi bước)
-  - **54 test** (49 test LiteSVM chạy trên program): từng giây quanh mỗi deadline của milestone, release hai lần, sai mint, token gửi lạc vào vault, đường Việt Nam
+  - **67 test** (62 test LiteSVM chạy trên program): từng giây quanh mỗi deadline của milestone, release hai lần, sai mint, token gửi lạc vào vault, đường Việt Nam
   - Checked math · `transfer_checked` · mỗi hợp đồng và mỗi job một vault
 
 **Lời nói**
-> "Một Anchor program, một core TypeScript dùng chung, hai app. Mỗi hợp đồng và mỗi job có vault PDA riêng. Sổ sách luôn giữ một bất biến: đã release cộng đã refund cộng phần chưa xử lý bằng tổng, và test kiểm tra điều này sau mỗi bước. 54 test, trong đó 49 test chạy trên program bằng LiteSVM, kiểm tra từng giây quanh deadline, release hai lần, sai mint, token gửi lạc và đường Việt Nam. Mỗi lỗi có mã riêng, mọi thay đổi về tiền đều phát event."
+> "Một Anchor program, một core TypeScript dùng chung, hai app. Mỗi hợp đồng và mỗi job có vault PDA riêng. Sổ sách luôn giữ một bất biến: đã release cộng đã refund cộng phần chưa xử lý bằng tổng, và test kiểm tra điều này sau mỗi bước. 67 test, trong đó 62 test chạy trên program bằng LiteSVM, kiểm tra từng giây quanh deadline, release hai lần, sai mint, token gửi lạc và đường Việt Nam. Mỗi lỗi có mã riêng, mọi thay đổi về tiền đều phát event."
 
 ### Slide 6: Solana stack & hiệu năng (3:30–3:50)
 
@@ -138,10 +138,13 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | `release_after_review` | 23,077–32,108 |
 | `accept + lock_from_job` (1 transaction) | 45,470–51,487 |
 | `post_job` (cao nhất) | 34,173–49,173 |
+| `post_job_open` (khoá khi chọn người) | 26,120–36,620 |
+| `fund_job` | 21,154–24,154 |
+| `fund_job + create_fund + select_job` (1 transaction, 5 milestone) | 57,985–71,485 |
 
 - Dòng nguồn (chữ nhỏ): *LiteSVM, program v1.4, 7/10, 10 lần chạy; khoảng dao động do keypair test ngẫu nhiên (mỗi lần tìm bump PDA thêm ~1,500 CU)*. Bảng cũ (v1.0, 2/10) không dùng nữa.
-- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 25% hạn mức mặc định 200,000 CU* (đo lại 7/10 bằng LiteSVM, 10 lần chạy: cao nhất `post_job` 49,173 = 24,6%; `lock_from_job` 45,045; `accept_cancel` 43,015. Các mức trên 40,000 đã có từ v1.3, nên câu "dưới 20%" cũ không còn đúng. Nguồn: `docs/tong-hop-tien-do.md`, dòng V2)
-- "IDL đăng on-chain" **chỉ đưa lên slide khi IDL v1.3 đã được đăng lại** (hiện bản on-chain là v1.1).
+- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 25% hạn mức mặc định 200,000 CU* (đo lại 7/10 bằng LiteSVM, 10 lần chạy: cao nhất `post_job` 49,173 = 24,6%; `lock_from_job` 45,045; `accept_cancel` 43,015. Các mức trên 40,000 đã có từ v1.3, nên câu "dưới 20%" cũ không còn đúng. Nguồn: `docs/tong-hop-tien-do.md`, dòng V2. Smoke trên devnet, cả transaction: `fund_job + create_fund + select_job` 51,633; `accept + lock_from_job` 36,505; `post_job_open` 22,080. Transaction chọn người 5 milestone: 789 byte / 1,232, không cần lookup table)
+- ~~"IDL đăng on-chain" **chỉ đưa lên slide khi IDL v1.3 đã được đăng lại** (hiện bản on-chain là v1.1).~~ **7/10 (V4):** IDL v1.4 đã đăng on-chain (tx `2AsdDUbn…uCC7`), nên được nói "IDL on-chain".
 
 **Lời nói**
 > "Chúng tôi dùng Token Interface với USDC devnet của Circle, nên đây là token SPL thật trên devnet, dù không có giá trị. Người dùng đăng nhập bằng Google và có ví MPC nhúng, không cần seed phrase. Mọi instruction đã đo đều dùng chưa tới một phần tư compute budget mặc định, và các lệnh ghép được vào một transaction."
@@ -150,19 +153,19 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 **Trên slide**
 - **Repo công khai:** `github.com/Tdat10052499/Unihackfest-2026`, hơn 420 commit
-- **Tài liệu:** decision log D1–D28 · program spec (byte layout, mã lỗi, test) · nhật ký tiến độ kèm kết quả test
+- **Tài liệu:** decision log D1–D29 · program spec (byte layout, mã lỗi, test) · nhật ký tiến độ kèm kết quả test
 - **Build và test bằng 2 lệnh, chạy lại luồng devnet bằng 1 script:**
   ```
   cd ned_program && anchor build
-  cargo test --manifest-path programs/ned-program/Cargo.toml   # 54 test
-  cd ../ned-wallet && npm run jobs:smoke                         # luồng Funded Jobs trên devnet
+  cargo test --manifest-path programs/ned-program/Cargo.toml   # 67 test
+  cd ../ned-wallet && npm run jobs:smoke                         # luồng N.E.D Jobs trên devnet (Run 1–4)
   ```
   Chữ nhỏ: *script dùng ví dùng một lần: cần nạp devnet SOL và 0,2 USDC từ faucet.*
 - **Bản live:** Workspace `unihackfest-2026.vercel.app` · Program `8azx…WbX5Wh` (devnet); nhóm đã kiểm tra binary trên devnet trùng với bản build của nhóm
 - QR **chỉ trỏ tới repo** (không QR sàn giao dịch, không referral)
 
 **Lời nói**
-> "Mọi thứ đều công khai: hơn bốn trăm commit, decision log cho từng quyết định thiết kế và đặc tả program đầy đủ. Hai lệnh là build lại program và chạy đủ 54 test; một script chạy lại toàn bộ luồng Funded Jobs trên devnet. Nhóm đã kiểm tra binary trên devnet trùng với bản build của nhóm."
+> "Mọi thứ đều công khai: hơn bốn trăm commit, decision log cho từng quyết định thiết kế và đặc tả program đầy đủ. Hai lệnh là build lại program và chạy đủ 67 test; một script chạy lại toàn bộ luồng N.E.D Jobs trên devnet. Nhóm đã kiểm tra binary trên devnet trùng với bản build của nhóm."
 
 **Lưu ý:** script `jobs:smoke` so binary trên devnet với file `.so` vừa build; build của người khác gần như chắc chắn khác byte, nên script dừng. Dev thêm tuỳ chọn bỏ qua bước so binary trước final (mục 5). Tới lúc đó, không nói "giám khảo chạy lại toàn bộ bằng ba lệnh".
 
@@ -216,7 +219,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 - PO nhận câu hỏi rồi chỉ định người trả lời. Ai được giao thì người đó nói, không nói chen.
 - Không biết thì nói thẳng: *"Phần này nhóm chưa đo; nếu làm, nhóm sẽ làm thế này."* Không đoán.
 
-**Phân công:** Dev trả lời kỹ thuật (T1–T8) · CL trả lời pháp lý, dữ liệu, thuế (L1–L5) · PO trả lời sản phẩm (P1–P5).
+**Phân công:** Dev trả lời kỹ thuật (T1–T8) · CL trả lời pháp lý, dữ liệu, thuế (L1–L5) · PO trả lời sản phẩm (P1–P8).
 
 ### Kỹ thuật (Dev)
 
@@ -238,7 +241,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | L1 | Ở Việt Nam có hợp pháp không? | "Theo cách đọc của nhóm về Nghị định 52/2024, tiền mã hoá không nằm trong danh mục phương tiện thanh toán hợp pháp. Vì vậy người dùng Việt Nam của nhóm không bao giờ nhận crypto: client khoá USDC ở nước ngoài, payout partner ở nước ngoài chuyển VND qua ngân hàng; trong demo, partner là mô phỏng. Nhóm không giữ tiền. Người dùng Việt Nam chỉ ký accept và submit bằng ví đăng nhập; trên devnet phí mạng là test SOL, trước launch sẽ có fee payer. Trước khi có tiền thật, cần luật sư xác nhận phần mềm này không phải dịch vụ tài sản mã hoá theo Nghị định 284/2026." |
 | L2 | KYC / chống rửa tiền? | "KYC và thông tin ngân hàng nằm ở payout partner, không bao giờ ở nhóm. Mỗi hợp đồng bị giới hạn 1,000 USDC. Devnet chưa có KYC, và nhóm công khai điều đó. Sàng lọc ví nằm trong lộ trình." |
 | L3 | Dữ liệu cá nhân đi đâu? | "Đăng nhập qua Dynamic, có màn đồng ý rõ ràng. Nội dung hợp đồng được mã hoá, N.E.D không có khoá. Địa chỉ ví, username, tiêu đề hợp đồng, job listing và pitch là công khai trên chain, và app nhắc người dùng không ghi dữ liệu cá nhân vào đó." |
-| L4 | Đây có phải sàn việc làm không? | "Doanh nghiệp tự đăng funded job và tự chọn freelancer. N.E.D không chọn, không thẩm định, không tuyển dụng ai, không phải một bên của công việc, và v1 không thu phí. Trước khi ra mắt thật, nhóm sẽ hỏi luật sư về giấy phép dịch vụ việc làm (Luật Việc làm 74/2025) và đăng ký sàn thương mại điện tử (Luật 122/2025)." *(Không khẳng định job board nằm ngoài các luật này; đây là câu hỏi đang chờ chuyên gia.)* |
+| L4 | Đây có phải sàn việc làm không? | "Doanh nghiệp tự đăng job và tự chọn freelancer. N.E.D không chọn, không thẩm định, không tuyển dụng ai, không phải một bên của công việc, và v1 không thu phí. Trước khi ra mắt thật, nhóm sẽ hỏi luật sư về giấy phép dịch vụ việc làm (Luật Việc làm 74/2025) và đăng ký sàn thương mại điện tử (Luật 122/2025)." *(Không khẳng định job board nằm ngoài các luật này; đây là câu hỏi đang chờ chuyên gia.)* |
 | L5 | Thuế thì sao? | "Luật 109/2025 đặt ngưỡng 500 triệu đồng một năm cho cá nhân có doanh thu kinh doanh, từ kỳ tính thuế 2026. Thu nhập freelance từ khách nước ngoài có được xếp vào doanh thu kinh doanh hay không thì nhóm đang chờ chuyên gia thuế. Nhóm cung cấp bản ghi để freelancer tự kê khai; đây không phải tư vấn thuế." |
 
 ### Sản phẩm (PO)
@@ -250,8 +253,9 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | P3 | Còn thiếu gì trước khi launch? | "Sandbox với payout partner, ý kiến luật sư, OTP, audit và multisig. Sau đó thí điểm với các cặp client và freelancer thật." |
 | P4 | Nhóm có dùng AI không? | Trả lời trung thực theo câu team đã thống nhất, ví dụ: *"Có, nhóm dùng AI hỗ trợ viết code; mọi commit đều công khai và nhóm có thể giải thích bất kỳ instruction nào."* |
 | P5 | Sao app lại bằng tiếng Anh? | "Người dùng chính là client nước ngoài và freelancer làm việc với họ, nên sản phẩm dùng tiếng Anh. Nhóm đã thống nhất với ban tổ chức: pitch bằng tiếng Việt, sản phẩm giữ tiếng Anh." |
-| P6 | Khác gì các dự án khoá tiền khác trên Solana? | "Một số dự án devnet khác cũng release khi client im lặng, nên nhóm không nói mình là đầu tiên. Điểm N.E.D thêm vào: đường VND cho người ở Việt Nam, nơi nhận chốt lúc accept và chỉ là địa chỉ partner trong allowlist; yêu cầu chỉnh sửa không bao giờ hoàn tiền; brief mã hoá có dấu vân tay trên chain; và Funded Jobs khoá ngân sách trước khi có người ứng tuyển." |
+| P6 | Khác gì các dự án khoá tiền khác trên Solana? | "Một số dự án devnet khác cũng release khi client im lặng, nên nhóm không nói mình là đầu tiên. Điểm N.E.D thêm vào: đường VND cho người ở Việt Nam, nơi nhận chốt lúc accept và chỉ là địa chỉ partner trong allowlist; yêu cầu chỉnh sửa không bao giờ hoàn tiền; brief mã hoá có dấu vân tay trên chain; và N.E.D Jobs khoá ngân sách trước khi freelancer accept, lúc đăng hoặc lúc chọn người." *(7/10, V7: sửa theo D29)* |
 | P7 | Nếu freelancer không bao giờ gửi file cuối thì sao? | "Trước khi đồng ý, client thấy danh sách file cuối kèm fingerprint. Sau khi release, client kiểm tra file tải về với danh sách đó và lưu biên nhận. Hiện chúng tôi chưa thể bắt buộc bàn giao; mã hoá file cuối và mở khoá cùng lúc với tiền nằm trong roadmap." *(thêm 7/10, F3)* |
+| P8 | Doanh nghiệp đăng job không có tiền thì sao? | "Thẻ job ghi rõ 'Locks when hired'. Program không cho chọn người khi tiền chưa vào vault, nên freelancer không bao giờ accept một việc chưa có tiền." *(thêm 7/10, V7, D29)* |
 
 ---
 
@@ -259,11 +263,11 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 | # | Việc | Owner | Hạn | Vì sao |
 | --- | --- | --- | --- | --- |
-| 1 | ✅ **Xong 7/10 (`552c9da`, CL duyệt câu chữ):** README viết lại cho N.E.D · Network of Employment Deals, logo mới. Còn lại: sau V3–V4 cập nhật bảng Status (v1.4 trên devnet). Mô tả cũ: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test, cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
+| 1 | ✅ **Xong 7/10 (`552c9da`, CL duyệt câu chữ):** README viết lại cho N.E.D · Network of Employment Deals, logo mới. Còn lại: sau V3–V4 cập nhật bảng Status (v1.4 trên devnet). Mô tả cũ: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test (v1.3; nay v1.4: 29 instruction, 67 test), cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
 | 2 | Thêm file **LICENSE** (README đang ghi MIT nhưng chưa có file) hoặc bỏ dòng đó | PO | 8 Oct | Tiêu chí 4 |
 | 3 | `jobs:smoke`: thêm tuỳ chọn bỏ qua bước so binary (ví dụ `--skip-binary-check`) để người ngoài chạy được | Dev | 8 Oct | Slide 7 |
-| 4 | Đo lại bảng compute units trên v1.3 (test `g15`, thêm `accept_cancel` và các lệnh job) | Dev | 8 Oct | Slide 6 dùng số của đúng bản đang chạy |
-| 5 | Đăng lại IDL v1.3 lên chain (program-metadata), nếu muốn nói "IDL on-chain" | Dev | 8 Oct | Slide 6 |
+| 4 | ✅ **Xong 7/10 (V2):** đo lại bảng compute units trên v1.4 (LiteSVM, 10 lần chạy; cao nhất `post_job` 49,173 = 24,6% → "dưới 25%"). Mô tả cũ: đo lại trên v1.3 (test `g15`, thêm `accept_cancel` và các lệnh job) | Dev | 8 Oct | Slide 6 dùng số của đúng bản đang chạy |
+| 5 | ✅ **Xong 7/10 (V4):** IDL v1.4 đã đăng on-chain (metadata `AMX7B6rj…KK8H`). Mô tả cũ: đăng lại IDL v1.3 lên chain (program-metadata), nếu muốn nói "IDL on-chain" | Dev | 8 Oct | Slide 6 |
 | 6 | **S-1**: disclosure đã đúng ở cả hai app; còn thiếu nút trả lời yêu cầu chỉnh sửa trên app mobile (S13), hoặc dòng "Open this contract in the Workspace to respond" | Dev | 8 Oct 18:00 | Giám khảo tự thử trên điện thoại |
 | 7 | Email thật thay "[team email]" trên trang Legal | PO | 8 Oct 12:00 | Trang công khai |
 | 8 | Thay các key bị lộ (S1–S3) | PO | ngay | An toàn khi demo |
@@ -316,11 +320,11 @@ Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm n�
 
 | Tài liệu | Dùng để |
 | --- | --- |
-| `docs/09-milestone-lock/README.md` | Decision log D1–D28 |
+| `docs/09-milestone-lock/README.md` | Decision log D1–D29 |
 | `docs/09-milestone-lock/program-spec.md` | Byte layout, instruction, mã lỗi, test |
 | `docs/09-milestone-lock/system-tracker.md` | Workflow, tình huống, bất biến |
 | `docs/09-milestone-lock/product-spec.md` §6–7 | Word table, demo script gốc |
-| `docs/09-milestone-lock/funded-jobs-plan.md`, `review-decision-plan.md` | Funded Jobs (D25), yêu cầu chỉnh sửa (D27) |
+| `docs/09-milestone-lock/funded-jobs-plan.md`, `lock-at-hire-plan.md`, `review-decision-plan.md` | Funded Jobs (D25), lock at hire (D29), yêu cầu chỉnh sửa (D27) |
 | `docs/tong-hop-tien-do.md` | Kết quả test, bảng CU, thông tin devnet |
 | `docs/05-legal/qa-cheatsheet.md` | Bản Q&A tham khảo bằng tiếng Anh (đã khớp với mục 4, cập nhật 7/10) |
 | `docs/05-legal/cl-review-7oct.md` | Các lỗi đã sửa và việc còn mở |
@@ -332,9 +336,9 @@ Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm n�
 | --- | --- | --- |
 | 68% freelancer ở Việt Nam từng gặp tình trạng không được trả tiền công | [Khảo sát PayPal, qua The Leader](https://e.theleader.vn/68-per-cent-of-freelancers-in-vietnam-having-experiences-of-not-being-paid-d2518.html): khảo sát 10/2017, công bố 3/2018; 1.602 người ở SG, ID, VN, PH | Verified 7/10, số liệu cũ (nói kèm năm) |
 | ≈ 7,2 tỷ đô USDC trên Solana | [DefiLlama](https://defillama.com/stablecoins/Solana): $7.221bn ngày 7/10 | Verified 7/10; kiểm tra lại 9/10 |
-| 54 test; 49 test LiteSVM | `ned_program/programs/ned-program/tests` (identity 10, milestone 29, jobs 10) + helpers 4 + test_id | Verified trên repo 7/10 |
-| Bảng CU | `docs/tong-hop-tien-do.md` (g15, 2/10; smoke v1.3, 6/10) | Cần đo lại trên v1.3 (mục 5) |
-| 27 instruction, 53 mã lỗi, 24 event | `ned_program/programs/ned-program/src/` | Verified 7/10 |
+| 67 test; 62 test LiteSVM | `ned_program/programs/ned-program/tests` (identity 10, milestone 29, jobs 23) + helpers 4 + lib 1 | Verified trên repo 7/10 (v1.4, V2); v1.3 là 54 / 49 |
+| Bảng CU | `docs/tong-hop-tien-do.md` (dòng V2: LiteSVM v1.4, 7/10, 10 lần chạy; smoke devnet V4) | Verified 7/10; cao nhất 49,173 = 24,6% → "dưới 25%" |
+| 29 instruction, 55 mã lỗi, 26 event | `ned_program/programs/ned-program/src/` (v1.4) | Verified 7/10 (v1.3 là 27 / 53 / 24) |
 | Hơn 420 commit | `git log` trên `main` | Verified 7/10 (441 commit) |
 | ≈ 520,000 VND cho 20 USDC | Hằng số trong app: 26,019.5 (Wise, 2/10); Wise 7/10: 25,990 | Vẫn đúng ≈ 520,000 |
 | Faucet 20 USDC / 2 giờ / địa chỉ | faucet.circle.com | Verified 7/10 |

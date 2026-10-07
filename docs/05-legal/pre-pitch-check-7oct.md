@@ -4,6 +4,8 @@
 
 > **Status, 7 Oct (evening), `main` at `1b85d94`: sections 3, 4 and 8 are still open (no code commit since `b7ca253`). New section 9 is the CL review of D29 (Lock at hire, program v1.4) with copy ready to paste for L1–L4 and N1–N3. Dev: section 8 (F-1 first), section 3, then section 9 alongside L1–L4.**
 
+> **Update, 7 Oct (V7):** program v1.4 is live on devnet (V3 upgrade, V4 IDL on-chain and smoke Runs 1–4 green). Section 9.4 was applied after V4 was green, in `final-pitch.md`, `qa-cheatsheet.md`, `expert-check-pack.vi.md` and `ned-research-and-compliance.md`. G1 is **fixed in v1.4 (V1, V3)**.
+
 **Team, please read sections 1 and 3–4 before you touch slides or code.** Every item has an owner and a date. Reply in the team chat with the commit when you close one, and I will tick it here.
 
 ---
@@ -17,8 +19,8 @@
 | Criterion | Points | What scores it for us |
 | --- | ---: | --- |
 | Technical Difficulty & Depth | 30 | Live demo + Slide 4: permissionless release and refund, destination fixed at accept, request changes never refunds, encrypted brief with device keys, Funded Jobs |
-| Architecture & Smart Contract Quality | 25 | Slide 5: PDAs, invariant `released + refunded + unsettled = total`, 54 tests, 53 errors, 24 events |
-| Solana Stack, Composability & Performance | 25 | Slide 6: Token Interface, Circle devnet USDC, Dynamic MPC, compute-unit table (re-measure on v1.3) |
+| Architecture & Smart Contract Quality | 25 | Slide 5: PDAs, invariant `released + refunded + unsettled = total`, 54 tests, 53 errors, 24 events (7 Oct, V7: v1.4 is 67 tests, 55 errors, 26 events) |
+| Solana Stack, Composability & Performance | 25 | Slide 6: Token Interface, Circle devnet USDC, Dynamic MPC, compute-unit table (re-measure on v1.3; done on v1.4 in V2: top 49,173, "dưới 25%") |
 | Build Evidence, Documentation & Reproducibility | 20 | Slide 7 + the repo itself: **README, LICENSE, commands that run for an outsider, deploy record, Explorer links** |
 
 The last criterion is 20 points and judges open the repo first. The stale README is now the single biggest scoring risk (section 4, items O1–O3).
@@ -85,7 +87,7 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 
 | # | Finding | Action |
 | --- | --- | --- |
-| G1 (Medium) | `lock_from_job` checks only `job.fund == fund`. A business can select applicant A, close that contract, recreate it at the same `fund_id` for someone else and lock the job budget into it (`instructions/job/lock_from_job.rs:20-24`). No third party loses money, but "only applicants are hired" is not enforced | Either add `require!(fund.freelancer == job.selected)` plus the brief-hash check and re-run the tests, or **do not say "only applicants can be hired"** on stage. Your call, Dev and PO; tell me which |
+| G1 (Medium) · **fixed in v1.4 (V1, V3)**: `lock_from_job` now also requires `fund.freelancer == job.selected` and `fund.brief_hash == job.brief_hash` (`JobFundMismatch`) | `lock_from_job` checks only `job.fund == fund`. A business can select applicant A, close that contract, recreate it at the same `fund_id` for someone else and lock the job budget into it (`instructions/job/lock_from_job.rs:20-24`). No third party loses money, but "only applicants are hired" is not enforced | Either add `require!(fund.freelancer == job.selected)` plus the brief-hash check and re-run the tests, or **do not say "only applicants can be hired"** on stage. Your call, Dev and PO; tell me which |
 | G2 (Low) | `select_by` has no upper bound (`post_job.rs:31`); plain `lock` still works on a job contract (UI-only guard); `lock_from_job` fails if the business closed its USDC account; some tests assert only that an error happened | After the final |
 | G3 | `VITE_PROGRAM_ID` can override the program ID (`ned-workspace/src/config.ts:27`) | Check it is empty or `8azx…X5Wh` in Vercel |
 
@@ -112,7 +114,7 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 - **Use only the numbers in `final-pitch.md` §7 and `qa-cheatsheet.md` "Numbers".** Say the year for 68% (PayPal, 2017, 4 countries, includes people considering freelancing).
 - **Never on a slide:** "2 triệu freelancer", a TAM built from US$11.5 bn (that is company revenue), "first", "only", "an toàn", "đảm bảo", "escrow", "thanh toán" for USDC, "auto-release", "không ai di chuyển được tiền", "không có backend", "token thật", "không bao giờ thu phí", "đối tác được cấp phép".
 - Another devnet project (Stillpaid) also releases on client silence. Expect "how are you different?" (answer P6).
-- Compute units: the top figure is 39,781 of 200,000 (19.9%). If the v1.3 re-measure passes 40,000, change "dưới 20%" to "dưới 25%" or quote the top figure.
+- Compute units: ~~the top figure is 39,781 of 200,000 (19.9%). If the v1.3 re-measure passes 40,000, change "dưới 20%" to "dưới 25%" or quote the top figure.~~ **v1.4 (LiteSVM, 7 Oct, 10 runs):** the top single instruction is `post_job` at 49,173 of 200,000 (24.6%), so say **"dưới 25%"** (see 10.1 A-2).
 
 ---
 
@@ -131,7 +133,7 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 | When | What | Who |
 | --- | --- | --- |
 | 8 Oct 12:00 | Team email (D6) | PO |
-| 8 Oct 18:00 | D1–D7 merged and deployed; G1 decision | Dev |
+| 8 Oct 18:00 | D1–D7 merged and deployed; G1 decision (done: fixed in v1.4, V1 and V3) | Dev |
 | 8 Oct | O1–O3 | PO + Dev |
 | 9 Oct | CL reads every slide, the backup video, the live `/jobs/legal` and booth text against this file; walkthrough on the live app (`compliance-lead-tasks.md` Step 8) | CL |
 | 9 Oct | O4–O8 | PO + Dev |
@@ -156,7 +158,7 @@ Checked again after the final-files commits F1–F2 (`7649cdb` … `0b808d1`) an
 | D8–D10 Jobs wording | **Open** | `JobDetail.tsx:410`, `Overview.tsx:38-44, 60`, `JobsLayout.tsx:41-48` |
 | D13 welcome consent line | **Open** | `ned-wallet/app/(onboarding)/welcome.tsx:78` |
 | D16 `amount_usdc` in Vietnam CSV | **Open** | `packages/ned-core/src/milestone/records.ts:325` |
-| G1 `lock_from_job` applicant check | **Open, decision needed** | `instructions/job/lock_from_job.rs` unchanged |
+| G1 `lock_from_job` applicant check | ~~Open, decision needed~~ **Fixed in v1.4 (V1, V3)**, 7 Oct | `lock_from_job` requires `fund.freelancer == job.selected` and the brief hash (`JobFundMismatch`) |
 | O1 README · O2 LICENSE · O3 Anchor CLI pin | **Open** | `README.md:81, 85` ("Updated 3 Oct", "17 instructions"); no `LICENSE`; `Anchor.toml` `[toolchain]` empty |
 
 ### 8.2 New findings in F1–F2 (final files)
@@ -195,7 +197,7 @@ Never call either check "verified": the hand-over list is the freelancer's own; 
 2. D1, D2 (wording the judges will see; Vietnam-view leak).
 3. D3, D6, D7, F-6 (privacy lines; real team email from PO by 12:00).
 4. F-2 to F-5 (final-files wording).
-5. G1 decision with PO, then the Medium rows of section 3.
+5. ~~G1 decision with PO~~ (G1 fixed in v1.4, V1 and V3), then the Medium rows of section 3.
 
 Reply in the team chat with the commit for each item; CL re-checks on 8 Oct evening and signs off on 9 Oct.
 
@@ -218,7 +220,7 @@ What D29 does change is **what we may say about the board**. Today the app, the 
 | R-1 | P2 event: prefer a **new `JobPostedOpen` event** over adding `funded` to `JobPosted` | Plan L1 asks to keep v1.3 "byte for byte" for funded listings; changing `JobPosted` changes its layout for every listing. No TypeScript code reads `JobPosted` today (checked), so either works, but the new event keeps the v1.3 log format unchanged | `JobPostedOpen { job, business, job_id, category, total, apply_by, select_by, brief_hash }` |
 | R-2 | Size of the select transaction | `fund_job + create_fund + select_job` in one transaction adds the business ATA, job vault, mint and token program to an already large transaction (plus compute-budget instructions). Solana's limit is 1,232 bytes | Measure the serialized size in the L3 test and in smoke Run 3; if it is close, use an address lookup table or move `fund_job` into a separate transaction **only if** `select_job` still refuses unfunded listings (the guarantee stays) |
 | R-3 | CU | The table on Slide 6 needs the new transaction | Add `fund_job + create_fund + select_job` and `post_job_open` to `g15`; quote the highest value |
-| R-4 | Counts for the pitch | Slides 5 and 7 quote 27 instructions, 53 errors, 24 events, 54 tests | After L1, write the new counts (expected 29 instructions; errors +2: `JobNotFunded`, `JobFundMismatch`; events +1 or +2; tests) in the progress row so CL can update the slides from one place |
+| R-4 | Counts for the pitch | Slides 5 and 7 quote 27 instructions, 53 errors, 24 events, 54 tests | After L1, write the new counts (expected 29 instructions; errors +2: `JobNotFunded`, `JobFundMismatch`; events +1 or +2; tests) in the progress row so CL can update the slides from one place. **Correction (7 Oct, V7):** the new errors are `JobNotFunded` and `JobAlreadyFunded`; G1 reuses the existing `JobFundMismatch` (see 10.2). Final v1.4 counts: 29 instructions, 55 errors, 26 events, 67 tests |
 | R-5 | G1 test | Plan lists it | Keep the exact attack: select A → close → recreate at the same `fund_id` for B → `accept + lock_from_job` fails with `JobFundMismatch` |
 | R-6 | Applicants on unfunded listings | A freelancer's pitch, wallet and @username become public and permanent for a listing that may never be funded | Apply-sheet notice (9.3, item 7). No program change |
 | R-7 | "Funded only" filter default | Plan: off by default | CL is fine with off, **if** the chip "Locks when hired" is on every unfunded card and on the detail page, and funded listings sort first (plan §3) |
@@ -262,6 +264,8 @@ CL will apply these once smoke Runs 1–4 are green. If the rollback is used, no
 ### 9.5 Still open from sections 3 and 8
 
 No code commit since `b7ca253`, so D1–D17, F-1 to F-14 and O1–O3 are unchanged. G1 moves into v1.4 (P6): CL will mark it fixed when L1–L2 are green.
+
+**7 Oct (V7):** G1 is **fixed in v1.4 (V1, V3)**. V4 smoke Runs 1–4 are green, so section 9.4 has been applied.
 
 ---
 

@@ -1,6 +1,6 @@
 # Q&A cheat sheet (Compliance Lead)
 
-UniHackFest 2026 final, **10 Oct 2026** (confirmed; team entered in both tracks) · build: `main`, program v1.3 on devnet (Milestone Lock + Funded Jobs + request changes) · last checked 7 Oct 2026 · not legal advice.
+UniHackFest 2026 final, **10 Oct 2026** (confirmed; team entered in both tracks) · build: `main`, program v1.4 on devnet (Milestone Lock + N.E.D Jobs with lock at hire (D29) + request changes) · last checked 7 Oct 2026 (V7) · not legal advice.
 
 **On stage, answer in Vietnamese:** the Vietnamese answers to say out loud are in [`../09-milestone-lock/final-pitch.md`](../09-milestone-lock/final-pitch.md) §4. This sheet is the English reference behind them. If the two differ, final-pitch.md wins. Background: [`../08-research/ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md). Full pre-pitch check and fix list: [`pre-pitch-check-7oct.md`](pre-pitch-check-7oct.md).
 
@@ -20,9 +20,10 @@ UniHackFest 2026 final, **10 Oct 2026** (confirmed; team entered in both tracks)
 8. **Audited? Mainnet?** "Neither. Devnet, test money. An audit, a partner sandbox and a legal opinion come first."
 9. **Isn't pitching this "marketing a crypto service"?** (Decree 284/2026 Art. 7(4) also covers advertising.) "It is a public student prototype on devnet: test tokens with no value, no fee, no payout partner connected, and nobody is invited to use it with real money. We show no exchange links, referrals or sign-up calls."
 10. **Client never reviews / they disagree?** "If the client does not review before the review deadline, anyone can press Release now and the freelancer receives the earnings. If the client requests changes before that deadline, the amount stays locked until both agree: the client accepts a revised version, the freelancer returns it, or both agree a split. There is no neutral arbiter yet; that is on the roadmap."
-11. **Is this a job marketplace?** "N.E.D Jobs is a listing and matching tool: businesses post jobs with the budget locked and choose freelancers themselves. N.E.D does not select, vet or employ anyone, is not a party to the work, and takes no fee in v1. Before a real launch we will check with a lawyer whether it needs an employment-services licence (Law 74/2025, Art. 27; Decree 352/2025) or e-commerce platform registration (Law 122/2025; Decree 248/2026)." Do not say the board is outside these laws. Avoid "tuyển dụng" for what N.E.D does.
-12. **How is this different from other lock or escrow tools?** "Other projects also release funds when a client stays silent. What we add: a freelancer in Vietnam never holds USDC because release can only go to an allowlisted payout partner fixed at accept; request changes never refunds; the brief and delivery are encrypted with a fingerprint on Solana; and funded jobs lock the budget before anyone applies." Never say "first" or "only".
+11. **Is this a job marketplace?** "N.E.D Jobs is a listing and matching tool: businesses post jobs and lock the budget at posting or when they hire, always before the freelancer accepts, and choose freelancers themselves. N.E.D does not select, vet or employ anyone, is not a party to the work, and takes no fee in v1. Before a real launch we will check with a lawyer whether it needs an employment-services licence (Law 74/2025, Art. 27; Decree 352/2025) or e-commerce platform registration (Law 122/2025; Decree 248/2026)." Do not say the board is outside these laws. Avoid "tuyển dụng" for what N.E.D does.
+12. **How is this different from other lock or escrow tools?** "Other projects also release funds when a client stays silent. What we add: a freelancer in Vietnam never holds USDC because release can only go to an allowlisted payout partner fixed at accept; request changes never refunds; the brief and delivery are encrypted with a fingerprint on Solana; and on N.E.D Jobs the budget is locked before the freelancer accepts, at posting or at selection." *(7 Oct, V7: was "before anyone applies", no longer true for listings that lock when hired, D29)* Never say "first" or "only".
 13. **Can N.E.D or anyone take the money?** "No instruction lets N.E.D, the client or the freelancer take locked USDC alone; every outflow follows the rules fixed at creation and accept. The upgrade authority is still our deploy wallet until after the final, and we disclose it." Never say "no one can ever move the funds".
+14. **What if a business posts a job with no money?** (PO answers; final-pitch P8) "The card says 'Locks when hired'. The program refuses to select anyone until the budget is in the vault (`select_job` fails with `JobNotFunded`), so a freelancer never accepts a job with no money behind it." Never say "every job is funded".
 
 **If unsure:** "That's on our list for the lawyer. What we know today is …" Never guess an article number.
 
@@ -46,7 +47,9 @@ UniHackFest 2026 final, **10 Oct 2026** (confirmed; team entered in both tracks)
 | USDC on Solana | ≈ US$7.2 bn (DefiLlama, 7 Oct 2026) |
 | Vietnam crypto adoption | 4th of 151 (Chainalysis, Sep 2025) |
 | Demo amount | 20 devnet USDC ≈ 520,000 VND (rate in the app: 26,019.5, 2 Oct; Wise 25,990 on 7 Oct) |
-| Program | 27 instructions, 53 error codes, 24 events, 54 tests (`cargo test`) |
+| Program (v1.4, 7 Oct) | 29 instructions, 55 error codes, 26 events, 67 tests (`cargo test`; 62 run the program in LiteSVM). v1.3 was 27 / 53 / 24 / 54 |
+| Compute units | Every measured instruction uses **under 25%** of the default 200,000 CU ("dưới 25%"); highest `post_job` 49,173 (24.6%). LiteSVM, v1.4, 7 Oct 2026, 10 runs. Never "under 20%" (39,781 was an old figure) |
+| Select transaction | `fund_job + create_fund + select_job` in one transaction: 789 bytes of 1,232 with 5 milestones and two compute-budget instructions; no lookup table |
 | Size of the freelancer market in Vietnam | No official count exists (ILO and GSO pilot survey, 2023). Never say "2 million freelancers" |
 | Our survey | No result recorded: do not mention a team survey on stage |
 

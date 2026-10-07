@@ -290,7 +290,7 @@ Same procedure as section 9. The v1.3 binary is larger than the v1.2 program acc
 
 ## 11. v1.4: Lock at hire (D29) and the G1 check
 
-**Status (7 Oct, V2):** built and tested locally (V1: `anchor build` clean, no fix needed; V2: self-review, 67 tests pass). **Not deployed yet** (V3). Backward compatible with v1.3.
+**Status (7 Oct, V4):** **deployed on devnet.** Built and tested locally (V1: `anchor build` clean, no fix needed; V2: self-review, 67/67 tests pass). V3: upgraded on devnet, tx `4u1Gcc2vfDbQB4PiKgj2bfNrKCfTCaWb2kvz92VwjB7E5y2vSrtvpcVrHz1tKdv2mGwBF8xVe95s9J9XQnjSEdwg` (program data 688,464 B after a 20,000 B extend; the binary on devnet equals the local build). V4: IDL on-chain (metadata `AMX7B6rjAhcdKzZ8N2Xw3uDcjCRrGonWuXxJ5DMiKK8H`, tx `2AsdDUbnd74AxzjUDnVL4usVQBbspZ3DB2v3dwBaRZ3HrkNcdKAgEbocCgE9XDDEB2tvtiTyAcAmSauoFwMnuCC7`) and smoke Runs 1–4 green (Run 3 lock at hire, Run 4 open → withdraw with 0 back). 29 instructions, 55 errors, 26 events (11.3). Backward compatible with v1.3. *(Was, V2: "Not deployed yet (V3).")*
 
 ### 11.1 Account change
 
