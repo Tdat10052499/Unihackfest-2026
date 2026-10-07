@@ -7,7 +7,6 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Badge, IconButton, Screen } from '@/components/design';
 import { fonts, palette, radius, space } from '@/constants/design';
-import { FEATURES } from '@/constants/features';
 import { disclosureItems, DISCLOSURES_LEAD } from '@/services/legalCopy';
 
 type Icon = React.ComponentProps<typeof Feather>['name'];
@@ -27,8 +26,11 @@ const ICONS: Record<string, Icon> = {
   public: 'globe',
   advice: 'info',
 };
-// C2: the disputes line follows FEATURES.dispute ("No disputes in this demo" while it is off)
-const ITEMS = disclosureItems(FEATURES.dispute).map((d) => ({ ...d, icon: ICONS[d.id] ?? 'info' }));
+// C2 / S-1 (CL review 7 Oct): the disputes line describes the system, not this app's screens. Requesting changes is live
+// in the program and the Workspace (D27) for the same contracts, so the phone app shows "No neutral arbiter" even while
+// its own dispute screens (FEATURES.dispute) are still off.
+const DISPUTES_LIVE = true;
+const ITEMS = disclosureItems(DISPUTES_LIVE).map((d) => ({ ...d, icon: ICONS[d.id] ?? 'info' }));
 
 export default function DisclosuresScreen() {
   return (

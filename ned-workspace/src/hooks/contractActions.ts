@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeActionError, runFundAction, runLockFromJob } from '@ned/core/actions.ts';
 import type { FundAccount } from '@ned/core/milestone/decode.ts';
-import { formatUsdc } from '@ned/core/milestone/format.ts';
+import { formatUsdc, vndEstimate } from '@ned/core/milestone/format.ts';
 import { unsettled } from '@ned/core/milestone/rules.ts';
 import type { FundView } from '@ned/core/milestone/view.ts';
 import { partyName } from '../components/ContractsTable.tsx';
@@ -13,6 +13,8 @@ import { useWalletPanel, type ConfirmRequest } from '../components/WalletPanelCo
 import { useActionEnv } from './actions.ts';
 
 const FEE = { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' };
+/** A4 (compliance review): the Vietnam view shows no SOL amount */
+const FEE_VN = { label: 'Network fee', value: 'Test SOL on devnet', sub: 'it has no value' };
 const NO_FEE = { label: 'N.E.D fee', value: 'None during the pilot' };
 
 export type ContractActionKind = 'releaseNow' | 'refundNow' | 'lockFromJob' | 'concede' | 'proposeSplit' | 'acceptSplit';
@@ -21,7 +23,11 @@ export type ContractActionKind = 'releaseNow' | 'refundNow' | 'lockFromJob' | 'c
 export function confirmFor(kind: ContractActionKind, fund: FundView, raw: FundAccount, index = 0, units = 0n): ConfirmRequest {
   const other = partyName(fund);
   const ms = raw.milestones[index];
-  const amount = ms ? formatUsdc(ms.amount) : '';
+  const vn = fund.region === 'vn';
+  // The Vietnam view shows ≈ VND, never USDC (fund view labels are already per region)
+  const amount = ms ? (vn ? (fund.milestones[index]?.amountLabel ?? '') : formatUsdc(ms.amount)) : '';
+  const fee = vn ? FEE_VN : FEE;
+  const money = (u: bigint) => (vn ? vndEstimate(u) : formatUsdc(u));
   const freelancer = fund.role === 'client' ? other : 'you';
   const client = fund.role === 'client' ? 'you' : other;
   const partner = fund.destination?.kind === 'payoutPartner';
@@ -35,7 +41,7 @@ export function confirmFor(kind: ContractActionKind, fund: FundView, raw: FundAc
           milestone,
           { label: 'To', value: fund.role === 'client' ? other : 'You', sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'The N.E.D wallet chosen at accept' },
           { label: 'Amount', value: amount, mono: true },
-          FEE,
+          fee,
           NO_FEE,
         ],
         note: { tone: 'info', text: 'Review time is over. Anyone can release this milestone; the amount goes to the destination fixed at accept.' },
@@ -44,21 +50,21 @@ export function confirmFor(kind: ContractActionKind, fund: FundView, raw: FundAc
     case 'refundNow':
       return {
         title: `Refund ${amount}`,
-        rows: [{ label: 'Contract', value: fund.title }, milestone, { label: 'To', value: fund.role === 'client' ? 'You (the client)' : other }, { label: 'Amount', value: amount, mono: true }, FEE, NO_FEE],
+        rows: [{ label: 'Contract', value: fund.title }, milestone, { label: 'To', value: fund.role === 'client' ? 'You (the client)' : other }, { label: 'Amount', value: amount, mono: true }, fee, NO_FEE],
         note: { tone: 'warning', text: 'The submission deadline passed with nothing submitted. Anyone can refund this milestone to the client.' },
         confirmLabel: 'Refund now',
       };
     case 'lockFromJob':
       return {
         title: 'Move locked budget',
-        rows: [{ label: 'Contract', value: fund.title }, { label: 'From', value: 'The job’s vault', sub: 'Locked when the job was posted' }, { label: 'Amount', value: formatUsdc(raw.total), mono: true }, FEE, NO_FEE],
+        rows: [{ label: 'Contract', value: fund.title }, { label: 'From', value: 'The job’s vault', sub: 'Locked when the job was posted' }, { label: 'Amount', value: vn ? fund.totalLabel : formatUsdc(raw.total), mono: true }, fee, NO_FEE],
         note: { tone: 'purple', text: 'The budget moves from the job into this contract. Nothing leaves your wallet.' },
         confirmLabel: 'Move budget',
       };
     case 'concede':
       return {
         title: `Return milestone ${index + 1} to ${client}`,
-        rows: [{ label: 'Contract', value: fund.title }, milestone, { label: 'Amount', value: amount, mono: true }, FEE, NO_FEE],
+        rows: [{ label: 'Contract', value: fund.title }, milestone, { label: 'Amount', value: amount, mono: true }, fee, NO_FEE],
         note: { tone: 'warning', text: `This refunds milestone ${index + 1} (${amount}) to ${client}. You can't undo it.` },
         confirmLabel: 'Return to client',
       };
@@ -70,9 +76,9 @@ export function confirmFor(kind: ContractActionKind, fund: FundView, raw: FundAc
         title: kind === 'acceptSplit' ? 'Accept split' : 'Propose a split',
         rows: [
           { label: 'Contract', value: fund.title },
-          { label: `${freelancer === 'you' ? 'You receive' : `${freelancer} receives`}`, value: formatUsdc(toFreelancer), mono: true },
-          { label: `${client === 'you' ? 'You get back' : `${client} gets back`}`, value: formatUsdc(left < 0n ? 0n : left), mono: true },
-          FEE,
+          { label: `${freelancer === 'you' ? 'You receive' : `${freelancer} receives`}`, value: money(toFreelancer), mono: true },
+          { label: `${client === 'you' ? 'You get back' : `${client} gets back`}`, value: money(left < 0n ? 0n : left), mono: true },
+          fee,
           NO_FEE,
         ],
         note: { tone: 'warning', text: 'A split settles every milestone that is still open in this contract, not only this one.' },

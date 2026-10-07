@@ -26,9 +26,24 @@ test('C2: the disclosure follows FEATURES.dispute', () => {
 test('copy rules: no payment, escrow, safe, guaranteed or licensed partner', () => {
   const text = [all(TERMS), all(PRIVACY), all(GUIDE), disputeDisclosure(true).body, disputeDisclosure(false).body].join(' ');
   assert.doesNotMatch(text, /\bpay\b|escrow|\bsafe\b|guaranteed|licensed partner/i);
-  // "payment" appears only in "not a payment service"
-  assert.deepEqual(text.match(/payment\w*/gi), ['payment']);
-  assert.match(all(TERMS), /not a payment service/);
+  // CL review 7 Oct: the "not a payment service" line is gone, so "payment" appears nowhere
+  assert.equal(text.match(/payment\w*/gi), null);
+  assert.match(all(TERMS), /not a bank or an exchange, and no one at N\.E\.D can move locked funds/);
+});
+
+test('A4: the Vietnam paragraph is precise (no "never hold crypto"; USDC, signing and test SOL named)', () => {
+  const t = all(TERMS);
+  assert.doesNotMatch(t, /never hold crypto/i);
+  assert.match(t, /never receive, hold or send USDC through N\.E\.D/);
+  assert.match(t, /cannot post jobs or lock funds/);
+  assert.match(t, /network fee for each action is paid in test SOL/);
+});
+
+test('A4: the fee disclosure shows no SOL amount', async () => {
+  const { disclosureItems } = await import('../legalCopy.ts');
+  const fees = disclosureItems(true).find((d) => d.id === 'fees');
+  assert.equal(fees?.title, 'Network fees use test SOL');
+  assert.doesNotMatch(fees?.body ?? '', /\d/);
 });
 
 test('H4: the Disclosures list is shared and keeps its twelve lines, disputes line by flag', async () => {

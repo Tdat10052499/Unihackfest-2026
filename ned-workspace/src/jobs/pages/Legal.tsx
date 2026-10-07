@@ -13,7 +13,7 @@ import { useScrollSpy } from '../motion.ts';
 import hub from '../hub.module.css';
 import styles from './Legal.module.css';
 
-export const LEGAL_INTRO = 'The rules and notices for N.E.D Jobs and the N.E.D Wallet pilot. Pilot version 1 · 6 Oct 2026.';
+export const LEGAL_INTRO = 'The rules and notices for N.E.D Jobs and the N.E.D Wallet pilot. Pilot version 1.1 · 7 Oct 2026.';
 export const DRAFT_NOTICE = 'These are drafts for the devnet pilot. They have not been reviewed by a lawyer yet and are not legal advice.';
 
 /** Icon paths of the four document cards (board WebJobsLegal) */

@@ -2,6 +2,8 @@
 // and N.E.D Jobs (/jobs/legal). Shipped in S11 (compliance fix list P3, C2, appendices 1–2 with review A12;
 // funded-jobs-plan.md section 9; review-decision-plan.md section 4; U5 + U6), moved here in H4 without rewording.
 // H4 adds the Disclosures document (the phone app's Disclosures list) and the Job posting rules (board WebJobsLegal).
+// 7 Oct (CL review, docs/05-legal/cl-review-7oct.md): Terms 1.1 (no "payment service" line; A4 Vietnam wording), fee line
+// without a SOL amount, job rules (Vietnam view, no listing review, devnet accept window).
 // Pure data so it can be tested; change it only with the compliance lead.
 
 export interface LegalSection {
@@ -52,7 +54,7 @@ export const PRIVACY: LegalSection[] = [
   },
 ];
 
-export const TERMS_HEADING = 'N.E.D terms of use · pilot version 1 · 6 Oct 2026';
+export const TERMS_HEADING = 'N.E.D terms of use · pilot version 1.1 · 7 Oct 2026';
 export const TERMS: LegalSection[] = [
   { title: 'Pilot only', body: ['N.E.D runs on Solana devnet with test tokens that have no value. Do not send real money.'] },
   {
@@ -64,13 +66,13 @@ export const TERMS: LegalSection[] = [
   {
     title: 'What N.E.D is not',
     body: [
-      'It is not a payment service, a bank or an exchange. N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
+      'It is not a bank or an exchange, and no one at N.E.D can move locked funds. N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work. It gives no legal, tax or financial advice.',
     ],
   },
   {
     title: 'Vietnam',
     body: [
-      'Users who choose the Vietnam view see amounts in VND as estimates and never hold crypto. The payout partner is simulated in this demo; no VND is sent.',
+      'Users who choose the Vietnam view see amounts in VND as estimates. They never receive, hold or send USDC through N.E.D, and they cannot post jobs or lock funds. They sign their own actions with their login wallet; in this demo the network fee for each action is paid in test SOL. The payout partner is simulated in this demo; no VND is sent.',
     ],
   },
   { title: 'Your keys, your actions', body: ['Transactions you sign cannot be reversed. Release and refund follow the deadlines written into the contract.'] },
@@ -166,7 +168,7 @@ export interface DisclosureItem {
   body: string;
 }
 
-export const DISCLOSURES_LEAD = 'Please read these before you lock or receive anything. Version 1.0.0 · pilot on Solana devnet.';
+export const DISCLOSURES_LEAD = 'Please read these before you lock or receive anything. Version 1.1.0 · pilot on Solana devnet.';
 
 /** The phone app's Disclosures list (S10/S11 text); the disputes line follows FEATURES.dispute (C2) */
 export function disclosureItems(disputesOn: boolean): DisclosureItem[] {
@@ -176,7 +178,7 @@ export function disclosureItems(disputesOn: boolean): DisclosureItem[] {
     { id: 'phone', title: 'Phone numbers are not verified', body: 'We don’t send a code. A number on a profile may not belong to that person.' },
     { id: 'audit', title: 'The program is not audited', body: 'The Solana program that locks and releases USDC has not had a security audit.' },
     { id: 'partner', title: 'The payout partner is simulated', body: 'No payout partner is connected in this demo. No VND is sent to any bank.' },
-    { id: 'fees', title: 'Network fees use test SOL', body: 'Each action costs about 0.000005 test SOL on devnet. N.E.D charges no fee during the pilot.' },
+    { id: 'fees', title: 'Network fees use test SOL', body: 'Each action you sign has a small network fee, paid in test SOL on devnet, which has no value. N.E.D charges no fee during the pilot.' },
     { id: 'disputes', ...disputeDisclosure(disputesOn) },
     { id: 'vn-release', title: 'After release in the Vietnam path', body: 'Once a milestone is released to the payout partner, you rely on that partner to send you the VND.' },
     { id: 'freeze', title: 'Circle can freeze USDC addresses', body: 'USDC is issued by Circle, which can freeze an address. N.E.D cannot undo that.' },
@@ -200,6 +202,7 @@ export const JOB_POSTING_RULES: LegalSection[] = [
     title: 'Lock the whole budget to post',
     body: [
       'A job is published only when its whole budget is locked in the program. The budget moves into the contract when the selected freelancer accepts.',
+      'Posting is open to businesses outside Vietnam. The Vietnam view cannot post jobs or lock funds.',
       'With no applicants you can withdraw the budget at any time. Once someone has applied, it stays locked until the select-by date, and until the accept window of a selected applicant has passed.',
     ],
   },
@@ -208,10 +211,16 @@ export const JOB_POSTING_RULES: LegalSection[] = [
     title: 'Keep personal data out',
     body: ['Titles, summaries and pitches are public on Solana forever. Do not put names, phone numbers, addresses, bank details, passwords or keys in them.'],
   },
-  { title: 'Lawful work only', body: ['Do not post work that breaks the law, asks for passwords, keys or identity documents, or asks a freelancer to send money.'] },
+  {
+    title: 'Lawful work only',
+    body: [
+      'Do not post work that breaks the law, asks for passwords, keys or identity documents, or asks a freelancer to send money.',
+      'N.E.D does not review or approve listings before they appear. Check a listing and its business record yourself before you apply.',
+    ],
+  },
   {
     title: 'Selecting and accepting',
-    body: ['Select one applicant before the select-by date. Selecting creates the contract. The applicant accepts within 48 hours (2 minutes on devnet); if not, you can select someone else.'],
+    body: ['Select one applicant before the select-by date. Selecting creates the contract. The selected applicant has 2 minutes to accept on devnet (48 hours planned for launch); if they do not, you can select someone else.'],
   },
   {
     title: 'Delivering and reviewing',
@@ -241,4 +250,4 @@ export function legalDocs(disputesOn: boolean): LegalDoc[] {
   ];
 }
 
-export const LEGAL_VERSION_LINE = 'Pilot version 1 · last updated 6 Oct 2026';
+export const LEGAL_VERSION_LINE = 'Pilot version 1.1 · last updated 7 Oct 2026';
