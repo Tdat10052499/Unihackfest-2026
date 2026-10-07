@@ -1,6 +1,6 @@
-# N.E.D · Network of Employment Deals: kịch bản thuyết trình vòng Final
+# N.E.D · No Empty Deals: kịch bản thuyết trình vòng Final
 
-> **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · Network of Employment Deals**, gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
+> **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · No Empty Deals** (PO chốt 7/10 theo đề xuất A của CL, `pre-pitch-check-7oct.md` §11–12; bỏ tên "Network of Employment Deals" vì mâu thuẫn với "N.E.D không tuyển dụng ai"), gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
 
 **Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.4 trên devnet (upgrade V3 và IDL on-chain V4, 7/10; trước đó v1.3) · **Người soạn:** Compliance Lead
 **Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **3 phút**
@@ -71,7 +71,9 @@ Tốc độ nói: khoảng 3 âm tiết mỗi giây. Lời nói bên dưới đ�
   - *Người B ở Việt Nam không bao giờ nhận, giữ hay gửi USDC: nhận VND vào ngân hàng qua payout partner (mô phỏng trong demo)*
 
 **Lời nói**
-> "N.E.D, Network of Employment Deals. Với Milestone Lock, người A khoá USDC cho từng milestone trước khi bắt đầu làm, trong một vault do program sở hữu, không phải chúng tôi. Tiền chỉ đi theo luật viết trong code. Người B không bao giờ nhận USDC: payout partner ở nước ngoài chuyển VND vào ngân hàng. Trong demo, partner là mô phỏng."
+> "N.E.D, No Empty Deals. Với Milestone Lock, người A khoá USDC cho từng milestone trước khi bắt đầu làm, trong một vault do program sở hữu, không phải chúng tôi. Tiền chỉ đi theo luật viết trong code. Người B không bao giờ nhận USDC: payout partner ở nước ngoài chuyển VND vào ngân hàng. Trong demo, partner là mô phỏng."
+
+**Lưu ý về tên (CL §11.1):** nói "No Empty Deals: tiền được khoá trước khi bắt đầu làm". Không nói "mọi deal đều có tiền": contract riêng được accept trước khi client lock, và listing "Locks when hired" chưa có tiền cho tới lúc chọn người.
 
 **Lưu ý:** không nói "B không bao giờ chạm vào crypto". Ví đăng nhập của B vẫn ký giao dịch và dùng test SOL trả phí mạng (A4), giám khảo thấy được điều đó trong app.
 
@@ -263,7 +265,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 | # | Việc | Owner | Hạn | Vì sao |
 | --- | --- | --- | --- | --- |
-| 1 | ✅ **Xong 7/10 (`552c9da`, CL duyệt câu chữ):** README viết lại cho N.E.D · Network of Employment Deals, logo mới. Còn lại: sau V3–V4 cập nhật bảng Status (v1.4 trên devnet). Mô tả cũ: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test (v1.3; nay v1.4: 29 instruction, 67 test), cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
+| 1 | ✅ **Xong 7/10 (`552c9da`, CL duyệt câu chữ):** README viết lại cho N.E.D · No Empty Deals, logo mới. Còn lại: sau V3–V4 cập nhật bảng Status (v1.4 trên devnet). Mô tả cũ: hiện README vẫn tả bản wallet cũ (Neo-brutalism, Jupiter, swap), ghi "17 instructions", "24 milestone tests", "708 bytes", "updated 3 Oct". Cần: tổng quan Milestone Lock, link live, program ID, 27 instruction, 54 test (v1.3; nay v1.4: 29 instruction, 67 test), cách build và test, bảng CU, phần limits. README giữ tiếng Anh (thuộc sản phẩm) | PO + Dev | **8 Oct** | Tiêu chí 4 (20 điểm): giám khảo mở repo là thấy ngay |
 | 2 | Thêm file **LICENSE** (README đang ghi MIT nhưng chưa có file) hoặc bỏ dòng đó | PO | 8 Oct | Tiêu chí 4 |
 | 3 | `jobs:smoke`: thêm tuỳ chọn bỏ qua bước so binary (ví dụ `--skip-binary-check`) để người ngoài chạy được | Dev | 8 Oct | Slide 7 |
 | 4 | ✅ **Xong 7/10 (V2):** đo lại bảng compute units trên v1.4 (LiteSVM, 10 lần chạy; cao nhất `post_job` 49,173 = 24,6% → "dưới 25%"). Mô tả cũ: đo lại trên v1.3 (test `g15`, thêm `accept_cancel` và các lệnh job) | Dev | 8 Oct | Slide 6 dùng số của đúng bản đang chạy |

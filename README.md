@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="./assets/images/ned-logo-banner.png" alt="N.E.D, Network of Employment Deals" width="560" />
+<img src="./assets/images/ned-logo-banner.png" alt="N.E.D, No Empty Deals" width="560" />
 
-# N.E.D: Network of Employment Deals
+# N.E.D: No Empty Deals
 
 **The budget is locked by code before the work starts. Each milestone is released by rules written at creation.<br/>Freelancers in Vietnam receive VND through a payout partner and never hold USDC.**
 

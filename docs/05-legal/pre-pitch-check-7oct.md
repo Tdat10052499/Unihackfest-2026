@@ -277,7 +277,7 @@ No code commit since `b7ca253`, so D1–D17, F-1 to F-14 and O1–O3 are unchang
 
 | # | Change | Where |
 | --- | --- | --- |
-| A-1 | **New name and logo:** "N.E.D · Network of Employment Deals". The product has two parts, **Milestone Lock** (contracts) and **N.E.D Jobs** (job board). Logo files: `assets/images/ned-logo.png` (square) and `ned-logo-banner.png` (wide). Slide 2 speech now starts "N.E.D, Network of Employment Deals. Với Milestone Lock, …" | `final-pitch.md` header and Slide 2 |
+| A-1 | **New name and logo:** ~~"N.E.D · Network of Employment Deals"~~ → **"N.E.D · No Empty Deals"** (PO decision in §12). The product has two parts, **Milestone Lock** (contracts) and **N.E.D Jobs** (job board). Logo files: `assets/images/ned-logo.png` (square) and `ned-logo-banner.png` (wide). Slide 2 speech now starts "N.E.D, Network of Employment Deals. Với Milestone Lock, …" | `final-pitch.md` header and Slide 2 |
 | A-2 | **Compute units re-measured on v1.4 (V2):** the Slide 6 table now shows LiteSVM ranges from 10 runs. "dưới 20%" became **"dưới 25%"**. The highest is `post_job` at 49,173 (24.6%). Values above 40,000 already existed in v1.3, so the old line was not true. This answers the question in §5, so the CL does not need to decide it. | `final-pitch.md` Slide 6, `README.md` |
 | A-3 | **O1 README done** (`552c9da`) and refreshed with the V2 numbers: 67 tests, CU ranges, 789-byte select transaction. CL: please review the README copy; it is in your CODEOWNERS paths. | `README.md`, `final-pitch.md` §5 row 1 |
 
@@ -383,3 +383,54 @@ Still to update in the README after V3–V4: the Status table (v1.4 on devnet) a
 ### 11.3 Nothing else blocks the slides
 
 Slides 1, 2 (except the name), 5, 7 and 8 can be built now from `final-pitch.md` and §10.3. Slides 3, 4 and 6 follow the number set in §10.3 once V3–V4 are known.
+
+---
+
+## 12. PO reply to section 11: name decided, v1.4 is live, go for all slides (7 Oct, late; `main` at `9533198`)
+
+**From:** PO. **To:** CL.
+
+### 12.1 Name: option A, "N.E.D · No Empty Deals"
+
+The PO accepts the CL recommendation. "Network of Employment Deals" is dropped because it contradicts "N.E.D does not employ anyone" and the Law 74/2025 position. Applied in this commit:
+
+| File | Change |
+| --- | --- |
+| `assets/images/ned-logo.png`, `ned-logo-banner.png` | The line under "N.E.D" now reads **No Empty Deals**. The mark and "N.E.D" are unchanged. Layout set by the PO: the "N" of "No" starts at the left edge of the mark, and the last "s" of "Deals" ends at the right edge of the "D" in N.E.D, with letter spacing filling the width. The line is Inter 400, with a cap height about 55% of N.E.D's, so it stays clearly smaller. Design may refine it under the same file names, keeping this layout |
+| `README.md` | Title and image alt text |
+| `final-pitch.md` | Title, the name note at the top, Slide 2 speech ("N.E.D, No Empty Deals. Với Milestone Lock, …"), plus the CL caution under Slide 2: say "tiền được khoá trước khi bắt đầu làm", never "mọi deal đều có tiền" |
+| §10.1 A-1 | Marked as replaced by this decision |
+
+L6 and the extra expert question in §11.1 are not needed, because the name no longer says "Employment".
+
+### 12.2 v1.4 is live: use the v1.4 number set (§10.3, first row)
+
+Dev ran V3–V7 on 7 Oct (progress rows V3–V7 in `docs/tong-hop-tien-do.md`):
+
+- **V3:** program extended by 20,000 B and upgraded on devnet; the deployed binary equals the build.
+- **V4:** IDL v1.4 on-chain; smoke Runs 1–4 green.
+- **V5–V6:** core and N.E.D Jobs UI: "Lock now / Lock when I hire", the chips, "Funded only", Select and lock.
+- **V7:** pitch §9.4 lines, Q&A P8, numbers 29 / 55 / 26 and 67 tests, CU "dưới 25%", tracker, G1 marked fixed (`481f719`); legal copy §9.3 items 1–3 (`3cafdc7`).
+
+So Slides 3, 4 and 6 can be built now with the v1.4 set. **Nothing blocks any slide.**
+
+### 12.3 One check for the CL
+
+The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy commit `3cafdc7`. The PO confirmed it on the basis of the CL-approved texts in §9.3. **CL, please check `3cafdc7` against §9.3 items 1–3** (Terms, Job posting rules, the new Disclosures line) and confirm in the team chat, or note any difference here. The rule in `compliance-lead-tasks.md` is that the CL reviews what users and judges see.
+
+### 12.4 Not built, so not in the pitch or the demo
+
+- **`/new` open contract (N1–N3), with §9.3 item 11:** not built. On stage, open listings are posted only from **/jobs/new**. Do not say that New contract can publish to N.E.D Jobs.
+- **Still open for 8 Oct** (§10.5):
+  - F-1, mobile Submit dead end: the pitch already says final-file submit is Workspace only;
+  - D1, D2, D3, D7, F-2 to F-6;
+  - D6, the team email (PO);
+  - O2, the license decision (PO).
+
+### 12.5 Confirmation
+
+| Item | Status |
+| --- | --- |
+| Section 11 (name, README review) | Accepted; name = option A |
+| Slides 1–8 and the speaker script | **Go**, from `final-pitch.md` with the v1.4 number set |
+| Final CL sign-off | 9 Oct walkthrough on the live app (§7), unchanged |
