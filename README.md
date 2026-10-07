@@ -45,7 +45,6 @@
 
 **The phone is where N.E.D lives.** A freelancer signs in with Google, gets a wallet without a seed phrase, accepts a contract and follows every milestone from the phone. Everything else is built around this app: the Workspace, N.E.D Jobs, and the landing page that comes later.
 
-<!-- PHONE-GALLERY: prompt M1 removes this comment line and the closing one below once the eight images are in docs/02-thiet-ke/screenshots/mobile-app/
 <table>
   <tr>
     <td align="center" width="25%"><img src="docs/02-thiet-ke/screenshots/mobile-app/01-welcome.png" width="200" alt="Sign in with Google" /><br/><sub><b>Sign in with Google</b><br/>embedded wallet, no seed phrase</sub></td>
@@ -60,7 +59,8 @@
     <td align="center"><img src="docs/02-thiet-ke/screenshots/mobile-app/08-lock-client.png" width="200" alt="Client locks the budget" /><br/><sub><b>Client side</b><br/>Slide to lock the budget</sub></td>
   </tr>
 </table>
-PHONE-GALLERY -->
+
+<sub>Screens rendered from the design boards in <a href="docs/02-thiet-ke/canvas-v2">docs/02-thiet-ke/canvas-v2</a>, with sample data (devnet, simulated VND payout). The app follows these boards; captures from the running app will replace them under the same file names (<a href="docs/09-milestone-lock/prompts-readme-mobile.md">prompt M1</a>).</sub>
 
 | On the phone | What it does |
 | --- | --- |

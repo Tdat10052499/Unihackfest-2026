@@ -8,6 +8,8 @@ The PO decided on 7 Oct that **the phone app is the main product**. The Workspac
 
 **Update 8 Oct:** the main `README.md` is already on `main` with the app first. Its phone gallery is inside an HTML comment (`<!-- PHONE-GALLERY … PHONE-GALLERY -->`), so nothing is broken. M1 only has to add the images and remove the two comment lines. There is no separate README for the app: this is the repository's main README.
 
+**Update 8 Oct (PO):** the gallery is now open, with eight screens rendered from the design boards (`docs/02-thiet-ke/screenshots/mobile-app/README.md` gives the source of each and the A4 note). A line under the gallery says they are designs. M1 still applies: overwrite the eight files with captures from the running app (same names), then change the line under the gallery to say they are app captures. Steps 4 to 6 stay the same; skip the step-5 comment removal.
+
 ## M1 · Capture the phone screens and publish the README
 
 ```
