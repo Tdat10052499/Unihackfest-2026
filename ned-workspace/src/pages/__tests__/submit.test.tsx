@@ -7,7 +7,7 @@ import { SCENARIOS, scenarioView } from '../../dev/states.ts';
 import { png } from '../../lib/__tests__/images.ts';
 import { MESSAGES, OVERRIDE_LABEL, writePngMarker } from '../../lib/preview.ts';
 import { FILES_HINT, GUIDE_TITLE, PREVIEW_LINK_HINT, SubmitView, WHAT_THEY_SEE, workTypeForCategory, type SubmitMode, type WorkType } from '../Submit.tsx';
-import { FINALS_NEEDED, HANDOVER_LINK_NEEDED, PREVIEW_LINK_NEEDED, type DeliveryDraft } from '@ned/core/milestone/content.ts';
+import { FINALS_NEEDED, HANDOVER_CHANGE_NOTE, HANDOVER_LINK_NEEDED, PREVIEW_LINK_NEEDED, type DeliveryDraft } from '@ned/core/milestone/content.ts';
 
 afterEach(cleanup);
 const wrap = (ui: ReactNode) => render(<WalletPanelProvider><MemoryRouter>{ui}</MemoryRouter></WalletPanelProvider>);
@@ -96,7 +96,7 @@ describe('Submit page (U2, U5, U6)', () => {
     expect(within(sheet).getAllByRole('row')).toHaveLength(5);
     fireEvent.click(within(sheet).getByRole('button', { name: 'Got it' }));
     expect(screen.getByLabelText('Each done-when point is covered.')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Files (optional)' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Preview files' })).toBeTruthy();
     expect(screen.getByText(new RegExp(FILES_HINT('@mia').slice(0, 40)))).toBeTruthy();
     expect(submitButton().disabled).toBe(false);
   });
@@ -135,7 +135,7 @@ describe('R2 preview link', () => {
     const send = view('funded', 'submit', 'writing');
     expect(screen.getByRole('heading', { name: /Preview link/ }).textContent).toContain('required');
     expect(screen.getByText(PREVIEW_LINK_HINT)).toBeTruthy();
-    await drop(screen.getByRole('region', { name: /Files \(optional\)/ }), new File(['draft'], 'draft.docx'));
+    await drop(screen.getByRole('region', { name: 'Preview files' }), new File(['draft'], 'draft.docx'));
     await waitFor(() => expect(screen.getByText('draft.docx')).toBeTruthy());
     await act(async () => {
       fireEvent.click(submitButton());
@@ -173,15 +173,31 @@ describe('R2 preview link', () => {
   it('handover (F1): files alone are not enough, the download link is required', async () => {
     const send = view('released', 'handover');
     expect(screen.queryByTestId('submit-preview')).toBeNull();
-    await drop(screen.getByRole('region', { name: /Files \(optional\)/ }), new File(['svg'], 'logo-final.svg'));
-    await waitFor(() => expect(screen.getByText('logo-final.svg')).toBeTruthy());
+    await drop(screen.getByRole('region', { name: 'Final files you hand over' }), new File(['svg'], 'logo-final.svg'));
+    await waitFor(() => expect(screen.getAllByText('logo-final.svg').length).toBeGreaterThan(0));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
     });
     expect(send).not.toHaveBeenCalled();
-    expect(screen.getByText(HANDOVER_LINK_NEEDED('the client'))).toBeTruthy();
+    expect(screen.getByText(HANDOVER_LINK_NEEDED('@mia'))).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Add a link'), { target: { value: 'https://drive.google.com/drive/folders/final' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    // F2: the file differs from the promised list, so a reason is required
+    const compare = screen.getByTestId('handover-compare');
+    expect([...compare.querySelectorAll('li')].map((li) => li.textContent?.replace(/\s+/g, ' '))).toEqual([
+      expect.stringContaining('logo.svg'),
+      expect.stringContaining('logo@2x.png'),
+      expect.stringContaining('usage-sheet.pdf'),
+      expect.stringContaining('logo-final.svg'),
+    ]);
+    expect(compare.textContent).toContain('Missing');
+    expect(compare.textContent).toContain('Extra');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
+    });
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByText(HANDOVER_CHANGE_NOTE)).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: /What changed from the files you promised/ }), { target: { value: 'One zip-free SVG instead of three files.' } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Hand over final files' }));
     });

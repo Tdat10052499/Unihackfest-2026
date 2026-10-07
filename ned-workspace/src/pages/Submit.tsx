@@ -12,7 +12,8 @@ import { PublicKey } from '@solana/web3.js';
 import { describeActionError, runHandover, runSendRevision, runSubmit } from '@ned/core/actions.ts';
 import { USD_VND_RATE_DATE } from '@ned/core/constants.ts';
 import { jobForFund } from '@ned/core/jobs/queries.ts';
-import { deliveryEvidence, LIMITS, validateDelivery, type DeliveryDraft } from '@ned/core/milestone/content.ts';
+import { compareHandover, deliveryEvidence, LIMITS, validateDelivery, type DeliveryDraft } from '@ned/core/milestone/content.ts';
+import { acceptedVersion } from '@ned/core/milestone/handover.ts';
 import type { FundAccount } from '@ned/core/milestone/decode.ts';
 import { shortHash } from '@ned/core/milestone/evidence.ts';
 import { formatCountdown, formatDeadline, formatUsdc, usdcFromUnits, vndFromUnits } from '@ned/core/milestone/format.ts';
@@ -23,6 +24,7 @@ import type { FundView, MilestoneView } from '@ned/core/milestone/view.ts';
 import { partyName } from '../components/ContractsTable.tsx';
 import { FileDrop } from '../components/FileDrop.tsx';
 import { PreviewFrame } from '../components/PreviewFrame.tsx';
+import { HANDOVER_CHIP } from '../components/FinalFilesCard.tsx';
 import { Icon } from '../components/icons.tsx';
 import { KeyMissing } from '../components/KeyMissing.tsx';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
@@ -63,6 +65,10 @@ export const QUICK_CHECK = [
   'Each done-when point is covered.',
 ];
 export const PREVIEW_LINK_HINT = 'Upload your watermarked preview to Google Drive (Anyone with the link · Viewer), Figma, YouTube or Loom, and paste the link.';
+export const FINALS_HINT = (client: string) => `Keep these files. ${client} sees only their names, sizes and fingerprints until the money is released.`;
+export const FIXED_FINAL = 'Your fixed version link is the final work.';
+export const HANDOVER_LINK_HINT = 'Share with download access (Google Drive: Anyone with the link · Viewer). Keep the link working for at least 30 days.';
+export const HANDOVER_TOO_EARLY = 'Final files can be handed over only after the milestone is released.';
 export const WHAT_THEY_SEE = (name: string) => `This is what ${name} will see`;
 export const FILES_HINT = (name: string) =>
   `Add files only if you send them to ${name} outside N.E.D. Files stay on your computer; we keep only a fingerprint so ${name} can check they match.`;
@@ -120,7 +126,7 @@ export function Submit() {
   }
 
   const other = partyName(fund);
-  const send = async (delivery: DeliveryDraft, summary: { fingerprint: string; links: number; files: number }) => {
+  const send = async (delivery: DeliveryDraft, summary: { fingerprint: string; links: number; files: number; finals?: number }) => {
     const pay = money(msRaw.amount, page.vn);
     const title = mode === 'revision' ? 'Send revised version' : mode === 'handover' ? 'Hand over final files' : `Submit milestone ${n}`;
     const ok = await confirm({
@@ -130,6 +136,8 @@ export function Submit() {
         { label: 'For', value: other },
         ...(mode === 'submit' ? [{ label: 'Amount', value: `${pay.big}${pay.unit}`, sub: pay.sub }] : [{ label: 'Milestone', value: String(n) }]),
         { label: 'Delivery', value: `${summary.links} ${summary.links === 1 ? 'link' : 'links'} · ${summary.files} ${summary.files === 1 ? 'file' : 'files'}` },
+        // F2: the promised list is part of what the client accepts
+        ...(mode !== 'handover' ? [{ label: 'Final files promised', value: summary.finals ? String(summary.finals) : 'The fixed version link', sub: 'Names, sizes and fingerprints only' }] : []),
         mode === 'submit'
           ? { label: 'Delivery fingerprint', value: summary.fingerprint, sub: 'Saved on-chain with the chain clock', mono: true }
           : { label: 'Saved as', value: 'An encrypted note', sub: 'Signed by you and timestamped on Solana' },
@@ -211,7 +219,7 @@ export interface SubmitViewProps {
   /** From the job's category, when the contract came from a job */
   initialType?: WorkType;
   status: string;
-  onSend(delivery: DeliveryDraft, summary: { fingerprint: string; links: number; files: number }): Promise<void>;
+  onSend(delivery: DeliveryDraft, summary: { fingerprint: string; links: number; files: number; finals?: number }): Promise<void>;
   /** Injected in tests; the browser tool otherwise */
   makeWatermark?: (file: Blob, title: string, fund: string) => Promise<Blob>;
   /** Saves the marked preview; an <a download> otherwise */
@@ -247,6 +255,9 @@ export function SubmitView(p: SubmitViewProps) {
   const [linkDraft, setLinkDraft] = useState('');
   const [linkError, setLinkError] = useState('');
   const [files, setFiles] = useState<FileFingerprint[]>([]);
+  // F2: the promised list (final files hashed on this computer, never uploaded)
+  const [finals, setFinals] = useState<FileFingerprint[]>([]);
+  const [finalsError, setFinalsError] = useState('');
   const [reading, setReading] = useState<Reading[]>([]);
   const [fileError, setFileError] = useState('');
   const [note, setNote] = useState('');
@@ -262,10 +273,18 @@ export function SubmitView(p: SubmitViewProps) {
   const other = partyName(fund);
   const criteria = ms.criteria ?? [];
   const allFiles = useMemo(() => (preview ? [...files.filter((f) => f.sha256 !== preview.sha256), { name: preview.name, size: preview.file.size, sha256: preview.sha256 }] : files), [files, preview]);
-  const delivery: DeliveryDraft = useMemo(() => ({ links, files: allFiles, note }), [links, allFiles, note]);
+  const delivery: DeliveryDraft = useMemo(
+    () => ({ links, files: allFiles, note, ...(mode !== 'handover' && finals.length ? { finals } : {}) }),
+    [links, allFiles, note, finals, mode]
+  );
+  const accepted = acceptedVersion(ms.history);
+  const promised = accepted?.content.finals ?? [];
+  const fixedLink = links.some(isFixedVersion);
+  const handoverCompare = mode === 'handover' && promised.length ? compareHandover(promised, allFiles) : [];
+  const handoverChanged = handoverCompare.some((r) => r.state !== 'same');
   // Checked with its stage (R1): a first delivery or a revision needs a preview link, a hand-over a link or a file. The
   // stage is added here for the check only; the actions add it to the saved note themselves.
-  const problems = validateDelivery(mode === 'submit' ? delivery : { ...delivery, stage: mode });
+  const problems = validateDelivery(mode === 'submit' ? delivery : { ...delivery, stage: mode }, mode === 'handover' ? promised : undefined, other);
   const empty = mode === 'handover' ? !links.length && !allFiles.length : !links.length;
   const fingerprint = empty ? '—' : shortHash(deliveryEvidence(delivery));
   const left = msRaw.submitBy - now;
@@ -317,6 +336,28 @@ export function SubmitView(p: SubmitViewProps) {
     }
   };
 
+  const addFinals = async (picked: File[]) => {
+    setFinalsError('');
+    let list = finals;
+    for (const file of picked) {
+      const problem = fileProblem(file, list);
+      if (problem) {
+        setFinalsError(problem);
+        continue;
+      }
+      try {
+        const sha256 = await hashFile(file);
+        if (list.some((f) => f.sha256 === sha256)) setFinalsError(`${file.name} is already in the list.`);
+        else {
+          list = [...list, { name: file.name, size: file.size, sha256 }];
+          setFinals(list);
+        }
+      } catch {
+        setFinalsError(`Could not read ${file.name}.`);
+      }
+    }
+  };
+
   const takePreview = async (file: Blob, name: string) => {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const check = checkPreview(name, bytes, fund.address);
@@ -350,13 +391,24 @@ export function SubmitView(p: SubmitViewProps) {
     if (gated) return setError('Check the preview first, or tick the box above if you added your own watermark.');
     setBusy(true);
     try {
-      await p.onSend(delivery, { fingerprint, links: links.length, files: allFiles.length });
+      await p.onSend(delivery, { fingerprint, links: links.length, files: allFiles.length, finals: finals.length });
     } catch (err) {
       setError(describeActionError(err));
     } finally {
       setBusy(false);
     }
   };
+
+  // F2: final files only after release (canHandover); the money must have left the program first
+  if (mode === 'handover' && ms.status !== 'released')
+    return (
+      <main id="main" className={flow.page}>
+        <div className={flow.notice} data-testid="handover-too-early">
+          <h1 className={flow.noticeTitle}>Hand over final files</h1>
+          <p className={flow.noticeText}>{HANDOVER_TOO_EARLY}</p>
+        </div>
+      </main>
+    );
 
   const title = mode === 'revision' ? 'Send revised version' : mode === 'handover' ? 'Hand over final files' : `Submit milestone ${n}`;
   const button = mode === 'revision' ? 'Send revised version' : mode === 'handover' ? 'Hand over final files' : `Submit milestone ${n}`;
@@ -484,7 +536,9 @@ export function SubmitView(p: SubmitViewProps) {
             <div>
               <h2 id="sb-links" className={flow.h2}>
                 {mode === 'handover' ? (
-                  'Links to the final files'
+                  <>
+                    Download link <span className={styles.required}>· required</span>
+                  </>
                 ) : (
                   <>
                     Preview link <span className={styles.required}>· required</span>
@@ -492,9 +546,7 @@ export function SubmitView(p: SubmitViewProps) {
                 )}
               </h2>
               <p className={flow.hint}>
-                {mode === 'handover'
-                  ? `Use links that point at one fixed version (a Figma version, a Git commit, a shared file), so what ${other} opens is what you delivered.`
-                  : PREVIEW_LINK_HINT}
+                {mode === 'handover' ? HANDOVER_LINK_HINT : PREVIEW_LINK_HINT}
               </p>
             </div>
             <ul className={flow.list}>
@@ -546,15 +598,51 @@ export function SubmitView(p: SubmitViewProps) {
             ) : null}
           </m.section>
 
+          {mode !== 'handover' ? (
+            <m.section variants={rise} custom={1} aria-labelledby="sb-finals" className={flow.card} data-testid="finals-section">
+              <div>
+                <h2 id="sb-finals" className={flow.h2}>
+                  Final files you will hand over after release{' '}
+                  <span className={fixedLink ? styles.optionalTag : styles.required}>· {fixedLink ? 'optional' : 'required'}</span>
+                </h2>
+                <p className={flow.hint}>{fixedLink ? FIXED_FINAL : FINALS_HINT(other)}</p>
+              </div>
+              <FileDrop label="Choose the final files · read on this computer, never uploaded" onFiles={(f) => void addFinals(f)} />
+              <ul className={flow.list} aria-label="Final files you will hand over">
+                {finals.map((f) => (
+                  <li key={f.sha256} className={flow.item}>
+                    <Icon name="contracts" size={14} color="var(--caption)" />
+                    <span className={styles.linkText}>
+                      <span className={styles.linkLabel}>{f.name}</span>
+                      <span className={flow.caption} style={{ fontSize: 12 }}>
+                        {formatSize(f.size)} · fingerprint <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
+                      </span>
+                    </span>
+                    <button type="button" className={flow.remove} aria-label={`Remove ${f.name}`} onClick={() => setFinals(finals.filter((x) => x.sha256 !== f.sha256))}>
+                      <Icon name="close" size={14} color="var(--caption)" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {finalsError ? (
+                <p className={flow.error} role="alert">
+                  {finalsError}
+                </p>
+              ) : null}
+            </m.section>
+          ) : null}
+
           <m.section variants={rise} custom={1} aria-labelledby="sb-files" className={flow.card}>
             <div>
               <div className={styles.filesHead}>
                 <h2 id="sb-files" className={flow.h2}>
-                  Files (optional)
+                  {mode === 'handover' ? 'Final files you hand over' : 'Preview files'}
                 </h2>
-                <span className={flow.caption}>· fingerprints only, never uploaded</span>
+                <span className={flow.caption}>· fingerprints only{mode === 'handover' ? ', checked against your promised list' : ''}</span>
               </div>
-              <p className={flow.hint}>{FILES_HINT(other)} Up to 200 MB each.</p>
+              <p className={flow.hint}>
+                {mode === 'handover' ? `Choose the files you share at the link above, so ${other} can check them against what you promised.` : FILES_HINT(other)} Up to 200 MB each.
+              </p>
             </div>
             <FileDrop label="Drop files here or choose files" onFiles={(f) => void addFiles(f)} />
             <ul className={flow.list} aria-live="polite">
@@ -593,12 +681,31 @@ export function SubmitView(p: SubmitViewProps) {
                 {fileError}
               </p>
             ) : null}
+            {mode === 'handover' && promised.length ? (
+              <div data-testid="handover-compare">
+                <div className={styles.sectionLabel}>What you promised (Version {accepted?.index})</div>
+                <ul className={flow.list}>
+                  {handoverCompare.map((r) => (
+                    <li key={`${r.state}-${r.file.sha256}`} className={styles.finalRow}>
+                      <span className={styles.linkText}>
+                        <span className={styles.linkLabel}>{r.file.name}</span>
+                        <span className={flow.caption} style={{ fontSize: 12 }}>
+                          {formatSize(r.file.size)} · <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(r.file.sha256)}</span>
+                        </span>
+                      </span>
+                      <span className={`${styles.fileChip} ${r.state === 'same' ? styles.chipSame : styles.chipDiff}`}>{HANDOVER_CHIP[r.state as 'same' | 'missing' | 'extra']}</span>
+                    </li>
+                  ))}
+                </ul>
+                {handoverChanged ? <p className={styles.warnHint}>Something differs from what you promised. Explain what changed in the note below (at least 10 characters).</p> : null}
+              </div>
+            ) : null}
           </m.section>
 
           <m.section variants={rise} custom={2} aria-labelledby="sb-note-h" className={flow.card}>
             <div className={flow.labelRow}>
               <h2 id="sb-note-h" className={flow.h2}>
-                <label htmlFor="sb-note">Note to {other}</label>
+                <label htmlFor="sb-note">{mode === 'handover' && handoverChanged ? `What changed from the files you promised (required)` : `Note to ${other}`}</label>
               </h2>
               <span className={styles.counter}>
                 {[...note].length}/{LIMITS.noteChars}
