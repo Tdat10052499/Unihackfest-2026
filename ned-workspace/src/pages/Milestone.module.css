@@ -151,3 +151,16 @@
 .seePreview { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 .seeTitle { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .filesHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+
+/* F2 final files */
+.finalTitle { margin: 0; font-size: 15px; font-weight: 600; color: var(--warning-ink); }
+.finalLate { box-shadow: inset 0 0 0 2px var(--warning-bg); }
+.finalOk.finalTitle { color: var(--success-ink); }
+.finalRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border-radius: var(--r-12); background: var(--field); }
+.finalRow .linkText { flex: 1 1 200px; }
+.finalMuted { opacity: 0.75; }
+.finalMuted .linkLabel { color: var(--ink-2); }
+.checkBox { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-14); background: var(--row); }
+.finalActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.receiveCard { display: flex; flex-direction: column; gap: 10px; }
+.optionalTag { font-size: 13px; font-weight: 600; color: var(--caption); }

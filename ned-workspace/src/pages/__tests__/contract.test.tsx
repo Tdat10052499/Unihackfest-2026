@@ -84,10 +84,14 @@ describe('Contract page', () => {
     expect(run).toHaveBeenCalledWith('acceptSplit');
     cleanup();
     contract('released', 'freelancer');
-    expect(screen.getByRole('link', { name: 'Hand over final files' }).getAttribute('href')).toMatch(/mode=handover$/);
+    // F2: the banner and the Final files card both lead to the hand-over page
+    const links = screen.getAllByRole('link', { name: 'Hand over final files' });
+    expect(links.length).toBeGreaterThan(0);
+    for (const l of links) expect(l.getAttribute('href')).toMatch(/mode=handover$/);
     cleanup();
     contract('final-files', 'client');
     expect(screen.getByTestId('d27-banner').textContent).toContain('Final files received');
+    expect(screen.getByRole('link', { name: 'Get final files' }).getAttribute('href')).toBe('#files-m1');
   });
 
   it('FEATURES.dispute off: no D27 control', () => {

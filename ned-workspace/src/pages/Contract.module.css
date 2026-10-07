@@ -100,3 +100,8 @@ button.primary { border: none; font-family: inherit; cursor: pointer; }
 .amountInput { height: 44px; padding: 0 14px; border: none; border-radius: var(--r-12); background: var(--field); font-family: var(--font-mono); font-size: 16px; }
 .amountInput:focus { outline: none; box-shadow: var(--focus-halo); }
 .sheetButtons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+
+/* F2 Files section: one row per milestone, the Final files card for released ones */
+.filesSection { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px; }
+.filesRow { display: flex; flex-direction: column; gap: 8px; scroll-margin-top: 16px; }
+.filesHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; align-items: baseline; }

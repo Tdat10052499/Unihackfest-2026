@@ -21,6 +21,11 @@ import { useContractContent, type ContractContentState } from '../hooks/useContr
 import { isFundAddress, useFund } from '../hooks/useFund.ts';
 import { rise, staggerParent } from '../motion.ts';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
+import { FinalFilesCard } from '../components/FinalFilesCard.tsx';
+import { useReleases } from '../hooks/useReleases.ts';
+import { useChainTime } from '../hooks/useChainTime.ts';
+import { acceptedVersion, closeWarnings, handoverStatus, type HandoverStatus } from '@ned/core/milestone/handover.ts';
+import type { ReleaseRecord } from '@ned/core/milestone/records.ts';
 import styles from './Contract.module.css';
 
 export function Contract() {
@@ -36,6 +41,8 @@ export function Contract() {
   });
   const raw = base.raw?.fund ?? null;
   const actions = useContractActions(address, fund, raw);
+  const releases = useReleases(isFundAddress(address) ? address : undefined, raw);
+  const now = useChainTime();
 
   if (!isFundAddress(address) || base.missing) {
     return (
@@ -59,7 +66,7 @@ export function Contract() {
   }
   // A third party (someone with the link, not client or freelancer) sees the contract but no next step
   const isParty = Boolean(walletAddress && (raw.client.toBase58() === walletAddress || raw.freelancer.toBase58() === walletAddress));
-  return <ContractView fund={fund} raw={raw} content={content} vn={vn} isParty={isParty} p1={FEATURES.dispute} actions={actions} />;
+  return <ContractView fund={fund} raw={raw} content={content} vn={vn} isParty={isParty} p1={FEATURES.dispute} actions={actions} releases={releases} now={now} />;
 }
 
 export interface ContractViewProps {
@@ -71,11 +78,16 @@ export interface ContractViewProps {
   /** FEATURES.dispute: every D27 control */
   p1: boolean;
   actions: ContractActions;
+  /** F2: release records of this contract (time, signature, approve or Release now), when read */
+  releases?: ReleaseRecord[];
+  /** chain time, for the hand-over status */
+  now?: number;
 }
 type ContractActions = Pick<ReturnType<typeof useContractActions>, 'run' | 'busy' | 'status' | 'error'>;
 
-export function ContractView({ fund, raw, content, vn, isParty, p1, actions }: ContractViewProps) {
+export function ContractView({ fund, raw, content, vn, isParty, p1, actions, releases = [], now = Math.floor(Date.now() / 1000) }: ContractViewProps) {
   const [splitOpen, setSplitOpen] = useState(false);
+  const showFiles = isParty && fund.milestones.some((m) => m.status === 'released' || m.status === 'refunded' || m.status === 'cancelled' || m.delivery);
   return (
     <m.main id="main" className={styles.page} variants={staggerParent} initial="hidden" animate="shown">
       <m.div variants={rise} custom={0} className={styles.top}>
@@ -92,7 +104,7 @@ export function ContractView({ fund, raw, content, vn, isParty, p1, actions }: C
         </span>
       </m.div>
 
-      {isParty ? <NextStep fund={fund} actions={actions} /> : null}
+      {isParty ? <NextStep fund={fund} raw={raw} actions={actions} /> : null}
       {isParty && actions.error ? (
         <p className={styles.error} role="alert">
           {actions.error}
@@ -159,6 +171,17 @@ export function ContractView({ fund, raw, content, vn, isParty, p1, actions }: C
         </m.div>
       ))}
 
+      {showFiles ? (
+        <m.section variants={rise} custom={4} id="files" aria-labelledby="files-title" className={styles.filesSection}>
+          <h2 id="files-title" className={styles.h2}>
+            Files
+          </h2>
+          {fund.milestones.map((ms) => (
+            <FilesRow key={ms.index} fund={fund} raw={raw} ms={ms} now={now} release={releases.find((r) => r.index === ms.index)} />
+          ))}
+        </m.section>
+      ) : null}
+
       <m.details variants={rise} custom={4} className={styles.card}>
         <summary style={{ cursor: 'pointer', fontWeight: 600 }}>How this contract works</summary>
         <ul className={styles.rules}>
@@ -181,8 +204,11 @@ const submitHref = (fund: FundView, i: number, mode?: 'revision' | 'handover') =
 
 /** The role's next step: submit / review / revision / handover have pages; Release now, Refund now and Move locked
  * budget run here (wallet confirm first); accept, lock and close open the contract in the wallet extension (W6) */
-function NextStep({ fund, actions }: { fund: FundView; actions: ContractActions }) {
+function NextStep({ fund, raw, actions }: { fund: FundView; raw: FundAccount; actions: ContractActions }) {
   const { openWalletAt } = useWalletPanel();
+  const [warn, setWarn] = useState(false);
+  const pending = closeWarnings(raw, Object.fromEntries(fund.milestones.map((m) => [m.index, m.history])));
+  const openWallet = () => openWalletAt(`/contracts/${fund.address}`);
   const next = fund.nextAction;
   if (!next) {
     const m0 = fund.milestones.find((ms) => ms.countdown);
@@ -219,10 +245,96 @@ function NextStep({ fund, actions }: { fund: FundView; actions: ContractActions 
           {actions.busy === next.kind ? actions.status || 'Working…' : next.label}
         </button>
       ) : (
-        <button type="button" className={styles.primary} onClick={() => openWalletAt(`/contracts/${fund.address}`)}>
+        <button type="button" className={styles.primary} onClick={() => (next.kind === 'close' && pending.length ? setWarn(true) : openWallet())}>
           Open in wallet
         </button>
       )}
+      {warn ? (
+        <CloseWarning
+          fund={fund}
+          pending={pending}
+          onKeep={() => setWarn(false)}
+          onClose={() => {
+            setWarn(false);
+            openWallet();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** F2: closing ends the page for both sides, after which the freelancer cannot hand over */
+export const CLOSE_WARNING = (name: string, milestones: string) =>
+  `${name} has not handed over the final files for ${milestones}. Closing ends this contract's page for both of you, and ${name} can no longer hand them over.`;
+/** "milestone 1", "milestones 1 and 2", "milestones 1, 2 and 3" */
+export const milestonesLabel = (indices: number[]) => {
+  const n = indices.map((i) => String(i + 1));
+  return n.length === 1 ? `milestone ${n[0]}` : `milestones ${n.slice(0, -1).join(', ')} and ${n.at(-1)}`;
+};
+
+function CloseWarning({ fund, pending, onKeep, onClose }: { fund: FundView; pending: number[]; onKeep(): void; onClose(): void }) {
+  const other = partyName(fund);
+  const n = milestonesLabel(pending);
+  return (
+    <div className={styles.backdrop}>
+      <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="close-warn-title">
+        <h2 id="close-warn-title" className={styles.sheetTitle}>
+          Final files not handed over
+        </h2>
+        <p className={styles.bannerText} data-testid="close-warning">
+          {CLOSE_WARNING(fund.role === 'client' ? other : 'You', n)}
+        </p>
+        <div className={styles.sheetButtons}>
+          <button type="button" className={styles.secondary} onClick={onClose}>
+            Close anyway
+          </button>
+          <button type="button" className={styles.primary} onClick={onKeep} autoFocus>
+            Keep open
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FILE_STATUS: Record<HandoverStatus, string> = {
+  'not-due': 'Before release',
+  waiting: 'Waiting for final files',
+  late: 'Late · after 48 hours',
+  'handed-over': 'Handed over',
+  'not-applicable': 'No final files',
+};
+
+/** F2 "Files": one row per milestone; a released (or refunded / split) milestone shows its Final files card */
+function FilesRow({ fund, raw, ms, now, release }: { fund: FundView; raw: FundAccount; ms: MilestoneView; now: number; release?: ReleaseRecord }) {
+  const status = handoverStatus(raw, ms.index, ms.history, release?.releasedAt || undefined, now);
+  const accepted = acceptedVersion(ms.history);
+  return (
+    <div id={`files-m${ms.index + 1}`} className={styles.filesRow} data-testid="files-row">
+      <div className={styles.filesHead}>
+        <span className={styles.msName}>
+          Milestone {ms.index + 1}
+          {ms.name ? ` · ${ms.name}` : ''}
+        </span>
+        <span className={styles.muted}>
+          {FILE_STATUS[status]}
+          {accepted ? ` · Version ${accepted.index}` : ''}
+        </span>
+      </div>
+      {status !== 'not-due' ? (
+        <FinalFilesCard
+          fundAddress={fund.address}
+          title={fund.title}
+          raw={raw}
+          ms={ms}
+          role={fund.role === 'client' ? 'client' : 'freelancer'}
+          other={partyName(fund)}
+          now={now}
+          {...(release ? { release } : {})}
+          {...(ms.actions.includes('handover') ? { handoverHref: submitHref(fund, ms.index, 'handover') } : {})}
+        />
+      ) : null}
     </div>
   );
 }
@@ -517,16 +629,16 @@ function D27Banner({ fund, ms, other, actions, onSplit }: { fund: FundView; ms: 
         <span className={styles.bannerTitle}>{ms.statusLabel}</span>
         {client ? (
           <p className={styles.bannerText}>
-            {handed ? 'Check them against the fingerprints committed at submit.' : `${other} shares the final files after release. You can check them against the fingerprints committed at submit.`}
+            {handed ? 'Download them and check them against the list promised before you accepted.' : `${other} shares the final files after release. You can check them against the list promised before you accepted.`}
           </p>
         ) : (
-          <p className={styles.bannerText}>Share the final files now. {other} can check them against the fingerprints you committed when you submitted.</p>
+          <p className={styles.bannerText}>Share the final files now. {other} can check them against the list you promised before they accepted.</p>
         )}
         <div className={styles.bannerActions}>
           {client ? (
-            <Link to={reviewHref(fund, ms.index)} className={styles.secondary}>
-              {handed ? 'Check final files' : 'View delivery'}
-            </Link>
+            <a href={`#files-m${ms.index + 1}`} className={handed ? styles.primary : styles.secondary}>
+              {handed ? 'Get final files' : 'View status'}
+            </a>
           ) : ms.actions.includes('handover') ? (
             <Link to={submitHref(fund, ms.index, 'handover')} className={handed ? styles.secondary : styles.primary}>
               {handed ? 'Hand over again' : 'Hand over final files'}

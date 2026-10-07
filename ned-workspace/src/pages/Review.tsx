@@ -21,16 +21,18 @@ import { canApprove, canRequestChanges } from '@ned/core/milestone/rules.ts';
 import { DISPUTED_STATUS_LINE, type FundView, type MilestoneView } from '@ned/core/milestone/view.ts';
 import { Avatar } from '../components/Avatar.tsx';
 import { partyName } from '../components/ContractsTable.tsx';
-import { FileDrop } from '../components/FileDrop.tsx';
 import { Icon } from '../components/icons.tsx';
 import { KeyMissing } from '../components/KeyMissing.tsx';
 import { PreviewFrame } from '../components/PreviewFrame.tsx';
+import { FinalFilesCard, FIXED_IS_FINAL, NO_ENFORCEMENT } from '../components/FinalFilesCard.tsx';
+import { useReleases } from '../hooks/useReleases.ts';
+import type { ReleaseRecord } from '@ned/core/milestone/records.ts';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import { FEATURES } from '../config.ts';
 import { useActionEnv } from '../hooks/actions.ts';
 import type { ContractContentState } from '../hooks/useContractContent.ts';
 import { useMilestonePage } from '../hooks/useMilestonePage.ts';
-import { checkFile, formatSize, hashFile, MAX_FILE_BYTES, shortSha, type FileCheck } from '../lib/delivery.ts';
+import { formatSize, shortSha } from '../lib/delivery.ts';
 import { rise, stateChange, staggerParent } from '../motion.ts';
 import flow from './Flow.module.css';
 import styles from './Milestone.module.css';
@@ -55,6 +57,7 @@ export function Review() {
   const { confirm } = useWalletPanel();
   const { env, status } = useActionEnv();
   const [released, setReleased] = useState<Released | null>(null);
+  const releases = useReleases(page.address, raw);
 
   if (page.missing) return <Message title="Contract not found" text="This contract does not exist on devnet, or it was closed." />;
   // Wait for the key and notes too, so the key and integrity blocks never flash and shift the page
@@ -111,6 +114,7 @@ export function Review() {
       status={status}
       onRelease={release}
       onRequestChanges={requestChanges}
+      release={releases.find((r) => r.index === page.index)}
     />
   );
 }
@@ -144,6 +148,8 @@ export interface ReviewViewProps {
   status: string;
   onRelease(): Promise<void>;
   onRequestChanges(review: ReviewDraft, retry: boolean): Promise<void>;
+  /** F2: the release of this milestone read from the contract's transactions, when read */
+  release?: ReleaseRecord;
 }
 
 export function ReviewView(p: ReviewViewProps) {
@@ -157,7 +163,6 @@ export function ReviewView(p: ReviewViewProps) {
   const canDecide = client && !p.vn && canApprove(raw, me, index);
   const canRequest = canDecide && p.p1 && canRequestChanges(raw, me, index, now);
   const versions: DeliveryEntry[] = (ms.history?.deliveries ?? []).filter((d) => d.stage !== 'handover');
-  const handovers = (ms.history?.deliveries ?? []).filter((d) => d.stage === 'handover');
   const [version, setVersion] = useState(Math.max(0, versions.length - 1));
   const shown: { content?: DeliveryDraft; entry?: DeliveryEntry } = versions[version] ? { content: versions[version].content, entry: versions[version] } : { content: ms.delivery?.content };
   const isRevision = shown.entry?.stage === 'revision';
@@ -243,6 +248,20 @@ export function ReviewView(p: ReviewViewProps) {
         </div>
       ) : null}
 
+      {ms.status === 'released' || ms.status === 'refunded' || ms.status === 'cancelled' ? (
+        <FinalFilesCard
+          fundAddress={fund.address}
+          title={fund.title}
+          raw={raw}
+          ms={ms}
+          role={client ? 'client' : 'freelancer'}
+          other={other}
+          now={now}
+          {...(p.release ? { release: p.release } : {})}
+          {...(ms.actions.includes('handover') ? { handoverHref: `/contract/${fund.address}/submit?i=${index}&mode=handover` } : {})}
+        />
+      ) : null}
+
       <m.div className={styles.reviewGrid} variants={staggerParent} initial="hidden" animate="shown">
         <m.section variants={rise} custom={0} aria-labelledby="rv-del" className={`${flow.card} ${styles.reviewMain}`}>
           <div className={styles.from}>
@@ -267,7 +286,7 @@ export function ReviewView(p: ReviewViewProps) {
               ))}
             </div>
           ) : null}
-          <DeliveryBody delivery={shown.content} other={other} hasKey={p.content.hasKey} review loaded={loaded} onLoad={(url) => setLoaded((l) => new Set(l).add(url))} />
+          <DeliveryBody delivery={shown.content} other={other} hasKey={p.content.hasKey} loaded={loaded} onLoad={(url) => setLoaded((l) => new Set(l).add(url))} />
         </m.section>
 
         <m.aside variants={rise} custom={1} aria-label="Decide" className={styles.reviewSide}>
@@ -302,6 +321,8 @@ export function ReviewView(p: ReviewViewProps) {
 
           <Integrity ms={ms} delivery={shown.content} isRevision={isRevision} other={other} hasKey={p.content.hasKey} />
 
+          {(ms.status === 'submitted' || ms.status === 'disputed') && shown.content ? <WillReceive delivery={shown.content} /> : null}
+
           {canDecide ? (
             <section aria-label="Decision" className={flow.card}>
               <div className={flow.caption}>Release for milestone {index + 1}</div>
@@ -325,6 +346,9 @@ export function ReviewView(p: ReviewViewProps) {
                   </button>
                 ) : null}
               </div>
+              <p className={flow.hint} data-testid="no-enforcement">
+                {NO_ENFORCEMENT(other)}
+              </p>
               {error && !sheet ? (
                 <p className={flow.error} role="alert">
                   {error}
@@ -346,7 +370,6 @@ export function ReviewView(p: ReviewViewProps) {
         </m.aside>
       </m.div>
 
-      {ms.status === 'released' ? <FinalFiles first={versions[0]?.content ?? ms.delivery?.content} committedAt={msRaw.submittedAt} handovers={handovers} client={client} other={other} /> : null}
 
       {sheet ? <RequestSheet criteria={criteria} other={other} busy={busy === 'request'} status={p.status} error={error} onCancel={() => setSheet(false)} onSubmit={(d) => void request(d, false)} /> : null}
     </m.main>
@@ -354,129 +377,45 @@ export function ReviewView(p: ReviewViewProps) {
 }
 
 /**
- * A delivery's links, note and files. `review` (R2): one tab per link, the PreviewFrame, the note and the listed files
- * as a quiet list (fingerprints only, no drop zone). Without it (final files after release): link cards and the
- * optional "check a file you received".
+ * A delivery in Review (R2): one tab per link, the PreviewFrame, the note and the listed files as a quiet list
+ * (fingerprints only, no drop zone). Final files after release have their own card (FinalFilesCard, F2).
  */
-function DeliveryBody({
-  delivery,
-  other,
-  hasKey,
-  review = false,
-  loaded,
-  onLoad,
-}: {
-  delivery?: DeliveryDraft;
-  other: string;
-  hasKey: boolean;
-  review?: boolean;
-  loaded?: ReadonlySet<string>;
-  onLoad?(url: string): void;
-}) {
-  const [checks, setChecks] = useState<Record<number, FileCheck['kind']>>({});
-  const [note, setNote] = useState('');
+function DeliveryBody({ delivery, other, hasKey, loaded, onLoad }: { delivery?: DeliveryDraft; other: string; hasKey: boolean; loaded?: ReadonlySet<string>; onLoad?(url: string): void }) {
   const [tab, setTab] = useState(0);
   if (!delivery) {
     return <p className={flow.hint} style={{ marginTop: 12 }}>{hasKey ? 'The delivery saved with this contract could not be read.' : 'Unlock this computer to read the delivery.'}</p>;
   }
-  const compare = async (files: File[]) => {
-    setNote('');
-    for (const file of files) {
-      if (file.size > MAX_FILE_BYTES) {
-        setNote(`${file.name} is larger than 200 MB, so it cannot be one of the listed files.`);
-        continue;
-      }
-      const sha256 = await hashFile(file);
-      const result = checkFile({ name: file.name, sha256 }, delivery.files);
-      if (result.kind === 'unknown') setNote(`${file.name} (${shortSha(sha256)}) is not one of the files ${other} listed.`);
-      else setChecks((c) => ({ ...c, [result.index]: result.kind }));
-    }
-  };
-  if (review) {
-    const url = delivery.links[Math.min(tab, delivery.links.length - 1)];
-    return (
-      <>
-        {delivery.links.length > 1 ? (
-          <div className={styles.linkTabs} role="tablist" aria-label="Links">
-            {delivery.links.map((l, i) => (
-              <button key={l} type="button" role="tab" aria-selected={tab === i} className={`${styles.linkTab} ${tab === i ? styles.linkTabOn : ''}`} onClick={() => setTab(i)}>
-                {tabLabel(l)}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        {url ? (
-          <PreviewFrame key={url} url={url} name={other} loaded={loaded?.has(url)} onLoad={() => onLoad?.(url)} />
-        ) : (
-          <p className={flow.hint}>This delivery has no link, only file fingerprints. Ask {other} for a preview link.</p>
-        )}
-        {delivery.note ? <blockquote className={styles.quote}>{delivery.note}</blockquote> : null}
-        {delivery.files.length ? (
-          <details className={styles.optional} data-testid="files-listed">
-            <summary>Files listed (fingerprints only)</summary>
-            <ul className={flow.list} style={{ marginTop: 10 }}>
-              {delivery.files.map((f, i) => (
-                <li key={`${f.sha256}-${i}`} className={styles.fileRow}>
-                  <span className={styles.linkLabel}>{f.name}</span>
-                  <span className={flow.caption} style={{ fontSize: 12 }}>
-                    {formatSize(f.size)} · <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
-      </>
-    );
-  }
+  const url = delivery.links[Math.min(tab, delivery.links.length - 1)];
   return (
     <>
-      {delivery.links.length ? (
-        <ul className={flow.list} style={{ marginTop: 12 }}>
-          {delivery.links.map((url) => (
-            <li key={url}>
-              <a href={url} target="_blank" rel="noopener noreferrer" className={styles.linkCard} data-testid="link-card">
-                <Icon name="external" size={14} color="var(--caption)" />
-                <span className={styles.linkMain}>
-                  <span className={styles.linkLabel}>
-                    {linkLabel(url)} {isFixedVersion(url) ? <span className={styles.fixed}>Fixed version</span> : null}
-                  </span>
-                  <span className={styles.linkUrl}>{url.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                </span>
-                <span className={styles.open}>Open</span>
-              </a>
-            </li>
+      {delivery.links.length > 1 ? (
+        <div className={styles.linkTabs} role="tablist" aria-label="Links">
+          {delivery.links.map((l, i) => (
+            <button key={l} type="button" role="tab" aria-selected={tab === i} className={`${styles.linkTab} ${tab === i ? styles.linkTabOn : ''}`} onClick={() => setTab(i)}>
+              {tabLabel(l)}
+            </button>
           ))}
-        </ul>
+        </div>
       ) : null}
+      {url ? (
+        <PreviewFrame key={url} url={url} name={other} loaded={loaded?.has(url)} onLoad={() => onLoad?.(url)} />
+      ) : (
+        <p className={flow.hint}>This delivery has no link, only file fingerprints. Ask {other} for a preview link.</p>
+      )}
       {delivery.note ? <blockquote className={styles.quote}>{delivery.note}</blockquote> : null}
       {delivery.files.length ? (
-        <details className={styles.optional}>
-          <summary>Optional · Check a file you received</summary>
+        <details className={styles.optional} data-testid="files-listed">
+          <summary>Files listed (fingerprints only)</summary>
           <ul className={flow.list} style={{ marginTop: 10 }}>
             {delivery.files.map((f, i) => (
-              <li key={`${f.sha256}-${i}`} className={flow.item} style={{ padding: '10px 12px' }}>
-                <Icon name="contracts" size={14} color="var(--caption)" />
-                <span className={styles.linkText}>
-                  <span className={styles.linkLabel}>{f.name}</span>
-                  <span className={flow.caption} style={{ fontSize: 12 }}>
-                    {formatSize(f.size)} · fingerprint <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
-                  </span>
+              <li key={`${f.sha256}-${i}`} className={styles.fileRow}>
+                <span className={styles.linkLabel}>{f.name}</span>
+                <span className={flow.caption} style={{ fontSize: 12 }}>
+                  {formatSize(f.size)} · <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
                 </span>
-                {checks[i] ? (
-                  <span aria-live="polite" className={`${styles.fileChip} ${checks[i] === 'same' ? styles.chipSame : styles.chipDiff}`}>
-                    {checks[i] === 'same' ? 'Same file ✓' : 'Different file'}
-                  </span>
-                ) : null}
               </li>
             ))}
           </ul>
-          <FileDrop compact label={`Drop a file ${other} shared to check it is the same`} onFiles={(f) => void compare(f)} />
-          {note ? (
-            <p className={flow.hint} role="status">
-              {note}
-            </p>
-          ) : null}
         </details>
       ) : null}
     </>
@@ -506,40 +445,33 @@ function Integrity({ ms, delivery, isRevision, other, hasKey }: { ms: MilestoneV
   );
 }
 
-function FinalFiles({ first, committedAt, handovers, client, other }: { first?: DeliveryDraft; committedAt: number; handovers: DeliveryEntry[]; client: boolean; other: string }) {
-  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  const check = async (files: File[]) => {
-    const file = files[0];
-    if (!file || !first) return;
-    const sha256 = await hashFile(file);
-    const hit = checkFile({ name: file.name, sha256 }, first.files);
-    setResult(hit.kind === 'same' ? { ok: true, text: `Matches the file committed on ${formatDeadline(committedAt)} ✓` } : { ok: false, text: 'Not one of the committed files' });
-  };
+/** F2: the promised list of the version on screen, before the decision */
+function WillReceive({ delivery }: { delivery: DeliveryDraft }) {
+  const finals = delivery.finals ?? [];
+  const fixed = delivery.links.some(isFixedVersion);
   return (
-    <section aria-labelledby="rv-final" className={flow.card} data-testid="final-files">
-      <h2 id="rv-final" className={flow.h2}>
-        Final files
+    <section aria-labelledby="rv-receive" className={`${flow.card} ${styles.receiveCard}`} data-testid="will-receive">
+      <h2 id="rv-receive" className={flow.h2}>
+        What you will receive after release
       </h2>
-      {handovers.length ? (
-        handovers.map((h) => (
-          <div key={h.signature}>
-            <div className={flow.caption}>{h.time ? `Handed over ${formatDeadline(h.time)}` : 'Handed over'}</div>
-            <DeliveryBody delivery={h.content} other={other} hasKey />
-          </div>
-        ))
+      {finals.length ? (
+        <ul className={flow.list}>
+          {finals.map((f) => (
+            <li key={f.sha256} className={styles.finalRow}>
+              <Icon name="contracts" size={14} color="var(--caption)" />
+              <span className={styles.linkText}>
+                <span className={styles.linkLabel}>{f.name}</span>
+                <span className={flow.caption} style={{ fontSize: 12 }}>
+                  {formatSize(f.size)} · <span className={flow.mono} style={{ fontSize: 12, fontWeight: 400 }}>{shortSha(f.sha256)}</span>
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
       ) : (
-        <p className={flow.hint}>{client ? `${other} has not handed over the final files yet.` : 'Share the final files now from the contract page.'}</p>
+        <p className={flow.hint}>{fixed ? FIXED_IS_FINAL : 'No final files were listed with this version.'}</p>
       )}
-      {client && first?.files.length ? (
-        <>
-          <FileDrop compact label="Check a file against the fingerprints committed at submit" multiple={false} onFiles={(f) => void check(f)} />
-          {result ? (
-            <p className={`${styles.finalResult} ${result.ok ? styles.finalOk : styles.finalBad}`} role="status">
-              {result.text}
-            </p>
-          ) : null}
-        </>
-      ) : null}
+      {finals.length ? <p className={flow.hint}>Only names, sizes and fingerprints are shared before release. After release, check the files you download against this list.</p> : null}
     </section>
   );
 }
