@@ -23,8 +23,9 @@ For a new contract: `/new` → title, 2 milestones × small test amounts, one do
 
 1. Contract → **Submit** milestone 1.
 2. Without a link, press **Submit milestone 1**: the message "Add a preview link the client can open (Google Drive, Figma, YouTube, Loom or an image link)." shows and nothing is sent. 📷
-3. Paste the Drive link → **Add**. Under the field, "This is what @A will see" shows a Google Drive box → press **Load preview**: the watermarked image shows. 📷
-4. **Submit milestone 1** → confirm in the wallet panel.
+3. *(Since F1, 7 Oct)* Under **Final files you will hand over after release**, choose 2 final files (they are read on the computer, never uploaded).
+4. Paste the Drive link → **Add**. Under the field, "This is what @A will see" shows a Google Drive box → press **Load preview**: the watermarked image shows. 📷
+5. **Submit milestone 1** → confirm in the wallet panel (the sheet shows "Final files promised: 2").
 
 ## 3. Review (A)
 
@@ -43,9 +44,52 @@ For a new contract: `/new` → title, 2 milestones × small test amounts, one do
 
 1. **Review revised version**: the switcher shows **Version 1 · Version 2 (revised)**. Switch to Version 1 (integrity line "Same delivery that was submitted ✓"), then Version 2 (revision line). **Load preview** on each. 📷
 2. **Accept & release** → confirm. The released screen shows the amount and "Next". 📷
-3. B: contract → **Hand over final files** with files only (no link) → it is accepted (hand-over keeps "a link or a file").
+3. B: contract → **Hand over final files**: *(since F1, 7 Oct)* a download link is required; files alone are refused with "Add the link where @A can download the final files." Paste the link → hand over. Part B covers the hand-over in full.
 
 ## What to report back
 
 - Any step that did not match, with its screenshot.
 - The browser and OS used (Safari on iPhone is not in scope: the Workspace shows the phone gate below 900 px).
+
+---
+
+# Part B · Final files (F3, 7 Oct)
+
+Same two accounts. Prepare on B's computer three local files: `logo.svg`, `logo@2x.png` (the promised list) and `logo@2x-v2.png` (a changed export, used in step B4). Keep exact copies: the check in step B5 compares fingerprints.
+
+## B1. Submit with a preview link and 2 promised files (B)
+
+1. Contract → **Submit** milestone 1. Paste the watermarked preview's Drive link (Part A step 0).
+2. **Final files you will hand over after release**: choose `logo.svg` and `logo@2x.png`. Without them, **Submit** shows "List the final files you will hand over after release. Only their fingerprints are shared now." 📷
+3. Try the preview file in both lists: "The preview and the final files must be different files."
+4. **Submit milestone 1** → the confirm sheet shows **Final files promised: 2** → confirm.
+
+## B2. Request changes, then a revision with a changed list
+
+1. A: **Review** → right column **What you will receive after release** lists the 2 files; under the buttons "After release, N.E.D cannot make @B hand over the files. Check this list before you accept." 📷 → **Request changes** (tick a point or write the reason) → confirm.
+2. B: **Send revised version** → a new preview link; final files `logo.svg` and `logo@2x-v2.png` (the changed list) → **Send revised version** → confirm.
+
+## B3. Accept (A)
+
+1. **Review revised version** → switch **Version 1 · Version 2 (revised)**: the receive card follows the version on screen. 📷
+2. On Version 2, **Accept & release** → confirm. The **Final files** card shows "Waiting for final files from @B · since …". 📷
+
+## B4. Hand-over page with one file changed (B)
+
+1. Contract → **Hand over final files**. Without a link: "Add the link where @A can download the final files."
+2. Upload a zip or the files to Drive, share **Anyone with the link · Viewer**, paste the link.
+3. Choose `logo.svg` and `logo@2x.png` (the old export instead of the promised `logo@2x-v2.png`): the list shows **Same as promised**, **Missing**, **Extra**; **Hand over final files** asks "Explain what changed from the files you promised." Write a reason (10+ characters) → hand over → confirm. 📷
+
+## B5. Download, check, receipt (A)
+
+1. Bell: "Final files received · milestone 1" → contract → **Files** → the card shows "Handed over … · for Version 2, accepted …", the reason, the chips. 📷
+2. **Download** (a single Drive file downloads directly; a folder opens in a new tab).
+3. **Check your download**: drop `logo.svg` (expect **Same as promised before you accepted ✓**) and a file **named** `logo@2x-v2.png` with other content, for example `logo@2x.png` copied under that name (expect **Different from what was promised**: same name, other fingerprint). A file with a name that is not in the list shows **Not in the promised list**. 📷
+4. **Save receipt** → a file `ned-receipt-<8 characters>-m1.json` is saved; open it: contract, accepted version 2, promised list, hand-over, release signature, check results, "Built on the client's device. Not legal advice." 📷
+
+## B6. Close warning on another contract (A)
+
+1. Use a contract where every milestone is released (or refunded) and one released milestone has **no** hand-over, so the contract is Settled.
+2. Contract page → **Open in wallet** (Close): before the wallet opens, "@B has not handed over the final files for milestone N. Closing ends this contract's page for both of you, and @B can no longer hand them over." with **Keep open** and **Close anyway**. 📷 Press **Keep open** (do not close a demo contract).
+
+Save the 📷 screenshots to `docs/02-thiet-ke/screenshots/f3-e2e/`.

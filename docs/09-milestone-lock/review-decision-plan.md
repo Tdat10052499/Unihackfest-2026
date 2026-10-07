@@ -158,3 +158,28 @@ Tests:
 4. **Request changes without done-when points.** When the brief has no done-when points for the milestone (older briefs), the client cannot pick points, so the reason carries the request: 10–500 characters, "Say what is missing and what would make it acceptable." With points, the rule of section 1 is unchanged.
 5. **New briefs need done-when points.** A new contract or job draft needs at least one done-when point per milestone ("Add at least one done-when point, so the work can be checked."). Briefs already on Solana with an empty list still decode. The Privacy notice says that **Load preview** connects the browser to the site that hosts the link.
 
+## Amendment 7 Oct (final files)
+
+*(Added 7 Oct 2026 with F1–F3, from [`prompts-final-files.md`](prompts-final-files.md). It amends the hand-over of section 4 "After release": the freelancer promises a list of final files at submit, and the client checks the hand-over against the accepted version's list.)*
+
+| Who | Protection | How |
+| --- | --- | --- |
+| **Freelancer** | The final files leave their device only after the money is released | Handover is possible only on a `Released` milestone (approve, or Release now). Before release, only fingerprints and file names are shared. |
+| **Freelancer** | Their work is not given away if the money goes back | Refund, Return to client: no handover, no promised list shown as owed. |
+| **Freelancer** | Not blamed when the client closes early | If the client closes the contract before the handover, the page and any future record say "closed by the client before handover". |
+| **Freelancer** | Can explain an honest change | A promised file can differ at handover (format, final export), with a written reason shown to the client. |
+| **Client** | Knows exactly what they will receive *before* accepting | At submit, the freelancer commits a **promised list**: name, size and fingerprint of each final file. Review shows it next to the preview. Accepting means accepting the preview and the list. |
+| **Client** | Can check that what arrives is what was promised | After download, the client drops the files in. Each one is compared with the promised list of the **accepted version**, not the first delivery. |
+| **Client** | Gets files even if they did not review in time | Release now opens the handover just like Accept & release. |
+| **Client** | Has proof of what was received | "Save receipt": a JSON file built on their device with the fingerprints, links, times and transaction signatures. |
+| **Client** | Is warned before closing too early | Close shows which milestones still have no handover. |
+| **Both** | See the same status | "Waiting for final files (since …)", "Handed over", "Late (after 48 hours)", with in-app reminders to the freelancer. |
+
+**N.E.D cannot force a handover.** Once released, the money has left the program. Fingerprints prove what was promised; they do not make anyone deliver. The two sides of this:
+- **The client is told before accepting:** "After release, N.E.D cannot make @x hand over the files. Check the list below before you accept."
+- **Roadmap (B-17):** final files encrypted before review, with the key released by the same transaction as the money.
+
+**Splits and cancellations (G4) are not fixed before the freeze.** That needs a program change to the `post_note` rules. The split sheet says: "Agree which files are handed over as part of the split. N.E.D cannot record a handover after a split in this version."
+
+**Built (F1–F2, 7 Oct):** the promised list (`finals`) in the delivery note, required for a first delivery and a revision unless a link is a fixed version; Review shows it before the decision; the Final files card (waiting, late after 48 hours, handed over with Download, Check your download and Save receipt, none after a refund or split); the Files section and the close warning on the contract page; bell reminders at 24 and 48 hours. Program, note kinds, encryption and the evidence of earlier deliveries are unchanged.
+

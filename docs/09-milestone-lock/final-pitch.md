@@ -84,13 +84,14 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | 0:40 | Trình duyệt A (Workspace, chế độ xem quốc tế): mở `/new` **đã điền sẵn** "Landing page design", 2 milestone × 10 USDC (deadline +1 day), mỗi milestone có "Done when" → **Create** → xác nhận trong panel ví | "Người A chia công việc thành hai milestone, mỗi milestone có tiêu chí nghiệm thu và deadline riêng." |
 | 0:55 | Trình duyệt B (chế độ xem Việt Nam): mở link mời → đọc brief → **Open in wallet** → **Slide to accept** (lựa chọn "VND to my Vietnamese bank account" đã được chọn sẵn) | "Người B đọc brief. Brief đã được mã hoá, N.E.D không có khoá để đọc. B trượt để accept, nhận tiền bằng VND vào tài khoản ngân hàng. Nơi nhận này giờ đã được chốt trên chain, không bên nào đổi được." |
 | 1:15 | A: **Open in wallet** → **Slide to lock** 20 USDC → B thấy *"Locked for you · ≈ 520,000 VND (estimate)"* | "Người A khoá 20 USDC. Người B thấy khoảng 520 nghìn đồng, không có số dư crypto nào. Giờ B mới bắt đầu làm." |
-| 1:30 | B: **Submit** milestone 1 (link Drive có watermark) → xác nhận | "B nộp bản preview có watermark, không nộp file gốc. Trên chain lưu dấu vân tay và thời gian nộp; nội dung bài nộp được mã hoá." |
+| 1:30 | B: **Submit** milestone 1 (link Drive có watermark; ở mục **Final files you will hand over after release** chọn sẵn 2 file cuối, *cập nhật 7/10: bắt buộc từ F1*) → xác nhận | "B nộp bản preview có watermark, không nộp file gốc. Trên chain lưu dấu vân tay và thời gian nộp; nội dung bài nộp được mã hoá." |
 | 1:45 | A: bấm vào cửa sổ A → chuông thông báo → **Review** → **Load preview** (khung Drive hiện bản preview có watermark) → **Accept & release** | "A xem bản preview ngay trong trang Review, đối chiếu với tiêu chí rồi bấm Accept & release. Tiền đi tới payout partner; phần chuyển VND là mô phỏng." *(cập nhật 7/10: thêm bước Load preview)* |
 | 1:58 | Mở **contract B** đã chuẩn bị (link trực tiếp) → **Release now** | "Đây là tình huống quan trọng nhất. Ở hợp đồng này, A không review. Deadline review đã qua, nên ai cũng bấm được Release now, và tiền đi tới payout partner cho B." |
 | 2:10 | Mở Solana Explorer: vault account → owner = program | "Vault thuộc về program. Không có instruction nào cho N.E.D di chuyển số tiền này." |
 | 2:20 | Chuyển sang Slide 4 | — |
 
 - **Nếu đang trễ hơn 15 s:** bỏ bước Explorer, nói câu cuối khi chuyển slide.
+- **Nếu còn dư thời gian (tuỳ chọn, thêm 7/10):** sau **Accept & release** ở bước 1:45, cuộn lên thẻ **Final files** đang ở trạng thái *"Waiting for final files from @…"* với danh sách file đã hứa. Lời nói: *"Sau khi release, A thấy rõ đang chờ những file nào, và kiểm tra được khi file tới."*
 - **Nếu đang sớm hơn 15 s:** ở bước 1:45, **trước khi** bấm Accept & release, mở **Request changes** cho xem rồi bấm Cancel. (Sau khi đã release, nút này không còn hiện.) Lời nói: *"Nếu bài chưa đạt, A có thể yêu cầu chỉnh sửa, nhưng tiền không bao giờ quay về một mình A. Tiền vẫn bị khoá cho tới khi hai bên đồng ý."*
 - **Nếu demo hỏng** (mạng, RPC, đăng nhập): nói *"Mình chuyển sang video quay đúng bản build này"*, rồi bật backup video 60–90 s ngay. Không cố gỡ lỗi trên sân khấu.
 
@@ -248,6 +249,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | P4 | Nhóm có dùng AI không? | Trả lời trung thực theo câu team đã thống nhất, ví dụ: *"Có, nhóm dùng AI hỗ trợ viết code; mọi commit đều công khai và nhóm có thể giải thích bất kỳ instruction nào."* |
 | P5 | Sao app lại bằng tiếng Anh? | "Người dùng chính là client nước ngoài và freelancer làm việc với họ, nên sản phẩm dùng tiếng Anh. Nhóm đã thống nhất với ban tổ chức: pitch bằng tiếng Việt, sản phẩm giữ tiếng Anh." |
 | P6 | Khác gì các dự án khoá tiền khác trên Solana? | "Một số dự án devnet khác cũng release khi client im lặng, nên nhóm không nói mình là đầu tiên. Điểm N.E.D thêm vào: đường VND cho người ở Việt Nam, nơi nhận chốt lúc accept và chỉ là địa chỉ partner trong allowlist; yêu cầu chỉnh sửa không bao giờ hoàn tiền; brief mã hoá có dấu vân tay trên chain; và Funded Jobs khoá ngân sách trước khi có người ứng tuyển." |
+| P7 | Nếu freelancer không bao giờ gửi file cuối thì sao? | "Trước khi đồng ý, client thấy danh sách file cuối kèm fingerprint. Sau khi release, client kiểm tra file tải về với danh sách đó và lưu biên nhận. Hiện chúng tôi chưa thể bắt buộc bàn giao; mã hoá file cuối và mở khoá cùng lúc với tiền nằm trong roadmap." *(thêm 7/10, F3)* |
 
 ---
 

@@ -82,7 +82,7 @@
 | Chưa xong | **Propose / Accept split** → `propose_cancel` + `accept_cancel` | Hai bên | Split cho **cả contract**, không riêng một milestone | Cancelled (chia theo thoả thuận) |
 | Submitted, quá `review_by` | **Release now** → `release_after_review` | Anyone (cả hai bên đều thấy nút) | Không bị dispute | Released |
 | Pending, quá `submit_by` | **Refund now** → `refund` | Anyone | Chưa submit | Refunded |
-| Released | **Hand over final files** → delivery note (`stage: handover`) | Freelancer | Không bắt buộc (không có gì cưỡng chế) | Released |
+| Released | **Hand over final files** → delivery note (`stage: handover`) | Freelancer | Không bắt buộc (không có gì cưỡng chế). *Cập nhật 7/10 (F1–F2):* bắt buộc link tải; file giao được so với **promised list** của bản được chấp nhận, khác thì phải ghi lý do; chỉ mở khi Released (approve hoặc Release now), không mở sau refund/split | Released |
 | Created / Accepted / Settled | Close → `close` | Creator | Vault rỗng; phần thừa về client. Ở Created/Accepted đây là huỷ contract trước khi lock | Closed |
 
 Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > deadline`. **Khi đang Disputed thì không có deadline nào chạy** (mục 5).
@@ -182,7 +182,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | F-2 | **Nộp bài rác** | Client request changes (D27) | Bắt buộc link xem trước khi nộp (R1, 7/10) | Done-when checklist + khung xem trước trong Review (bấm Load preview, R2); mốc không có done-when → lý do 10–500 ký tự | ✅ Workspace |
 | F-3 | Trễ submit vài phút | Refund now mở ngay | Mất milestone | Reminders; `extend_deadline` 🗺 | 🆕 / 🗺 |
 | F-4 | Được chọn ở job nhưng **không accept** | Business chọn lại sau accept window | — | Record "no-show after selection" 🆕 | ✅ / 🆕 |
-| F-5 | **Giữ final files** sau release | Không cưỡng chế được | Client mất bài | Fingerprint + record công khai; record "handover missing" 🆕; final mã hoá, key mở khi release 🗺 | 🔧 / 🗺 |
+| F-5 | **Giữ final files** sau release | Không cưỡng chế được | Client mất bài | *Cập nhật 7/10 (F1–F2):* lúc nộp freelancer cam kết **promised list** (tên, cỡ, fingerprint file cuối), client thấy trước khi accept; sau release thẻ Final files hiện "Waiting", sau 48 h "Late" (chỉ nhắc, không cưỡng chế) + chuông nhắc freelancer 24 h/48 h; client tải, kiểm tra file với danh sách và **Save receipt** (JSON trên máy); cảnh báo trước khi Close. Record "handover missing" 🆕; final mã hoá, key mở khi release 🗺 (B-17) | ✅ Workspace / 🗺 |
 | F-6 | Mất điện thoại/login | Google login khôi phục ví; key từ thiết bị khác hoặc link mời | Mất hết thiết bị và link thì không đọc lại được brief | Hướng dẫn lưu link mời | ✅ |
 | F-7 | Người ở VN **chuyển sang international view** | Residence tự khai | Vỡ I1 | Disclose; launch: KYC của partner quyết định | ⚠ disclosed |
 | F-8 | Người ở VN gõ URL `/send`, `/receive`… | Route guard chuyển về `/home` (cả GitHub Pages và `/wallet`) | — | V1 | ✅ (PO cần thử khi đã đăng nhập) |
@@ -229,7 +229,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | **Repeated change requests** | Client | ≥ **3** review note trên cùng một milestone | Lịch sử giao dịch `post_note` (kind 3) |
 | **Missed submission** | Freelancer | Milestone bị refund vì quá `submit_by` | Account: `Refunded` + `submitted_at = 0` (đọc thẳng được) |
 | **No-show after selection** | Freelancer | Được chọn ở job nhưng không accept trong accept window | Lịch sử giao dịch `select_job`. Re-select ghi đè `selected_at`/`fund` của listing |
-| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h** | Thời điểm giao dịch release và note `stage: handover`. Account không có `released_at` |
+| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h**. *(7/10)* Không tính khi client đã **Close** contract trước (sau Close freelancer không bàn giao được nữa). Rules của `prompts-final-files.md` ghi "closed by the client before handover" cho trường hợp này; app chưa hiện dòng đó (contract đã close không còn trang) | Thời điểm giao dịch release và note `stage: handover`. Account không có `released_at` |
 
 Không tính lapse do bên kia gây ra, và không tính contract demo/test (có tag).
 
@@ -282,8 +282,9 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Changes requested | — | "Changes requested · send a revised version" | ✅ Workspace · 🔧 mobile |
 | Revised version sent | "Revised version received · review it" | — | ✅ Workspace |
 | Review deadline passed | "Review time is over · Release now" | "Release now" | ✅ |
-| Released | "Released" | "Released · hand over the final files" | ✅ |
-| Final files handed over | "Final files received" | — | ✅ Workspace |
+| Released | "Released" | "Released · hand over the final files" (F2, 7/10) | ✅ |
+| Final files handed over | "Final files received · milestone {n}" | — | ✅ Workspace (F2, 7/10) |
+| Final files chưa giao 24 h / 48 h sau release | — | "Final files for milestone {n} are due" | ✅ Workspace (F2, 7/10) |
 | Refunded | ✓ | ✓ | ✅ |
 | Reminders 24 h / 1 h | review | submit | 🆕 |
 | Warning / cooldown | ✓ | ✓ | 🆕 |
@@ -337,6 +338,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-08 | Keys S1–S3 | PO | 🔧 | ngay | Bundle mới không còn key; register row 12 |
 | B-09 | README R1 + LICENSE R2 | PO + Dev | 🔧 | 8 Oct | CL đọc README đối chiếu app live |
 | B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs, H4 trang Legal (chỉ ở footer), H5 restyle + QA. 7/10: H1–H5 đã vào `main` (`hub-v4-qa.md`, `tong-hop-tien-do.md`) | Dev | ✅ | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
+| B-22 | Final files (`prompts-final-files.md`): F1 core (promised list, hand-over check, status, receipt, close warnings), F2 Workspace (Submit, Review, thẻ Final files, mục Files, cảnh báo Close, chuông 24/48 h), F3 docs, copy, e2e. 7/10: F1–F2 trên `main`; mobile (submit có promised list, màn bàn giao, close warning) để S13 | Dev + CL | 🔧 | 8 Oct | F3: CL duyệt 2 câu copy; PO chạy e2e `review-preview-e2e.md` phần final files |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
