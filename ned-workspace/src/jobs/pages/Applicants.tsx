@@ -41,7 +41,7 @@ export function Applicants() {
       My listings
     </Link>
   );
-  if (job.isPending) return <Frame back={back}><div className={styles.card} aria-busy="true">Reading the job from Solana…</div></Frame>;
+  if (job.isPending) return <Frame back={back}><div className={`${styles.card} rv`} aria-busy="true">Reading the job from Solana…</div></Frame>;
   if (!job.data) return <Frame back={back}><EmptyState icon="briefcase" title="This job does not exist" action={<HubButton to="/jobs/find">Find jobs</HubButton>} /></Frame>;
   if (viewer.wallet !== job.data.business.toBase58())
     return (
@@ -167,7 +167,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
 
   return (
     <>
-      <section aria-labelledby="ja-title" className={styles.card}>
+      <section aria-labelledby="ja-title" className={`${styles.card} rv`}>
         <div className={styles.appHead}>
           <div style={{ minWidth: 0, flex: '1 1 320px' }}>
             <div className={styles.chips}>
@@ -203,7 +203,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
       </section>
 
       {waiting && chosen ? (
-        <section className={styles.banner} aria-live="polite">
+        <section className={`${styles.banner} rv`} aria-live="polite">
           <Avatar seed={chosen} size={44} decorative />
           <span className={styles.bannerText}>
             <span className={styles.bannerTitle}>
@@ -221,7 +221,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
         </section>
       ) : null}
       {job.state === 'Filled' && chosen ? (
-        <section className={styles.banner} aria-live="polite">
+        <section className={`${styles.banner} rv`} aria-live="polite">
           <Avatar seed={chosen} size={44} decorative />
           <span className={styles.bannerText}>
             <span className={styles.bannerTitle}>
@@ -252,7 +252,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
         </div>
         {!p.briefOk && job.state === 'Open' ? <p className={styles.warn}>The public brief is missing or does not match. Selecting needs the saved brief.</p> : null}
         {p.applications === null ? (
-          <div className={styles.card} aria-busy="true">Reading applications…</div>
+          <div className={`${styles.card} rv`} aria-busy="true">Reading applications…</div>
         ) : !list.length ? (
           <EmptyState title="No applicants yet" body="Applications show up here as freelancers apply. You can withdraw the budget at any time until someone applies." />
         ) : (
@@ -263,7 +263,7 @@ export function ApplicantsView(p: ApplicantsViewProps) {
             const facts = p.records?.[w] ? applicantFacts(p.records[w], p.me) : ['Reading track record…'];
             const canPick = selectable && p.briefOk && !(isChosen && !over);
             return (
-              <article key={w} className={styles.applicant} data-testid="applicant">
+              <article key={w} className={`${styles.applicant} rv`} data-testid="applicant">
                 <Avatar seed={w} size={48} decorative />
                 <div className={styles.applicantMain}>
                   <div className={styles.applicantTop}>
