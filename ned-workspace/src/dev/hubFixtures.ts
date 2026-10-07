@@ -69,3 +69,22 @@ export function hubMine(me: PublicKey) {
   ];
   return { apps, listings };
 }
+
+/** The public brief of the logo job (HUB_JOBS[9]) as /jobs/:job shows it once its hash checks out */
+export const HUB_BRIEF = {
+  status: 'ok' as const,
+  brief: {
+    scope: 'A cleaner wordmark and a small cup icon for a coffee brand. Concepts first, final files after release.',
+    references: ['https://example.com/current-logo'],
+    milestones: [
+      { name: 'Two logo concepts', criteria: ['Two directions as watermarked previews', 'Each works in black and white'] },
+      { name: 'Final logo files', criteria: ['SVG and PNG of the chosen concept', 'A one-page usage sheet'] },
+    ],
+  },
+} as never;
+
+/** Applicants of a fixture job: pitches are public on Solana in the real app */
+export function hubApplicants(job: PublicKey) {
+  const pitches = ['I design wordmarks for cafés; two concepts in three days.', 'Brand designer, five years, previews watermarked as the brief asks.', 'Quick turnaround, happy to iterate once on the chosen concept.'];
+  return pitches.map((pitch, i) => ({ address: key(500 + i), version: 1, job, freelancer: key(600 + i), createdAt: HUB_NOW - (i + 1) * 3_600, pitch, bump: 255 }));
+}
