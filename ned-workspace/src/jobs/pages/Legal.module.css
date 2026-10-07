@@ -1,0 +1,77 @@
+/* /jobs/legal (board WebJobsLegal; prompts-hub-v4.md V8). Values are the board's inline styles; variables come from
+   .hub (../hub.module.css). Hairlines are inset box-shadows. */
+
+/* 3 px reading bar fixed at the top; it grows with the page where scroll timelines exist (.hb-progress) */
+.reading { position: fixed; left: 0; right: 0; top: 0; z-index: 70; height: 3px; pointer-events: none; }
+.readingFill { height: 100%; background: var(--hub-purple); transform: scaleX(0); transform-origin: 0 50%; }
+@supports (animation-timeline: scroll()) {
+  .readingFill { transform: none; }
+}
+
+.top { padding-top: 44px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--hub-muted); }
+.eyebrowDot { width: 6px; height: 6px; border-radius: 50%; background: var(--hub-purple); }
+.titleRow { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 40px; }
+.title h1 { font-size: var(--hub-legal-title); line-height: 1.04; letter-spacing: -2px; }
+.intro { margin: 0; max-width: 420px; font-size: 15px; line-height: 1.65; color: var(--hub-muted); }
+.draft {
+  margin-top: 26px; padding: 14px 18px; border-radius: 16px; background: var(--tone-draft-bg); color: var(--tone-draft-ink);
+  display: flex; align-items: center; gap: 12px; font-size: 14px;
+}
+.draft svg { flex: none; }
+.cards { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.card {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 20px; border: none; border-radius: 20px; background: var(--hub-soft); color: var(--hub-ink);
+  font-family: inherit; text-align: left; cursor: pointer;
+}
+.cardOn { background: #fff; box-shadow: var(--hub-ring-ink), 0 18px 36px -24px rgba(17, 17, 22, 0.35); }
+.cardIcon { width: 42px; height: 42px; border-radius: 13px; background: var(--hub-tint); display: grid; place-items: center; }
+.cardIconOn { background: var(--hub-purple); }
+.cardTitle { display: block; margin-top: 18px; font-size: 16px; font-weight: 600; }
+.cardKicker { display: block; margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--hub-muted); }
+
+.body {
+  padding-top: 56px; padding-bottom: 96px; display: flex; flex-wrap: wrap; gap: 32px 64px; align-items: flex-start;
+  scroll-margin-top: 90px;
+}
+.aside { flex: 1 1 240px; max-width: 100%; position: sticky; top: 100px; }
+.asideHead { font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--hub-subtle); }
+.toc { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.tocLink {
+  display: flex; align-items: baseline; gap: 6px; padding: 9px 12px; border-radius: 10px; text-decoration: none;
+  font-size: 14px; line-height: 1.35; font-weight: 500; color: var(--hub-muted) !important;
+  transition: background-color 200ms var(--hub-ease), color 200ms var(--hub-ease);
+}
+.tocLink:hover { color: var(--hub-ink) !important; }
+.tocOn { color: var(--hub-ink) !important; font-weight: 600; background: var(--hub-soft); box-shadow: inset 2px 0 0 var(--hub-purple); }
+.tocN { width: 22px; flex-shrink: 0; font-size: 12px; color: var(--hub-tone-2); }
+.contact { margin-top: 24px; padding: 16px; border-radius: 16px; background: var(--hub-soft); font-size: 13px; line-height: 1.55; color: var(--hub-muted); }
+.placeholder { font-weight: 600; color: var(--hub-ink); }
+
+.article { flex: 999 1 560px; min-width: 0; max-width: 760px; }
+.meta { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--hub-subtle); }
+.metaIcon { width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; background: var(--hub-tint); display: grid; place-items: center; }
+.docTitle { margin: 18px 0 0; font-size: clamp(30px, 3.4vw, 42px); line-height: 1.1; font-weight: 300; letter-spacing: -1.2px; }
+.kicker { margin: 10px 0 0; font-size: 16px; color: var(--hub-muted); }
+.sections { margin-top: 36px; display: flex; flex-direction: column; }
+.section { padding: 28px 0; box-shadow: inset 0 1px 0 var(--hub-line); display: flex; gap: 22px; scroll-margin-top: 96px; }
+.sectionN { width: 34px; flex-shrink: 0; padding-top: 3px; font-size: 13px; font-weight: 600; color: var(--hub-tone-2); }
+.sectionBody { flex: 1; min-width: 0; }
+.sectionTitle { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.3px; }
+.para { margin: 10px 0 0; font-size: 15px; line-height: 1.75; color: var(--hub-ink-2); }
+.list { margin: 10px 0 0; padding-left: 20px; font-size: 15px; line-height: 1.75; color: var(--hub-ink-2); }
+.list li + li { margin-top: 4px; }
+.next {
+  margin-top: 20px; padding: 22px; border-radius: 20px; background: var(--hub-soft); display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 12px; font-size: 15px;
+}
+.next strong { font-weight: 600; }
+
+@media (max-width: 860px) {
+  .aside { position: static; flex-basis: 100%; }
+  .section { gap: 14px; }
+  .sectionN { width: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading { display: none; }
+}
