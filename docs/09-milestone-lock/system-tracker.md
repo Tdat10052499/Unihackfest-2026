@@ -2,6 +2,7 @@
 
 **Owner:** Compliance Lead (Nguyễn Minh Chính) · **Cập nhật:** 7 Oct 2026 · **Build tham chiếu:** `main` at `8f17921` (program **v1.3** live on devnet: Milestone Lock + Funded Jobs + D27 note rules)
 **Mục đích:** một chỗ duy nhất để cả team biết hệ thống *phải* chạy thế nào, theo dõi mọi tình huống (positive và negative) và từng việc còn phải làm. Mỗi khi code hoặc quyết định thay đổi, cập nhật mục 12 (build tracker) và mục 13 (decisions).
+**Rà soát 7 Oct (PO, đối chiếu với program v1.3 và code trên `main`):** workflow lõi (mục 1–5) khớp với code. Đã sửa: I6 chuyển thành đề xuất (chờ Q1); câu D-5 bỏ phần chưa build; mục 7.1 ghi rõ nguồn dữ liệu; trạng thái hint "Public on Solana" và record của business; câu C-1; thêm hub v4 vào build tracker (B-21); `close` ở bảng 3.2; thay từ cấm ở mục 7.2 và 11 bằng "bond".
 **Nguồn ưu tiên khi có mâu thuẫn:** decision log D1–D28 trong [`README.md`](README.md) thắng về product và program; file này tóm tắt và theo dõi, không thay thế decision log. Không phải legal advice. Đây là devnet prototype, tiền thử.
 
 **Ký hiệu:** ✅ đã chạy trên `main` · 🔧 đang làm hoặc còn thiếu một phần · 🆕 đề xuất mới (7 Oct, chưa duyệt) · 🗺 roadmap (sau final) · ⛔ cố ý không làm
@@ -25,7 +26,7 @@
 | I3 | **Không bên nào tự ý lấy tiền.** Tiền chỉ đi theo rule: client accept · hết review deadline (Release now) · hết submission deadline (Refund now) · freelancer tự trả lại (concede) · hai bên đồng ý split | D1, D11, D27 |
 | I4 | **Request changes không bao giờ hoàn tiền cho client.** Tiền vẫn lock cho tới khi hai bên đồng ý | D27 (chống "copy bài rồi đòi tiền") |
 | I5 | Đích nhận tiền được **chốt lúc freelancer accept**, không đổi được; Vietnam path chỉ vào địa chỉ partner trong allowlist | D7, D13 |
-| I6 | **Hết hạn thì bên không có lỗi thắng.** Không có tiền phạt; hậu quả là mất quyền phản đối, cộng thêm record và cooldown (mục 7) | Quyết định 7 Oct (thay cho "confirm 2 phía + phạt tiền") |
+| I6 🆕 | **Hết hạn thì bên không có lỗi thắng.** Không có tiền phạt; hậu quả là mất quyền phản đối (đã có: Release now, Refund now), cộng thêm record và cooldown (mục 7, chưa build) | **Đề xuất** 7 Oct (thay cho "confirm 2 phía + phạt tiền"), CL đồng ý, **chờ PO ở Q1**. Khi PO duyệt: thêm D29 vào decision log trong `README.md` rồi bỏ 🆕 |
 | I7 | **Không thu phí** trong v1; không có fee code | D2, NĐ 284/2026 Đ.7(4) |
 | I8 | `released + refunded + unsettled = total` cho mọi contract; job vault chuyển đúng số đã lưu | Có test |
 | I9 | Brief và delivery của **contract** được mã hoá, chỉ hai bên đọc; file không bao giờ bị upload, chỉ lưu fingerprint. (Brief của **job listing** là công khai, mục 10) | D15, D22, D26 |
@@ -82,7 +83,7 @@
 | Submitted, quá `review_by` | **Release now** → `release_after_review` | Anyone (cả hai bên đều thấy nút) | Không bị dispute | Released |
 | Pending, quá `submit_by` | **Refund now** → `refund` | Anyone | Chưa submit | Refunded |
 | Released | **Hand over final files** → delivery note (`stage: handover`) | Freelancer | Không bắt buộc (không có gì cưỡng chế) | Released |
-| Xong hết | Close → `close` | Creator | Vault rỗng; phần thừa về client | Closed |
+| Created / Accepted / Settled | Close → `close` | Creator | Vault rỗng; phần thừa về client. Ở Created/Accepted đây là huỷ contract trước khi lock | Closed |
 
 Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > deadline`. **Khi đang Disputed thì không có deadline nào chạy** (mục 5).
 
@@ -123,7 +124,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 ## 5. Timers & deadlines
 
-**Rule chính (I6): hết hạn thì bên không có lỗi thắng.** Ngoại lệ: khi đang **Changes requested** thì không có timer nào (D27), nên đây là chỗ cần layer ở mục 7.
+**Rule chính (I6, 🆕 chờ Q1): hết hạn thì bên không có lỗi thắng.** Phần "mất quyền phản đối" đã chạy trong program (Release now, Refund now); record và cooldown thì chưa. Ngoại lệ: khi đang **Changes requested** thì không có timer nào (D27), nên đây là chỗ cần layer ở mục 7.
 
 | Timer | Hết hạn thì | Bên "thua" | Demo | Launch (đề xuất) | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -161,9 +162,9 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 | ID | Tình huống | Today | Rủi ro | Solution | Status |
 | --- | --- | --- | --- | --- | --- |
-| C-1 | Client accept xong **không bao giờ lock** (contract trực tiếp) | Không mất tiền | Freelancer làm trước khi thấy "Locked" | Banner "Don't start until this shows Locked"; lock deadline 🗺. (Funded Jobs không có vấn đề này vì budget đã lock sẵn) | 🆕 |
+| C-1 | Freelancer đã accept nhưng **client không bao giờ lock** (contract trực tiếp) | Không mất tiền | Freelancer làm trước khi thấy "Locked" | Banner "Don't start until this shows Locked"; lock deadline 🗺. (Funded Jobs không có vấn đề này vì budget đã lock sẵn) | 🆕 |
 | C-2 | **Client ngâm review** | Hết `review_by` → Release now | Freelancer phải chờ | Countdown + reminders; record "late review"; cooldown nếu lặp lại | ✅ / 🆕 |
-| C-3 | Client **copy preview rồi request changes** để ép giá | Tiền vẫn lock (I4), không về client | Ép freelancer nhận split thấp | Watermark preview (U6); record "long hold" và "repeated change requests" 🆕; dispute count công khai trên listing (D25); neutral reviewer 🗺 | ✅ / 🆕 |
+| C-3 | Client **copy preview rồi request changes** để ép giá | Tiền vẫn lock (I4), không về client | Ép freelancer nhận split thấp | Watermark preview (U6); số milestone đang bị request changes hiện trên record của business ở trang job ✅ (chỉ đếm yêu cầu **đang mở**, không tích luỹ; `labels.ts`); record "long hold" và "repeated change requests" 🆕; neutral reviewer 🗺 | ✅ / 🆕 |
 | C-4 | **Stalemate:** không bên nào nhường | Tiền lock không có hạn | Kẹt tiền vô thời hạn | Disclosure "No neutral arbiter"; record "long hold" sau 7 ngày 🆕; dispute timeout / `arbiter` 🗺 | 🔧 / 🗺 |
 | C-5 | Client lấy được final files rồi biến mất | Final chỉ giao sau release (D27) | — | "Before you submit" + handover sau release | ✅ |
 | C-6 | Client muốn **đổi đích** sang địa chỉ của mình | Program chặn | — | I5 | ✅ |
@@ -186,7 +187,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | F-7 | Người ở VN **chuyển sang international view** | Residence tự khai | Vỡ I1 | Disclose; launch: KYC của partner quyết định | ⚠ disclosed |
 | F-8 | Người ở VN gõ URL `/send`, `/receive`… | Route guard chuyển về `/home` (cả GitHub Pages và `/wallet`) | — | V1 | ✅ (PO cần thử khi đã đăng nhập) |
 | F-9 | Partner **không chuyển VND** | Ngoài chain | Freelancer phụ thuộc partner | Disclosed; `payout_reference`; partner SLA 🗺 | ✅ / 🗺 |
-| F-10 | Pitch công khai chứa **thông tin cá nhân** | Pitch lưu on-chain vĩnh viễn | PDP Law | Hint "Public on Solana" ở ô pitch 🆕; pitch mã hoá 🗺 | 🆕 |
+| F-10 | Pitch công khai chứa **thông tin cá nhân** | Pitch lưu on-chain vĩnh viễn | PDP Law | Hint "Public on Solana. Don't put names or personal details here." ở ô pitch (`JobDetail.tsx`) và ô brief của job (`PostJob.tsx`); pitch mã hoá 🗺 | ✅ Workspace / 🗺 |
 
 ### 6D. Hệ thống / bảo mật / nhất quán
 
@@ -211,7 +212,7 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 | D-2 | Hết USDC faucet | Claim 2 lần hôm trước; `recycle-demo-usdc` |
 | D-3 | Demo request changes trên mobile khi S13 chưa xong | Demo phần review và revision trên Workspace (cả hai vai) |
 | D-4 | Mất Wi-Fi | Hotspot; backup video 60–90 s của app thật |
-| D-5 | "What stops a client from stalling?" | "If the client doesn't review in time, both sides see Release now and the freelancer receives the earnings. Requesting changes never sends the money back to the client; it stays locked until both agree, and stalling shows on the client's record." |
+| D-5 | "What stops a client from stalling?" | "If the client doesn't review in time, both sides see Release now and the freelancer receives the earnings. Requesting changes never sends the money back to the client; it stays locked until both agree, and a business's open change requests show on its record in N.E.D Jobs." (Chỉ nói những gì đã build. Record "late review" và cooldown ở mục 7 là roadmap; nếu bị hỏi tiếp thì nói đó là bước tiếp theo, không nói là đã có.) |
 
 ---
 
@@ -221,30 +222,33 @@ Quy ước thời gian: dùng giờ của chain, "quá hạn" nghĩa là `now > 
 
 ### 7.1 Sự kiện bị tính ("lapse"), đọc từ lịch sử on-chain
 
-| Lapse | Ai | Phát hiện |
-| --- | --- | --- |
-| **Late review** | Client | Milestone được release bằng `release_after_review` (Release now), không phải `approve` |
-| **Long hold** | Client | Milestone ở trạng thái Disputed quá **7 ngày** mà client không accept và không gửi review note mới sau bản sửa gần nhất |
-| **Repeated change requests** | Client | ≥ **3** review note trên cùng một milestone |
-| **Missed submission** | Freelancer | Milestone bị refund vì quá `submit_by` |
-| **No-show after selection** | Freelancer | Được chọn ở job nhưng không accept trong accept window |
-| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h** |
+| Lapse | Ai | Phát hiện | Lấy dữ liệu từ đâu |
+| --- | --- | --- | --- |
+| **Late review** | Client | Milestone được release bằng `release_after_review` (Release now), không phải `approve` | Event `MilestoneReleased.by_timeout` trong log giao dịch. Account chỉ lưu `Released`, không phân biệt hai cách |
+| **Long hold** | Client | Milestone ở trạng thái Disputed quá **7 ngày** mà client không accept và không gửi review note mới sau bản sửa gần nhất | Thời điểm của giao dịch `dispute` và các note. Account không có `disputed_at` |
+| **Repeated change requests** | Client | ≥ **3** review note trên cùng một milestone | Lịch sử giao dịch `post_note` (kind 3) |
+| **Missed submission** | Freelancer | Milestone bị refund vì quá `submit_by` | Account: `Refunded` + `submitted_at = 0` (đọc thẳng được) |
+| **No-show after selection** | Freelancer | Được chọn ở job nhưng không accept trong accept window | Lịch sử giao dịch `select_job`. Re-select ghi đè `selected_at`/`fund` của listing |
+| **Handover missing** | Freelancer | Milestone đã Released nhưng không có handover note sau **48 h** | Thời điểm giao dịch release và note `stage: handover`. Account không có `released_at` |
 
 Không tính lapse do bên kia gây ra, và không tính contract demo/test (có tag).
+
+**Hệ quả về dữ liệu:** 5 trên 6 lapse không đọc được từ account state mà phải quét lịch sử giao dịch (`getSignaturesForAddress` + parse log) của từng contract và listing. Không có indexer thì cách này tốn RPC và chậm khi số contract tăng (cùng vấn đề với S-10). Vì vậy layer này chỉ lên slide roadmap; khi build thì cần indexer, hoặc program lưu thêm `disputed_at`/`released_at`/`by_timeout` (đổi layout, cần upgrade).
 
 ### 7.2 Hậu quả
 
 | Mức | Điều kiện (30 ngày gần nhất) | Hậu quả | Ai thấy |
 | --- | --- | --- | --- |
-| Record | Mọi contract | "On-time reviews 9/10 · Changes requested 2 · Missed submissions 1" (mở rộng từ track record và dispute count đã có ở D25) | Bên kia, trước khi accept/select/apply |
+| Record | Mọi contract | "On-time reviews 9/10 · Changes requested 2 · Missed submissions 1" (mở rộng từ record của business đã có ở trang job: contract đã release, milestone đã nhận, "Milestones still locked by a request") | Bên kia, trước khi accept/select/apply |
 | ⚠ Warning | ≥ 1 lapse | Badge vàng "1 missed deadline in the last 30 days" | Bên kia |
 | ⏸ Cooldown | ≥ 2 lapse | App tạm khoá **đăng job / tạo contract** (client) hoặc **apply / accept** (freelancer) trong **24 h**; hiện lý do và giờ hết khoá | Chính người đó |
 
 **Giới hạn:**
 - Không có backend, nên rule tính trong app từ dữ liệu on-chain; program không cưỡng chế, người rành kỹ thuật vẫn gọi thẳng program được. Với prototype thì chấp nhận được.
+- Phần lớn lapse cần lịch sử giao dịch, không có trong account state (xem "Hệ quả về dữ liệu" ở 7.1).
 - Record là dữ liệu cá nhân suy ra từ dữ liệu công khai, nên phải ghi trong Privacy notice.
 - Wording: dùng "missed deadline", "late review"; không dùng "fine" hay "penalty".
-- Bond (cả hai ký quỹ): 🗺, chỉ cho người ngoài Việt Nam và sau khi có ý kiến luật sư.
+- Bond (cả hai bên đặt một khoản bond): 🗺, chỉ cho người ngoài Việt Nam và sau khi có ý kiến luật sư.
 
 ---
 
@@ -295,9 +299,9 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Device public keys | Solana | Public | D22 |
 | Contract title, amounts, deadlines, hashes | Solana | Public | Hint "no personal data" ✅ |
 | Brief và delivery của contract, review notes | Solana, mã hoá | Hai bên | Không xoá được |
-| **Job listing: title, summary, brief, milestones, budget** | Solana, **plain text** | **Public** | Business không được đưa dữ liệu cá nhân vào; thêm hint 🆕 |
-| **Applications / pitch** | Solana, plain text | **Public** | F-10 🆕 |
-| Dispute count, track record, reputation (🆕) | Tính từ dữ liệu trên chain | Public / bên kia | Ghi trong Privacy notice 🆕 |
+| **Job listing: title, summary, brief, milestones, budget** | Solana, **plain text** | **Public** | Business không được đưa dữ liệu cá nhân vào; hint "Public on Solana" ✅ (`PostJob.tsx`) |
+| **Applications / pitch** | Solana, plain text | **Public** | Hint ✅ (F-10) |
+| Record của business (✅: contract đã release, milestone đã nhận, milestone đang bị request changes); reputation và lapse (🆕) | Tính từ dữ liệu trên chain | Public / bên kia | Ghi trong Privacy notice 🆕 |
 | Consent log | Thiết bị (giữ lại khi sign-out ✅) | Người dùng | — |
 | Bank, ID | Chỉ ở partner (simulated) | Partner | N.E.D không bao giờ thấy |
 | Logs | Vercel, GitHub Pages | Hosting | Có trong Privacy notice ✅ |
@@ -308,7 +312,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 
 - [ ] Giữ được I1 (đúng câu A4)? Vietnam view không có USDC/SOL amount, send/receive/swap, đăng job.
 - [ ] Có làm N.E.D cầm, di chuyển hay thu tiền không (I2, I7)? Nếu có: dừng, hỏi CL.
-- [ ] Có tiền phạt hay ký quỹ nào chạm tới người ở Việt Nam không? → ⛔
+- [ ] Có tiền phạt hay bond nào chạm tới người ở Việt Nam không? → ⛔
 - [ ] Có thêm dữ liệu công khai on-chain (job, pitch, record) không? → cập nhật consent, Privacy, hint ở ô nhập.
 - [ ] Wording: word table; partner "simulated (candidates: Due, Nium)"; không dùng "auto-release" (D26), "not offering a service" (A3), "we screen wallets" (A2).
 - [ ] Disclosure khớp với **flag dispute của từng app** (S-1).
@@ -330,11 +334,12 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-07 | Test T1–T15 (S15), merge & deploy (S16) | Dev | 🔧 | 9 Oct | Cả hai build được deploy |
 | B-08 | Keys S1–S3 | PO | 🔧 | ngay | Bundle mới không còn key; register row 12 |
 | B-09 | README R1 + LICENSE R2 | PO + Dev | 🔧 | 8 Oct | CL đọc README đối chiếu app live |
+| B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs đã xong trên nhánh `feat/hub-v4` (chưa vào `main`); H4 trang Legal (chỉ ở footer), H5 restyle + QA chưa làm | Dev | 🔧 | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
 | B-13 | Accountability layer: record + warning + cooldown (mục 7) | Dev | 🆕 | sau freeze; slide roadmap trước | — |
-| B-14 | Hint "Public on Solana" ở ô pitch và brief của job | Dev | 🆕 | 8 Oct nếu kịp | — |
+| B-14 | Hint "Public on Solana" ở ô pitch và brief của job | Dev | ✅ Workspace | — | Đã có từ S6 (`JobDetail.tsx`, `PostJob.tsx`) |
 | B-15 | Dispute timeout / neutral reviewer (`arbiter`) | Dev + luật sư | 🗺 | — | — |
 | B-16 | `extend_deadline`, split theo milestone | Dev | 🗺 | — | — |
 | B-17 | Final mã hoá, key mở khi release; pitch mã hoá | Dev | 🗺 | — | — |
@@ -348,7 +353,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 
 | # | Câu hỏi | Đề xuất | Ai quyết | Hạn | Kết quả |
 | --- | --- | --- | --- | --- | --- |
-| Q1 | Accountability layer (mục 7) thay cho "confirm 2 phía + phạt tiền" | Dùng layer | PO | 8 Oct | CL đồng ý 7 Oct; chờ PO |
+| Q1 | Accountability layer (mục 7) thay cho "confirm 2 phía + phạt tiền"; kéo theo I6 | Dùng layer (roadmap, xem hệ quả dữ liệu ở 7.1) | PO | 8 Oct | CL đồng ý 7 Oct; chờ PO. Duyệt thì thêm D29 |
 | Q2 | Ngưỡng lapse (7 ngày long hold, 3 lần request changes, 48 h handover) và cooldown (2 lapse → 24 h) | Như mục 7 | PO + CL | 8 Oct | |
 | Q3 | Review mặc định khi launch | 72 h | PO | 8 Oct | |
 | Q4 | S-1: bật D27 trên mobile trước freeze hay chỉ demo trên Workspace? | Bật nếu S13 xong trước 8 Oct 18:00; nếu không, mobile hiện "Open in Workspace to respond" và disclosure bản "No neutral arbiter" | PO | 8 Oct | |
