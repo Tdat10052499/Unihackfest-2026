@@ -21,6 +21,8 @@ export interface NoticeState {
   /** chain time of the last read: deadline events fire for (at, now] */
   at: number | null;
   items: StoredNotice[];
+  /** F2: released milestones (`${fund}:${index}`): release time (when read) and whether the final files arrived */
+  finals?: Record<string, { releasedAt: number | null; handed: boolean }>;
 }
 
 export const MAX_NOTICES = 50;
