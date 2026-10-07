@@ -1,5 +1,6 @@
 /**
- * Funded Jobs smoke run on devnet (program v1.3, funded-jobs-plan.md section 4), with throwaway keypairs.
+ * Funded Jobs smoke run on devnet (program v1.4: funded-jobs-plan.md section 4, lock-at-hire-plan.md section 2), with
+ * throwaway keypairs.
  *
  *   npm run jobs:smoke                 # checks, then the run; stops with the addresses to fund if SOL/USDC is short
  *   npm run jobs:smoke -- --airdrop    # also asks the devnet SOL faucet (only when the PO approved it in the session)
@@ -8,6 +9,9 @@
  * Run 1: post_job (1 milestone, 0.1 USDC) → post_job_brief → apply_job → create_fund + select_job (one tx)
  *        → accept (VND path) + lock_from_job (one tx) → submit → approve (0.1 USDC to DEMO_PAYOUT_PARTNER).
  * Run 2: post_job (0.1 USDC) → withdraw_job with no applicants (the business gets it back).
+ * Run 3 (v1.4, lock at hire): post_job_open (0.1 USDC planned, nothing locked) → apply_job
+ *        → fund_job + create_fund + select_job (one tx) → accept (VND path) + lock_from_job → submit → approve.
+ * Run 4 (v1.4): post_job_open → withdraw_job with nothing locked (0 back, job vault closed).
  *
  * Keypairs: ned-wallet/.smoke-keys/{business,freelancer}.json, created on the first run (gitignored). Never the team,
  * deploy or demo keys. USDC only comes from the Circle faucet by hand; the script never moves USDC from another wallet.
@@ -30,7 +34,7 @@ const USDC = 1_000_000n;
 const AMOUNT = USDC / 10n; // 0.1 USDC per job
 const WORK_SECS = 600;
 const REVIEW_SECS = 60;
-const BUSINESS_MIN_SOL = 0.05; // listing + job vault + fund + vault rent, fees
+const BUSINESS_MIN_SOL = 0.08; // 4 listings + job vaults, 2 funds + vaults (rent), fees
 const FREELANCER_MIN_SOL = 0.01; // application rent, fees
 const AIRDROP_SOL = 1;
 
@@ -77,10 +81,11 @@ const vaultPda = (fund: PublicKey) => PublicKey.findProgramAddressSync([Buffer.f
 const jobIx = (name: string, accounts: Record<string, PublicKey>, args: Record<string, unknown> = {}): TransactionInstruction =>
   buildIx(idl, programId(), name, { token_program: TOKEN_PROGRAM_ID, ...accounts }, encodeIx(coder, name, args));
 
-function postJobIx(business: PublicKey, jobId: bigint, title: string, briefHash: Uint8Array, applyBy: number, selectBy: number) {
+/** post_job locks the budget now; post_job_open (v1.4) takes the same arguments and accounts and locks nothing */
+function postJobIx(business: PublicKey, jobId: bigint, title: string, briefHash: Uint8Array, applyBy: number, selectBy: number, name: 'post_job' | 'post_job_open' = 'post_job') {
   const job = jobPda(business, jobId);
   return jobIx(
-    'post_job',
+    name,
     { business, payer: business, job, job_vault: jobVaultPda(job), business_token: ata(USDC_DEVNET_MINT, business) },
     {
       job_id: toBN(jobId),
@@ -96,13 +101,14 @@ function postJobIx(business: PublicKey, jobId: bigint, title: string, briefHash:
   );
 }
 
-type Listing = { state: Record<string, unknown>; total: { toString(): string }; application_count: number; selected: PublicKey; fund: PublicKey };
+type Listing = { state: Record<string, unknown>; total: { toString(): string }; application_count: number; selected: PublicKey; fund: PublicKey; unfunded: number };
 async function readListing(conn: Connection, job: PublicKey): Promise<Listing> {
   const info = await conn.getAccountInfo(job, 'confirmed');
   if (!info) throw new Error(`listing ${job.toBase58()} not found`);
   return decodeAccount<Listing>(coder, 'JobListing', info.data);
 }
 const stateName = (s: Record<string, unknown>) => Object.keys(s)[0];
+const token = async (conn: Connection, account: PublicKey) => BigInt((await conn.getTokenAccountBalance(account, 'confirmed')).value.amount);
 
 // --- Sending ---
 
@@ -136,9 +142,9 @@ async function checks(conn: Connection): Promise<boolean> {
   const data = (await conn.getAccountInfo(programData, 'confirmed'))?.data;
   if (!data) throw new Error('program data account not found');
   const deployed = data.subarray(45); // UpgradeableLoaderState::ProgramData header
-  const v13 = deployed.includes(Buffer.from('Instruction: PostJob'));
-  console.log(`program ${programId().toBase58()} · data ${data.length} bytes · Funded Jobs ${v13 ? 'present (v1.3)' : 'MISSING (still v1.2?)'}`);
-  if (!v13) ok = false;
+  const v14 = deployed.includes(Buffer.from('Instruction: FundJob'));
+  console.log(`program ${programId().toBase58()} · data ${data.length} bytes · lock at hire ${v14 ? 'present (v1.4)' : 'MISSING (still v1.3?)'}`);
+  if (!v14) ok = false;
   if (fs.existsSync(so)) {
     const local = fs.readFileSync(so);
     const same = deployed.subarray(0, local.length).equals(local) && deployed.subarray(local.length).every((b) => b === 0);
@@ -205,7 +211,7 @@ async function main() {
   console.log(`business   ${business.publicKey.toBase58()}\nfreelancer ${freelancer.publicKey.toBase58()}`);
   const funded = await ensureFunds(conn, business, freelancer, checksOk);
   if (!checksOk) {
-    console.log('\n⛔ The deployed program is not this v1.3 build. Upgrade it first (PO), then run again.');
+    console.log('\n⛔ The deployed program is not this v1.4 build. Upgrade it first (PO), then run again.');
     process.exit(1);
   }
   if (!funded) {
@@ -272,16 +278,84 @@ async function main() {
   await send(conn, 'withdraw_job', [jobIx('withdraw_job', { job: job2, business: B, job_vault: jobVaultPda(job2), business_token: businessToken })], [business]);
   const after = BigInt((await conn.getTokenAccountBalance(businessToken, 'confirmed')).value.amount);
 
+  // Run 3 — lock at hire (v1.4): nothing locked at posting; the budget moves in the same transaction as the selection
+  const brief3 = JSON.stringify({ v: 1, title: 'Smoke lock at hire', scope: 'Deliver one file.', acceptance: 'The file opens.' });
+  const briefHash3 = hashContent(brief3);
+  const jobId3 = jobId1 + 2n;
+  const job3 = jobPda(B, jobId3);
+  const now3 = await getChainNow();
+  console.log(`\nJob 3 ${job3.toBase58()} (locks when hired)`);
+  const before3 = BigInt((await conn.getTokenAccountBalance(businessToken, 'confirmed')).value.amount);
+  await send(conn, 'post_job_open', [postJobIx(B, jobId3, 'Smoke lock at hire', briefHash3, now3 + 600, now3 + 900, 'post_job_open')], [business]);
+  const posted3 = BigInt((await conn.getTokenAccountBalance(businessToken, 'confirmed')).value.amount);
+  const open3 = await readListing(conn, job3);
+  await send(conn, 'post_job_brief', [jobIx('post_job_brief', { job: job3, business: B }, { part: 0, parts: 1, data: Buffer.from(brief3) })], [business]);
+  await send(conn, 'apply_job', [jobIx('apply_job', { job: job3, application: appPda(job3, F), freelancer: F }, { pitch: 'Smoke test applicant.' })], [freelancer]);
+
+  const at3 = await getChainNow();
+  const created3 = await buildCreateFund({
+    client: B,
+    freelancer: F,
+    title: 'Smoke lock at hire',
+    milestones: [{ amount: AMOUNT, submitBy: at3 + WORK_SECS, reviewBy: at3 + WORK_SECS + REVIEW_SECS }],
+    briefHash: briefHash3,
+  });
+  const fundKey3 = created3.fund;
+  const fundJob = jobIx('fund_job', { job: job3, business: B, job_vault: jobVaultPda(job3), business_token: businessToken });
+  const select3 = jobIx('select_job', { job: job3, business: B, fund: fundKey3, application: appPda(job3, F) });
+  const selectTx = new Transaction().add(fundJob, ...created3.tx.instructions, select3);
+  selectTx.feePayer = B;
+  selectTx.recentBlockhash = (await conn.getLatestBlockhash('confirmed')).blockhash;
+  const selectBytes = 1 + 64 + selectTx.serializeMessage().length;
+  console.log(`   fund_job + create_fund + select_job: ${selectBytes} bytes (limit 1232)`);
+  await send(conn, 'fund_job + create_fund + select_job', selectTx, [business]);
+  const locked3 = await token(conn, jobVaultPda(job3));
+
+  let fund3 = (await getFund(fundKey3))!;
+  const accept3 = await buildAccept({ fund: fund3, freelancer: F, choice: 'payoutPartner', username: 'smoketest', expectedBriefHash: briefHash3 });
+  const lockFromJob3 = jobIx('lock_from_job', {
+    job: job3,
+    fund: fundKey3,
+    job_vault: jobVaultPda(job3),
+    vault: vaultPda(fundKey3),
+    business: B,
+    business_token: businessToken,
+    caller: F,
+  });
+  await send(conn, 'accept + lock_from_job', [...accept3.tx.instructions, lockFromJob3], [freelancer]);
+  fund3 = (await getFund(fundKey3))!;
+  const submit3 = await buildSubmit({ fund: fund3, freelancer: F, index: 0, evidence });
+  await send(conn, 'submit', submit3.tx, [freelancer]);
+  fund3 = (await getFund(fundKey3))!;
+  const approve3 = await buildApprove({ fund: fund3, client: B, index: 0 });
+  await send(conn, 'approve', approve3.tx, [business]);
+
+  // Run 4 — an unfunded listing withdrawn: nothing to return, the job vault closes
+  const jobId4 = jobId1 + 3n;
+  const job4 = jobPda(B, jobId4);
+  const now4 = await getChainNow();
+  console.log(`\nJob 4 ${job4.toBase58()} (locks when hired, withdrawn)`);
+  await send(conn, 'post_job_open', [postJobIx(B, jobId4, 'Smoke open withdraw', briefHash, now4 + 600, now4 + 900, 'post_job_open')], [business]);
+  const before4 = BigInt((await conn.getTokenAccountBalance(businessToken, 'confirmed')).value.amount);
+  await send(conn, 'withdraw_job', [jobIx('withdraw_job', { job: job4, business: B, job_vault: jobVaultPda(job4), business_token: businessToken })], [business]);
+  const after4 = BigInt((await conn.getTokenAccountBalance(businessToken, 'confirmed')).value.amount);
+
   // Final states
   const l1 = await readListing(conn, job1);
   const l2 = await readListing(conn, job2);
   fund = (await getFund(fundKey))!;
   const gone = async (a: PublicKey) => (await conn.getAccountInfo(a, 'confirmed')) === null;
+  const l3 = await readListing(conn, job3);
+  const l4 = await readListing(conn, job4);
+  fund3 = (await getFund(fundKey3))!;
   const partner = await conn.getTokenAccountBalance(ata(USDC_DEVNET_MINT, DEMO_PAYOUT_PARTNER), 'confirmed');
   console.log('\nFinal states');
   console.log(`  job 1  ${stateName(l1.state)} · total ${usdc(fromBN(l1.total))} · applications ${l1.application_count} · selected ${l1.selected.toBase58()} · job vault closed ${await gone(jobVaultPda(job1))}  ${explorerAddress(job1)}`);
   console.log(`  fund   ${fund.state} · milestone 1 ${fund.milestones[0].status} · released ${usdc(fund.released)} · destination ${fund.payoutKind}  ${explorerAddress(fundKey)}`);
   console.log(`  job 2  ${stateName(l2.state)} · returned ${usdc(after - before)} · job vault closed ${await gone(jobVaultPda(job2))}  ${explorerAddress(job2)}`);
+  console.log(`  job 3  posted unfunded=${open3.unfunded}, ${usdc(before3 - posted3)} moved · at select ${usdc(locked3)} locked · now ${stateName(l3.state)} · unfunded ${l3.unfunded} · job vault closed ${await gone(jobVaultPda(job3))}  ${explorerAddress(job3)}`);
+  console.log(`  fund 3 ${fund3.state} · milestone 1 ${fund3.milestones[0].status} · released ${usdc(fund3.released)}  ${explorerAddress(fundKey3)}`);
+  console.log(`  job 4  ${stateName(l4.state)} · unfunded ${l4.unfunded} · returned ${usdc(after4 - before4)} · job vault closed ${await gone(jobVaultPda(job4))}  ${explorerAddress(job4)}`);
   console.log(`  DEMO_PAYOUT_PARTNER USDC ${partner.value.uiAmountString}`);
 
   const ok =
@@ -291,7 +365,20 @@ async function main() {
     stateName(l2.state) === 'Withdrawn' &&
     after - before === AMOUNT &&
     (await gone(jobVaultPda(job1))) &&
-    (await gone(jobVaultPda(job2)));
+    (await gone(jobVaultPda(job2))) &&
+    open3.unfunded === 1 &&
+    before3 === posted3 &&
+    locked3 === AMOUNT &&
+    selectBytes <= 1232 &&
+    stateName(l3.state) === 'Filled' &&
+    l3.unfunded === 0 &&
+    l3.fund.equals(fundKey3) &&
+    fund3.milestones[0].status === 'Released' &&
+    (await gone(jobVaultPda(job3))) &&
+    stateName(l4.state) === 'Withdrawn' &&
+    l4.unfunded === 1 &&
+    after4 === before4 &&
+    (await gone(jobVaultPda(job4)));
   console.log(ok ? '\n🟢 jobs smoke run green' : '\n🔴 final states differ from the expected ones');
   process.exit(ok ? 0 : 1);
 }
