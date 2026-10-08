@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_DISPUTE?: string;
   /** "false" hides "Lock when I hire" (v1.4, D29); default from CORE_FEATURES.lockAtHire */
   readonly VITE_FEATURE_LOCK_AT_HIRE?: string;
+  /** "true" turns on the D30 roles and agreement flow; default from CORE_FEATURES.accountRoles (off) */
+  readonly VITE_FEATURE_ACCOUNT_ROLES?: string;
 }
 
 interface ImportMeta {

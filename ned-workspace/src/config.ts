@@ -26,6 +26,11 @@ export const FEATURES = {
    * VITE_FEATURE_LOCK_AT_HIRE=false hides it, and every job then locks its budget at posting.
    */
   lockAtHire: import.meta.env.VITE_FEATURE_LOCK_AT_HIRE === undefined ? CORE_FEATURES.lockAtHire : import.meta.env.VITE_FEATURE_LOCK_AT_HIRE !== 'false',
+  /**
+   * D30: roles, country of residence, business details and the N.E.D Agreement. Core default (off until R9);
+   * VITE_FEATURE_ACCOUNT_ROLES=true turns it on.
+   */
+  accountRoles: import.meta.env.VITE_FEATURE_ACCOUNT_ROLES === undefined ? CORE_FEATURES.accountRoles : import.meta.env.VITE_FEATURE_ACCOUNT_ROLES === 'true',
 } as const;
 
 configureCore({

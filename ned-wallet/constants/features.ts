@@ -16,5 +16,10 @@ export const FEATURES = {
   records: true,
   /** v1.4 (D29): core default; the phone app does not post jobs, so this only affects shared screens */
   lockAtHire: CORE_FEATURES.lockAtHire,
+  /** D30 roles and agreement: core default (off); EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true turns it on */
+  accountRoles:
+    process.env.EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES === undefined
+      ? CORE_FEATURES.accountRoles
+      : process.env.EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES === 'true',
   devTools,
 } as const;
