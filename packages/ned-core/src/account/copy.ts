@@ -133,6 +133,9 @@ export const WEB_COPY = {
     primary: 'Open in wallet',
     later: 'Later',
     laterNote: 'You can browse, but creating, locking, posting and applying wait until you finish.',
+    /** The three numbered steps (board WebAccountPrompt). "Your role" is not in the copy deck yet (R3); the others are
+     * settings.country and agreement.title */
+    steps: ['Your role', 'Where you live', 'The N.E.D Agreement'],
   },
 } as const;
 
@@ -144,4 +147,7 @@ export const GATE_COPY = {
   freelancerNeeded: 'Add the freelancer role to apply and accept contracts.',
   openSettings: 'Open settings',
   alsoWork: 'Also work',
+  /** Title and link of the /new gate (board WebRoleGate). Not in the copy deck yet: PO to confirm (R3) */
+  createTitle: 'Creating contracts is for clients',
+  findWork: 'Find work on N.E.D Jobs',
 } as const;

@@ -17,6 +17,7 @@ import { StatusChip } from '../components/StatusChip.tsx';
 import { env, FEATURES } from '../config.ts';
 import { useContractActions } from '../hooks/contractActions.ts';
 import { useRegion } from '../hooks/region.ts';
+import { useOwnBusinessLabel } from '../hooks/account.ts';
 import { useContractContent, type ContractContentState } from '../hooks/useContractContent.ts';
 import { isFundAddress, useFund } from '../hooks/useFund.ts';
 import { rise, staggerParent } from '../motion.ts';
@@ -31,6 +32,7 @@ import styles from './Contract.module.css';
 export function Contract() {
   const { fund: address } = useParams();
   const { walletAddress } = useAuth();
+  const ownBusiness = useOwnBusinessLabel(walletAddress);
   const { region } = useRegion(walletAddress);
   const vn = region === 'vn';
   const base = useFund(address, walletAddress, region);
@@ -66,7 +68,7 @@ export function Contract() {
   }
   // A third party (someone with the link, not client or freelancer) sees the contract but no next step
   const isParty = Boolean(walletAddress && (raw.client.toBase58() === walletAddress || raw.freelancer.toBase58() === walletAddress));
-  return <ContractView fund={fund} raw={raw} content={content} vn={vn} isParty={isParty} p1={FEATURES.dispute} actions={actions} releases={releases} now={now} />;
+  return <ContractView fund={fund} raw={raw} content={content} vn={vn} isParty={isParty} p1={FEATURES.dispute} actions={actions} releases={releases} now={now} businessBadge={fund.role === 'client' ? ownBusiness : null} />;
 }
 
 export interface ContractViewProps {
@@ -82,10 +84,12 @@ export interface ContractViewProps {
   releases?: ReleaseRecord[];
   /** chain time, for the hand-over status */
   now?: number;
+  /** D30: "Lumen Studio · Business · self-declared" when you are this contract's client as a business (own device only) */
+  businessBadge?: string | null;
 }
 type ContractActions = Pick<ReturnType<typeof useContractActions>, 'run' | 'busy' | 'status' | 'error'>;
 
-export function ContractView({ fund, raw, content, vn, isParty, p1, actions, releases = [], now = Math.floor(Date.now() / 1000) }: ContractViewProps) {
+export function ContractView({ fund, raw, content, vn, isParty, p1, actions, releases = [], now = Math.floor(Date.now() / 1000), businessBadge = null }: ContractViewProps) {
   const [splitOpen, setSplitOpen] = useState(false);
   const showFiles = isParty && fund.milestones.some((m) => m.status === 'released' || m.status === 'refunded' || m.status === 'cancelled' || m.delivery);
   return (
@@ -98,6 +102,7 @@ export function ContractView({ fund, raw, content, vn, isParty, p1, actions, rel
       </m.div>
       <m.div variants={rise} custom={0} className={styles.chips}>
         <StatusChip tone={fund.tone}>{fund.statusLabel}</StatusChip>
+        {businessBadge ? <StatusChip tone="neutral">{businessBadge}</StatusChip> : null}
         <span className={styles.devnet} aria-label="Devnet, test money">
           <span className={styles.devnetDot} aria-hidden />
           DEVNET
@@ -205,11 +210,16 @@ const submitHref = (fund: FundView, i: number, mode?: 'revision' | 'handover') =
 /** The role's next step: submit / review / revision / handover have pages; Release now, Refund now and Move locked
  * budget run here (wallet confirm first); accept, lock and close open the contract in the wallet extension (W6) */
 function NextStep({ fund, raw, actions }: { fund: FundView; raw: FundAccount; actions: ContractActions }) {
-  const { openWalletAt } = useWalletPanel();
+  const { openWalletAt, ensureAccount } = useWalletPanel();
   const [warn, setWarn] = useState(false);
   const pending = closeWarnings(raw, Object.fromEntries(fund.milestones.map((m) => [m.index, m.history])));
-  const openWallet = () => openWalletAt(`/contracts/${fund.address}`);
   const next = fund.nextAction;
+  // D30: Lock needs the client role, Accept the freelancer role (always true with the flag off)
+  const openWallet = () => {
+    if (next?.kind === 'lock' && !ensureAccount('lock')) return;
+    if (next?.kind === 'accept' && !ensureAccount('accept')) return;
+    openWalletAt(`/contracts/${fund.address}`);
+  };
   if (!next) {
     const m0 = fund.milestones.find((ms) => ms.countdown);
     return m0 ? (
@@ -241,7 +251,7 @@ function NextStep({ fund, raw, actions }: { fund: FundView; raw: FundAccount; ac
           {next.kind === 'submit' ? 'Open delivery form' : next.kind === 'approve' ? 'Review delivery' : next.label}
         </Link>
       ) : runsHere ? (
-        <button type="button" className={styles.primary} disabled={Boolean(actions.busy)} onClick={() => void actions.run(next.kind as 'releaseNow', i)}>
+        <button type="button" className={styles.primary} disabled={Boolean(actions.busy)} onClick={() => (next.kind === 'lockFromJob' && !ensureAccount('lock') ? undefined : void actions.run(next.kind as 'releaseNow', i))}>
           {actions.busy === next.kind ? actions.status || 'Working…' : next.label}
         </button>
       ) : (

@@ -10,6 +10,7 @@ import { ConsentGate } from '../ConsentGate.tsx';
 import { LEGAL_LINKS, LegalLinks } from '../LegalLinks.tsx';
 import { BellView } from '../NotificationBell.tsx';
 import { useWalletPanel, WalletPanelProvider } from '../WalletPanelContext.tsx';
+import { resetAccountRoles, setAccountRoles } from '../../test/account.ts';
 
 const WALLET = '9PZwK7pZmZnqfq1D5Xm9JvmoFQbPSjCoxj4AHiVLrhkW';
 const auth = (wallet: string | null): AuthContextValue =>
@@ -41,6 +42,10 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('P4 consent', () => {
+  // Today's consent v2 flow; with FEATURES.accountRoles on, consent v3 is given in the agreement (gates.test.tsx)
+  beforeEach(() => setAccountRoles(false));
+  afterEach(resetAccountRoles);
+
   it('reads the phone app record: valid, withdrawn, old version', () => {
     expect(hasConsent(WALLET)).toBe(false);
     consent({ acceptedAt: 1, scope: ['email'], version: 2 });

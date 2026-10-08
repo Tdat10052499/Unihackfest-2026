@@ -114,6 +114,16 @@ export function capabilities(p: AccountProfile | null): Capabilities {
   };
 }
 
+/**
+ * The same shape with FEATURES.accountRoles on or off, for both apps. Off: today's rule, region only (client actions
+ * need the international view; anyone may accept and submit; no region yet counts as Vietnam). On: capabilities(profile).
+ */
+export function capabilitiesFor(accountRoles: boolean, p: AccountProfile | null, region: Region | null): Capabilities {
+  if (accountRoles) return capabilities(p);
+  const client = (region ?? 'vn') !== 'vn';
+  return { createContract: client, lock: client, postJob: client, selectApplicant: client, apply: true, accept: true, submit: true, region: region ?? 'vn' };
+}
+
 export interface OpenClientWork {
   clientContracts: number;
   listings: number;

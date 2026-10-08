@@ -15,6 +15,7 @@ import { WorkspaceNav } from '../components/WorkspaceNav.tsx';
 import shell from '../components/Shell.module.css';
 import { useFundAccounts, useFunds, useUsername } from '../hooks/queries.ts';
 import { useRegion } from '../hooks/region.ts';
+import { useAccount } from '../hooks/account.ts';
 import { shortAddress } from '../lib/format.ts';
 import { rise, staggerParent } from '../motion.ts';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
@@ -89,6 +90,7 @@ export function Overview() {
   const username = useUsername(wallet).data;
   const { region } = useRegion(wallet);
   const vn = region === 'vn';
+  const client = useAccount(wallet).capabilities.createContract;
   const accounts = useFundAccounts(wallet);
   const { funds, loading, error } = useFunds(wallet, region);
   const [copied, setCopied] = useState(false);
@@ -107,14 +109,14 @@ export function Overview() {
 
   return (
     <div className={shell.shell}>
-      <WorkspaceNav vn={vn} />
+      <WorkspaceNav client={client} />
       <m.main id="main" className={shell.main} variants={staggerParent} initial="hidden" animate="shown">
         <m.div className={styles.head} variants={rise} custom={0}>
           <h1 className={styles.greeting}>
             <span className={styles.hello}>{greeting()}</span>
             <span className={styles.name}>{username ? `@${username}` : shortAddress(wallet)}</span>
           </h1>
-          {vn ? (
+          {!client ? (
             <button type="button" className={styles.cta} onClick={() => void share()} disabled={!username} aria-live="polite">
               <Icon name="share" size={17} color="#FFFFFF" />
               {copied ? 'Copied' : username ? `Share @${username}` : 'Create your profile in the app'}

@@ -21,6 +21,10 @@ import { useActionEnv } from '../hooks/actions.ts';
 import { resolveFreelancer } from '../hooks/identity.ts';
 import { useUsername } from '../hooks/queries.ts';
 import { useRegion } from '../hooks/region.ts';
+import { useAccount } from '../hooks/account.ts';
+import { RoleGateCard } from '../components/RoleGate.tsx';
+import { GATE_COPY } from '@ned/core/account/copy.ts';
+import { FEATURES } from '../config.ts';
 import { useChainTime } from '../hooks/useChainTime.ts';
 import { addCriterion, addReference, brief, canAddMilestone, draft, fromLocalInput, newMilestone, problems, REVIEWS, titleBytes, toLocalInput, type ContractForm, type MilestoneForm } from '../lib/newContract.ts';
 import { rise, stateChange, staggerParent } from '../motion.ts';
@@ -58,10 +62,14 @@ export const TITLE_HINT = "Public on Solana. Don't put names or personal details
 export function NewContract() {
   const { walletAddress } = useAuth();
   const { region } = useRegion(walletAddress);
+  const { capabilities } = useAccount(walletAddress);
   const [created, setCreated] = useState<{ fund: string; inviteLink: string; fingerprint: string; who: string; total: string } | null>(previewCreated);
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {region === 'vn' ? (
+      {FEATURES.accountRoles && !capabilities.createContract ? (
+        // D30 (board WebRoleGate): no client role; the Vietnam variant has no Open settings
+        <RoleGateCard key="gate" vn={region === 'vn'} title={GATE_COPY.createTitle} />
+      ) : region === 'vn' ? (
         <Blocked key="vn" wallet={walletAddress} />
       ) : created ? (
         <Created key="created" {...created} />
@@ -120,7 +128,7 @@ function Crumb() {
 
 function Editor({ onCreated }: { onCreated(c: { fund: string; inviteLink: string; fingerprint: string; who: string; total: string }): void }) {
   const { walletAddress } = useAuth();
-  const { confirm } = useWalletPanel();
+  const { confirm, ensureAccount } = useWalletPanel();
   const { env, status } = useActionEnv();
   const now = useChainTime();
   const nextId = useRef(3);
@@ -186,6 +194,8 @@ function Editor({ onCreated }: { onCreated(c: { fund: string; inviteLink: string
       rent = '';
     }
     const n = form.milestones.length;
+    // D30: the client role (always true with the flag off)
+    if (!ensureAccount('createContract')) return;
     const ok = await confirm({
       title: 'Create contract',
       rows: [

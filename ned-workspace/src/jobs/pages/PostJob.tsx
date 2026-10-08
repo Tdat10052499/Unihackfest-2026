@@ -26,6 +26,8 @@ import { HubButton } from '../components/HubButton.tsx';
 import { HubIcon } from '../components/HubIcon.tsx';
 import { JobCard } from '../components/JobCard.tsx';
 import { useHubViewer } from '../JobsLayout.tsx';
+import { RoleGateCard } from '../../components/RoleGate.tsx';
+import { useOwnBusinessLabel } from '../../hooks/account.ts';
 import hub from '../hub.module.css';
 import styles from './Job.module.css';
 
@@ -99,16 +101,19 @@ export function PostJob() {
   const viewer = useHubViewer();
   if (viewer.status === 'initializing' || viewer.status === 'setting-up') return <div className={styles.page} aria-busy="true" />;
   if (!viewer.signedIn) return <Navigate to="/sign-in?next=%2Fjobs%2Fnew" replace />;
+  // D30 (board WebRoleGate): no client role, opened by URL; the Vietnam variant has no Open settings
+  if (FEATURES.accountRoles && !viewer.client) return <RoleGateCard vn={viewer.vn} />;
   // D18: the Vietnam view never posts a job
   if (viewer.vn) return <Navigate to="/jobs/find" replace />;
   return <PostJobForm wallet={viewer.wallet!} name={viewer.name ?? ''} />;
 }
 
 export function PostJobForm({ wallet, name, lockAtHire = FEATURES.lockAtHire }: { wallet: string; name: string; lockAtHire?: boolean }) {
+  const ownBusiness = useOwnBusinessLabel(wallet);
   const now = useChainTime();
   const balance = useUsdcUnits(wallet).data;
   const { env, status } = useActionEnv();
-  const { confirm } = useWalletPanel();
+  const { confirm, ensureAccount } = useWalletPanel();
   const queryClient = useQueryClient();
   const [f, setF] = useState<PostForm>(initialForm);
   const [busy, setBusy] = useState(false);
@@ -161,6 +166,8 @@ export function PostJobForm({ wallet, name, lockAtHire = FEATURES.lockAtHire }: 
 
   const publish = async () => {
     setError('');
+    // D30: the client role (always true with the flag off)
+    if (!ensureAccount('postJob')) return;
     const fingerprint = Array.from(hashBytes(jobBriefBytes(draft.title, draft.brief)).subarray(0, 4), (x) => x.toString(16).padStart(2, '0')).join('');
     const amount = formatUsdc(total);
     const ok = await confirm({
@@ -421,7 +428,7 @@ export function PostJobForm({ wallet, name, lockAtHire = FEATURES.lockAtHire }: 
           </main>
           <aside aria-label="Preview" className={styles.aside}>
             <div className={styles.previewLabel}>How freelancers will see it</div>
-            <JobCard job={preview} vn={false} now={now} businessName={name} preview />
+            <JobCard job={preview} vn={false} now={now} businessName={ownBusiness ?? name} preview />
             {problems.length && !published ? (
               <ul className={styles.problems} aria-label="Before you publish">
                 {problems.map((p) => (

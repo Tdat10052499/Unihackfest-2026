@@ -51,6 +51,7 @@ import {
 import { FEATURES } from '../../config.ts';
 import { useDisplayNames, useMyApplications, useMyListings, useOpenJobs } from '../hooks.ts';
 import { useHubViewer } from '../JobsLayout.tsx';
+import { useOwnBusinessLabel } from '../../hooks/account.ts';
 import hub from '../hub.module.css';
 import styles from './Find.module.css';
 import { ERROR_TEXT } from './Overview.tsx';
@@ -69,6 +70,7 @@ export function Find() {
     ...(mine.data ?? []).flatMap((j) => (j.selected ? [j.selected.toBase58()] : [])),
   ];
   const names = useDisplayNames(wallets).data ?? {};
+  const ownBusiness = useOwnBusinessLabel(viewer.wallet);
   return (
     <FindView
       open={open.data ?? null}
@@ -83,11 +85,14 @@ export function Find() {
       names={names}
       now={now}
       lockAtHire={FEATURES.lockAtHire}
+      ownBusiness={ownBusiness}
     />
   );
 }
 
 export interface FindViewProps {
+  /** D30: "Lumen Studio · Business · self-declared" on the user's own cards (own device only) */
+  ownBusiness?: string | null;
   open: JobListingAccount[] | null;
   openLoading: boolean;
   openError: boolean;
@@ -151,7 +156,7 @@ export function FindView(p: FindViewProps) {
   const on = filtersOn(f);
   const chips = filterChips(f, p.vn);
   const more = sheetCount(f);
-  const name = (w: string) => p.names[w] ?? shortAddress(w);
+  const name = (w: string) => (p.ownBusiness && w === p.me ? p.ownBusiness : (p.names[w] ?? shortAddress(w)));
   const mine = (j: JobListingAccount): JobMine => (p.me && j.business.toBase58() === p.me ? 'own' : appliedSet.has(j.address.toBase58()) ? 'applied' : null);
   // Only funded listings count as locked (D29)
   const lockedAll = all.reduce((s, j) => (j.unfunded ? s : s + j.total), 0n);

@@ -28,6 +28,7 @@ import { HubIcon } from '../components/HubIcon.tsx';
 import { MoneyText } from '../components/MoneyText.tsx';
 import { useDisplayNames, useJob, useJobBrief, useMyApplication, useTrackRecords } from '../hooks.ts';
 import { useHubViewer } from '../JobsLayout.tsx';
+import { GATE_COPY } from '@ned/core/account/copy.ts';
 import { ACCEPT_WINDOW_LABEL, acceptBy, businessFacts, dueLabel, untilLabel } from '../labels.ts';
 import hub from '../hub.module.css';
 import styles from './Job.module.css';
@@ -71,6 +72,7 @@ export function JobDetail() {
       now={now}
       vn={viewer.vn}
       me={viewer.wallet}
+      canApply={viewer.capabilities.apply}
     />
   );
 }
@@ -98,6 +100,8 @@ export interface JobDetailViewProps {
   now: number;
   vn: boolean;
   me: string | null;
+  /** D30: false for a client-only account ("Also work" first); always true with the flag off */
+  canApply?: boolean;
 }
 
 export function JobDetailView(p: JobDetailViewProps) {
@@ -267,7 +271,7 @@ function ApplyCard(p: JobDetailViewProps) {
   const location = useLocation();
   const { env, status } = useActionEnv();
   const { walletAddress, signTransaction } = useAuth();
-  const { confirm, openWalletAt } = useWalletPanel();
+  const { confirm, openWalletAt, ensureAccount } = useWalletPanel();
   const queryClient = useQueryClient();
   const [pitch, setPitch] = useState('');
   const [busy, setBusy] = useState(false);
@@ -281,6 +285,7 @@ function ApplyCard(p: JobDetailViewProps) {
 
   const apply = async () => {
     setError('');
+    if (!ensureAccount('apply')) return;
     let rent = '';
     try {
       rent = `${((await getConnection().getMinimumBalanceForRentExemption(JOB_APPLICATION_SIZE)) / 1e9).toFixed(4)} SOL`;
@@ -371,6 +376,14 @@ function ApplyCard(p: JobDetailViewProps) {
         <HubButton variant="purple" className={styles.wide} to={`/sign-in?next=${encodeURIComponent(location.pathname)}`}>
           Sign in to apply
         </HubButton>
+      ) : open && p.canApply === false ? (
+        // D30: a client-only account adds the freelancer role first
+        <div className={styles.state} style={{ marginTop: 14 }} data-testid="apply-also-work">
+          <p className={styles.para}>{GATE_COPY.freelancerNeeded}</p>
+          <HubButton variant="purple" className={styles.wide} onClick={() => openWalletAt('/settings')}>
+            {GATE_COPY.alsoWork}
+          </HubButton>
+        </div>
       ) : open ? (
         <div>
           <label htmlFor="jd-pitch" className={styles.label}>

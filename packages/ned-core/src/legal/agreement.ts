@@ -3,7 +3,7 @@
 // §C4), the cards per role, the three checkboxes, the consent version and scope, and the text hash stored in the
 // AgreementRecord. D30, behind accountRoles.
 import { sha256 } from '@noble/hashes/sha2.js';
-import type { AccountProfile } from '../account/types.ts';
+import type { AccountProfile, AgreementRecord } from '../account/types.ts';
 import { toHex } from '../milestone/evidence.ts';
 
 export const AGREEMENT_VERSION = 1;
@@ -172,6 +172,17 @@ export function agreementText(p: RolesOf, versions: AgreementVersions = CURRENT_
   const roles = [p.freelancer ? 'freelancer' : null, p.client ? `client (${p.client.kind})` : null].filter(Boolean);
   lines.push(`Declared: ${roles.join(' + ')} · ${p.country}`);
   return lines.join('\n');
+}
+
+/** The latest record that is not withdrawn, at AGREEMENT_VERSION and the given consent version (both apps) */
+export function currentAgreement(records: readonly AgreementRecord[] | undefined, consent: number): AgreementRecord | null {
+  if (!records) return null;
+  for (let i = records.length - 1; i >= 0; i--) {
+    const r = records[i];
+    if (r.withdrawnAt) continue;
+    return r.agreementVersion === AGREEMENT_VERSION && r.consentVersion === consent ? r : null;
+  }
+  return null;
 }
 
 const encoder = new TextEncoder();

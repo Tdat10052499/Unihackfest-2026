@@ -208,7 +208,7 @@ export function Overview() {
       error={jobs.isError && !jobs.data}
       onRetry={() => void jobs.refetch()}
       vn={viewer.vn}
-      client={viewer.signedIn && !viewer.vn}
+      client={viewer.client}
       signedIn={viewer.signedIn}
       names={names}
       now={now}
@@ -240,7 +240,9 @@ export function OverviewView(props: OverviewViewProps) {
   const stats = overviewStats(p.jobs ?? []);
   const ready = p.jobs !== null && !p.loading;
   // Signed in and not a client means the Vietnam view (client = signed in outside it)
-  const audience: OverviewAudience = p.client ? 'client' : p.signedIn ? 'vn' : 'guest';
+  // The role decides (D30): clients see client copy; a freelancer in Vietnam the VND copy; anyone else the general copy.
+  // Flag off this is today's rule (signed in and not a client means the Vietnam view).
+  const audience: OverviewAudience = p.client ? 'client' : p.signedIn && p.vn ? 'vn' : 'guest';
   const name = (j: JobListingAccount) => p.names[j.business.toBase58()] ?? shortAddress(j.business.toBase58());
   return (
     <>

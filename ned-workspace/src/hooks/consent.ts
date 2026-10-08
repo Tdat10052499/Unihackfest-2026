@@ -22,7 +22,8 @@ export function hasConsent(wallet: string | null | undefined): boolean {
   try {
     const raw = localStorage.getItem(CONSENT_STORAGE_KEY);
     const record = raw ? ((JSON.parse(raw) as { state?: { consents?: Record<string, ConsentRecord> } }).state?.consents?.[wallet] ?? null) : null;
-    return Boolean(record && !record.withdrawnAt && record.version === CONSENT_VERSION);
+    // Read the flag at call time (tests switch it); equals CONSENT_VERSION in the app
+    return Boolean(record && !record.withdrawnAt && record.version === consentVersion(FEATURES.accountRoles));
   } catch {
     return false;
   }

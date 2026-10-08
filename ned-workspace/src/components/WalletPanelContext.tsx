@@ -4,6 +4,9 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useAuthOptional } from '../auth/AuthProvider.tsx';
 import { hasConsent } from '../hooks/consent.ts';
+import { accountNeedsSetup, readAccount } from '../hooks/account.ts';
+import { capabilitiesFor, type Capabilities } from '@ned/core/account/rules.ts';
+import { FEATURES } from '../config.ts';
 
 export interface ConfirmRow {
   label: string;
@@ -48,6 +51,21 @@ interface WalletPanelValue {
    * false. confirm() calls it first, so every signing action waits for consent.
    */
   ensureConsent(): boolean;
+  /**
+   * D30 (FEATURES.accountRoles): true when the signed-in wallet may do `action`. Otherwise it opens the wallet panel at
+   * /role (no account yet) or shows the GATE_COPY refusal (RoleGateNotice) and returns false. Always true with the flag off.
+   */
+  ensureAccount(action: AccountAction): boolean;
+  /** The refusal on show, if any */
+  gate: RoleGate | null;
+  clearGate(): void;
+}
+
+export type AccountAction = Exclude<keyof Capabilities, 'region'>;
+/** A refused action: the client role or the freelancer role is missing; `vn` picks the Vietnam line */
+export interface RoleGate {
+  need: 'client' | 'freelancer';
+  vn: boolean;
 }
 
 const WalletPanelContext = createContext<WalletPanelValue | null>(null);
@@ -58,6 +76,7 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
   const [walletRoute, setWalletRoute] = useState({ path: '/', root: true });
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
+  const [gate, setGate] = useState<RoleGate | null>(null);
   const pending = useRef<((ok: boolean) => void) | null>(null);
   /** The control that asked for the confirm ("Create contract", "Release…"): focus goes back there afterwards */
   const opener = useRef<HTMLElement | null>(null);
@@ -97,9 +116,27 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
 
   const ensureConsent = useCallback(() => {
     if (!wallet || hasConsent(wallet)) return true;
-    openWalletAt('/consent');
+    // D30: consent v3 is given on the agreement step of the account setup
+    openWalletAt(FEATURES.accountRoles ? '/role' : '/consent');
     return false;
   }, [wallet, openWalletAt]);
+
+  const ensureAccount = useCallback(
+    (action: AccountAction) => {
+      if (!FEATURES.accountRoles || !wallet) return true;
+      if (accountNeedsSetup(wallet)) {
+        openWalletAt('/role');
+        return false;
+      }
+      const cap = capabilitiesFor(true, readAccount(wallet).profile, null);
+      if (cap[action]) return true;
+      const need = action === 'apply' || action === 'accept' || action === 'submit' ? 'freelancer' : 'client';
+      setGate({ need, vn: cap.region === 'vn' });
+      return false;
+    },
+    [wallet, openWalletAt]
+  );
+  const clearGate = useCallback(() => setGate(null), []);
 
   const confirm = useCallback((next: ConfirmRequest) => {
     // P4: no signing action before consent; the panel opens at /consent instead
@@ -114,8 +151,8 @@ export function WalletPanelProvider({ children }: { children: ReactNode }) {
   }, [ensureConsent]);
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, triggerRef, request, confirm, answer, walletMounted, walletRoute, setWalletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent }),
-    [open, setOpen, toggle, request, confirm, answer, walletMounted, walletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent]
+    () => ({ open, setOpen, toggle, triggerRef, request, confirm, answer, walletMounted, walletRoute, setWalletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent, ensureAccount, gate, clearGate }),
+    [open, setOpen, toggle, request, confirm, answer, walletMounted, walletRoute, pendingPath, clearPendingPath, openWalletAt, ensureConsent, ensureAccount, gate, clearGate]
   );
   return <WalletPanelContext.Provider value={value}>{children}</WalletPanelContext.Provider>;
 }

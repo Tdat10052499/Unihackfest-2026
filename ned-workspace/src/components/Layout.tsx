@@ -5,6 +5,9 @@ import { AnimatePresence, m } from 'motion/react';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
 import { PhoneGate, useNarrowScreen } from './PhoneGate.tsx';
 import { RegionPrompt } from './RegionPrompt.tsx';
+import { AccountPrompt } from './AccountPrompt.tsx';
+import { RoleGateNotice } from './RoleGate.tsx';
+import { FEATURES } from '../config.ts';
 import { ConsentGate } from './ConsentGate.tsx';
 import { DeviceKeyGate } from './DeviceKeyGate.tsx';
 import { LegalLinks } from './LegalLinks.tsx';
@@ -20,9 +23,10 @@ export function Layout() {
         Skip to content
       </a>
       <TopBar />
-      <RegionPrompt />
+      {/* D30: the account prompt replaces the region prompt and the consent banner (consent v3 is in the agreement) */}
+      {FEATURES.accountRoles ? <AccountPrompt /> : <RegionPrompt />}
       <DeviceKeyGate />
-      <ConsentGate className="consent-gate" />
+      {FEATURES.accountRoles ? <RoleGateNotice /> : <ConsentGate className="consent-gate" />}
       <AnimatePresence mode="wait" initial={false}>
         <m.div
           key={location.pathname}

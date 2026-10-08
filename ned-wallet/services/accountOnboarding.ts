@@ -134,13 +134,5 @@ export function commitAgreement(w: AgreeWrites, wallet: string, profile: Account
   return record;
 }
 
-/** The latest record that is not withdrawn, at AGREEMENT_VERSION and the given consent version */
-export function currentAgreement(records: readonly AgreementRecord[] | undefined, consent: number): AgreementRecord | null {
-  if (!records) return null;
-  for (let i = records.length - 1; i >= 0; i--) {
-    const r = records[i];
-    if (r.withdrawnAt) continue;
-    return r.agreementVersion === AGREEMENT_VERSION && r.consentVersion === consent ? r : null;
-  }
-  return null;
-}
+/** Moved to core (shared with the Workspace, R6) */
+export { currentAgreement } from '@ned/core/legal/agreement.ts';

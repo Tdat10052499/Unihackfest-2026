@@ -13,7 +13,7 @@ const requests: ConfirmRequest[] = [];
 const runPostJob = vi.fn();
 
 vi.mock('../../components/WalletPanelContext.tsx', () => ({
-  useWalletPanel: () => ({ confirm: async (r: ConfirmRequest) => (requests.push(r), true), ensureConsent: () => true }),
+  useWalletPanel: () => ({ confirm: async (r: ConfirmRequest) => (requests.push(r), true), ensureConsent: () => true, ensureAccount: () => true }),
 }));
 vi.mock('../../hooks/useChainTime.ts', () => ({ useChainTime: () => T0 }));
 vi.mock('../../hooks/queries.ts', () => ({ useUsdcUnits: () => ({ data: 100n * USDC }) }));

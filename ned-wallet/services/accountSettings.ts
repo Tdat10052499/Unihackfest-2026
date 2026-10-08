@@ -1,28 +1,11 @@
 // D30 role gates and Settings → "Your account" (roles-and-agreement-build.md §4–§5). Pure, so node --test runs it:
 // hooks/useCapabilities.ts and app/settings.tsx pass the store data in.
 import type { AccountProfile, CountryCode } from '@ned/core/account/types.ts';
-import { canBeClient, capabilities, canChangeCountry, type Capabilities, type CountryChange, type OpenClientWork } from '@ned/core/account/rules.ts';
+import { canBeClient, canChangeCountry, type Capabilities, type CountryChange, type OpenClientWork } from '@ned/core/account/rules.ts';
 import { GATE_COPY } from '@ned/core/account/copy.ts';
-import type { Region } from '@ned/core/milestone/view.ts';
 
-/**
- * The same shape with the flag on or off. Off: today's rule, region only (client actions need the international
- * view; anyone may accept and submit; no region yet counts as Vietnam). On: core capabilities(profile).
- */
-export function capabilitiesFor(accountRoles: boolean, profile: AccountProfile | null, region: Region | null): Capabilities {
-  if (accountRoles) return capabilities(profile);
-  const client = (region ?? 'vn') !== 'vn';
-  return {
-    createContract: client,
-    lock: client,
-    postJob: client,
-    selectApplicant: client,
-    apply: true,
-    accept: true,
-    submit: true,
-    region: region ?? 'vn',
-  };
-}
+/** Moved to core (shared with the Workspace, R6) */
+export { capabilitiesFor } from '@ned/core/account/rules.ts';
 
 /** The GATE_COPY line when a client action is refused: Vietnam residents get the Vietnam line */
 export const clientGateLine = (cap: Pick<Capabilities, 'region'>) => (cap.region === 'vn' ? GATE_COPY.clientNeededVN : GATE_COPY.clientNeeded);

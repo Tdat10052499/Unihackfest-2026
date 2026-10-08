@@ -10,6 +10,8 @@ import { useAuth } from '../auth/AuthProvider.tsx';
 import { env } from '../config.ts';
 import { useFunds, useUsername } from '../hooks/queries.ts';
 import { openRegionPrompt, useRegion } from '../hooks/region.ts';
+import { useAccount } from '../hooks/account.ts';
+import { FEATURES } from '../config.ts';
 import { useWalletSummary } from '../hooks/summary.ts';
 import { mobileHref, shortAddress } from '../lib/format.ts';
 import { popover } from '../motion.ts';
@@ -225,9 +227,10 @@ function SignedOut() {
 
 function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
   const { logout } = useAuth();
-  const { setOpen } = useWalletPanel();
+  const { setOpen, openWalletAt } = useWalletPanel();
   const username = useUsername(wallet).data ?? null;
   const { region } = useRegion(wallet);
+  const client = useAccount(wallet).capabilities.createContract;
 
   const signOut = async () => {
     setOpen(false);
@@ -247,6 +250,8 @@ function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
             type="button"
             className={styles.viewChange}
             onClick={() => {
+              // D30: the money view follows where you live, changed in the wallet's Settings (with a confirm)
+              if (FEATURES.accountRoles) return openWalletAt('/country?edit=1');
               setOpen(false);
               openRegionPrompt();
             }}
@@ -255,7 +260,7 @@ function Home({ wallet, onClose }: { wallet: string; onClose(): void }) {
           </button>
         </div>
         <Needs wallet={wallet} region={region} />
-        <QuickActions username={username} region={region} />
+        <QuickActions username={username} client={client} />
         <div className={styles.footer}>
           <a className={styles.fullWallet} href={mobileHref(env.mobileOrigin, '/')} target="_blank" rel="noreferrer">
             <PhoneIcon />
@@ -353,7 +358,7 @@ function Needs({ wallet, region }: { wallet: string; region: Region }) {
   );
 }
 
-function QuickActions({ username, region }: { username: string | null; region: Region }) {
+function QuickActions({ username, client }: { username: string | null; client: boolean }) {
   const { setOpen } = useWalletPanel();
   const [copied, setCopied] = useState(false);
   const share = async () => {
@@ -374,7 +379,7 @@ function QuickActions({ username, region }: { username: string | null; region: R
   // Until the Workspace has these pages (W2+), they open the phone app (D16 host rule)
   return (
     <div role="group" aria-label="Quick actions" className={styles.quick}>
-      {region === 'vn' ? (
+      {!client ? (
         <>
           <button type="button" className={styles.quickItem} onClick={share} disabled={!username}>
             {dot('share', true)}

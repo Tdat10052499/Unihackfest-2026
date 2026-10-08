@@ -18,6 +18,9 @@ import { WalletPanel } from '../components/WalletPanel.tsx';
 import { useWalletPanel } from '../components/WalletPanelContext.tsx';
 import panelStyles from '../components/WalletPanel.module.css';
 import { useRegion } from '../hooks/region.ts';
+import { useAccount } from '../hooks/account.ts';
+import { AccountPrompt } from '../components/AccountPrompt.tsx';
+import { RoleGateNotice } from '../components/RoleGate.tsx';
 import { useUsername } from '../hooks/queries.ts';
 import { shortAddress } from '../lib/format.ts';
 import { DURATION, EASE, EXIT_RATIO } from '../motion.ts';
@@ -33,8 +36,18 @@ export function useHubViewer() {
   const { status, walletAddress } = useAuth();
   const wallet = status === 'ready' && walletAddress ? walletAddress : null;
   const { region } = useRegion(wallet);
+  const { capabilities } = useAccount(wallet);
   const username = useUsername(wallet).data ?? null;
-  return { wallet, signedIn: Boolean(wallet), vn: region === 'vn', name: wallet ? (username ? `@${username}` : shortAddress(wallet)) : null, status };
+  return {
+    wallet,
+    signedIn: Boolean(wallet),
+    vn: region === 'vn',
+    // Client copy and Post a job: flag off = signed in outside the Vietnam view (today); on = the client role (D30)
+    client: Boolean(wallet) && capabilities.postJob,
+    capabilities,
+    name: wallet ? (username ? `@${username}` : shortAddress(wallet)) : null,
+    status,
+  };
 }
 
 /** V9 disclaimer line per view (board WebJobs) */
@@ -61,7 +74,7 @@ export const FOOT_LEGAL = [
 
 export function JobsLayout() {
   const location = useLocation();
-  const { wallet, signedIn, vn, name, status } = useHubViewer();
+  const { wallet, vn, client, name, status } = useHubViewer();
   const { open, setOpen, triggerRef, request, walletMounted, openWalletAt } = useWalletPanel();
   const next = encodeURIComponent(`${location.pathname}${location.search}`);
 
@@ -74,6 +87,7 @@ export function JobsLayout() {
         wallet={wallet}
         name={name}
         vn={vn}
+        client={client}
         status={status}
         next={next}
         onOpenWallet={() => openWalletAt('/')}
@@ -98,10 +112,10 @@ export function JobsLayout() {
         {wallet && walletMounted ? <WalletExtension wallet={wallet} id={PANEL_ID} /> : null}
         <AnimatePresence>{open && request && <WalletPanel key="panel" id={`${PANEL_ID}-confirm`} />}</AnimatePresence>
       </JobsHeader>
-      <RegionPrompt />
+      {FEATURES.accountRoles ? <AccountPrompt /> : <RegionPrompt />}
       {/* Key sync (D22): a selected applicant reads the contract brief through this computer's device key */}
       <DeviceKeyGate />
-      <ConsentGate className="consent-gate" />
+      {FEATURES.accountRoles ? <RoleGateNotice /> : <ConsentGate className="consent-gate" />}
       <AnimatePresence mode="wait" initial={false}>
         <m.main
           id="main"
@@ -114,7 +128,7 @@ export function JobsLayout() {
           <Outlet />
         </m.main>
       </AnimatePresence>
-      <JobsFooter vn={vn} client={signedIn && !vn} cta={location.pathname === '/jobs'} />
+      <JobsFooter vn={vn} client={client} cta={location.pathname === '/jobs'} />
     </div>
   );
 }
@@ -123,6 +137,8 @@ export interface JobsHeaderProps {
   wallet: string | null;
   name: string | null;
   vn: boolean;
+  /** Shows Post a job; default = today's rule (outside the Vietnam view). D30: the client role */
+  client?: boolean;
   status: string;
   /** The current page, URL-encoded, for /sign-in?next= */
   next: string;
@@ -135,7 +151,7 @@ export interface JobsHeaderProps {
 }
 
 /** V4 header: logo, Overview · Find jobs (never Legal), Devnet chip, Post a job (client), Sign in or the profile menu */
-export function JobsHeader({ wallet, name, vn, status, next, onOpenWallet, onMenuOpen, buttonRef, bell, children }: JobsHeaderProps) {
+export function JobsHeader({ wallet, name, vn, client = !vn, status, next, onOpenWallet, onMenuOpen, buttonRef, bell, children }: JobsHeaderProps) {
   const tab = ({ isActive }: { isActive: boolean }) => `${hub.tab} ${isActive ? hub.tabActive : ''}`;
   return (
     <header className={`${hub.header} hb-hdr`}>
@@ -159,7 +175,7 @@ export function JobsHeader({ wallet, name, vn, status, next, onOpenWallet, onMen
           <span className={hub.devnetDot} aria-hidden />
           Devnet · test money
         </span>
-        {wallet && !vn ? (
+        {wallet && client ? (
           <HubButton variant="purple" to="/jobs/new" arrow style={{ height: 42 }}>
             Post a job
           </HubButton>
@@ -232,7 +248,8 @@ export function JobsFooter({ vn, client, cta = false }: { vn: boolean; client: b
             <Link to="/jobs/find" className={`${hub.footLink} hb-ul`}>
               Find jobs
             </Link>
-            {vn ? null : (
+            {/* Flag off: today's rule (hidden in the Vietnam view only); D30: the client role */}
+            {(FEATURES.accountRoles ? !client : vn) ? null : (
               <Link to="/jobs/new" className={`${hub.footLink} hb-ul`}>
                 Post a job
               </Link>
