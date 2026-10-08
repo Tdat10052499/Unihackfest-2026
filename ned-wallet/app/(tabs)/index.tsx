@@ -17,6 +17,7 @@ import { fonts, palette, radius, space, status } from '@/constants/design';
 import { MASCOT_IMAGES } from '@/constants/mascot';
 import { useFunds } from '@/hooks/useFunds';
 import { useRegion } from '@/hooks/useRegion';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { useAuth } from '@/services/auth';
 import { formatUsdc, usdcFromUnits, vndFromUnits } from '@/services/milestone/format';
 import { unsettled } from '@/services/milestone/rules';
@@ -80,6 +81,8 @@ export default function HomeScreen() {
   const username = useUserStore((s) => s.username);
   const { region } = useRegion();
   const vn = (region ?? 'vn') === 'vn';
+  // Client actions follow the capability (flag off: the international view, as before); amounts follow the region
+  const cap = useCapabilities();
   const { funds, raw, loading, error, refresh } = useFunds();
   const [usdc, setUsdc] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -166,7 +169,7 @@ export default function HomeScreen() {
         {loading && !funds.length ? (
           <ActivityIndicator color={palette.accent} style={styles.spinner} />
         ) : funds.length === 0 ? (
-          <EmptyState vn={vn} onShare={() => setShare(true)} onNew={() => go('/contracts/new')} />
+          <EmptyState vn={!cap.createContract} onShare={() => setShare(true)} onNew={() => go('/contracts/new')} />
         ) : (
           <>
             {/* Hero */}
@@ -203,7 +206,9 @@ export default function HomeScreen() {
                 </View>
               ) : (
                 <View style={styles.quickRow} accessibilityRole="toolbar" accessibilityLabel="Quick actions">
-                  <QuickTall icon="plus" filled title="New contract" label="New contract: lock USDC per milestone for a freelancer" onPress={() => go('/contracts/new')} />
+                  {cap.createContract ? (
+                    <QuickTall icon="plus" filled title="New contract" label="New contract: lock USDC per milestone for a freelancer" onPress={() => go('/contracts/new')} />
+                  ) : null}
                   <QuickTall icon="arrow-down" title="Receive" label="Receive USDC" onPress={() => go('/receive')} />
                   <QuickTall icon="arrow-up" title="Send" label="Send USDC" onPress={() => go('/send')} />
                 </View>
@@ -256,7 +261,7 @@ export default function HomeScreen() {
           Suggested for you
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggest}>
-          {vn ? (
+          {!cap.createContract ? (
             <Suggestion bg="#EDE3FB" image="happy" title="Share your @username with a client" onPress={() => setShare(true)} />
           ) : (
             <Suggestion bg="#EDE3FB" image="proud" title="Lock a milestone for a freelancer" onPress={() => go('/contracts/new')} />

@@ -13,6 +13,9 @@ import { riseStyle, useMotion } from '@/constants/motion';
 import { useFund } from '@/hooks/useFund';
 import { useMilestoneActions } from '@/hooks/useMilestoneActions';
 import { useRegion } from '@/hooks/useRegion';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { clientGateLine } from '@/services/accountSettings';
+import { FEATURES } from '@/constants/features';
 import { useAuth } from '@/services/auth';
 import { formatDeadline, formatUsdc } from '@/services/milestone/format';
 import { getUsdcTokenBalance } from '@/services/solana';
@@ -25,6 +28,7 @@ export default function LockScreen() {
   const { walletAddress } = useAuth();
   const { region } = useRegion();
   const vn = (region ?? 'vn') === 'vn';
+  const cap = useCapabilities();
   const { fund } = useFund(address);
   const actions = useMilestoneActions(address || undefined);
   const { reduce } = useMotion();
@@ -50,7 +54,8 @@ export default function LockScreen() {
   const totalUnits = fund.milestones.reduce((s, m) => s + m.amountUnits, 0n);
   const balanceUnits = balance === null ? null : BigInt(Math.round(balance * 1_000_000));
   const enough = balanceUnits !== null && balanceUnits >= totalUnits;
-  const canLock = fund.actions.includes('lock') && !vn;
+  // Flag off: cap.lock = international view (today's rule); flag on: the client role (build §4)
+  const canLock = fund.actions.includes('lock') && cap.lock;
   const reviewWindows = [...new Set(fund.milestones.map((m) => windowText(m.reviewBy - m.submitBy)))];
 
   const lock = async () => {
@@ -125,7 +130,7 @@ export default function LockScreen() {
         <FeesCard partner={fund.destination?.kind === 'payoutPartner'} />
       </ScrollView>
       <View style={[l.bar, { paddingBottom: Math.max(insets.bottom, space[4]) + space[2] }]}>
-        {!canLock ? <Text style={l.alert}>{vn ? 'Client actions are not available in the Vietnam view.' : 'This contract cannot be locked now.'}</Text> : null}
+        {!canLock ? <Text style={l.alert}>{lockRefusal(FEATURES.accountRoles, cap, vn)}</Text> : null}
         {actions.error ? (
           <Text style={l.alert} accessibilityRole="alert">
             {actions.error}
@@ -154,3 +159,9 @@ const l = StyleSheet.create({
   link: { fontFamily: fonts.bodySemi, fontSize: 13, color: palette.link },
   bar: { paddingTop: 10, paddingHorizontal: space[4], gap: space[2], backgroundColor: palette.ground },
 });
+
+/** Why the slider is off: today's lines, or the D30 GATE_COPY line when the client role is missing (flag on) */
+function lockRefusal(accountRoles: boolean, cap: ReturnType<typeof useCapabilities>, vn: boolean): string {
+  if (accountRoles && !cap.lock) return clientGateLine(cap);
+  return vn ? 'Client actions are not available in the Vietnam view.' : 'This contract cannot be locked now.';
+}

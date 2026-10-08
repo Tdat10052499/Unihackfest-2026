@@ -12,6 +12,7 @@ import { WalletNav } from '@/components/wallet/WalletNav';
 import { elevation, fonts, palette, radius, space } from '@/constants/design';
 import { useFunds } from '@/hooks/useFunds';
 import { useRegion } from '@/hooks/useRegion';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { formatDeadline, usdcFromUnits } from '@/services/milestone/format';
 import type { FundView, Role } from '@/services/milestone/view';
 import { useUserStore } from '@/stores/useUserStore';
@@ -38,9 +39,10 @@ function deadline(f: FundView): string {
 export default function ContractsScreen() {
   const { region } = useRegion();
   const vn = (region ?? 'vn') === 'vn';
+  const cap = useCapabilities();
   const username = useUserStore((s) => s.username);
   const { funds, loading, error } = useFunds();
-  const [role, setRole] = useState<Role>(vn ? 'freelancer' : 'client');
+  const [role, setRole] = useState<Role>(cap.createContract ? 'client' : 'freelancer');
   const [filter, setFilter] = useState<Filter>('active');
   const [copied, setCopied] = useState(false);
 
@@ -59,7 +61,7 @@ export default function ContractsScreen() {
         ? ['No completed contracts yet', 'When every milestone is released or refunded, the contract moves here.']
         : role === 'freelancer'
           ? ['No contracts yet', 'Share your @username with a client. Their contract shows up here.']
-          : ['No contracts yet', vn ? 'Contracts you created as a client show up here.' : 'Create a contract and lock USDC for each milestone.'];
+          : ['No contracts yet', !cap.createContract ? 'Contracts you created as a client show up here.' : 'Create a contract and lock USDC for each milestone.'];
 
   const share = async () => {
     if (!username) return;
@@ -145,7 +147,7 @@ export default function ContractsScreen() {
           </View>
         )}
 
-        {role === 'client' && !vn ? <Button title="New contract" icon="plus" onPress={() => router.push('/contracts/new')} /> : null}
+        {role === 'client' && cap.createContract ? <Button title="New contract" icon="plus" onPress={() => router.push('/contracts/new')} /> : null}
         {role === 'freelancer' ? (
           <Button
             title={copied ? `Copied @${username}` : username ? `Share my @username` : 'Create your profile to share it'}

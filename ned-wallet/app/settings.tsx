@@ -20,6 +20,8 @@ import { getOwnPhone } from '@/services/identity/ownPhone';
 import { identityConnection, shortAddress } from '@/services/identity/resolve';
 import { executeHardReset } from '@/services/storage';
 import { useConsentStore } from '@/stores/useConsentStore';
+import { YourAccount } from '@/components/settings/YourAccount';
+import { FEATURES } from '@/constants/features';
 import { useUserStore } from '@/stores/useUserStore';
 
 export default function SettingsScreen() {
@@ -110,22 +112,29 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.section} accessibilityRole="header">
-          Where you live
-        </Text>
-        <View style={[styles.card, styles.padded]}>
-          <View style={styles.switchRow}>
-            <View style={styles.flex}>
-              <Text style={styles.rowTitle}>I live in Vietnam</Text>
-              <Text style={styles.caption}>
-                {vn
-                  ? 'Amounts in VND (estimate). Earnings go to your bank through a payout partner. No crypto balance is shown.'
-                  : 'Off: you see USDC, can send and receive, and earnings go to your N.E.D wallet.'}
-              </Text>
+        {FEATURES.accountRoles ? (
+          // D30: roles, country (with a confirm, closes D17), business, agreement; consent lives in the agreement
+          <YourAccount onWithdraw={withdrawConsent} leaving={leaving} />
+        ) : (
+          <>
+            <Text style={styles.section} accessibilityRole="header">
+              Where you live
+            </Text>
+            <View style={[styles.card, styles.padded]}>
+              <View style={styles.switchRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.rowTitle}>I live in Vietnam</Text>
+                  <Text style={styles.caption}>
+                    {vn
+                      ? 'Amounts in VND (estimate). Earnings go to your bank through a payout partner. No crypto balance is shown.'
+                      : 'Off: you see USDC, can send and receive, and earnings go to your N.E.D wallet.'}
+                  </Text>
+                </View>
+                <Toggle accessibilityLabel="I live in Vietnam" value={vn} onValueChange={toggleVietnam} disabled={!walletAddress} />
+              </View>
             </View>
-            <Toggle accessibilityLabel="I live in Vietnam" value={vn} onValueChange={toggleVietnam} disabled={!walletAddress} />
-          </View>
-        </View>
+          </>
+        )}
 
         <Text style={styles.section} accessibilityRole="header">
           Preferences
@@ -151,8 +160,10 @@ export default function SettingsScreen() {
           Privacy & legal
         </Text>
         <View style={styles.card}>
-          <LinkRow title="Consent: view or withdraw" value={consent ? 'Given' : 'Not given'} valueColor={consent ? status.success.ink : status.warning.ink} onPress={() => setSheet('consent')} />
-          <LinkRow title="Terms of use" onPress={() => router.push('/terms')} divider />
+          {FEATURES.accountRoles ? null : (
+            <LinkRow title="Consent: view or withdraw" value={consent ? 'Given' : 'Not given'} valueColor={consent ? status.success.ink : status.warning.ink} onPress={() => setSheet('consent')} />
+          )}
+          <LinkRow title="Terms of use" onPress={() => router.push('/terms')} divider={!FEATURES.accountRoles} />
           <LinkRow title="Privacy Policy" onPress={() => router.push('/privacy')} divider />
           <LinkRow title="Disclosures" onPress={() => router.push('/disclosures')} divider />
           <View style={[styles.row, styles.divider]}>

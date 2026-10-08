@@ -4,6 +4,7 @@ import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import type { Country } from '@ned/core/account/countries.ts';
+import { IconButton } from '@/components/design';
 import { elevation, fonts, palette, radius, space } from '@/constants/design';
 
 /** Title (Space Grotesk 700 28) and subtitle (Inter 15 / 1.45, #3F3F49) of the D30 boards */
@@ -137,6 +138,15 @@ export function CountryRows({ countries, selected, onPick }: { countries: Countr
   );
 }
 
+/** Top row of the edit screens opened from Settings: back only, no step bar */
+export function EditHeader({ onBack }: { onBack: () => void }) {
+  return (
+    <View style={s.editHeader}>
+      <IconButton icon="chevron-left" accessibilityLabel="Back" onPress={onBack} />
+    </View>
+  );
+}
+
 /** Footer caption under a disabled button */
 export function FootCaption({ text }: { text: string }) {
   return <Text style={s.footCaption}>{text}</Text>;
@@ -182,5 +192,6 @@ const s = StyleSheet.create({
   countryRowOn: { backgroundColor: palette.tint },
   divider: { borderTopWidth: 1, borderTopColor: palette.divider },
   countryName: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: palette.ink },
+  editHeader: { flexDirection: 'row', paddingHorizontal: space[5], paddingTop: space[1] },
   footCaption: { marginTop: space[2], textAlign: 'center', fontFamily: fonts.body, fontSize: 13, color: palette.caption },
 });

@@ -23,6 +23,10 @@ import { useContractContent } from '@/hooks/useContractContent';
 import { useFund } from '@/hooks/useFund';
 import { useMilestoneActions } from '@/hooks/useMilestoneActions';
 import { useRegion } from '@/hooks/useRegion';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { profileWithRole } from '@/services/accountSettings';
+import { useAccountStore } from '@/stores/useAccountStore';
+import { GATE_COPY } from '@ned/core/account/copy.ts';
 import { useAuth } from '@/services/auth';
 import { usdcFromUnits } from '@/services/milestone/format';
 import type { FundView } from '@/services/milestone/view';
@@ -36,6 +40,7 @@ export default function ContractDetail() {
   const { walletAddress } = useAuth();
   const { region } = useRegion();
   const vn = (region ?? 'vn') === 'vn';
+  const cap = useCapabilities();
   const { fund, raw, loading } = useFund(address);
   const content = useContractContent(address);
   const actions = useMilestoneActions(address || undefined);
@@ -73,6 +78,13 @@ export default function ContractDetail() {
   const totalUnits = fund.milestones.reduce((s, m) => s + m.amountUnits, 0n);
   // D18: in the Vietnam view a client sees the contract but no client actions
   const clientBlocked = vn && !fl;
+  // D30 (flag on): a client-only account adds the freelancer role ("Also work") before it can accept or submit
+  const freelancerNeeded = fl && !cap.accept;
+  const alsoWork = () => {
+    const st = useAccountStore.getState();
+    const p = walletAddress ? st.getProfile(walletAddress) : null;
+    if (walletAddress && p) st.setProfile(walletAddress, profileWithRole(p, 'freelancer', true));
+  };
 
   const wait = waitText(fund, fl, other, clientBlocked);
   const brief = content.brief;
@@ -84,9 +96,12 @@ export default function ContractDetail() {
 
   // ---- the action bar ----
   const bar: { label: string; primary: boolean; onPress(): void; disabled?: boolean; note?: string }[] = [];
-  if (isParty && !clientBlocked) {
+  if (isParty && !clientBlocked && freelancerNeeded) {
+    bar.push({ label: GATE_COPY.alsoWork, primary: true, onPress: alsoWork, note: GATE_COPY.freelancerNeeded });
+  } else if (isParty && !clientBlocked) {
     if (fund.actions.includes('accept')) bar.push({ label: 'Accept and choose where earnings go', primary: true, onPress: () => router.push(`/contracts/${fund.address}/accept` as Href) });
-    if (fund.actions.includes('lock')) bar.push({ label: `Lock ${fund.totalLabel.replace(' (estimate)', '')}`, primary: true, onPress: () => router.push(`/contracts/${fund.address}/lock` as Href) });
+    // Lock needs the client role (flag on) as well as being this contract's client
+    if (fund.actions.includes('lock') && cap.lock) bar.push({ label: `Lock ${fund.totalLabel.replace(' (estimate)', '')}`, primary: true, onPress: () => router.push(`/contracts/${fund.address}/lock` as Href) });
     const next = fund.nextAction;
     // Release now / Refund now (below) replaces the other steps, as on the board's "review passed" state
     if ((next?.kind === 'submit' || next?.kind === 'approve') && !anyMs) {

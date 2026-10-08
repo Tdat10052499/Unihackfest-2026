@@ -9,7 +9,7 @@ import { useChainTime } from './useChainTime';
 import { useRegion } from './useRegion';
 
 export const POLL_MS = 8_000;
-const LOAD_ERROR = 'Could not load your contracts. Check your connection and try again.';
+export const LOAD_ERROR = 'Could not load your contracts. Check your connection and try again.';
 
 /** wallet → "@username" or a short address, for the other party of each contract */
 export async function counterpartyNames(funds: FundAccount[], me: string): Promise<Record<string, string>> {

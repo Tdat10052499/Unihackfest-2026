@@ -1,19 +1,21 @@
 // D30 step 3 of 5 · About your business (boards OnbBusiness, OnbBusinessError). Behind FEATURES.accountRoles. Business
 // details are self-declared and stay on this device; the registration number never leaves it.
+// ?edit=1 (Settings → Business, R5): edits the saved details of the profile, then goes back.
 import React, { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BUSINESS_COPY, COUNTRY_COPY, ROLE_COPY } from '@ned/core/account/copy.ts';
 import { countryName, searchCountries } from '@ned/core/account/countries.ts';
 import { canRegisterBusinessIn, validateBusiness, type BusinessField } from '@ned/core/account/rules.ts';
 import { TEAM_SIZES, type BusinessDetails, type TeamSize } from '@ned/core/account/types.ts';
 import { useAuth } from '../../services/auth';
-import { isBusinessDraft, signupSteps } from '../../services/accountOnboarding';
+import { draftFromProfile, isBusinessDraft, signupSteps } from '../../services/accountOnboarding';
+import { useAccountStore } from '../../stores/useAccountStore';
 import { useSignupDraft } from '../../stores/useSignupDraft';
 import { FEATURES } from '../../constants/features';
 import { OnbScreen, PrimaryButton, StepHeader } from '../../components/onboarding/ui';
-import { Chip, CodeChip, CountryRows, FootCaption, StepTitle, TintNotice, accountStyles } from '../../components/onboarding/account';
+import { Chip, CodeChip, CountryRows, EditHeader, FootCaption, StepTitle, TintNotice, accountStyles } from '../../components/onboarding/account';
 import { Field, Sheet } from '@/components/design';
 import { elevation, fonts, palette, radius, space, status } from '../../constants/design';
 
@@ -42,9 +44,13 @@ function toBusiness(f: Form): BusinessDetails {
 }
 
 export default function BusinessScreen() {
-  const { isReady, isAuthenticated } = useAuth();
-  const draft = useSignupDraft((st) => st.draft);
+  const { isReady, isAuthenticated, walletAddress } = useAuth();
+  const edit = Boolean(useLocalSearchParams<{ edit?: string }>().edit);
+  const signupDraft = useSignupDraft((st) => st.draft);
   const setDraft = useSignupDraft((st) => st.setDraft);
+  const saved = useAccountStore((st) => st.getProfile(walletAddress));
+  // Edit mode works on the saved profile; sign-up on the in-memory draft
+  const draft = edit && saved ? draftFromProfile(saved) : signupDraft;
   const b = draft.business;
   const [form, setForm] = useState<Form>(() => ({
     name: b?.name ?? '',
@@ -66,7 +72,8 @@ export default function BusinessScreen() {
   }, [isReady, isAuthenticated]);
 
   if (!FEATURES.accountRoles) return <Redirect href="/setup" />;
-  if (!isBusinessDraft(draft) || !draft.country) return <Redirect href="/role" />;
+  if (edit && !saved) return <Redirect href="/settings" />;
+  if (!isBusinessDraft(draft) || !draft.country) return <Redirect href={edit ? '/settings' : '/role'} />;
 
   const errors = validateBusiness(toBusiness(form));
   const errorOf = (f: BusinessField) => (tried ? errors.find((e) => e.field === f)?.message || undefined : undefined);
@@ -76,6 +83,11 @@ export default function BusinessScreen() {
   const next = () => {
     setTried(true);
     if (errors.length) return;
+    if (edit && saved && walletAddress) {
+      useAccountStore.getState().setProfile(walletAddress, { ...saved, business: toBusiness(form), updatedAt: Date.now() });
+      router.back();
+      return;
+    }
     setDraft({ ...draft, business: toBusiness(form) });
     router.push('/agreement');
   };
@@ -86,7 +98,7 @@ export default function BusinessScreen() {
   return (
     <OnbScreen glow={false}>
       <KeyboardAvoidingView style={accountStyles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <StepHeader step={3} total={signupSteps(draft)} onBack={() => router.replace('/country')} />
+        {edit ? <EditHeader onBack={() => router.back()} /> : <StepHeader step={3} total={signupSteps(draft)} onBack={() => router.replace('/country')} />}
         <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll} keyboardShouldPersistTaps="handled">
           <StepTitle title={BUSINESS_COPY.title} sub={BUSINESS_COPY.sub} />
           <TintNotice text={BUSINESS_COPY.selfDeclared} icon="shield-off" style={styles.notice} />

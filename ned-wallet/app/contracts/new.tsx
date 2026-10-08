@@ -21,6 +21,8 @@ import { riseStyle, useMotion } from '@/constants/motion';
 import { chainNowSeconds, useChainTime } from '@/hooks/useChainTime';
 import { useMilestoneActions } from '@/hooks/useMilestoneActions';
 import { useRegion } from '@/hooks/useRegion';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { GATE_COPY } from '@ned/core/account/copy.ts';
 import { useAuth } from '@/services/auth';
 import { resolveRecipient, type Recipient } from '@/services/identity/resolve';
 import { briefHash, LIMITS, validateBrief, type BriefDraft } from '@/services/milestone/content';
@@ -56,6 +58,7 @@ export default function NewContractScreen() {
   const { walletAddress } = useAuth();
   const { region } = useRegion();
   const vn = (region ?? 'vn') === 'vn';
+  const cap = useCapabilities();
   const actions = useMilestoneActions();
   const now = useChainTime();
   const { reduce } = useMotion();
@@ -85,15 +88,23 @@ export default function NewContractScreen() {
   const fieldError = (field: string) => draftCheck?.errors.find((e) => e.field === field)?.message;
   const step2Ok = Boolean(draftCheck?.ok) && briefProblems.length === 0 && titleBytes > 0;
 
-  if (vn) {
+  // Vietnam view: today's blocked view. D30 (flag on): a freelancer outside Vietnam is sent to Settings to add the client role
+  if (!cap.createContract) {
     return (
       <View style={[n.page, { paddingTop: insets.top + space[2] }]}>
         <View style={n.pad}>
           <TopBar title="New contract" back="/contracts" />
-          <Card>
-            <Text style={n.cardTitle}>Not available in the Vietnam view</Text>
-            <Text style={n.body}>In the Vietnam view you receive contracts from clients. Share your @username so a client can send you one.</Text>
-          </Card>
+          {vn ? (
+            <Card>
+              <Text style={n.cardTitle}>Not available in the Vietnam view</Text>
+              <Text style={n.body}>In the Vietnam view you receive contracts from clients. Share your @username so a client can send you one.</Text>
+            </Card>
+          ) : (
+            <Card>
+              <Text style={n.body}>{GATE_COPY.clientNeeded}</Text>
+              <Button title={GATE_COPY.openSettings} variant="secondary" onPress={() => router.push('/settings')} style={n.gateButton} />
+            </Card>
+          )}
         </View>
       </View>
     );
@@ -431,6 +442,7 @@ function Choice({ label, on, onPress }: { label: string; on: boolean; onPress():
 }
 
 const n = StyleSheet.create({
+  gateButton: { marginTop: space[4] },
   page: { flex: 1, backgroundColor: palette.ground },
   pad: { paddingHorizontal: space[4], gap: 10, width: '100%', maxWidth: 480, alignSelf: 'center' },
   center: { alignItems: 'center' },
