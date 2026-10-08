@@ -72,6 +72,21 @@ Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor bu
 - `services/solana.ts` `getUsdcTokenBalance` (around lines 246–262) adds every SPL token into the "USDC" balance when the USDC account is empty. Read only the USDC ATA.
 - `services/jupiter/core.ts:1` has a mainnet USDC address missing a `q`. Keep one USDC constant module and import it everywhere.
 
+### 5.2 Account screens (D30, behind `FEATURES.accountRoles`, off until R9)
+
+Design: `roles-and-agreement-plan.md`; build: `roles-and-agreement-build.md`; boards: `../02-thiet-ke/canvas-v2/` ("D30" heading); copy: `packages/ned-core/src/account/copy.ts` and `legal/agreement.ts` (copy deck, draft for CL review). Renders: `../02-thiet-ke/screenshots/d30/`.
+
+| Route | Who | Content | Step |
+| --- | --- | --- | --- |
+| `app/(onboarding)/role` | new or existing wallet | **How will you use N.E.D?** Freelancer · Client · Client (business). `?update=1`: update notice, no Back, preselected from the money view and the wallet's history | 1 / 4 (business 1 / 5) |
+| `app/(onboarding)/country` | everyone | **Where do you live now?** Search list, "not your nationality". Vietnam with a client role opens "Join as a freelancer?". `?edit=1` from Settings: confirm sheet, or blocked while client work is open (closes D17) | 2 / 4 |
+| `app/(onboarding)/business` | client (business) | **About your business**, self-declared; registered in Vietnam is refused. `?edit=1` from Settings | 3 / 5 |
+| `app/(onboarding)/agreement` | everyone | **The N.E.D Agreement**: role cards, "What N.E.D does and does not do", three unticked boxes; records consent v3, profile, agreement hash and region on the device | 3 / 4 (business 4 / 5) |
+| `app/settings` → **Your account** | everyone | Also work / Also hire (one role stays on; no client role in Vietnam), Where you live, Business (`… · self-declared`), Agreement (view, withdraw and sign out) | — |
+| Workspace `AccountPrompt`, role gates | computer | "Finish setting up your account" opens the wallet at `/role`; client actions refused with the gate line and Open settings / Also work; `/new` and `/jobs/new` show the gate card | — |
+
+Gates are UI only: the program does not know anyone's role or residence. Country, role and business details stay on the device (`@ned_account_v1`); the registration number never leaves it.
+
 ### 5.1 Brief and delivery content (decision D15)
 
 - No backend (D4): content is stored as `post_note` ciphertext in transactions that reference the fund; only hashes are in the account.
@@ -91,6 +106,11 @@ This table replaces `07-strategy-v3` §11.3 and the word lists in `08-research`.
 | "no instruction lets N.E.D move locked funds" | "nobody can move the funds" (the deploy wallet still holds the upgrade authority) |
 | "the Vietnam user never receives, holds or sends USDC" | "the Vietnam user never touches crypto" (A4) |
 | "devnet, test money" | any live-money claim |
+| D30: "self-declared" (every business name and the residence), "Business · self-declared" | "verified" (user or business), "trusted client", "vetted" |
+| D30: "Also hire (client)", "Also work (freelancer)", "Your account", "Where you live" (not nationality) | "account type", "hire staff" |
+| D30: "software; the money sits in a vault owned by the Solana program, not by N.E.D" | "intermediary", "trung gian", "escrow agent", "N.E.D holds your money" |
+| D30: "locked in the program before work starts", "released by the deadlines written into the contract" | "guaranteed payment", "safe", "protected" |
+| D30: "client", "freelancer", "contract", "milestone" | "employer", "employee", "salary", "hire staff" (Law 74/2025, lawyer question 7) |
 
 The word "escrow" may appear only in technical docs and in answers to judges who use it first.
 
