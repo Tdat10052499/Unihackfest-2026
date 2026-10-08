@@ -13,7 +13,8 @@ import { useConsentStore, waitForConsentHydration } from '../stores/useConsentSt
 import type { Region } from './milestone/view';
 import { FEATURES } from '../constants/features';
 import { useAccountStore, waitForAccountHydration } from '../stores/useAccountStore';
-import { accountStep, type AccountStep } from './accountOnboarding';
+import { accountState, hasOlderAgreement, type AccountStep } from './accountOnboarding';
+import { consentVersion } from '@ned/core/legal/agreement.ts';
 
 /** Kích thước account on-chain (ned_program + SPL Token) — xem docs/03-ky-thuat/dev-handoff.md mục 1a */
 export const ACCOUNT_SIZES = { name: 49, reverse: 42, phone: 49, usdcAta: 165 } as const;
@@ -61,6 +62,8 @@ export type OnboardingStep = 'fund' | 'consent' | 'profile' | 'region' | 'home' 
 export interface OnboardingState {
   step: OnboardingStep;
   reverse: ReverseRecord | null;
+  /** D30 R7: the role step opens as the update flow (/role?update=1) for a wallet that used N.E.D before */
+  update?: boolean;
 }
 
 /** The consent screen (app/(onboarding)/consent.tsx, OnbConsent board) records consent with useConsentStore (B3) */
@@ -106,13 +109,14 @@ async function resolveAccountOnboarding(connection: Connection, wallet: string):
     profile: accounts.getProfile(wallet),
     hasAgreement: Boolean(accounts.getAgreement(wallet) && useConsentStore.getState().getConsent(wallet)),
     short: false,
+    olderAgreement: hasOlderAgreement(accounts.agreements[wallet], consentVersion(true)),
   };
-  let step = accountStep(facts);
-  if (step === 'profile') {
+  let state = accountState(facts);
+  if (state.step === 'profile') {
     const [balance, cost] = await Promise.all([connection.getBalance(owner, 'confirmed'), getSetupCost(connection)]);
-    step = accountStep({ ...facts, short: balance < cost.required });
+    state = accountState({ ...facts, short: balance < cost.required });
   }
-  return { step, reverse };
+  return { step: state.step, reverse, update: state.update };
 }
 
 /** Wallet mode chosen before regions existed → region ('simple' → 'vn', 'crypto' → 'intl'); never asks again */
@@ -128,8 +132,10 @@ function migrateRegionFromMode(wallet: string) {
 
 /** Route for each step: welcome → setup → consent → (fund) → profile → residence → home; D30 adds /role, /country, /business, /agreement */
 export function onboardingRoute(
-  step: OnboardingStep
-): '/home' | '/fund' | '/consent' | '/profile' | '/residence' | '/role' | '/country' | '/business' | '/agreement' {
+  step: OnboardingStep,
+  update = false
+): '/home' | '/fund' | '/consent' | '/profile' | '/residence' | '/role' | '/role?update=1' | '/country' | '/business' | '/agreement' {
+  if (step === 'role' && update) return '/role?update=1';
   switch (step) {
     case 'home':
       return '/home';

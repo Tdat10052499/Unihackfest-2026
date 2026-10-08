@@ -50,7 +50,7 @@ export default function SetupScreen() {
 
   const next = useCallback(() => {
     if (!result) return;
-    router.replace(onboardingRoute(result.step) as never);
+    router.replace(onboardingRoute(result.step, result.update) as never);
   }, [result]);
 
   // Người quay lại: tự vào ví sau một nhịp để kịp đọc "Welcome back"

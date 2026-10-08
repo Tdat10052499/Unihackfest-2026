@@ -16,6 +16,8 @@ export interface AccountFacts {
   hasAgreement: boolean;
   /** SOL below the setup cost; only read for a new wallet */
   short: boolean;
+  /** R7: the latest agreement still in force is an older version (hasOlderAgreement) */
+  olderAgreement?: boolean;
 }
 
 /** The first of role / country / business that the stored profile still needs, or null when it is complete */
@@ -39,6 +41,46 @@ export function accountStep(f: AccountFacts): AccountStep {
   if (!f.hasAgreement) return 'agreement';
   if (f.hasReverse) return 'home';
   return f.short ? 'fund' : 'profile';
+}
+
+/**
+ * R7 (build §6): a wallet that used N.E.D before D30 (ReverseRecord, no profile) or agreed to an older version goes
+ * through the update flow once: role (update=1, preselected) → country → (business) → agreement → home.
+ */
+export function accountState(f: AccountFacts): { step: AccountStep; update: boolean } {
+  const update = f.hasReverse && (!f.profile || Boolean(f.olderAgreement));
+  return update ? { step: 'role', update } : { step: accountStep(f), update: false };
+}
+
+/** The latest record not withdrawn is below the current agreement or consent version */
+export function hasOlderAgreement(records: readonly AgreementRecord[] | undefined, consent: number): boolean {
+  const latest = [...(records ?? [])].reverse().find((r) => !r.withdrawnAt);
+  return Boolean(latest && (latest.agreementVersion < AGREEMENT_VERSION || latest.consentVersion < consent));
+}
+
+/** What the wallet did before D30, read once from the chain at the start of the update flow */
+export interface WalletHistory {
+  /** Contracts this wallet created as the client */
+  createdContracts: number;
+  /** Contracts this wallet accepted as the freelancer (state after Created) */
+  acceptedContracts: number;
+  /** Job listings this wallet posted */
+  listings: number;
+  /** Job applications this wallet sent */
+  applications: number;
+}
+
+/**
+ * Preselection for the update flow (build §6): Vietnam view → freelancer in Vietnam; international view → the roles
+ * the history shows (created or posted → client; accepted or applied → freelancer; both → both; none → nothing) and no
+ * country. Only a preselection: the user confirms every screen.
+ */
+export function preselectDraft(region: Region | null, history: WalletHistory | null): SignupDraft {
+  if (region === 'vn') return { freelancer: true, client: null, country: 'VN' };
+  if (region !== 'intl' || !history) return EMPTY_DRAFT;
+  const client = history.createdContracts > 0 || history.listings > 0;
+  const freelancer = history.acceptedContracts > 0 || history.applications > 0;
+  return { freelancer, client: client ? { kind: 'individual' } : null, country: null };
 }
 
 /** What the sign-up screens collect before the agreement; kept in memory only (stores/useSignupDraft.ts) */
