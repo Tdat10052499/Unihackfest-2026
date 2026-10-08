@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — The N.E.D Agreement</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+/* D30 boards are static: no motion (D0) */
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Inter', system-ui, sans-serif">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#C9C9D2"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#111116"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+  <div style="padding: 4px 20px 0; display: flex; align-items: center; gap: 14px; min-height: 44px; position: relative; z-index: 2">
+    <a href="{{back}}" aria-label="Back" style="width: 44px; height: 44px; background: #FFFFFF; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; border: none; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111116" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+    <div role="progressbar" aria-valuemin="1" aria-valuemax="{{steps}}" aria-valuenow="{{step}}" aria-label="{{stepLabel}}" style="flex: 1; display: flex; gap: 6px">
+      <sc-for list="{{segments}}" as="sg" hint-placeholder-count="4">
+        <div style="{{sg.style}}"></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 22px 24px 28px; position: relative; z-index: 1">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.6px; color: #111116">The N.E.D Agreement</h1>
+    <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: #3F3F49">What you can count on, what you agree to, and what N.E.D does and does not do.</p>
+
+    <div style="margin-top: 18px; padding: 16px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); font-size: 14px; line-height: 1.45; color: #3F3F49">N.E.D is software for milestone contracts between clients and freelancers. When a client locks a budget, it sits in a vault owned by a Solana program, not by N.E.D, and it leaves only by the rules written into the contract. This pilot runs on Solana devnet with test tokens that have no value.</div>
+
+    <sc-for list="{{dutyCards}}" as="dc" hint-placeholder-count="1">
+      <section aria-label="{{dc.heading}}" style="margin-top: 12px; padding: 18px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+        <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; color: #111116">{{dc.heading}}</h2>
+        <div style="margin: 14px 0 0; font-size: 13px; font-weight: 600; color: #5E5E6A">You can count on</div>
+        <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{dc.countOn}}" as="t" hint-placeholder-count="5">
+            <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: #111116"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E9E5B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>{{t.text}}</span></li>
+          </sc-for>
+        </ul>
+        <div style="margin: 14px 0 0; font-size: 13px; font-weight: 600; color: #5E5E6A">You agree to</div>
+        <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{dc.agreeTo}}" as="t" hint-placeholder-count="5">
+            <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: #111116"><span style="width: 6px; height: 6px; margin: 8px 6px 0; border-radius: 9999px; background: #6A22B0; flex-shrink: 0" aria-hidden="true"></span><span>{{t.text}}</span></li>
+          </sc-for>
+        </ul>
+      </section>
+    </sc-for>
+    <sc-if value="{{business}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="For your business" style="margin-top: 12px; padding: 18px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+        <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; color: #111116">For your business</h2>
+        <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 12px">
+          <sc-for list="{{businessItems}}" as="t" hint-placeholder-count="3">
+            <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: #111116"><span style="width: 6px; height: 6px; margin: 8px 6px 0; border-radius: 9999px; background: #6A22B0; flex-shrink: 0" aria-hidden="true"></span><span>{{t.text}}</span></li>
+          </sc-for>
+        </ul>
+      </section>
+    </sc-if>
+
+    <section aria-label="What N.E.D does and does not do" style="margin-top: 12px; padding: 18px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+      <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; color: #111116">What N.E.D does and does not do</h2>
+      <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 12px">
+        <sc-for list="{{nedPreview}}" as="t" hint-placeholder-count="3">
+          <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: #111116"><span style="width: 6px; height: 6px; margin: 8px 6px 0; border-radius: 9999px; background: #6A22B0; flex-shrink: 0" aria-hidden="true"></span><span>{{t.text}}</span></li>
+        </sc-for>
+      </ul>
+      <button onClick="{{openNed}}" style="margin-top: 6px; height: 44px; padding: 0; border: none; background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #6A22B0">Read all</button>
+    </section>
+
+    <p style="margin: 16px 2px 0; font-size: 13px; line-height: 1.6; color: #5E5E6A">Read the full <a href="#terms" style="color: #6A22B0; text-decoration: underline; white-space: nowrap">Terms</a> · <a href="#privacy" style="color: #6A22B0; text-decoration: underline; white-space: nowrap">Privacy notice</a> · <a href="Disclosures.dc.html" style="color: #6A22B0; text-decoration: underline; white-space: nowrap">Disclosures</a><sc-if value="{{client}}" hint-placeholder-val="{{ false }}"> · <a href="WebJobsLegal.dc.html" style="color: #6A22B0; text-decoration: underline; white-space: nowrap">Job posting rules</a></sc-if></p>
+
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+        <label style="{{c.card}}">
+          <input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" style="position: absolute; opacity: 0; width: 24px; height: 24px; margin: 0">
+          <span aria-hidden="true" style="{{c.box}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.tick}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+          <span style="font-size: 15px; line-height: 1.5; color: #111116">{{c.text}}</span>
+        </label>
+      </sc-for>
+    </div>
+  </div>
+  <div style="padding: 12px 24px 28px; position: relative; z-index: 2; background: #F4F4F6">
+    <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -24px; height: 24px; background: linear-gradient(to bottom, rgba(244,244,246,0), #F4F4F6); pointer-events: none"></div>
+    <sc-if value="{{allTicked}}" hint-placeholder-val="{{ false }}">
+      <a href="OnbProfile.dc.html" style="height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #7B2FBE; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none">Agree and continue</a>
+    </sc-if>
+    <sc-if value="{{notAllTicked}}" hint-placeholder-val="{{ true }}">
+      <div aria-disabled="true" style="height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #E4E4EA; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #8A8A96">Agree and continue</div>
+      <div style="margin-top: 8px; font-size: 13px; text-align: center; color: #5E5E6A">Tick all three boxes to continue</div>
+    </sc-if>
+    <div style="margin-top: 6px; font-size: 12px; text-align: center; color: #5E5E6A">Agreement version 1 · Terms 1.2 · Privacy 2</div>
+  </div>
+
+  <sc-if value="{{nedOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 10; background: rgba(17,17,22,0.4)"></div>
+    <div role="dialog" aria-modal="true" aria-labelledby="ned-sheet-title" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 780px; display: flex; flex-direction: column; border-radius: 28px 28px 0 0; background: #FFFFFF">
+      <div style="padding: 10px 24px 0">
+        <div style="width: 36px; height: 4px; margin: 0 auto 20px; border-radius: 9999px; background: #E4E4EA"></div>
+        <h2 id="ned-sheet-title" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: #111116">What N.E.D does and does not do</h2>
+      </div>
+      <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 0 24px">
+        <ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+          <sc-for list="{{nedAll}}" as="t" hint-placeholder-count="8">
+            <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: #111116"><span style="width: 6px; height: 6px; margin: 8px 6px 0; border-radius: 9999px; background: #6A22B0; flex-shrink: 0" aria-hidden="true"></span><span>{{t.text}}</span></li>
+          </sc-for>
+        </ul>
+      </div>
+      <div style="padding: 16px 24px 28px">
+        <button onClick="{{closeNed}}" style="width: 100%; height: 52px; border-radius: 9999px; border: none; cursor: pointer; background: #F2EAFB; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: #6A22B0">Close</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"role": {"editor": "enum", "options": ["freelancer", "client", "business"], "default": "freelancer"}, "ticked": {"editor": "boolean", "default": false}, "nedOpen": {"editor": "boolean", "default": false}, "$preview": {"width": 390, "height": 844}}'>
+// Card text = packages/ned-core/src/legal/agreement.ts (copy deck C4, verbatim; Draft for CL review, D30).
+// Notes for R9: the last "You can count on" line of the freelancer card (rights to the work until release) is
+// "Lawyer to confirm" (design §9 question 3). It stays on the board; R9 may change it. The note is never shown.
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var on = props.ticked === true || props.ticked === 'true';
+    // Never pre-ticked in the app; `ticked` only shows the ready state
+    this.state = { ticks: [on, on, on], ned: props.nedOpen === true || props.nedOpen === 'true' };
+  }
+  renderVals() {
+    var FREELANCER = { heading: "As a freelancer", countOn: ["You see the budget locked in the program before you start work.", "The place your earnings go is fixed when you accept. No instruction in the program lets anyone change it.", "If the client neither approves nor requests changes before the review deadline, anyone can release the milestone to you (Release now).", "A change request never sends the money back to the client alone. It stays locked until you both agree.", "Your brief and your deliveries are encrypted. N.E.D has no key.", "Until a milestone is released, you keep the rights to the work submitted for it, unless you and the client agree otherwise."], agreeTo: ["Do the work you accept, and submit only work you have the right to hand over.", "Submit a preview that shows the work honestly, and hand over the final files you listed after release.", "Keep personal data out of public fields: @username, contract titles, job pitches.", "Handle your own tax and records. Records from N.E.D are not tax advice.", "If you live in Vietnam: you receive VND through a payout partner and never receive, hold or send USDC through N.E.D."] };
+    var CLIENT = { heading: "As a client", countOn: ["Your budget leaves the vault only by the rules written when the contract was created.", "If a submission deadline passes with nothing submitted, anyone can refund that milestone to you.", "Before you release, you see a preview and the list of final files the freelancer promised, with their fingerprints.", "You can request changes before the review deadline. The amount then stays locked until you both agree."], agreeTo: ["Lock the budget before work starts. Review before the review deadline, or the milestone can be released.", "Write a clear brief with \"done when\" points for each milestone, and hire only for lawful work.", "Use contracts for independent services. Whether a relationship counts as employment under the law that applies to you is your responsibility.", "You do not live in Vietnam, and your business is not registered there."] };
+    var BUSINESS_ITEMS = ["The business details you give are true and kept up to date.", "Only people the business allows act for it.", "The business is responsible for everything done from this account."];
+    var NED_ITEMS = ["N.E.D provides the software. It does not hold, convert or move your funds. No instruction in the program lets anyone at N.E.D move a locked budget.", "N.E.D is not a party to your contract. It does not choose, vet or employ anyone, and it does not decide disagreements. There is no neutral arbiter in this pilot.", "N.E.D does not check identities, business details, the quality of the work or whether files are handed over. What users declare is self-declared.", "The program has not been audited, the team still holds the upgrade authority (see Disclosures), and the payout partner is simulated.", "Transactions you sign cannot be reversed. N.E.D cannot recover a lost login or undo a release or refund.", "To the extent the law allows, N.E.D is not responsible for losses caused by another user, by transactions you sign, or by outages of Solana, Dynamic or other services. Nothing here removes rights you have by law that cannot be waived.", "N.E.D may stop offering its app to an account that breaks these terms (false declarations, unlawful work, impersonation, money laundering). It cannot freeze or take funds already locked in the program.", "N.E.D shows any new version of these terms before it applies to you. You keep using the app only by agreeing again."];
+    var CHECKS = ["I have read and agree to the N.E.D Terms of use, including my rights and duties above.", "I agree that N.E.D processes my data as the Privacy notice says. My @username, wallet address, contract titles, job listings and pitches are written to Solana, where they are public and permanent.", "I am 18 or older, and the country and role I chose are true."];
+    var self = this, role = this.props.role ?? 'freelancer', ticks = this.state.ticks;
+    var S1 = '0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)';
+    function lines(a) { return a.map(function (t) { return { text: t }; }); }
+    function duty(c) { return { heading: c.heading, countOn: lines(c.countOn), agreeTo: lines(c.agreeTo) }; }
+    var business = role === 'business';
+    // Role, country, (business), agreement, username
+    var steps = business ? 5 : 4, step = business ? 4 : 3, segments = [];
+    for (var i = 0; i < steps; i++) segments.push({ style: 'flex: 1; height: 4px; border-radius: 9999px; background: ' + (i < step ? '#7B2FBE' : '#E4E4EA') });
+    var checks = CHECKS.map(function (t, i) {
+      var on = ticks[i];
+      return {
+        text: t, on: on,
+        toggle: function () { var n = self.state.ticks.slice(); n[i] = !n[i]; self.setState({ ticks: n }); },
+        card: 'position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 20px; cursor: pointer; background: ' + (on ? '#F2EAFB' : '#FFFFFF') + '; box-shadow: ' + (on ? 'none' : S1),
+        box: 'width: 24px; height: 24px; box-sizing: border-box; border-radius: 6px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; background: ' + (on ? '#7B2FBE' : '#FFFFFF') + '; border: ' + (on ? 'none' : '2px solid #8A8A96'),
+        tick: on ? '#FFFFFF' : 'transparent'
+      };
+    });
+    var all = ticks.every(Boolean);
+    return {
+      back: business ? 'OnbBusiness.dc.html' : 'OnbCountry.dc.html',
+      steps: String(steps), step: String(step), stepLabel: 'Step ' + step + ' of ' + steps, segments: segments,
+      dutyCards: role === 'freelancer' ? [duty(FREELANCER)] : [duty(CLIENT)],
+      business: business, client: role !== 'freelancer', businessItems: lines(BUSINESS_ITEMS),
+      nedPreview: lines(NED_ITEMS.slice(0, 3)), nedAll: lines(NED_ITEMS),
+      checks: checks, allTicked: all, notAllTicked: !all,
+      nedOpen: this.state.ned,
+      openNed: function () { self.setState({ ned: true }); },
+      closeNed: function () { self.setState({ ned: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
