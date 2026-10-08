@@ -6,6 +6,8 @@
 // without a SOL amount, job rules (Vietnam view, no listing review, devnet accept window). Audit 7 Oct: "no instruction"
 // wording (the deploy wallet can still upgrade the program) and a Disclosures line for the upgrade authority (F11).
 // Pure data so it can be tested; change it only with the compliance lead.
+// D30 (R2): TERMS_V12 and PRIVACY_V2 are drafts for CL review, shown only when FEATURES.accountRoles is on (R9).
+import { BUSINESS_CARD, CLIENT_CARD, FREELANCER_CARD, NED_CARD, type DutyCard } from './agreement.ts';
 
 export interface LegalSection {
   title: string;
@@ -255,14 +257,138 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
-/** The four documents of /jobs/legal, in order; the text is the shipped text above */
-export function legalDocs(disputesOn: boolean): LegalDoc[] {
+/**
+ * The four documents of /jobs/legal, in order; the text is the shipped text above. With `accountRoles` (D30, off
+ * until R9) the Terms and Privacy are the v1.2 / v2 drafts below.
+ */
+export function legalDocs(disputesOn: boolean, accountRoles = false): LegalDoc[] {
   return [
-    { id: 'terms', title: 'Terms of use', kicker: 'How the pilot works and what N.E.D is not', sections: TERMS },
-    { id: 'privacy', title: 'Privacy notice', kicker: 'What we process, where it goes, your choices', sections: PRIVACY },
+    { id: 'terms', title: 'Terms of use', kicker: 'How the pilot works and what N.E.D is not', sections: accountRoles ? TERMS_V12 : TERMS },
+    { id: 'privacy', title: 'Privacy notice', kicker: 'What we process, where it goes, your choices', sections: accountRoles ? PRIVACY_V2 : PRIVACY },
     { id: 'disclosures', title: 'Disclosures', kicker: 'The limits of this pilot, stated plainly', sections: disclosuresDoc(disputesOn) },
     { id: 'rules', title: 'Job posting rules', kicker: 'How to post, apply and hire on N.E.D Jobs', sections: JOB_POSTING_RULES },
   ];
 }
 
 export const LEGAL_VERSION_LINE = 'Pilot version 1.1 · last updated 7 Oct 2026';
+
+// ---- D30 drafts (R2). Draft for CL review (D30); not live until R9. ----
+
+/** Who "N.E.D" is in the contract (design §9 question 1). A test fails while it is a placeholder and the flag is on */
+export const OPERATOR_NAME = '[operator]';
+/** Governing law and forum (design §9 question 2) */
+export const GOVERNING_LAW = '[governing law]';
+
+/** Placeholders that must be replaced before the D30 text goes live (R9) */
+export function legalPlaceholders(accountRoles: boolean): string[] {
+  if (!accountRoles) return [];
+  return [OPERATOR_NAME, GOVERNING_LAW].filter((v) => /^\[.*\]$/.test(v));
+}
+
+const dutySections = (card: DutyCard, who: string): LegalSection[] => [
+  { title: `${who}: you can count on`, list: 'bullet', body: [...card.countOn] },
+  { title: `${who}: you agree to`, list: 'bullet', body: [...card.agreeTo] },
+];
+
+export const TERMS_V12_HEADING = 'N.E.D terms of use · version 1.2 · draft';
+/** Terms 1.1 plus the D30 sections (build §8). The 1.1 "Changes" section is replaced by the re-acceptance rule */
+export const TERMS_V12: LegalSection[] = [
+  {
+    title: 'Who we are',
+    body: [`The N.E.D pilot is run by ${OPERATOR_NAME}. In these terms, "N.E.D" means ${OPERATOR_NAME}.`],
+  },
+  ...TERMS.filter((t) => t.title !== 'Changes'),
+  {
+    title: 'Your role and where you live',
+    body: [
+      'When you join, you choose your role (freelancer, client or both) and declare the country where you live now. A business client also declares its business details.',
+      'These declarations are self-declared. N.E.D does not check them, and you are responsible if a declaration is false. The app uses them to decide what it shows you; the Solana program does not know or check them.',
+      'People who live in Vietnam join as freelancers only, and a business registered in Vietnam cannot be a client, because clients lock USDC.',
+    ],
+  },
+  {
+    title: 'Rights and duties',
+    body: [
+      'Your rights and duties are the cards shown on the N.E.D Agreement screen for your role. They are part of these terms and are repeated below.',
+    ],
+  },
+  ...dutySections(FREELANCER_CARD, 'As a freelancer'),
+  ...dutySections(CLIENT_CARD, 'As a client'),
+  { title: 'For a business client', list: 'bullet', body: [...BUSINESS_CARD.items] },
+  { title: 'What N.E.D does and does not do', list: 'bullet', body: NED_CARD.items.slice(0, 5) },
+  { title: 'Limit of responsibility', body: [NED_CARD.items[5]] },
+  {
+    title: 'Misuse',
+    body: [
+      'N.E.D may stop offering its app to an account that breaks these terms, for example through false declarations, unlawful work, impersonation or attempts to launder money. It cannot freeze or take funds already locked in the program.',
+    ],
+  },
+  {
+    title: 'Changes',
+    body: [
+      NED_CARD.items[7],
+      'Nobody is bound by a changed term until they agree to it. A real launch needs a legal review and new terms.',
+    ],
+  },
+  { title: 'Contact', body: [`Write to ${TEAM_EMAIL}.`] },
+  {
+    title: 'Law',
+    body: [
+      `These terms are governed by ${GOVERNING_LAW}. Nothing in them removes rights you have by law that cannot be waived.`,
+    ],
+  },
+];
+
+export const PRIVACY_V2_HEADING = 'N.E.D privacy notice · version 2 · draft';
+/** Privacy 1 plus the D14 items of CL pre-pitch-check §14.2 and the D30 on-device data (build §8) */
+export const PRIVACY_V2: LegalSection[] = [
+  ...PRIVACY.filter((p) => p.title !== 'Your choices' && p.title !== 'Contact').map((p) =>
+    // CL §14.2: "public and permanent"
+    p.title === 'Data on Solana is public or permanent' ? { ...p, title: 'Data on Solana is public and permanent' } : p,
+  ),
+  {
+    title: 'Country, role and business details',
+    body: [
+      'Country, role and business details are kept on this device. They are not written to Solana and not sent to anyone. A registration number never leaves this device.',
+      'Residence is self-declared; N.E.D does not check it. The app uses your country to decide how amounts are shown and which actions you see.',
+    ],
+  },
+  {
+    title: 'N.E.D Jobs',
+    body: [
+      'Job listings, applications and the pitch you write are public plain text on Solana, linked to your wallet address, permanently.',
+    ],
+  },
+  {
+    title: 'Why we ask for a phone number',
+    body: [
+      'The phone number is optional. It lets people who already know your number find your account. Only its hash goes on Solana.',
+    ],
+  },
+  {
+    title: 'Transfers outside Vietnam',
+    list: 'bullet',
+    body: [
+      'Dynamic (login), Helius (blockchain data), Vercel and GitHub (hosting) process data in the United States.',
+      'Solana nodes run worldwide, so everything written to Solana is copied to many countries.',
+    ],
+  },
+  {
+    title: 'How long data is kept',
+    list: 'bullet',
+    body: [
+      'Hosting request logs: as long as Vercel and GitHub keep them under their own policies.',
+      'Data on this device: until you sign out or clear the app’s data. The record of what you agreed to and when is kept on the device after sign-out.',
+      'Data on Solana: permanently.',
+    ],
+  },
+  {
+    title: 'Your rights',
+    body: [
+      `You can ask to access, correct or delete your data, to restrict or object to how it is processed, and you can complain to the authority that enforces personal data protection in Vietnam. Write to ${TEAM_EMAIL}.`,
+      'Data written to Solana cannot be corrected or deleted by anyone, including N.E.D. N.E.D can stop showing it in its app.',
+    ],
+  },
+  { title: 'Age', body: ['N.E.D is for people aged 18 or older.'] },
+  ...PRIVACY.filter((p) => p.title === 'Your choices' || p.title === 'Contact'),
+];

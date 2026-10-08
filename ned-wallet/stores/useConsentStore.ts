@@ -3,10 +3,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { consentVersion } from '@ned/core/legal/agreement.ts';
+import { FEATURES } from '../constants/features';
 
 export const CONSENT_STORAGE_KEY = '@ned_consent_v1';
-/** Bump when the consent text changes; an older version counts as no consent */
-export const CONSENT_VERSION = 2;
+/** One source in core (2 today, 3 with the D30 agreement); an older version counts as no consent */
+export const CONSENT_VERSION = consentVersion(FEATURES.accountRoles);
 
 export interface ConsentRecord {
   /** unix ms */

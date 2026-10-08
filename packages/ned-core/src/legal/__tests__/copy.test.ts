@@ -1,6 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { disclosuresDoc, JOB_POSTING_RULES, LEGAL_DOC_IDS, legalDocs, PRIVACY, TEAM_EMAIL, TERMS } from '../copy.ts';
+import { CORE_FEATURES } from '../../features.ts';
+import {
+  AGREEMENT_COPY,
+  BUSINESS_CARD,
+  CLIENT_CARD,
+  FREELANCER_CARD,
+  NED_CARD,
+} from '../agreement.ts';
+import {
+  disclosuresDoc,
+  GOVERNING_LAW,
+  JOB_POSTING_RULES,
+  LEGAL_DOC_IDS,
+  legalDocs,
+  legalPlaceholders,
+  OPERATOR_NAME,
+  PRIVACY,
+  PRIVACY_V2,
+  TEAM_EMAIL,
+  TERMS,
+  TERMS_V12,
+} from '../copy.ts';
 import * as core from '../../index.ts';
 
 const text = (s: { title: string; body: string[] }[]) => s.map((x) => `${x.title} ${x.body.join(' ')}`).join(' ');
@@ -57,4 +78,55 @@ test('v1.4 lock at hire (CL pre-pitch-check 9.3 items 1–3)', () => {
   const i = d.findIndex((x) => x.title === 'Some listings lock only when they hire');
   assert.equal(d[i - 1].title, 'Public on-chain', 'right after the public line');
   assert.equal(d[i].body[0], 'Listings marked Locks when hired have no locked budget until the business selects someone. Your application and pitch are public even if the listing is never funded.');
+});
+
+// D30 (R2): section 0 rule 4 of the D30 prompts (design §6)
+const D30_BANNED =
+  /\bpay(ment|s|ing)?\b|escrow|intermediar|trung gian|guarantee|\bsafe\b|protected|verified|trusted|employer|employee|salary/i;
+
+test('D30: no banned word in Terms 1.2, Privacy 2 or any agreement string', () => {
+  const agreement = [
+    ...Object.values(AGREEMENT_COPY).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))),
+    ...[FREELANCER_CARD, CLIENT_CARD].flatMap((c) => [c.heading, ...c.countOn, ...c.agreeTo]),
+    ...[BUSINESS_CARD, NED_CARD].flatMap((c) => [c.heading, ...c.items]),
+  ];
+  for (const s of [...agreement, text(TERMS_V12), text(PRIVACY_V2)]) assert.doesNotMatch(s, D30_BANNED, s);
+});
+
+test('D30: legalDocs serves Terms 1.2 / Privacy 2 only with accountRoles; live text unchanged', () => {
+  assert.equal(legalDocs(false)[0].sections, TERMS);
+  assert.equal(legalDocs(true, false)[1].sections, PRIVACY);
+  assert.equal(legalDocs(true, true)[0].sections, TERMS_V12);
+  assert.equal(legalDocs(true, true)[1].sections, PRIVACY_V2);
+  for (const t of TERMS.filter((x) => x.title !== 'Changes')) assert.ok(TERMS_V12.includes(t), t.title);
+  const titles = TERMS_V12.map((t) => t.title);
+  for (const t of ['Who we are', 'Your role and where you live', 'Rights and duties', 'Limit of responsibility', 'Misuse', 'Changes', 'Contact', 'Law']) {
+    assert.ok(titles.includes(t), t);
+  }
+  assert.match(text(TERMS_V12), /\[operator\]/);
+  assert.match(text(TERMS_V12), /\[team email\]/);
+});
+
+test('D30: Privacy 2 has the CL §14.2 items and the on-device line', () => {
+  const p = text(PRIVACY_V2);
+  for (const s of [
+    /Country, role and business details are kept on this device/,
+    /Dynamic \(login\), Helius \(blockchain data\), Vercel and GitHub \(hosting\) process data in the United States/,
+    /Solana nodes run worldwide/,
+    /How long data is kept/,
+    /access, correct or delete your data, to restrict or object/,
+    /complain/,
+    /cannot be corrected or deleted by anyone/,
+    /18 or older/,
+    /Residence is self-declared/,
+    /phone number is optional/i,
+    /Job listings, applications and the pitch/,
+    /public and permanent/,
+  ]) assert.match(p, s);
+  for (const s of PRIVACY.filter((x) => x.title !== 'Data on Solana is public or permanent')) assert.ok(PRIVACY_V2.includes(s), s.title);
+});
+
+// Expected to fail until R9 fills OPERATOR_NAME and GOVERNING_LAW (design §9 questions 1–2); a todo while the flag is off
+(CORE_FEATURES.accountRoles ? test : test.todo)('D30: no legal placeholder left once accountRoles is on', () => {
+  assert.deepEqual(legalPlaceholders(true), [], `replace ${OPERATOR_NAME} and ${GOVERNING_LAW} before R9`);
 });

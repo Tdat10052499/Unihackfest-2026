@@ -3,10 +3,12 @@
 // A valid consent is not withdrawn and has the current version (ned-wallet/stores/useConsentStore.ts). The Workspace
 // never writes it: the user agrees in the wallet panel at /consent.
 import { useSyncExternalStore } from 'react';
+import { consentVersion } from '@ned/core/legal/agreement.ts';
+import { FEATURES } from '../config.ts';
 
 export const CONSENT_STORAGE_KEY = '@ned_consent_v1';
-/** Must equal CONSENT_VERSION in ned-wallet/stores/useConsentStore.ts */
-export const CONSENT_VERSION = 2;
+/** Same source as CONSENT_VERSION in ned-wallet/stores/useConsentStore.ts (core consentVersion) */
+export const CONSENT_VERSION = consentVersion(FEATURES.accountRoles);
 
 interface ConsentRecord {
   acceptedAt: number;

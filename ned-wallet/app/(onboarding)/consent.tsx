@@ -5,22 +5,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
+import { CONSENT_SCOPE_V2 } from '@ned/core/legal/agreement.ts';
 import { useConsentStore } from '../../stores/useConsentStore';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
 import { fonts, palette, radius, space } from '../../constants/design';
 
-/** What the consent covers (stored with the log) */
-export const CONSENT_SCOPE = [
-  'google-account-name',
-  'email',
-  'wallet-address',
-  'login-provider-dynamic-us',
-  'username-onchain',
-  'phone-hash-onchain-optional',
-  'device-key-onchain',
-  'encrypted-contract-content-onchain',
-  'rpc-helius-us',
-];
+/** What the consent covers (stored with the log); the list lives in core */
+export const CONSENT_SCOPE = [...CONSENT_SCOPE_V2];
 
 /** P2 (compliance fix list): the exact checkbox text of consent version 2 */
 export const CONSENT_TEXT =

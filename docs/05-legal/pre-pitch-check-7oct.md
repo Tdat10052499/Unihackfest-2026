@@ -546,3 +546,29 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
    - Please review §6 (words to avoid, including "trung gian") and the draft text in §8 after the final.
    - Nothing from D30 goes on a slide or into Q&A. If asked, the answer is "lộ trình sau vòng final".
 
+
+## D30 copy for CL review (R2)
+
+*8 Oct 2026, PO session (prompt R2). Everything here is behind `FEATURES.accountRoles`, which is **off** in core, wallet and Workspace. The live Terms 1.1, Privacy 1 and consent v2 are unchanged. Nothing goes live before R9 and the CL sign-off.*
+
+### New constants
+
+| Constant | File | What it is | Source |
+| --- | --- | --- | --- |
+| `AGREEMENT_VERSION` (1), `AGREEMENT_COPY` | `packages/ned-core/src/legal/agreement.ts` | Screen copy of the agreement step: title, opening, headings, links, the 3 checkboxes, button, version line | Copy deck C4, verbatim |
+| `FREELANCER_CARD`, `CLIENT_CARD`, `BUSINESS_CARD`, `NED_CARD` | same | Rights and duties per role, and "What N.E.D does and does not do" (first 3 items shown, "Read all" for 8) | Design §8.2–§8.4 / C4, verbatim |
+| `AGREEMENT_CHECKS` | same | The three checkbox texts, unticked by default | C4 `check1`–`check3` |
+| `agreementText()`, `agreementHash()` | same | The exact text shown, one line per string, hashed with SHA-256 into the on-device record. The last line is `Declared: <roles> · <country>`, so the hash also binds what the user declared. **This line is not shown on screen**; CL to confirm it is fine in the hashed text | New (R2) |
+| `consentVersion()`, `CONSENT_SCOPE_V2`, `CONSENT_SCOPE_V3` | same | One source for the consent version (2 off, 3 on), used by the wallet store and the Workspace mirror. v3 scope = v2 + `country`, `role`, `business-details`, `jobs-public` | §14.2 item 7, build §8 |
+| `TERMS_V12_HEADING`, `TERMS_V12` | `packages/ned-core/src/legal/copy.ts` | Terms 1.1 plus "Who we are", "Your role and where you live", "Rights and duties" (the cards, repeated as sections), "Limit of responsibility", "Misuse", "Changes" (re-acceptance; **replaces** the 1.1 "Changes"), "Contact", "Law" | Build §8; the prose of the new sections is new (R2) except where it reuses §8.4 |
+| `PRIVACY_V2_HEADING`, `PRIVACY_V2` | same | Privacy 1 plus: country/role/business on the device, N.E.D Jobs data, purpose of the phone number, transfers to the US and Solana nodes worldwide, retention, rights (access, correct, delete, restrict, object, complain) and the blockchain limit on deletion, 18+. The title "public or permanent" becomes "public **and** permanent" | §14.2 item 7, build §8 |
+| `OPERATOR_NAME` (`'[operator]'`), `GOVERNING_LAW` (`'[governing law]'`), `legalPlaceholders()` | same | Placeholders. A core test (a todo while the flag is off) fails once the flag is on and either is still a placeholder | Design §9 questions 1–2 |
+
+### What the CL needs to decide
+
+1. **Who "N.E.D" is in the contract** (design §9 question 1). `OPERATOR_NAME` fills "Who we are". Without a named entity or person, the limit of responsibility means little.
+2. **Governing law and forum** (design §9 question 2): Vietnam, Singapore or another. `GOVERNING_LAW` fills the "Law" section.
+3. **Rights to the work before release** (design §9 question 3): the last "You can count on" line of the freelancer card. Keep, change or drop.
+4. **Conflict with the F11 audit (7 Oct).** The freelancer card says "The place your earnings go is fixed when you accept. Nobody, including N.E.D, can change it." F11 removed "Nobody, including N.E.D" from the live text because the team's deploy wallet can still upgrade the program, and a core test checks the live documents for it. R2 keeps the deck verbatim. The CL should pick a wording such as "No instruction in the program lets anyone change it."
+5. **New prose that is not from the deck:** the bodies of "Who we are", "Your role and where you live", "Rights and duties", the second "Changes" sentence, "Contact", "Law", and all the Privacy 2 additions. In particular, "Your rights" says "complain to the authority that enforces personal data protection in Vietnam" without naming it \[Unverified: lawyer to name the authority\]. Retention of hosting logs is "as long as Vercel and GitHub keep them under their own policies" \[Unverified: durations not checked\].
+6. **Job posting rules link:** design §5 says it is shown "for clients", while the deck key is `agreement.links.business`. R2 shows it to every client, because individual clients can also post jobs.
