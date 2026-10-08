@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isTokenTransferNotice, syncsOnChainActivity } from '../services/regionGuard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchOnChainHistory, ActivityItem } from '../services/solana';
 
@@ -98,12 +99,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         }
       }
 
-      // 2. Kéo dữ liệu giao dịch On-Chain THỰC TẾ của ví từ Solana RPC
+      // 2. On-chain transfers of the wallet; D2: international view only (the Vietnam view never lists token amounts)
       let onChainNotifications: InAppNotification[] = [];
-      try {
+      const { useRegionStore } = await import('./useRegionStore');
+      const syncOnChain = syncsOnChainActivity(useRegionStore.getState().getRegion(walletAddress));
+      if (syncOnChain) try {
         const { useUserStore } = await import('./useUserStore');
         const userState = useUserStore.getState();
-        const myUsername = userState.username ? `@${userState.username}` : 'Ví của bạn';
+        const myUsername = userState.username ? `@${userState.username}` : 'Your wallet';
         const myPhone = userState.linkedPhone || undefined;
 
         const onChainHistory: ActivityItem[] = await fetchOnChainHistory(walletAddress, force);
@@ -123,20 +126,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
               return {
                 id: txId,
                 type: (isReceive ? 'RECEIVE_MONEY' : 'TRANSFER') as NotificationType,
-                title: isReceive ? 'Nhận tiền thành công' : 'Chuyển tiền thành công',
-                message: isReceive
-                  ? `Bạn đã nhận được ${tx.amount} vào ví.`
-                  : `Bạn đã chuyển ${tx.amount} thành công.`,
+                title: isReceive ? 'Received' : 'Sent',
+                message: isReceive ? `You received ${tx.amount}.` : `You sent ${tx.amount}.`,
                 amount: cleanAmount,
-                currency: 'USDC',
+                currency: tx.currency ?? 'USDC',
                 isRead,
                 createdAt: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
                 txHash: tx.signature,
-                sender: isReceive ? 'Ví người gửi trên Solana' : myUsername,
-                senderName: isReceive ? 'Ví đối tác trên Solana' : myUsername,
+                sender: isReceive ? 'A wallet on Solana' : myUsername,
+                senderName: isReceive ? 'A wallet on Solana' : myUsername,
                 senderPhone: isReceive ? undefined : myPhone,
                 senderWallet: isReceive ? tx.counterpartyWallet : walletAddress,
-                recipientName: isReceive ? myUsername : 'Ví người nhận trên Solana',
+                recipientName: isReceive ? myUsername : 'A wallet on Solana',
                 recipientPhone: isReceive ? myPhone : undefined,
                 recipientWallet: isReceive ? walletAddress : tx.counterpartyWallet,
                 network: 'Solana Devnet',
@@ -152,7 +153,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const seen = new Set<string>();
       const combined: InAppNotification[] = [];
 
-      for (const item of [...localList, ...onChainNotifications]) {
+      // D2: outside the international view, also drop transfer notices saved earlier (they carry token amounts)
+      const kept = syncOnChain ? localList : localList.filter((n) => !isTokenTransferNotice(n));
+      for (const item of [...kept, ...onChainNotifications]) {
         const key = item.txHash || item.id;
         if (!seen.has(key)) {
           seen.add(key);

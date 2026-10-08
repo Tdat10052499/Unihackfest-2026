@@ -22,6 +22,8 @@ import { deliveryEvidence, LIMITS, validateDelivery, type DeliveryDraft } from '
 import { shortHash } from '@/services/milestone/evidence';
 import { looksUnversioned } from '@/services/milestone/links';
 import { formatCountdown, formatDeadline } from '@/services/milestone/format';
+import { getWorkspaceOrigin } from '@ned/core/config.ts';
+import { needsComputerForFinals, SUBMIT_ON_COMPUTER, workspaceSubmitUrl } from '@/services/submitOnComputer';
 
 export default function SubmitScreen() {
   const { fund: address = '', i = '0' } = useLocalSearchParams<{ fund: string; i?: string }>();
@@ -40,6 +42,8 @@ export default function SubmitScreen() {
   const delivery: DeliveryDraft = useMemo(() => ({ links: links.filter((l) => l.trim()), files: [], note }), [links, note]);
   const problems = validateDelivery(delivery);
   const fingerprint = problems.length ? '' : shortHash(deliveryEvidence(delivery));
+  // F-1: the final-file list needs a computer; the phone shows where to finish instead of a dead end
+  const onComputer = needsComputerForFinals(problems);
 
   if (!fund) {
     return (
@@ -137,6 +141,19 @@ export default function SubmitScreen() {
           </View>
         ) : null}
 
+        {canSubmit ? (
+          <View style={[u.notice, { backgroundColor: status.warning.bg }]} accessibilityRole="alert">
+            <Text style={[u.body, { color: status.warning.ink }]}>{SUBMIT_ON_COMPUTER}</Text>
+            <Text
+              style={u.link}
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(workspaceSubmitUrl(getWorkspaceOrigin(), fund.address, index))}
+            >
+              Open this milestone in the Workspace ↗
+            </Text>
+          </View>
+        ) : null}
+
         <Text style={u.h2} accessibilityRole="header">
           Delivery links
         </Text>
@@ -184,7 +201,11 @@ export default function SubmitScreen() {
         <FeesCard partner={fund.destination?.kind === 'payoutPartner'} />
       </ScrollView>
       <View style={[u.bar, { paddingBottom: Math.max(insets.bottom, space[4]) + space[2] }]}>
-        {problems.length && (links.some((l) => l.trim()) || note) ? <Text style={u.error}>{problems[0].message}</Text> : null}
+        {onComputer ? (
+          <Text style={u.error}>{SUBMIT_ON_COMPUTER}</Text>
+        ) : problems.length && (links.some((l) => l.trim()) || note) ? (
+          <Text style={u.error}>{problems[0].message}</Text>
+        ) : null}
         {!canSubmit ? <Text style={u.error}>This milestone cannot be submitted now.</Text> : null}
         {actions.error ? (
           <Text style={u.error} accessibilityRole="alert">

@@ -4,6 +4,7 @@ import {
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
+import { solActivityAmount } from './activityAmount';
 import { Buffer } from 'buffer';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
@@ -480,20 +481,19 @@ export function parseTransactionForAddress(
       const balanceDiffLamports = postBalance - preBalance;
       const solDiff = balanceDiffLamports / LAMPORTS_PER_SOL;
 
-      // Nhận tiền thực tế (lớn hơn 0.005 SOL ~ $0.75)
+      // SOL received (above 0.005 SOL); D2: shown in SOL, never priced as dollars
       if (solDiff > 0.005) {
-        const usdVal = solDiff * 150;
         return {
           id: signature,
           type: 'received',
-          title: 'Nhận tiền',
+          title: 'Received',
           time: timeStr,
-          amount: `+$${usdVal.toFixed(2)}`,
+          amount: solActivityAmount(solDiff),
           isPositive: true,
           iconBg: '#10B981',
           signature,
           blockTime: blockTime ?? undefined,
-          currency: 'USDC',
+          currency: 'SOL',
         };
       }
 
@@ -503,18 +503,17 @@ export function parseTransactionForAddress(
       const netSentSol = Math.abs(solDiff) - feeSol;
 
       if (solDiff < 0 && netSentSol > 0.005) {
-        const usdVal = netSentSol * 150;
         return {
           id: signature,
           type: 'sent',
-          title: 'Chuyển tiền',
+          title: 'Sent',
           time: timeStr,
-          amount: `-$${usdVal.toFixed(2)}`,
+          amount: solActivityAmount(-netSentSol),
           isPositive: false,
           iconBg: '#374151',
           signature,
           blockTime: blockTime ?? undefined,
-          currency: 'USDC',
+          currency: 'SOL',
         };
       }
     }
