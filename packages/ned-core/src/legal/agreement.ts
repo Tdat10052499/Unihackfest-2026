@@ -29,6 +29,17 @@ export const AGREEMENT_COPY = {
   button: 'Agree and continue',
   disabled: 'Tick all three boxes to continue',
   version: 'Agreement version 1 · Terms 1.2 · Privacy 2',
+  /** Button of the "What N.E.D does and does not do" sheet (board OnbAgreementNed). Not in the copy deck yet (R3) */
+  close: 'Close',
+} as const;
+
+/** agreement.links in pieces, so each name can be a link; joined they give AGREEMENT_COPY.links exactly */
+export const AGREEMENT_LINKS = {
+  lead: 'Read the full',
+  terms: 'Terms',
+  privacy: 'Privacy notice',
+  disclosures: 'Disclosures',
+  separator: ' · ',
 } as const;
 
 /** A role card: what the user can count on and what they agree to */

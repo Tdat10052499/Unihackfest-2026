@@ -4,6 +4,7 @@ import type { AccountProfile } from '../../account/types.ts';
 import {
   AGREEMENT_CHECKS,
   AGREEMENT_COPY,
+  AGREEMENT_LINKS,
   AGREEMENT_VERSION,
   agreementCards,
   agreementHash,
@@ -78,4 +79,9 @@ test('consent version and scope in one place', () => {
   assert.equal(consentVersion(true), 3);
   assert.deepEqual(CONSENT_SCOPE_V3, [...CONSENT_SCOPE_V2, 'country', 'role', 'business-details', 'jobs-public']);
   assert.equal(typeof core.agreementHash, 'function', 'exported from @ned/core');
+});
+
+test('the link pieces join to agreement.links exactly', () => {
+  const l = AGREEMENT_LINKS;
+  assert.equal(`${l.lead} ${l.terms}${l.separator}${l.privacy}${l.separator}${l.disclosures}`, AGREEMENT_COPY.links);
 });

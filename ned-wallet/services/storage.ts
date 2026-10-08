@@ -3,6 +3,7 @@ import { getOwnPhone, removeOwnPhone, saveOwnPhone } from './identity/ownPhone';
 import { parseDemoSwaps, serializeDemoSwaps } from './history';
 import { REGION_STORAGE_KEY, useRegionStore } from '../stores/useRegionStore';
 import { keysToClearOnSignOut } from './signOutKeys';
+import { useAccountStore } from '../stores/useAccountStore';
 
 const STORAGE_KEYS = {
   ACTIVITIES: '@ned_wallet_activities',
@@ -114,6 +115,15 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
 
   // Region (N11): empty the in-memory store too, or persist would write the old state back. P1: the consent log is
   // kept (state and storage), with withdrawnAt when the user withdrew; getConsent() ignores withdrawn records.
+  // D30: the account profile (role, country, business) goes; the agreement log in the same key stays
+  try {
+    // Only when there is something to clear, so a flag-off build never writes the key
+    const accounts = useAccountStore.getState();
+    if (Object.keys(accounts.profiles).length) accounts.clearProfiles();
+  } catch (err) {
+    console.warn('[Hard Reset] could not clear the account profile:', err);
+  }
+
   try {
     useRegionStore.setState({ regions: {} });
     await AsyncStorage.multiRemove([REGION_STORAGE_KEY]);

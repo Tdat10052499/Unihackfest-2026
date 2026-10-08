@@ -2,12 +2,13 @@
 // Vietnam → amounts in VND, earnings through a payout partner, no crypto balance; outside → USDC (decision D18).
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { useRegionStore } from '../../stores/useRegionStore';
 import type { Region } from '../../services/milestone/view';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
+import { FEATURES } from '../../constants/features';
 import { elevation, fonts, palette, radius, space } from '../../constants/design';
 
 const OPTIONS: { id: Region; title: string; body: string; badge: string | null }[] = [
@@ -29,6 +30,9 @@ export default function ResidenceScreen() {
   useEffect(() => {
     if (isReady && !isAuthenticated) router.replace('/welcome');
   }, [isReady, isAuthenticated]);
+
+  // D30: residence is the country step (closes D17 together with Settings → Your account)
+  if (FEATURES.accountRoles) return <Redirect href="/country" />;
 
   const confirm = () => {
     if (!walletAddress) return;

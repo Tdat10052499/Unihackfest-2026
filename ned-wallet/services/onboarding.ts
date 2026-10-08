@@ -11,6 +11,9 @@ import { useWalletModeStore, waitForWalletModeHydration, type WalletMode } from 
 import { useRegionStore, waitForRegionHydration } from '../stores/useRegionStore';
 import { useConsentStore, waitForConsentHydration } from '../stores/useConsentStore';
 import type { Region } from './milestone/view';
+import { FEATURES } from '../constants/features';
+import { useAccountStore, waitForAccountHydration } from '../stores/useAccountStore';
+import { accountStep, type AccountStep } from './accountOnboarding';
 
 /** Kích thước account on-chain (ned_program + SPL Token) — xem docs/03-ky-thuat/dev-handoff.md mục 1a */
 export const ACCOUNT_SIZES = { name: 49, reverse: 42, phone: 49, usdcAta: 165 } as const;
@@ -53,7 +56,7 @@ export function formatSol(lamports: number, digits = 4): string {
   return (lamports / LAMPORTS_PER_SOL).toFixed(digits).replace(/\.?0+$/, '');
 }
 
-export type OnboardingStep = 'fund' | 'consent' | 'profile' | 'region' | 'home';
+export type OnboardingStep = 'fund' | 'consent' | 'profile' | 'region' | 'home' | Exclude<AccountStep, 'fund' | 'profile' | 'home'>;
 
 export interface OnboardingState {
   step: OnboardingStep;
@@ -69,6 +72,7 @@ export const CONSENT_SCREEN_READY = true;
  *   đã có ReverseRecord   → consent (nếu chưa đồng ý) → region (nếu chưa chọn) → home
  */
 export async function resolveOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
+  if (FEATURES.accountRoles) return resolveAccountOnboarding(connection, wallet);
   const owner = new PublicKey(wallet);
   const reverse = await fetchReverseRecord(connection, owner);
   await Promise.all([waitForConsentHydration(), waitForRegionHydration(), waitForWalletModeHydration()]);
@@ -86,6 +90,31 @@ export async function resolveOnboarding(connection: Connection, wallet: string):
   return { step: 'profile', reverse: null };
 }
 
+/**
+ * D30 (FEATURES.accountRoles): role → country → business (business only) → agreement → fund → profile → home for a new
+ * wallet; the missing ones of role / country / business / agreement, then home, for a returning one
+ * (services/accountOnboarding.ts accountStep). The agreement holds consent v3, so it still comes before the faucet.
+ */
+async function resolveAccountOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
+  const owner = new PublicKey(wallet);
+  const reverse = await fetchReverseRecord(connection, owner);
+  await Promise.all([waitForConsentHydration(), waitForAccountHydration(), waitForRegionHydration()]);
+  if (reverse) syncProfileToUserStore(wallet, reverse.username);
+  const accounts = useAccountStore.getState();
+  const facts = {
+    hasReverse: Boolean(reverse),
+    profile: accounts.getProfile(wallet),
+    hasAgreement: Boolean(accounts.getAgreement(wallet) && useConsentStore.getState().getConsent(wallet)),
+    short: false,
+  };
+  let step = accountStep(facts);
+  if (step === 'profile') {
+    const [balance, cost] = await Promise.all([connection.getBalance(owner, 'confirmed'), getSetupCost(connection)]);
+    step = accountStep({ ...facts, short: balance < cost.required });
+  }
+  return { step, reverse };
+}
+
 /** Wallet mode chosen before regions existed → region ('simple' → 'vn', 'crypto' → 'intl'); never asks again */
 export function regionFromMode(mode: WalletMode): Region {
   return mode === 'crypto' ? 'intl' : 'vn';
@@ -97,8 +126,10 @@ function migrateRegionFromMode(wallet: string) {
   if (mode) useRegionStore.getState().setRegion(wallet, regionFromMode(mode));
 }
 
-/** Route for each step: welcome → setup → consent → (fund) → profile → residence → home */
-export function onboardingRoute(step: OnboardingStep): '/home' | '/fund' | '/consent' | '/profile' | '/residence' {
+/** Route for each step: welcome → setup → consent → (fund) → profile → residence → home; D30 adds /role, /country, /business, /agreement */
+export function onboardingRoute(
+  step: OnboardingStep
+): '/home' | '/fund' | '/consent' | '/profile' | '/residence' | '/role' | '/country' | '/business' | '/agreement' {
   switch (step) {
     case 'home':
       return '/home';

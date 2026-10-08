@@ -2,12 +2,13 @@
 // The choice is logged on this device (@ned_consent_v1: time, scope, version, wallet) — Decree 356/2025 Art. 6.
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../services/auth';
 import { CONSENT_SCOPE_V2 } from '@ned/core/legal/agreement.ts';
 import { useConsentStore } from '../../stores/useConsentStore';
 import { OnbScreen, PrimaryButton, StepHeader, onbText } from '../../components/onboarding/ui';
+import { FEATURES } from '../../constants/features';
 import { fonts, palette, radius, space } from '../../constants/design';
 
 /** What the consent covers (stored with the log); the list lives in core */
@@ -27,6 +28,9 @@ export default function ConsentScreen() {
   useEffect(() => {
     if (isReady && !isAuthenticated) router.replace('/welcome');
   }, [isReady, isAuthenticated]);
+
+  // D30: consent v3 is given on the agreement screen
+  if (FEATURES.accountRoles) return <Redirect href="/setup" />;
 
   const agree = () => {
     if (!walletAddress || !checked) return;

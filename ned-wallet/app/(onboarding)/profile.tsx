@@ -15,6 +15,8 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { FEATURES } from '../../constants/features';
+import { useAccountStore } from '../../stores/useAccountStore';
 import { Feather } from '@expo/vector-icons';
 import { PublicKey } from '@solana/web3.js';
 import { useAuth } from '../../services/auth';
@@ -77,6 +79,8 @@ export default function ProfileScreen() {
   const [cost, setCost] = useState<SetupCost | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  // D30: the last step, 4 of 4 (5 of 5 for a business)
+  const accountSteps = useAccountStore((st) => (st.getProfile(walletAddress)?.client?.kind === 'business' ? 5 : 4));
 
   useEffect(() => {
     if (isReady && !isAuthenticated) router.replace('/welcome');
@@ -86,7 +90,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!walletAddress) return;
     fetchReverseRecord(connection, new PublicKey(walletAddress))
-      .then((reverse) => reverse && router.replace('/residence'))
+      .then((reverse) => reverse && router.replace(FEATURES.accountRoles ? '/setup' : '/residence'))
       .catch(() => {});
   }, [walletAddress, connection]);
 
@@ -166,7 +170,8 @@ export default function ProfileScreen() {
       console.log(`✅ [onboarding] create_profile @${username}${phoneKey ? ' + link_phone' : ''}: ${signature}`);
       if (phoneKey) await saveOwnPhone(phoneKey.e164);
       syncProfileToUserStore(walletAddress, username);
-      router.replace('/residence');
+      // D30: country and region were set on the agreement step, so the profile is the last step
+      router.replace(FEATURES.accountRoles ? '/home' : '/residence');
     } catch (err) {
       console.warn('[onboarding] create_profile failed:', err);
       setSubmitError(describeTxError(err, 'profile'));
@@ -203,7 +208,11 @@ export default function ProfileScreen() {
   return (
     <OnbScreen glow={false}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <StepHeader step={2} total={3} onBack={() => router.replace('/consent')} />
+        {FEATURES.accountRoles ? (
+          <StepHeader step={accountSteps} total={accountSteps} onBack={() => router.replace('/agreement')} />
+        ) : (
+          <StepHeader step={2} total={3} onBack={() => router.replace('/consent')} />
+        )}
         <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={onbText.h1} accessibilityRole="header">
             Create your profile

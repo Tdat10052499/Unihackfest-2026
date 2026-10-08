@@ -90,6 +90,8 @@ export const BUSINESS_COPY = {
     help: 'Stays on this device. Never written to Solana.',
   },
   badge: 'Business · self-declared',
+  /** Caption under the disabled Continue (board OnbBusinessError). Not in the copy deck yet: PO to confirm (R3) */
+  fixErrors: 'Fix the fields in red to continue.',
 } as const;
 
 /** C5 · Settings → "Your account" and the change-country sheets */
