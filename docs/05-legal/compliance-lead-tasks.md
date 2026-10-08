@@ -18,7 +18,7 @@
 - [x] Product (app, UI copy, README) in English; **pitch, slides and Q&A in Vietnamese only** (re-confirmed with the organisers on 7 Oct 2026; replaces "English-only presentation")
 - [x] No "Best AI Product" prize in the official rules
 - [x] Final on 10/10/2026 (confirmed 7 Oct). Final criteria from the organisers: Technical Difficulty & Depth (30) · Architecture & Smart Contract Quality (25) · Solana Stack, Composability & Performance (25) · Build Evidence, Documentation & Reproducibility (20)
-- [ ] Pitch length, Q&A length and Expo booth format in writing (team plan: 5 min + 3 min Q&A) — save in Tab 10
+- [ ] Pitch length, Q&A length and Expo booth format in writing (team plan, 9 Oct: 5 min pitch + 5 min Q&A; deck notes in `../09-milestone-lock/final-deck-9oct.md`) — save in Tab 10
 
 ---
 

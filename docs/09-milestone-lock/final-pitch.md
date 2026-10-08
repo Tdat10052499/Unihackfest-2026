@@ -3,7 +3,9 @@
 > **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · No Empty Deals** (PO chốt 7/10 theo đề xuất A của CL, `pre-pitch-check-7oct.md` §11–12; bỏ tên "Network of Employment Deals" vì mâu thuẫn với "N.E.D không tuyển dụng ai"), gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
 
 **Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.4 trên devnet (upgrade V3 và IDL on-chain V4, 7/10; trước đó v1.3) · **Người soạn:** Compliance Lead
-**Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **4 phút** (cập nhật 8/10)
+**Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **5 phút** (cập nhật 9/10)
+
+> **Cập nhật 9/10:** bộ slide đã tối ưu theo tiêu chí chấm, thêm slide **Sản phẩm & kinh doanh** (20 s, Track 1), Q&A 5 phút, mốc giờ mới (pitch 4:40). Thứ tự slide, mốc giờ và nguồn: [`final-deck-9oct.md`](final-deck-9oct.md). Chỗ nào trong file này khác với file đó thì theo `final-deck-9oct.md`.
 **Ngôn ngữ (ban tổ chức xác nhận 7 Oct):**
 - Thuyết trình, slide và Q&A: **chỉ dùng tiếng Việt**.
 - Sản phẩm (app, nút bấm, thông báo, lỗi): **giữ tiếng Anh**. Khi demo, đọc tên nút đúng như trên màn hình (ví dụ "**Slide to accept**", "**Accept & release**", "**Release now**"), rồi giải thích bằng tiếng Việt.
@@ -22,7 +24,7 @@ Trong mọi slide, demo và Q&A: **người A** là client ở nước ngoài (S
 | **Solana Stack, Composability & Performance** | 25 | Slide 6 | Anchor 1.1.2, Token Interface, Circle devnet USDC, ví MPC của Dynamic; bảng compute units |
 | **Build Evidence, Documentation & Reproducibility** | 20 | Slide 7 + link trong Q&A | Repo công khai, hơn 420 commit; decision log D1–D29; program spec; build và test bằng 2 lệnh; script chạy lại luồng trên devnet |
 
-Vòng Final ngày **10/10/2026** chấm theo đúng 4 tiêu chí trên (nhóm thi cả hai track; BTC đã xác nhận 7/10). Không có tiêu chí business model, nên pitch **không có slide đối thủ, cũng không có slide doanh thu**. Nếu giám khảo hỏi thì trả lời trong Q&A (mục 4, P2 và P6; số liệu trong `../05-legal/qa-cheatsheet.md`).
+Vòng Final ngày **10/10/2026** chấm theo đúng 4 tiêu chí trên (nhóm thi cả hai track; BTC đã xác nhận 7/10). ~~Không có tiêu chí business model, nên pitch không có slide đối thủ, cũng không có slide doanh thu.~~ (Thay bằng bản 9/10: có 1 slide Sản phẩm & kinh doanh 20 s cho Track 1, xem [`final-deck-9oct.md`](final-deck-9oct.md).) Nếu giám khảo hỏi thì trả lời trong Q&A (mục 4, P2 và P6; số liệu trong `../05-legal/qa-cheatsheet.md`).
 
 ---
 
@@ -214,7 +216,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 ---
 
-## 4. Q&A (4 phút ≈ 6–8 câu hỏi)
+## 4. Q&A (5 phút ≈ 8–10 câu hỏi; cập nhật 9/10)
 
 **Luật trả lời:**
 - Trả lời bằng tiếng Việt, mỗi câu ≤ 30 s.
