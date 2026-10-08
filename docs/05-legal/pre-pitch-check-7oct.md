@@ -473,3 +473,46 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
 | Slides and speaker script | Go (§12.5), with the v1.4 numbers and the name "No Empty Deals" |
 | Wording pass | Waiting for the CL check (13.1) |
 | Final CL sign-off | 9 Oct walkthrough on the live app (§7), after items 1–2 above |
+
+---
+
+## 14. CL reply to section 13: checks done, decisions, what is left (8 Oct; `main` at `b5fe442`)
+
+**From:** CL. **To:** PO, Dev. Thank you for the fast turnaround on the name, v1.4 and the wording pass.
+
+### 14.1 CL checks (the "CL ok" the PO asked for)
+
+| Commit | Checked against | Result |
+| --- | --- | --- |
+| `3cafdc7` (Terms, Job posting rules, Disclosures `unfunded`) | §9.3 items 1–3 | **CL ok.** Word for word. |
+| `880f14a`, `70eaf6f` (wallet and copy wording pass) | §3 and §8.2 | **CL ok, with 2 small leftovers below.** Confirmed fixed: D1, D3, D4, D5, D7, D8, D10, D13, D15, F-2 to F-6, the Find heading, F-11, F-12, F-13. |
+| `3d4c899`, `b5fe442` (README, phone app first) | Word table, §11.2 | **CL ok.** The gallery is labelled as design-board renders with sample data, which is honest. One check in 14.4. |
+
+**Two leftovers (Dev, one small commit):**
+
+1. `packages/ned-core/src/milestone/view.ts:177`: the client status label is still **"Final files received"**, and the test `ned-workspace/src/pages/__tests__/contract.test.tsx:93` expects it. The bell was already renamed (F-4). Change it to **"Final files shared"**, the same reason as F-4: nothing checks what is behind the link.
+2. `packages/ned-core/src/legal/copy.ts:108`: "Your links and note are encrypted with the contract key. Briefs and deliveries are encrypted. N.E.D has no key; …" says "encrypted" twice. Change it to: **"Your links and note are encrypted with the contract key. N.E.D has no key; anyone holding the contract link can read them."**
+
+### 14.2 CL decisions asked for in §13.2
+
+| # | Item | CL decision |
+| --- | --- | --- |
+| 6 | **F-7** fixed-version links | **Agree with the PO proposal.** A fixed-version link (Figma version, Git commit) counts as a **preview** only. The promised final-file list is always required, and `FIXED_FINAL` ("Your fixed version link is the final work", `ned-workspace/src/pages/Submit.tsx:70`) and the exemption in `links.ts:15` go. GUIDE line in `copy.ts`: "A fixed-version link is a preview. List the final files you will hand over after release." If this cannot land before the freeze, **do not mention fixed-version links on stage**. |
+| 7 | **D12** consent v3 and **D14** Privacy additions | **Do both now, as one change**, because a judge may open the Privacy page and N.E.D Jobs data is not in the consent today. Privacy adds: cross-border transfer (Dynamic, Helius, Vercel and GitHub in the US; Solana nodes worldwide), retention for hosting logs and on-device data, the rights to access, correct, delete, restrict, object and complain, "18+ only", residence is self-declared, the purpose of the phone number, and N.E.D Jobs data (listings, applications and the public pitch linked to a wallet). Consent text adds the N.E.D Jobs items and says "public **and** permanent". Bump `CONSENT_VERSION` to 3. **Both stage accounts re-consent on 9 Oct before the walkthrough.** If it cannot land before the freeze, keep v2 and answer Q&A L3 as written: no new claim on stage. |
+
+### 14.3 Still open before the CL sign-off on 9 Oct
+
+| # | Item | Owner | Status on `main` |
+| --- | --- | --- | --- |
+| 1 | **D2** Vietnam-view notification sync and `* 150` | Dev | **Open** (`ned-wallet/services/solana.ts:485, 506`). High: the only place the Vietnam view can show USDC |
+| 2 | **F-1** mobile Submit dead end | Dev | **Open** (`ned-wallet/app/contracts/[fund]/submit.tsx:40` still builds `files: []`). High |
+| 3 | **D6** team email | PO | **Open** (`copy.ts:210`) |
+| 4 | **O2** license | PO | **Open** (no `LICENSE`) |
+| 5 | 14.1 leftovers, F-7, D12/D14 | Dev + CL | See 14.1 and 14.2 |
+| 6 | D16, D17, F-14 | Dev | After the freeze is fine |
+
+### 14.4 Pitch notes from the presenter
+
+- **Q&A is 4 minutes** (presenter, 8 Oct). Updated in `final-pitch.md` (header and §4 title: about 6–8 questions). The pitch stays 5:00 with the 4:00 yellow light.
+- The presenter will speak from memory with **keywords only on the slides**. The speaker script in `final-pitch.md` stays the source of facts and wording; the slides carry only the key words and numbers from §10.3 (v1.4 set).
+- **README check:** the architecture line says "Android via EAS". Say "Android" on stage only if a build exists and has been opened on a phone; otherwise say "web app, chạy trên điện thoại".

@@ -3,7 +3,7 @@
 > **Tên và logo mới (PO, 7 Oct):** sản phẩm là **N.E.D · No Empty Deals** (PO chốt 7/10 theo đề xuất A của CL, `pre-pitch-check-7oct.md` §11–12; bỏ tên "Network of Employment Deals" vì mâu thuẫn với "N.E.D không tuyển dụng ai"), gồm hai phần **Milestone Lock** (hợp đồng theo milestone) và **N.E.D Jobs** (nơi đăng việc). Logo: `assets/images/ned-logo.png` (vuông) và `assets/images/ned-logo-banner.png` (ngang). Dùng logo ở slide mở đầu và slide 8; không tự vẽ lại logo.
 
 **Phiên bản:** 7 Oct 2026 (sau đợt rà soát: code, tài liệu và nguồn bên ngoài) · **Build tham chiếu:** `main`, program v1.4 trên devnet (upgrade V3 và IDL on-chain V4, 7/10; trước đó v1.3) · **Người soạn:** Compliance Lead
-**Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **3 phút**
+**Thời lượng:** pitch **4:30** (giới hạn 5:00, đèn vàng lúc 4:00) + Q&A **4 phút** (cập nhật 8/10)
 **Ngôn ngữ (ban tổ chức xác nhận 7 Oct):**
 - Thuyết trình, slide và Q&A: **chỉ dùng tiếng Việt**.
 - Sản phẩm (app, nút bấm, thông báo, lỗi): **giữ tiếng Anh**. Khi demo, đọc tên nút đúng như trên màn hình (ví dụ "**Slide to accept**", "**Accept & release**", "**Release now**"), rồi giải thích bằng tiếng Việt.
@@ -214,7 +214,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 
 ---
 
-## 4. Q&A (3 phút ≈ 5–6 câu hỏi)
+## 4. Q&A (4 phút ≈ 6–8 câu hỏi)
 
 **Luật trả lời:**
 - Trả lời bằng tiếng Việt, mỗi câu ≤ 30 s.
