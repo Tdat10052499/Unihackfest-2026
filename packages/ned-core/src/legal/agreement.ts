@@ -53,7 +53,8 @@ export const FREELANCER_CARD: DutyCard = {
   heading: AGREEMENT_COPY.freelancer.heading,
   countOn: [
     'You see the budget locked in the program before you start work.',
-    'The place your earnings go is fixed when you accept. Nobody, including N.E.D, can change it.',
+    // F11 (PO, 8 Oct): the deploy wallet can still upgrade the program, so no "Nobody, including N.E.D"
+    'The place your earnings go is fixed when you accept. No instruction in the program lets anyone change it.',
     'If the client neither approves nor requests changes before the review deadline, anyone can release the milestone to you (Release now).',
     'A change request never sends the money back to the client alone. It stays locked until you both agree.',
     'Your brief and your deliveries are encrypted. N.E.D has no key.',

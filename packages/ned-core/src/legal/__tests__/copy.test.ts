@@ -93,6 +93,17 @@ test('D30: no banned word in Terms 1.2, Privacy 2 or any agreement string', () =
   for (const s of [...agreement, text(TERMS_V12), text(PRIVACY_V2)]) assert.doesNotMatch(s, D30_BANNED, s);
 });
 
+test('D30 F11: no agreement string says "including N.E.D, can change" (PO, 8 Oct)', () => {
+  const agreement = [
+    ...[FREELANCER_CARD, CLIENT_CARD].flatMap((c) => [c.heading, ...c.countOn, ...c.agreeTo]),
+    ...[BUSINESS_CARD, NED_CARD].flatMap((c) => [c.heading, ...c.items]),
+    ...Object.values(AGREEMENT_COPY).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))),
+    text(TERMS_V12),
+  ];
+  for (const s of agreement) assert.doesNotMatch(s, /including N\.E\.D, can change/i, s);
+  assert.ok(FREELANCER_CARD.countOn.includes('The place your earnings go is fixed when you accept. No instruction in the program lets anyone change it.'));
+});
+
 test('D30: legalDocs serves Terms 1.2 / Privacy 2 only with accountRoles; live text unchanged', () => {
   assert.equal(legalDocs(false)[0].sections, TERMS);
   assert.equal(legalDocs(true, false)[1].sections, PRIVACY);
