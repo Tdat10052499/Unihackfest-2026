@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED Web — New contract (freelancer account)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-nav{transition:background-color .15s ease}
+.ned-nav:hover{background:#EEEEF2}
+.ned-row{transition:background-color .15s ease}
+.ned-row:hover{background:#FAFAFB}
+.ned-wallet-btn:hover{background:#ECECF0!important}
+.ned-nav:focus-visible,.ned-row:focus-visible,.ned-wallet-btn:focus-visible{outline:2px solid #7B2FBE;outline-offset:2px}
+/* N.E.D surfaces & motion v1 (see Motion & Surfaces board) */
+:root{--ned-ease:cubic-bezier(.2,0,0,1);--ned-ease-out:cubic-bezier(.16,1,.3,1)}
+a,button,label{-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ned-ease),background-color 200ms var(--ned-ease),color 200ms var(--ned-ease),box-shadow 200ms var(--ned-ease),opacity 200ms var(--ned-ease)}
+a:active,button:active{transform:scale(.98)}
+input,select,textarea{transition:box-shadow 180ms var(--ned-ease),background-color 180ms var(--ned-ease)}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; overflow: hidden; background: #F4F4F6; color: #111116; font-family: 'Inter', system-ui, sans-serif">
+  <header style="position: relative; z-index: 30; background: #FFFFFF">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+      <a href="WebWorkspace.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111116">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #7B2FBE; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: #FFFFFF">N.E.D</span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Workspace</span>
+      </a>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 9999px; background: #FFF5E1; font-size: 12px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span>
+      <div style="position: relative">
+        <button onClick="{{toggle}}" aria-expanded="{{openStr}}" aria-haspopup="dialog" aria-label="Your wallet, @{{handle}}" class="ned-wallet-btn" style="height: 44px; padding: 0 12px 0 4px; display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: #F4F4F6; color: #111116; font-family: inherit; cursor: pointer; border: none">
+          <dc-import name="Avatar" seed="{{handle}}" size="34" hint-size="34px,34px"></dc-import>
+          <span style="text-align: left; line-height: 1.15"><span style="display: block; font-size: 14px; font-weight: 600">@{{handle}}</span><span style="display: block; font-size: 11px; color: #5E5E6A">{{walletSub}}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+          <div style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; max-width: calc(100vw - 32px)">
+            <dc-import name="WebWalletPanel" who="{{who}}" mode="app" start-screen="{{panelStart}}" on-close="{{close}}" hint-size="336px,746px"></dc-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+    <nav aria-label="Workspace" style="flex: 1 1 200px; max-width: 100%; display: flex; flex-direction: column; gap: 4px">
+      <a href="WebWorkspace.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+      <a href="#ws-contracts" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6"></path></svg>Contracts</a>
+      <sc-if value="{{isClient}}" hint-placeholder-val="{{ true }}">
+        <a href="WebContractNew.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New contract</a>
+      </sc-if>
+      <a href="WebJobs.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 13h16"></path></svg>Jobs</a>
+      <a href="WebRecords.dc.html" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Records</a>
+      <button onClick="{{openSettings}}" class="ned-nav" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border-radius: 12px; color: #3F3F49; font-size: 14px; font-weight: 600; border: none; background: transparent; font-family: inherit; text-align: left; cursor: pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Settings<span style="margin-left: auto; font-size: 11px; font-weight: 500; color: #5E5E6A">in wallet</span></button>
+      <div style="margin-top: 16px; padding: 14px; border-radius: 16px; background: #FFFFFF">
+        <div style="font-size: 13px; font-weight: 600">On your phone too</div>
+        <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: #5E5E6A">Same Google sign-in, same wallet. Confirm steps from your phone when you are away.</div>
+      </div>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+      <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.1">New contract</h1>
+      <div style="display: flex; gap: 24px; align-items: flex-start">
+        <section aria-labelledby="gate-title-560" style="width: 560px; box-sizing: border-box; padding: 40px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); text-align: center">
+          <div style="width: 56px; height: 56px; margin: 0 auto; border-radius: 16px; background: #F4F4F6; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
+          <h2 id="gate-title-560" style="margin: 18px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: #111116">Creating contracts is for clients</h2>
+          <p style="margin: 10px auto 0; max-width: 420px; font-size: 15px; line-height: 1.5; color: #3F3F49">Add the client role in Settings to create contracts, lock budgets and post jobs.</p>
+          <div style="margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <button onClick="{{openSettings}}" style="height: 48px; padding: 0 22px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #7B2FBE; color: #FFFFFF; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; text-decoration: none; border: none; cursor: pointer">Open settings</button>
+            <a href="WebJobsFind.dc.html" style="height: 44px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: #6A22B0; text-decoration: none">Find work on N.E.D Jobs</a>
+          </div>
+        </section>
+        <aside aria-label="Inset: Vietnam view" style="width: 380px">
+          <div style="margin-bottom: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">Inset · lives in Vietnam</div>
+          <section aria-labelledby="gate-title-380" style="width: 380px; box-sizing: border-box; padding: 28px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10); text-align: center">
+          <div style="width: 56px; height: 56px; margin: 0 auto; border-radius: 16px; background: #F4F4F6; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3F3F49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
+          <h2 id="gate-title-380" style="margin: 18px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: #111116">Creating contracts is for clients</h2>
+          <p style="margin: 10px auto 0; max-width: 420px; font-size: 15px; line-height: 1.5; color: #3F3F49">People who live in Vietnam join as freelancers. Clients lock USDC, and N.E.D does not offer USDC in Vietnam.</p>
+          <div style="margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <a href="WebJobsFind.dc.html" style="height: 44px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: #6A22B0; text-decoration: none">Find work on N.E.D Jobs</a>
+          </div>
+        </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1280, "height": 800}}'>
+// D30 copy deck C6 gate.*. /new for a freelancer-only account in Singapore (core capabilities().createContract false).
+// "Creating contracts is for clients" and "Find work on N.E.D Jobs" are not in the copy deck yet. Static (D0).
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: false }; }
+  renderVals() {
+    var self = this;
+    return {
+      who: 'vinh', handle: 'linh', walletSub: 'Freelancer · Singapore',
+      open: this.state.open, openStr: this.state.open ? 'true' : 'false', panelStart: 'settings',
+      toggle: function () { self.setState({ open: !self.state.open }); },
+      close: function () { self.setState({ open: false }); },
+      // Open settings opens the wallet panel at Settings
+      openSettings: function () { self.setState({ open: true }); },
+      isClient: false
+    };
+  }
+}
+</script>
+</body>
+</html>
