@@ -19,4 +19,4 @@
 .gateText { margin: 18px auto 0; max-width: 420px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
 .gateActions { margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .gateButton { height: 48px; padding: 0 22px; border: none; border-radius: var(--r-pill); background: var(--accent); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
-.gateLink { display: inline-flex; align-items: center; height: 44px; padding: 0 8px; color: var(--link); font-size: 15px; font-weight: 600; text-decoration: none; }
+.gateCard .gateLink { display: inline-flex; align-items: center; height: 44px; padding: 0 8px; color: var(--link); font-size: 15px; font-weight: 600; text-decoration: none; }
