@@ -17,6 +17,8 @@ const map = {
   VITE_PROGRAM_ID: 'EXPO_PUBLIC_ANCHOR_PROGRAM_ID',
   VITE_MOBILE_ORIGIN: 'EXPO_PUBLIC_MOBILE_ORIGIN',
   VITE_WORKSPACE_ORIGIN: 'EXPO_PUBLIC_WORKSPACE_ORIGIN',
+  // D30: the wallet extension at /wallet follows the Workspace's flag, so both show the same account flow
+  VITE_FEATURE_ACCOUNT_ROLES: 'EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES',
 };
 for (const [from, to] of Object.entries(map)) if (process.env[from] && !process.env[to]) env[to] = process.env[from];
 // Never ship the dev tools inside the Workspace
