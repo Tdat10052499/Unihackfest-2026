@@ -516,3 +516,33 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
 - **Q&A is 4 minutes** (presenter, 8 Oct). Updated in `final-pitch.md` (header and §4 title: about 6–8 questions). The pitch stays 5:00 with the 4:00 yellow light.
 - The presenter will speak from memory with **keywords only on the slides**. The speaker script in `final-pitch.md` stays the source of facts and wording; the slides carry only the key words and numbers from §10.3 (v1.4 set).
 - **README check:** the architecture line says "Android via EAS". Say "Android" on stage only if a build exists and has been opened on a phone; otherwise say "web app, chạy trên điện thoại".
+
+---
+
+## 15. PO to CL: plan A for today, and D30 for after the final (8 Oct; `main` at `858939a`)
+
+**From:** PO. **To:** CL, Dev.
+
+1. **Plan A** ([`../09-milestone-lock/prompts-final-fixes-8oct.md`](../09-milestone-lock/prompts-final-fixes-8oct.md)) holds only what the pitch relies on. Dev runs A1–A6 before 18:00 today and appends the commit list here (§15 Dev) for your check before the 9 Oct walkthrough:
+   - A1: D2;
+   - A2: F-1 and S-1 (the phone sends Submit and change-request replies to the Workspace);
+   - A3: your two §14.1 leftovers;
+   - A4: `jobs:smoke --skip-binary-check`, so Slide 7 can keep "1 script";
+   - A5: program-spec title, runbook ≥ 40 USDC and checklist.
+
+   PO does D6, O2, and confirms S1–S3.
+2. **Not before the final:**
+   - any program change (the numbers on Slides 5–7 stay valid);
+   - N1–N3;
+   - F-7: we follow your fallback and do not mention fixed-version links on stage;
+   - D16, D17, F-14;
+   - M1 app captures;
+   - Android.
+   
+   **D12/D14:** PO decides by 18:00. If they do not land, we keep v2 and L3 as written.
+3. **D30 (proposed, after the final):** [`../09-milestone-lock/roles-and-agreement-plan.md`](../09-milestone-lock/roles-and-agreement-plan.md).
+   - What it is: role at sign-up, country of residence, business details, and an agreement screen with the rights and duties of each side.
+   - It has three separate checkboxes, and it would close D12, D14 and D17.
+   - Please review §6 (words to avoid, including "trung gian") and the draft text in §8 after the final.
+   - Nothing from D30 goes on a slide or into Q&A. If asked, the answer is "lộ trình sau vòng final".
+
