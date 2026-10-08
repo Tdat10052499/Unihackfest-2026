@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NED — Settings · Your account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F4F4F6}
+a{color:#6A22B0}a:hover{color:#4C1782}
+.ned-scroll::-webkit-scrollbar{display:none}
+.ned-scroll{scrollbar-width:none;-ms-overflow-style:none}
+input::placeholder{color:#8A8A96}
+input:focus,select:focus,textarea:focus{outline:none;background-color:#FFFFFF!important;box-shadow:0 0 0 3px rgba(123,47,190,.18)!important}
+/* D30 boards are static: no motion (D0) */
+</style>
+</helmet>
+<div style="width: 754px; height: 844px; display: flex; gap: 40px; padding-right: 24px; box-sizing: border-box; background: #FFFFFF; font-family: 'Inter', system-ui, sans-serif">
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F4F6; color: #111116; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Inter', system-ui, sans-serif">
+  <div style="padding: 12px 24px 8px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2">
+    <div style="font-size: 14px; font-weight: 600; color: #111116">9:41</div>
+    <div style="display: flex; gap: 6px; align-items: center">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><rect x="0" y="4" width="3" height="8" rx="1" fill="#111116"></rect><rect x="4" y="2" width="3" height="10" rx="1" fill="#111116"></rect><rect x="8" y="0" width="3" height="12" rx="1" fill="#111116"></rect><rect x="12" y="2" width="3" height="10" rx="1" fill="#C9C9D2"></rect></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#8A8A96"></rect><rect x="2" y="2" width="15" height="8" rx="1" fill="#111116"></rect><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#8A8A96"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 4px 20px 0"><h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.5px">Settings</h1></div>
+  <div class="ned-scroll" style="flex: 1; overflow-y: auto; padding: 12px 16px 120px">
+    <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 20px; background: #FFFFFF">
+      <dc-import name="Avatar" seed="{{seed}}" size="56" hint-size="56px,56px"></dc-import>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700">{{handle}}</div>
+        <div style="margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #5E5E6A">{{phone}} <span style="height: 18px; padding: 0 6px; border-radius: 5px; background: #FFF5E1; color: #8A5300; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center">UNVERIFIED NUMBER</span></div>
+        <div style="margin-top: 6px; font-size: 11px; color: #5E5E6A">Signed in with Google</div>
+      </div>
+    </div>
+
+    <div style="padding: 18px 6px 8px; font-size: 13px; font-weight: 600; color: #5E5E6A">Your account</div>
+    <div style="overflow: hidden; border-radius: 20px; background: #FFFFFF">
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px">
+        <span id="role-work" style="flex: 1; font-size: 15px; font-weight: 500">Also work (freelancer)</span>
+        <button role="switch" aria-checked="{{work.on}}" aria-disabled="{{work.disabled}}" aria-labelledby="role-work" onClick="{{work.flip}}" style="{{work.track}}"><div style="{{work.knob}}"></div></button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; box-sizing: border-box; border-top: 1px solid #F0F0F3">
+        <div style="flex: 1; min-width: 0">
+          <div id="role-hire" style="font-size: 15px; font-weight: 500">Also hire (client)</div>
+          <sc-if value="{{vn}}" hint-placeholder-val="{{ false }}">
+            <div id="role-hire-note" style="margin-top: 3px; font-size: 12px; line-height: 1.45; color: #5E5E6A">Not available for people who live in Vietnam.</div>
+          </sc-if>
+        </div>
+        <button role="switch" aria-checked="{{hire.on}}" aria-disabled="{{hire.disabled}}" aria-labelledby="role-hire" aria-describedby="role-hire-note" onClick="{{hire.flip}}" style="{{hire.track}}"><div style="{{hire.knob}}"></div></button>
+      </div>
+      <a href="SheetChangeCountry.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">Where you live</span><span style="width: 32px; height: 24px; border-radius: 8px; background: #F4F4F6; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; color: #111116">{{countryCode}}</span><span style="font-size: 14px; color: #5E5E6A">{{countryName}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+      <sc-if value="{{hasBusiness}}" hint-placeholder-val="{{ true }}">
+        <a href="OnbBusiness.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">Business</span><span style="font-size: 14px; color: #5E5E6A; white-space: nowrap">{{businessValue}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+      </sc-if>
+      <a href="#agreement" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">Agreement</span><span style="font-size: 14px; color: #5E5E6A; white-space: nowrap">{{agreementValue}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+    </div>
+
+    <div style="padding: 18px 6px 8px; font-size: 13px; font-weight: 600; color: #5E5E6A">Preferences</div>
+    <div style="overflow: hidden; border-radius: 20px; background: #FFFFFF">
+      <div style="padding: 12px 14px">
+        <div style="font-size: 15px; font-weight: 500">Display currency</div>
+        <div role="radiogroup" aria-label="Display currency" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+          <button role="radio" aria-checked="{{curVnd.on}}" onClick="{{curVnd.pick}}" style="{{curVnd.style}}">VND estimate</button>
+          <button role="radio" aria-checked="{{curUsd.on}}" onClick="{{curUsd.pick}}" style="{{curUsd.style}}">USD</button>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; border-top: 1px solid #F0F0F3"><span style="flex: 1; font-size: 15px; font-weight: 500">Notifications</span><button role="switch" aria-checked="{{notif.on}}" aria-label="Notifications" onClick="{{notif.flip}}" style="{{notif.track}}"><div style="{{notif.knob}}"></div></button></div>
+    </div>
+
+    <div style="padding: 18px 6px 8px; font-size: 13px; font-weight: 600; color: #5E5E6A">Privacy & legal</div>
+    <div style="overflow: hidden; border-radius: 20px; background: #FFFFFF">
+      <a href="Disclosures.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border-top: none; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">Disclosures</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+      <a href="#terms" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">Terms &amp; Privacy</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3"><span style="flex: 1; font-size: 15px; font-weight: 500">Version 1.0.0</span><span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 9999px; background: #FFF5E1; font-size: 11px; font-weight: 600; color: #8A5300; white-space: nowrap"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B"></span>Devnet · test money</span></div>
+    </div>
+
+    <a href="OnbWelcome.dc.html" style="margin-top: 18px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #FDECEC; color: #B42318; font-size: 16px; font-weight: 600; text-decoration: none; border: none">Sign out</a>
+    <div style="margin-top: 8px; text-align: center; font-size: 11px; color: #5E5E6A">Sign in again with the same Google account to get back to your contracts.</div>
+  </div>
+  <nav aria-label="Main" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; box-sizing: border-box; padding: 4px 8px 22px; display: flex; align-items: center; background: #FFFFFF; z-index: 8; box-shadow: 0 -10px 30px -12px rgba(17,17,22,0.10)">
+    <a href="{{navHome}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Home</span></a>
+    <a href="{{navContracts}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Contracts</span></a>
+    <a href="{{navRecords}}" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg><span style="font-size: 11px; font-weight: 500; color: #5E5E6A">Records</span></a>
+    <div aria-current="page" style="flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7B2FBE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span style="font-size: 11px; font-weight: 700; color: #7B2FBE">Settings</span></div>
+  </nav>
+</div>
+  <aside aria-label="Inset: Agreement detail" style="width: 300px; align-self: flex-start; margin-top: 24px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: #5E5E6A">Inset · Agreement row → detail</div>
+    <div style="margin-top: 10px; padding: 16px; border-radius: 24px; background: #F4F4F6; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(17,17,22,0.04), 0 6px 16px -6px rgba(17,17,22,0.10)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111116" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></span>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: #111116">Agreement</span>
+      </div>
+      <div style="margin-top: 16px; overflow: hidden; border-radius: 20px; background: #FFFFFF">
+        <div style="display: flex; align-items: center; min-height: 52px; padding: 0 14px; font-size: 15px; font-weight: 500; color: #111116">{{agreementValue}}</div>
+        <a href="OnbAgreementReady.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-top: 1px solid #F0F0F3; text-decoration: none; color: #111116"><span style="flex: 1; font-size: 15px; font-weight: 500">View what you agreed to</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E5E6A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+      </div>
+      <a href="OnbWelcome.dc.html" style="margin-top: 16px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #FDECEC; color: #B42318; font-size: 16px; font-weight: 600; text-decoration: none">Withdraw and sign out</a>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view": {"editor": "enum", "options": ["business", "vn"], "default": "business"}, "$preview": {"width": 754, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    var vn = (props.view ?? 'business') === 'vn';
+    super(props);
+    // Sample: Mia, client (business) and freelancer in Singapore; Vinh, freelancer in Vietnam
+    this.state = { vn: vn, work: true, hire: !vn, cur: vn ? 'vnd' : 'usd', notif: true };
+  }
+  renderVals() {
+    var self = this, vn = this.state.vn;
+    function sw(on, disabled, flip) {
+      // The existing Settings switch; a locked switch keeps its colours at reduced opacity
+      return { on: on ? 'true' : 'false', disabled: disabled ? 'true' : 'false', flip: disabled ? function () {} : flip,
+        track: 'width: 50px; height: 30px; padding: 3px; box-sizing: border-box; border-radius: 9999px; border: none; flex-shrink: 0; display: flex; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? '#7B2FBE' : '#D4D4DC') + '; cursor: ' + (disabled ? 'not-allowed' : 'pointer') + '; opacity: ' + (disabled ? '0.45' : '1'),
+        knob: 'width: 24px; height: 24px; border-radius: 9999px; background: #FFFFFF; ' };
+    }
+    function cur(k) {
+      var on = self.state.cur === k;
+      return { on: on ? 'true' : 'false', pick: function () { self.setState({ cur: k }); },
+        style: 'height: 40px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: ' + (on ? '#111116' : '#3F3F49') + '; background: ' + (on ? '#F2EAFB' : '#F4F4F6') + '; border: none' };
+    }
+    var work = this.state.work, hire = this.state.hire;
+    return {
+      vn: vn,
+      seed: vn ? 'vinh' : 'mia', handle: vn ? '@vinh' : '@mia', phone: vn ? '+84 90 •••• 4567' : '+65 •••• 2210',
+      // settings.atLeastOne: the last role on cannot be switched off; in Vietnam the freelancer role is the only one
+      work: sw(work, vn || !hire, function () { self.setState({ work: !self.state.work }); }),
+      hire: sw(hire, vn || !work, function () { self.setState({ hire: !self.state.hire }); }),
+      countryCode: vn ? 'VN' : 'SG', countryName: vn ? 'Vietnam' : 'Singapore',
+      hasBusiness: !vn, businessValue: 'Lumen Studio · self-declared',
+      agreementValue: 'Version 1 · 10 Oct 2026',
+      notif: sw(this.state.notif, false, function () { self.setState({ notif: !self.state.notif }); }),
+      curVnd: cur('vnd'), curUsd: cur('usd'),
+      navHome: vn ? 'HomeVN.dc.html' : 'HomeIntl.dc.html', navContracts: vn ? 'ContractsList.dc.html' : 'ContractsListMia.dc.html',
+      navRecords: vn ? 'Records.dc.html' : 'RecordsIntl.dc.html', navSettings: vn ? 'SettingsAccountVN.dc.html' : 'SettingsAccount.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>
