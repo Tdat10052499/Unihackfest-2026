@@ -81,6 +81,13 @@ How to use them in code: rebuild each screen with `components/design` and the to
 | `SendSuccess.dc.html` | Send — Sent | B3 |  |
 | `WebRecords.dc.html` | Web · Records (history of contracts and milestones) | W7 | Tweaks: who = mia / vinh, view = contract / activity |
 | `WebExtensionGallery.dc.html` | Web · Wallet extension, screen by screen | W6 | Nine extension states for review |
+
+## D30 · roles, country, business, agreement (8 Oct)
+
+Drawn in Claude Code on 8 Oct 2026 from `NED-prompts-d30-design.md` (D0–D8), not exported from the canvas. Every board is behind `FEATURES.accountRoles` (off until R9) and **static** (no motion, D0). Copy: deck §C (C1–C6), the same strings as `packages/ned-core/src/account/copy.ts` and `legal/agreement.ts`. Step bars: freelancer and individual client Role 1/4 → Country 2/4 → Agreement 3/4 → Profile 4/4; business Role 1/5 → Country 2/5 → Business 3/5 → Agreement 4/5 → Profile 5/5 (`OnbProfile` itself still shows the old 2/3; R4 sets the count in code). Review renders: `../screenshots/d30-boards/`.
+
+| Board | Title | Build task | Note |
+| --- | --- | --- | --- |
 | `OnbRole.dc.html` | Onboarding — How will you use N.E.D? (D30 step 1) | R4 | D30, behind `accountRoles`. Copy deck C1. Static (no motion). Tweaks `selected` (none / freelancer / client / business), `update`. A business gets a 5-segment step bar. The "Client · business" chip moves under its title at 390 px; chip text never breaks |
 | `OnbRoleBusiness.dc.html` | Role — business chosen | R4 | wrapper (props on the base board) |
 | `OnbRoleUpdate.dc.html` | Role — existing user (update notice, freelancer preselected, no back) | R7 | wrapper (props on the base board). Top row is the step bar only, so the notice, the three cards and the note fit above the fold |
