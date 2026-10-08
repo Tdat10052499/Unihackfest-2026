@@ -1,4 +1,4 @@
-// Draft for CL review (D30); not live until R9.
+// D30 agreement: CL ok 8 Oct 2026 (pre-pitch-check-7oct.md, "CL reply to D30 copy"); shown when FEATURES.accountRoles is on.
 // The N.E.D Agreement (roles-and-agreement-plan.md §5 and §8): the copy deck C4 verbatim (NED-prompts-d30-design.md
 // §C4), the cards per role, the three checkboxes, the consent version and scope, and the text hash stored in the
 // AgreementRecord. D30, behind accountRoles.
@@ -29,7 +29,7 @@ export const AGREEMENT_COPY = {
   button: 'Agree and continue',
   disabled: 'Tick all three boxes to continue',
   version: 'Agreement version 1 · Terms 1.2 · Privacy 2',
-  /** Button of the "What N.E.D does and does not do" sheet (board OnbAgreementNed). Not in the copy deck yet (R3) */
+  /** Button of the "What N.E.D does and does not do" sheet (board OnbAgreementNed); copy deck agreement.close (CL 8 Oct) */
   close: 'Close',
 } as const;
 

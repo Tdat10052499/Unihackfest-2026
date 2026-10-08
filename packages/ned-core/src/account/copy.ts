@@ -90,7 +90,7 @@ export const BUSINESS_COPY = {
     help: 'Stays on this device. Never written to Solana.',
   },
   badge: 'Business · self-declared',
-  /** Caption under the disabled Continue (board OnbBusinessError). Not in the copy deck yet: PO to confirm (R3) */
+  /** Caption under the disabled Continue (board OnbBusinessError); copy deck business.fixErrors (CL 8 Oct) */
   fixErrors: 'Fix the fields in red to continue.',
 } as const;
 
@@ -118,7 +118,8 @@ export const SETTINGS_COPY = {
     blocked: {
       title: 'Finish your client contracts first',
       body: (contracts: number, listings: number) =>
-        `You have ${contracts} open client contracts and ${listings} open job listings. Settle or close them before you move to Vietnam, because people who live in Vietnam can't lock USDC.`,
+        // CL 8 Oct: singular or plural per noun ("1 open client contract", "2 open client contracts")
+        `You have ${contracts} open client ${contracts === 1 ? 'contract' : 'contracts'} and ${listings} open job ${listings === 1 ? 'listing' : 'listings'}. Settle or close them before you move to Vietnam, because people who live in Vietnam can't lock USDC.`,
       ok: 'OK',
     },
   },
@@ -133,8 +134,7 @@ export const WEB_COPY = {
     primary: 'Open in wallet',
     later: 'Later',
     laterNote: 'You can browse, but creating, locking, posting and applying wait until you finish.',
-    /** The three numbered steps (board WebAccountPrompt). "Your role" is not in the copy deck yet (R3); the others are
-     * settings.country and agreement.title */
+    /** The three numbered steps (board WebAccountPrompt); copy deck web.prompt.steps (CL 8 Oct) */
     steps: ['Your role', 'Where you live', 'The N.E.D Agreement'],
   },
 } as const;
@@ -147,7 +147,7 @@ export const GATE_COPY = {
   freelancerNeeded: 'Add the freelancer role to apply and accept contracts.',
   openSettings: 'Open settings',
   alsoWork: 'Also work',
-  /** Title and link of the /new gate (board WebRoleGate). Not in the copy deck yet: PO to confirm (R3) */
+  /** Title and link of the /new gate (board WebRoleGate); copy deck gate.createTitle, gate.findWork (CL 8 Oct) */
   createTitle: 'Creating contracts is for clients',
   findWork: 'Find work on N.E.D Jobs',
 } as const;

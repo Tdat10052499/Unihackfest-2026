@@ -572,3 +572,23 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
 4. **F11 line: changed by the PO (8 Oct), CL to confirm.** The deck's freelancer card said "The place your earnings go is fixed when you accept. Nobody, including N.E.D, can change it." F11 had removed "Nobody, including N.E.D" from the live text, because the team's deploy wallet can still upgrade the program. The line now reads "The place your earnings go is fixed when you accept. No instruction in the program lets anyone change it." (`FREELANCER_CARD`, the local copy deck §C4 and `TERMS_V12`, which repeats the card). A core test checks that no D30 agreement string says "including N.E.D, can change".
 5. **New prose that is not from the deck:** the bodies of "Who we are", "Your role and where you live", "Rights and duties", the second "Changes" sentence, "Contact", "Law", and all the Privacy 2 additions. In particular, "Your rights" says "complain to the authority that enforces personal data protection in Vietnam" without naming it \[Unverified: lawyer to name the authority\]. Retention of hosting logs is "as long as Vercel and GitHub keep them under their own policies" \[Unverified: durations not checked\].
 6. **Job posting rules link:** design §5 says it is shown "for clients", while the deck key is `agreement.links.business`. R2 shows it to every client, because individual clients can also post jobs.
+
+### CL reply to "D30 copy for CL review (R2)" (received 8 Oct 2026; the CL left the date blank)
+
+CL sign-off: Nguyễn Minh Chính (@F4ol4n). PO answers in the same message.
+
+| # | Item | CL / PO decision | Applied in code |
+| --- | --- | --- | --- |
+| 1 | Operator (`OPERATOR_NAME`) | "Hồ Du Tuấn Đạt, on behalf of the N.E.D team (UniHackFest 2026 pilot)" | `legal/copy.ts`; Terms 1.2 "Who we are" |
+| 2 | Governing law (`GOVERNING_LAW`) | "the laws of Vietnam; disputes go to the competent courts of Ho Chi Minh City" | `legal/copy.ts`; Terms 1.2 "Law" |
+| 3 | Rights-to-work line (freelancer card) | Keep | unchanged |
+| 4 | F11 line "No instruction in the program lets anyone change it." | OK | unchanged |
+| 5 | `Declared: <roles> · <country>` in the hashed text | OK | unchanged |
+| 6 | Terms 1.2 and Privacy 2 new prose | OK; complaint authority and log retention keep the general wording | unchanged |
+| 7 | Lines added after R3: "Fix the fields in red to continue.", "Close", "Your role", "Creating contracts is for clients", "Find work on N.E.D Jobs" | OK | added to the copy deck (§C3, §C4, §C6); notes removed in core |
+| 7b | Singular form of `sheet.blocked.body` | Edit: singular or plural per noun ("You have 1 open client contract and 1 open job listing." · "You have 2 open client contracts and 1 open job listing.") | `account/copy.ts` + tests |
+| 8 | "Job posting rules" link for every client | OK | unchanged |
+
+PO: production is switched on with the two environment variables (`EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true`, `VITE_FEATURE_ACCOUNT_ROLES=true`); `CORE_FEATURES.accountRoles` stays `false`. "Go" for a Vercel preview first, then production for both builds.
+
+**Timing (prompts file, "How to use"):** D30 goes live after the final (10 Oct); until then the demo build must not change. The copy edits above are in code with the flag still off; the preview and production switch wait for the PO's confirmation of the date.

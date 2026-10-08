@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CORE_FEATURES } from '../../features.ts';
 import {
   AGREEMENT_COPY,
   BUSINESS_CARD,
@@ -114,7 +113,8 @@ test('D30: legalDocs serves Terms 1.2 / Privacy 2 only with accountRoles; live t
   for (const t of ['Who we are', 'Your role and where you live', 'Rights and duties', 'Limit of responsibility', 'Misuse', 'Changes', 'Contact', 'Law']) {
     assert.ok(titles.includes(t), t);
   }
-  assert.match(text(TERMS_V12), /\[operator\]/);
+  assert.match(text(TERMS_V12), /The N\.E\.D pilot is run by Hồ Du Tuấn Đạt, on behalf of the N\.E\.D team \(UniHackFest 2026 pilot\)\./);
+  assert.match(text(TERMS_V12), /These terms are governed by the laws of Vietnam; disputes go to the competent courts of Ho Chi Minh City\./);
   assert.match(text(TERMS_V12), /\[team email\]/);
 });
 
@@ -137,7 +137,7 @@ test('D30: Privacy 2 has the CL §14.2 items and the on-device line', () => {
   for (const s of PRIVACY.filter((x) => x.title !== 'Data on Solana is public or permanent')) assert.ok(PRIVACY_V2.includes(s), s.title);
 });
 
-// Expected to fail until R9 fills OPERATOR_NAME and GOVERNING_LAW (design §9 questions 1–2); a todo while the flag is off
-(CORE_FEATURES.accountRoles ? test : test.todo)('D30: no legal placeholder left once accountRoles is on', () => {
+// R9: OPERATOR_NAME and GOVERNING_LAW are set (PO and CL, 8 Oct 2026); no placeholder may come back
+test('D30: no legal placeholder left once accountRoles is on', () => {
   assert.deepEqual(legalPlaceholders(true), [], `replace ${OPERATOR_NAME} and ${GOVERNING_LAW} before R9`);
 });

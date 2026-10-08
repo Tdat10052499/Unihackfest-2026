@@ -32,7 +32,10 @@ test('placeholders are filled by the format functions', () => {
   assert.equal(SETTINGS_COPY.businessValue('Lumen'), 'Lumen · self-declared');
   assert.equal(SETTINGS_COPY.agreementValue(1, '8 Oct 2026'), 'Version 1 · 8 Oct 2026');
   assert.equal(SETTINGS_COPY.sheet.change.primary('Vietnam'), 'Change to Vietnam');
-  assert.match(SETTINGS_COPY.sheet.blocked.body(2, 1), /^You have 2 open client contracts and 1 open job listings\./);
+  // CL 8 Oct: singular or plural per noun
+  assert.match(SETTINGS_COPY.sheet.blocked.body(2, 1), /^You have 2 open client contracts and 1 open job listing\./);
+  assert.match(SETTINGS_COPY.sheet.blocked.body(1, 1), /^You have 1 open client contract and 1 open job listing\./);
+  assert.match(SETTINGS_COPY.sheet.blocked.body(1, 3), /^You have 1 open client contract and 3 open job listings\./);
   for (const s of strings(ALL)) assert.doesNotMatch(s, /\{\w+\}/, s);
 });
 

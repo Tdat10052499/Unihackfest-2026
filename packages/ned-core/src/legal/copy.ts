@@ -272,12 +272,12 @@ export function legalDocs(disputesOn: boolean, accountRoles = false): LegalDoc[]
 
 export const LEGAL_VERSION_LINE = 'Pilot version 1.1 · last updated 7 Oct 2026';
 
-// ---- D30 drafts (R2). Draft for CL review (D30); not live until R9. ----
+// ---- D30 (R2, CL ok 8 Oct 2026): Terms 1.2 and Privacy 2, shown when FEATURES.accountRoles is on ----
 
-/** Who "N.E.D" is in the contract (design §9 question 1). A test fails while it is a placeholder and the flag is on */
-export const OPERATOR_NAME = '[operator]';
-/** Governing law and forum (design §9 question 2) */
-export const GOVERNING_LAW = '[governing law]';
+/** Who "N.E.D" is in the contract (design §9 question 1; PO and CL, 8 Oct 2026) */
+export const OPERATOR_NAME = 'Hồ Du Tuấn Đạt, on behalf of the N.E.D team (UniHackFest 2026 pilot)';
+/** Governing law and forum (design §9 question 2; PO and CL, 8 Oct 2026) */
+export const GOVERNING_LAW = 'the laws of Vietnam; disputes go to the competent courts of Ho Chi Minh City';
 
 /** Placeholders that must be replaced before the D30 text goes live (R9) */
 export function legalPlaceholders(accountRoles: boolean): string[] {
