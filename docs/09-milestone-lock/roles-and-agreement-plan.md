@@ -127,6 +127,8 @@ Outside Vietnam a person can hold both roles. Settings has **Also hire** and **A
 
 ## 7. Build plan (after the final)
 
+The detailed plan and the Claude Code prompts R0–R9 are in [`roles-and-agreement-build.md`](roles-and-agreement-build.md). The table below is the short version.
+
 | Step | Scope | Program change |
 | --- | --- | --- |
 | R1 | `@ned/core`: types `Role`, `ClientType`, `Country` (ISO 3166-1 alpha-2 list), `regionFromCountry`, `canBeClient(country, registrationCountry)`, agreement copy and versions, tests | no |
