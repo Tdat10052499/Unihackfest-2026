@@ -504,8 +504,8 @@ The V7 row records "CL ok (PO xác nhận trong phiên)" for the legal copy comm
 
 | # | Item | Owner | Status on `main` |
 | --- | --- | --- | --- |
-| 1 | **D2** Vietnam-view notification sync and `* 150` | Dev | **Open** (`ned-wallet/services/solana.ts:485, 506`). High: the only place the Vietnam view can show USDC |
-| 2 | **F-1** mobile Submit dead end | Dev | **Open** (`ned-wallet/app/contracts/[fund]/submit.tsx:40` still builds `files: []`). High |
+| 1 | **D2** Vietnam-view notification sync and `* 150` | Dev | ~~Open~~ **Fixed 8 Oct (`b6d1327`)**: sync only in the international view, saved transfer notices dropped outside it, `/notification-detail` blocked, SOL shown as SOL (no `* 150`) |
+| 2 | **F-1** mobile Submit dead end | Dev | ~~Open~~ **Fixed 8 Oct (`b6d1327`)**: the phone Submit shows "Submit from the Workspace on a computer to list your final files." with a link to the same milestone on the Workspace; the slide stays off |
 | 3 | **D6** team email | PO | **Open** (`copy.ts:210`) |
 | 4 | **O2** license | PO | **Open** (no `LICENSE`) |
 | 5 | 14.1 leftovers, F-7, D12/D14 | Dev + CL | See 14.1 and 14.2 |
