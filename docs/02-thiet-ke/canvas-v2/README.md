@@ -81,3 +81,6 @@ How to use them in code: rebuild each screen with `components/design` and the to
 | `SendSuccess.dc.html` | Send — Sent | B3 |  |
 | `WebRecords.dc.html` | Web · Records (history of contracts and milestones) | W7 | Tweaks: who = mia / vinh, view = contract / activity |
 | `WebExtensionGallery.dc.html` | Web · Wallet extension, screen by screen | W6 | Nine extension states for review |
+| `OnbRole.dc.html` | Onboarding — How will you use N.E.D? (D30 step 1) | R4 | D30, behind `accountRoles`. Copy deck C1. Static (no motion). Tweaks `selected` (none / freelancer / client / business), `update`. A business gets a 5-segment step bar. The "Client · business" chip moves under its title at 390 px; chip text never breaks |
+| `OnbRoleBusiness.dc.html` | Role — business chosen | R4 | wrapper (props on the base board) |
+| `OnbRoleUpdate.dc.html` | Role — existing user (update notice, freelancer preselected, no back) | R7 | wrapper (props on the base board). Top row is the step bar only, so the notice, the three cards and the note fit above the fold |
