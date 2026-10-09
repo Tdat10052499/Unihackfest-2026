@@ -1,4 +1,4 @@
-# Strategy v2 — "Transparent Hụi" / "Hụi minh bạch"
+# Strategy v2 — "Transparent Hụi"
 
 > **Superseded on 2 Oct 2026 by [`../07-strategy-v3/`](../07-strategy-v3/README.md).**
 

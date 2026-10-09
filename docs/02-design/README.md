@@ -1,13 +1,13 @@
-# Thiết kế N.E.D
+# N.E.D design
 
-Thiết kế hiện hành của N.E.D: No Empty Deals. Sản phẩm và chữ dùng trên màn hình: [`../09-milestone-lock/product-spec.md`](../09-milestone-lock/product-spec.md) (bảng chữ ở mục 6).
+The current design of N.E.D: No Empty Deals. Product and screen copy: [`../09-milestone-lock/product-spec.md`](../09-milestone-lock/product-spec.md) (word table in section 6).
 
-| Thư mục / file | Nội dung |
+| Folder / file | Contents |
 | --- | --- |
-| [`canvas-v2/`](canvas-v2/README.md) | **Nguồn sự thật cho màn hình:** các board `.dc.html` xuất từ canvas "NED Wallet Design System" (bản 104 trở đi): app điện thoại, Workspace, N.E.D Jobs, D30, `Main` và `MotionSurfaces` |
-| [`screenshots/`](screenshots/) | Ảnh chụp theo từng bước build (D30, hub v4, final files, review preview, lock at hire…); [`screenshots/mobile-app/`](screenshots/mobile-app/README.md) là ảnh điện thoại cho README gốc |
-| [`demo/`](demo/README.md) | Các luồng sử dụng N.E.D chụp từ hai app thật (08/10/2026) |
-| [`test/`](test/README.md) | Kết quả test D30 với ảnh từng kịch bản (08/10/2026) |
-| [`mascot-brief.md`](mascot-brief.md), [`assets/mascot/`](assets/mascot/) | Mascot Teddy: brief và 17 ảnh gốc |
+| [`canvas-v2/`](canvas-v2/README.md) | **Source of truth for screens:** the `.dc.html` boards exported from the "NED Wallet Design System" canvas (version 104 onwards): phone app, Workspace, N.E.D Jobs, D30, `Main` and `MotionSurfaces` |
+| [`screenshots/`](screenshots/) | Screenshots per build step (D30, hub v4, final files, review preview, lock at hire…); [`screenshots/mobile-app/`](screenshots/mobile-app/README.md) holds the phone screens for the root README |
+| [`demo/`](demo/README.md) | N.E.D user flows captured from the two live apps (8 Oct 2026) |
+| [`test/`](test/README.md) | D30 test results with a screenshot per scenario (8 Oct 2026) |
+| [`mascot-brief.md`](mascot-brief.md), [`assets/mascot/`](assets/mascot/) | Teddy the mascot: brief and the 17 source images |
 
-Thiết kế thời N.E.D Wallet (canvas v1 với Swap, xStocks, Earn, chế độ ví; danh mục 40 màn hình; PDF) đã chuyển sang [`../archive/02-design-v1/`](../archive/02-design-v1/README.md), chỉ để tra lịch sử.
+The N.E.D Wallet design (v1 canvas with Swap, xStocks, Earn and wallet mode; the 40-screen catalogue; the PDF) moved to [`../archive/02-design-v1/`](../archive/02-design-v1/README.md), for history only.

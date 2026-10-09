@@ -1,39 +1,41 @@
-# Lưu trữ: tài liệu thời N.E.D Wallet (25/09 – 01/10/2026)
+# Archive: documents from the N.E.D Wallet period (25 Sep – 1 Oct 2026)
 
-Thư mục này giữ các tài liệu của **N.E.D Wallet**, hướng đi đầu tiên của dự án: ví Solana có Swap, xStocks, Earn, hai chế độ ví (Simple / Crypto), trợ lý AI và dApp Browser. **Chỉ để tra lịch sử, không làm theo và không đưa các tính năng đó trở lại.**
+This folder keeps the documents of **N.E.D Wallet**, the project's first direction: a Solana wallet with Swap, xStocks, Earn, two wallet modes (Simple / Crypto), an AI assistant and a dApp browser. **History only: do not follow these documents and do not bring those features back.**
 
-- **02/10/2026:** dự án chuyển sang **N.E.D: No Empty Deals** (Milestone Lock cho freelancer có khách nước ngoài). Sản phẩm hiện hành và nhật ký quyết định D1–D30: [`../09-milestone-lock/`](../09-milestone-lock/README.md). Swap và xStocks bị ẩn sau cờ `FEATURES` từ 04/10 (mục C7 trong nhật ký quyết định).
-- **09/10/2026:** phần code còn lại của N.E.D Wallet được gỡ khỏi `ned-wallet/` (Swap, xStocks, Jupiter, chế độ ví, module và ảnh không dùng, chuỗi dịch cũ), và các tài liệu dưới đây được chuyển vào đây bằng `git mv` (giữ lịch sử). Mỗi tài liệu có một dòng "Lưu trữ" dưới tiêu đề. Cùng ngày, các tên file và thư mục tiếng Việt được đổi sang tiếng Anh (`01-product-direction.md`, `02-design-v1/`, `design-status.md`, `03-engineering/`, `04-code-plan.md`; thư mục thiết kế hiện hành thành `docs/02-design/`), cột "Đường dẫn cũ" giữ tên ban đầu.
+- **2 Oct 2026:** the project moved to **N.E.D: No Empty Deals** (Milestone Lock for freelancers with clients abroad). Current product and decision log D1–D30: [`../09-milestone-lock/`](../09-milestone-lock/README.md). Swap and xStocks were hidden behind `FEATURES` flags from 4 Oct (item C7 in the decision log).
+- **9 Oct 2026:** the remaining N.E.D Wallet code was removed from `ned-wallet/` (Swap, xStocks, Jupiter, wallet mode, unused modules and images, old translation strings), and the documents below were moved here with `git mv` (history kept). Each one has an "archive" line under its title. The same day the Vietnamese file and folder names were changed to English (`01-product-direction.md`, `02-design-v1/`, `design-status.md`, `03-engineering/`, `04-code-plan.md`; the current design folder became `docs/02-design/`); the "Old path" column keeps the original names.
 
-## Danh sách
+The documents themselves stay in their original language (mostly Vietnamese); they are history and are not translated.
 
-| Tài liệu | Đường dẫn cũ | Nội dung |
+## Contents
+
+| Document | Old path | Contents |
 | --- | --- | --- |
-| [`01-product-direction.md`](01-product-direction.md) | `docs/01-dinh-huong-du-an.md` | Định hướng gốc (25/09): lời mentor, ưu tiên Swap → xStocks → hai chế độ ví → AI, lộ trình 15 ngày, phân công |
-| [`02-design-v1/README.md`](02-design-v1/README.md) | `docs/02-thiet-ke/README.md` | Danh mục 40 màn hình của canvas v85, luồng điều hướng, design tokens thời giao diện tối |
-| [`02-design-v1/design-status.md`](02-design-v1/design-status.md) | `docs/02-thiet-ke/trang-thai-thiet-ke.md` | Trạng thái thiết kế (26/09, v85) và các quyết định thiết kế đã chốt lúc đó |
-| [`02-design-v1/ui-pdf-alignment.md`](02-design-v1/ui-pdf-alignment.md) | `docs/02-thiet-ke/ui-pdf-alignment.md` | Đối chiếu Home, Swap và xStocks với bản PDF (28/09) |
-| [`02-design-v1/ned-wallet-ui.pdf`](02-design-v1/ned-wallet-ui.pdf) | `docs/02-thiet-ke/ned-wallet-ui.pdf` | Bản PDF giao diện N.E.D Wallet |
-| [`02-design-v1/canvas/`](02-design-v1/canvas/) | `docs/02-thiet-ke/canvas/` | 42 board `.dc.html` v1 (Swap, xStocks, Earn, TED bot, Home, chế độ ví) |
-| [`03-engineering/dev-handoff.md`](03-engineering/dev-handoff.md) | `docs/03-ky-thuat/dev-handoff.md` | Bàn giao kỹ thuật: API Jupiter, nguồn dữ liệu từng màn, kiến trúc AI, identity on-chain (mục 1a) |
-| [`04-code-plan.md`](04-code-plan.md) | `docs/04-ke-hoach-code.md` | Kế hoạch code theo phase (27/09 → 10/10), gồm "Cập nhật sau Phase 0" (tham số scrypt của số điện thoại) |
-| [`05-vietnam-strategy-and-revenue-model.md`](05-vietnam-strategy-and-revenue-model.md) | `docs/05-vietnam-strategy-and-revenue-model.md` | Đề xuất v1 về hướng đi ở Việt Nam và mô hình doanh thu (đã được v2 rồi v3 thay thế); phần pháp lý vẫn được 06 và 07 dẫn tới |
-| [`poc-dynamic.md`](poc-dynamic.md) | `docs/poc-dynamic.md` | PoC đăng nhập Dynamic (T0.4, cổng GO/NO-GO) |
-| [`cleanup-report-t0-5.md`](cleanup-report-t0-5.md) | `docs/cleanup-report-t0-5.md` | Báo cáo dọn dẹp T0.5 (26/09): bỏ Supabase, `ned-hub`, relayer |
-| [`ned-wallet-process-log.md`](ned-wallet-process-log.md) | `ned-wallet/docs/Process.md` | Nhật ký tiến độ của app thời N.E.D Wallet (từ Privy, Supabase và giao diện kiểu MiniPay trở đi) |
-| [`strategy-v2.vi.md`](strategy-v2.vi.md) | `docs/06-strategy-v2/strategy-v2.vi.md` | Bản tiếng Việt của đề xuất v2; bản tiếng Anh vẫn ở `../06-strategy-v2/strategy-v2.en.md` (chuyển vào đây 09/10/2026) |
-| [`legal-brief.vi.md`](legal-brief.vi.md) | `docs/08-research/legal-brief.vi.md` | Bản tiếng Việt của legal brief; bản tiếng Anh vẫn ở `../08-research/legal-brief.md` (chuyển vào đây 09/10/2026) |
+| [`01-product-direction.md`](01-product-direction.md) | `docs/01-dinh-huong-du-an.md` | Original direction (25 Sep): mentor feedback, priorities Swap → xStocks → two wallet modes → AI, 15-day roadmap, task split |
+| [`02-design-v1/README.md`](02-design-v1/README.md) | `docs/02-thiet-ke/README.md` | The 40-screen catalogue of canvas v85, navigation flow, design tokens from the dark-theme period |
+| [`02-design-v1/design-status.md`](02-design-v1/design-status.md) | `docs/02-thiet-ke/trang-thai-thiet-ke.md` | Design status (26 Sep, v85) and the design decisions fixed at the time |
+| [`02-design-v1/ui-pdf-alignment.md`](02-design-v1/ui-pdf-alignment.md) | `docs/02-thiet-ke/ui-pdf-alignment.md` | Home, Swap and xStocks checked against the PDF (28 Sep) |
+| [`02-design-v1/ned-wallet-ui.pdf`](02-design-v1/ned-wallet-ui.pdf) | `docs/02-thiet-ke/ned-wallet-ui.pdf` | The N.E.D Wallet UI PDF |
+| [`02-design-v1/canvas/`](02-design-v1/canvas/) | `docs/02-thiet-ke/canvas/` | 42 v1 `.dc.html` boards (Swap, xStocks, Earn, TED bot, Home, wallet mode) |
+| [`03-engineering/dev-handoff.md`](03-engineering/dev-handoff.md) | `docs/03-ky-thuat/dev-handoff.md` | Engineering handoff: Jupiter API, data sources per screen, AI architecture, on-chain identity (section 1a) |
+| [`04-code-plan.md`](04-code-plan.md) | `docs/04-ke-hoach-code.md` | Phased code plan (27 Sep → 10 Oct), including "Update after Phase 0" (the phone number scrypt parameters) |
+| [`05-vietnam-strategy-and-revenue-model.md`](05-vietnam-strategy-and-revenue-model.md) | `docs/05-vietnam-strategy-and-revenue-model.md` | Proposal v1 on the Vietnam direction and revenue model (superseded by v2, then v3); its legal part is still referenced by 06 and 07 |
+| [`poc-dynamic.md`](poc-dynamic.md) | `docs/poc-dynamic.md` | Dynamic sign-in PoC (T0.4, GO/NO-GO gate) |
+| [`cleanup-report-t0-5.md`](cleanup-report-t0-5.md) | `docs/cleanup-report-t0-5.md` | T0.5 cleanup report (26 Sep): Supabase, `ned-hub` and the relayer removed |
+| [`ned-wallet-process-log.md`](ned-wallet-process-log.md) | `ned-wallet/docs/Process.md` | Progress log of the app in the N.E.D Wallet period (from Privy, Supabase and the MiniPay-style UI onwards) |
+| [`strategy-v2.vi.md`](strategy-v2.vi.md) | `docs/06-strategy-v2/strategy-v2.vi.md` | Vietnamese version of proposal v2; the English version stays at `../06-strategy-v2/strategy-v2.en.md` (moved here 9 Oct 2026) |
+| [`legal-brief.vi.md`](legal-brief.vi.md) | `docs/08-research/legal-brief.vi.md` | Vietnamese version of the legal brief; the English version stays at `../08-research/legal-brief.md` (moved here 9 Oct 2026) |
 
-## Những gì từ thời đó vẫn còn đúng
+## What from that period still holds
 
-- **Mascot Teddy:** bộ ảnh `ned-wallet/assets/images/mascot teddy - *.png` (dùng qua `constants/mascot.ts`) và `../02-design/assets/mascot/`, brief ở [`../02-thiet-ke/mascot-brief.md`](../02-design/mascot-brief.md).
-- **Identity on-chain:** `NameRecord`, `ReverseRecord`, `PhoneRecord` trong `ned_program` (mô tả gốc ở `03-engineering/dev-handoff.md` mục 1a; tham số scrypt ở `04-code-plan.md`). Cách dùng hiện tại: [`../../ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
-- **Đăng nhập Dynamic:** Google và ví nhúng Solana (MPC), kiểm tra lần đầu trong `poc-dynamic.md`; kiến trúc không backend từ `cleanup-report-t0-5.md`.
+- **Teddy the mascot:** the images `ned-wallet/assets/images/mascot teddy - *.png` (used through `constants/mascot.ts`) and `../02-design/assets/mascot/`; brief in [`../02-design/mascot-brief.md`](../02-design/mascot-brief.md).
+- **On-chain identity:** `NameRecord`, `ReverseRecord`, `PhoneRecord` in `ned_program` (originally described in `03-engineering/dev-handoff.md` section 1a; scrypt parameters in `04-code-plan.md`). Current use: [`../../ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
+- **Dynamic sign-in:** Google and the embedded Solana wallet (MPC), first checked in `poc-dynamic.md`; the no-backend architecture comes from `cleanup-report-t0-5.md`.
 
-Mọi điều khác (Swap là P0, giá Jupiter, phí 0,25%, xStocks, Earn, chế độ ví, AI, dApp Browser) đã bị thay thế và đã gỡ khỏi code.
+Everything else (Swap as P0, Jupiter prices, the 0.25% fee, xStocks, Earn, wallet mode, AI, dApp browser) has been superseded and removed from the code.
 
-## Cố ý không lưu trữ ở đây
+## Deliberately not archived here
 
-- [`../06-strategy-v2/`](../06-strategy-v2/README.md) và [`../07-strategy-v3/`](../07-strategy-v3/README.md): đề xuất v2 và v3, đã bị thay thế nhưng vẫn giữ tại chỗ vì dữ liệu thị trường và pháp lý trong đó.
-- [`../08-research/evaluation-and-plan.md`](../08-research/evaluation-and-plan.md): bị thay thế nhưng vẫn nằm cạnh tài liệu nghiên cứu hiện hành.
-- Thiết kế hiện hành vẫn ở [`../02-design/`](../02-design/README.md) (`canvas-v2/`, ảnh chụp, demo, test, mascot).
+- [`../06-strategy-v2/`](../06-strategy-v2/README.md) and [`../07-strategy-v3/`](../07-strategy-v3/README.md): proposals v2 and v3, superseded but kept in place for their market and legal data.
+- [`../08-research/evaluation-and-plan.md`](../08-research/evaluation-and-plan.md): superseded, but kept next to the current research.
+- The current design stays in [`../02-design/`](../02-design/README.md) (`canvas-v2/`, screenshots, demo, test, mascot).
