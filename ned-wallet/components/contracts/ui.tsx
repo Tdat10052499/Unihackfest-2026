@@ -4,7 +4,7 @@ import { useRegion } from '../../hooks/useRegion';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { Badge, IconButton } from '@/components/design';
+import { Badge, IconButton, useNarrow } from '@/components/design';
 import { elevation, fonts, palette, radius, space, status } from '@/constants/design';
 import type { ChipTone } from '@/services/milestone/view';
 
@@ -18,19 +18,25 @@ export const TONE: Record<ChipTone, { bg: string; ink: string; dot: string }> = 
 
 /** Back (white, S1) · title · Devnet badge */
 export function TopBar({ title, back = '/contracts', badge = true }: { title: string; back?: string; badge?: boolean }) {
+  // On narrow phones the badge gets its own line so the title is not cut
+  const narrow = useNarrow();
+  const devnet = badge ? <Badge label="Devnet · test money" tone="warning" style={narrow ? s.topBadgeBelow : undefined} /> : null;
   return (
-    <View style={s.top}>
-      <IconButton
-        icon="chevron-left"
-        accessibilityLabel="Back"
-        onPress={() => (router.canGoBack() ? router.back() : router.replace(back as Href))}
-        style={elevation.s1}
-      />
-      <Text style={s.topTitle} numberOfLines={1} accessibilityRole="header">
-        {title}
-      </Text>
-      {badge ? <Badge label="Devnet · test money" tone="warning" /> : null}
-    </View>
+    <>
+      <View style={s.top}>
+        <IconButton
+          icon="chevron-left"
+          accessibilityLabel="Back"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace(back as Href))}
+          style={elevation.s1}
+        />
+        <Text style={s.topTitle} numberOfLines={2} accessibilityRole="header">
+          {title}
+        </Text>
+        {narrow ? null : devnet}
+      </View>
+      {narrow ? devnet : null}
+    </>
   );
 }
 
@@ -112,7 +118,8 @@ export function RulesList({ items = RULES }: { items?: string[] }) {
 
 export const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingTop: space[1] },
-  topTitle: { flex: 1, fontFamily: fonts.display, fontSize: 18, color: palette.ink },
+  topTitle: { flex: 1, minWidth: 0, fontFamily: fonts.display, fontSize: 18, color: palette.ink },
+  topBadgeBelow: { alignSelf: 'flex-start', marginTop: space[2] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 24, paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill, alignSelf: 'flex-start', maxWidth: '100%' },
   chipDot: { width: 6, height: 6, borderRadius: radius.pill },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 12, lineHeight: 16, flexShrink: 1 },

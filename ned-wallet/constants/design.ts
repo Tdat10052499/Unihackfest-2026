@@ -236,6 +236,8 @@ export const sizes = {
   button: 52,
   touch: 44,
   maxContent: 480,
+  /** Below this window width (iPhone SE 1st gen, small Android) rows wrap instead of cutting text */
+  narrow: 360,
 } as const;
 
 const lh = (size: number, ratio: number) => Math.round(size * ratio);

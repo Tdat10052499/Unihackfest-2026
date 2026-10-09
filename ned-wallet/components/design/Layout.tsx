@@ -1,5 +1,5 @@
 import React, { Children, isValidElement, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -7,6 +7,11 @@ import { colors, palette, radius, sizes, space, type OrbPreset } from '@/constan
 import { riseStyle, useMotion } from '@/constants/motion';
 import { PressableScale } from './PressableScale';
 import { DText } from './Text';
+
+/** True on phones narrower than sizes.narrow: screens move the Devnet badge to its own line there */
+export function useNarrow(): boolean {
+  return useWindowDimensions().width < sizes.narrow;
+}
 
 /**
  * Screen frame: flat ground (#F4F4F6), content max 480 px on web. The top-level children enter with a fade and a

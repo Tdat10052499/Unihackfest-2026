@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { Feather } from '@expo/vector-icons';
 import { Avatar } from '@/components/Avatar';
-import { Badge, PressableScale, Sheet } from '@/components/design';
+import { Badge, PressableScale, Sheet, useNarrow } from '@/components/design';
 import { FlagUS, FlagVN } from '@/components/home/Flags';
 import { NAV_HEIGHT } from '@/components/wallet/WalletNav';
 import { USD_VND_RATE_DATE } from '@/constants/chain';
@@ -77,6 +77,7 @@ function totals(raw: FundAccount[], wallet: string) {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const narrow = useNarrow();
   const { isReady, user, walletAddress } = useAuth();
   const username = useUserStore((s) => s.username);
   const { region } = useRegion();
@@ -156,13 +157,15 @@ export default function HomeScreen() {
               {name}
             </Text>
           </View>
-          <Badge label="Devnet · test money" tone="warning" />
+          {narrow ? null : <Badge label="Devnet · test money" tone="warning" />}
           {wallet ? (
             <PressableScale accessibilityRole="button" accessibilityLabel={`Your profile, ${name}`} onPress={() => go('/settings')} style={styles.avatarButton}>
               <Avatar seed={wallet} size={40} decorative />
             </PressableScale>
           ) : null}
         </View>
+
+        {narrow ? <Badge label="Devnet · test money" tone="warning" style={styles.badgeBelow} /> : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -296,10 +299,10 @@ function QuickWide({ icon, title, sub, label, filled, onPress }: { icon: Icon; t
         <Feather name={icon} size={16} color={filled ? palette.onAccent : palette.ink} />
       </View>
       <View style={styles.flex}>
-        <Text style={styles.quickTitle} numberOfLines={1}>
+        <Text style={styles.quickTitle} numberOfLines={2}>
           {title}
         </Text>
-        <Text style={styles.quickSub} numberOfLines={1}>
+        <Text style={styles.quickSub} numberOfLines={2}>
           {sub}
         </Text>
       </View>
@@ -313,7 +316,7 @@ function QuickTall({ icon, title, label, filled, onPress }: { icon: Icon; title:
       <View style={[styles.quickDotLarge, filled && styles.quickDotFilled]}>
         <Feather name={icon} size={18} color={filled ? palette.onAccent : palette.ink} />
       </View>
-      <Text style={styles.quickTallTitle} numberOfLines={1}>
+      <Text style={styles.quickTallTitle} numberOfLines={2}>
         {title}
       </Text>
     </PressableScale>
@@ -411,6 +414,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space[4], gap: space[3], width: '100%', maxWidth: 480, alignSelf: 'center' },
   flex: { flex: 1, minWidth: 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space[1], marginBottom: space[1] },
+  badgeBelow: { alignSelf: 'flex-start', marginLeft: space[1], marginBottom: space[2] },
   greeting: { fontFamily: fonts.bodyMedium, fontSize: 14, color: palette.caption },
   name: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: palette.ink },
   avatarButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
@@ -423,14 +427,14 @@ const styles = StyleSheet.create({
   heroUnit: { fontSize: 20 },
   heroSub: { marginTop: 2, fontFamily: fonts.body, fontSize: 13, color: palette.caption },
   quickRow: { flexDirection: 'row', gap: space[2] },
-  quickWide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[2], height: 64, paddingHorizontal: 10, borderRadius: radius.lg, backgroundColor: palette.field },
-  quickTall: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[2], height: 84, paddingHorizontal: 6, borderRadius: radius.lg, backgroundColor: palette.field },
+  quickWide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[2], minHeight: 64, paddingHorizontal: 10, paddingVertical: space[2], borderRadius: radius.lg, backgroundColor: palette.field },
+  quickTall: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[2], minHeight: 84, paddingHorizontal: 6, paddingVertical: space[2], borderRadius: radius.lg, backgroundColor: palette.field },
   quickDot: { width: 32, height: 32, borderRadius: radius.pill, backgroundColor: palette.card, alignItems: 'center', justifyContent: 'center' },
   quickDotLarge: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: palette.card, alignItems: 'center', justifyContent: 'center' },
   quickDotFilled: { backgroundColor: palette.accent },
   quickTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: palette.ink },
   quickSub: { fontFamily: fonts.body, fontSize: 12, color: palette.caption },
-  quickTallTitle: { fontFamily: fonts.bodySemi, fontSize: 13, color: palette.ink },
+  quickTallTitle: { fontFamily: fonts.bodySemi, fontSize: 13, color: palette.ink, textAlign: 'center' },
   stats: { flexDirection: 'row', gap: space[3], paddingTop: space[3], borderTopWidth: 1, borderTopColor: palette.divider },
   statLabel: { fontFamily: fonts.body, fontSize: 12, color: palette.caption },
   statValue: { marginTop: 2, fontFamily: fonts.bodySemi, fontSize: 15, color: palette.ink },
@@ -445,11 +449,11 @@ const styles = StyleSheet.create({
   contractRow: { flexDirection: 'row', gap: space[3], paddingVertical: 14, paddingHorizontal: space[4] },
   rowTitle: { fontFamily: fonts.bodySemi, fontSize: 15, color: palette.ink },
   rowSub: { marginTop: 1, fontFamily: fonts.body, fontSize: 13, color: palette.caption },
-  rowMeta: { marginTop: space[2], flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  rowMeta: { marginTop: space[2], flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 24, paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill, flexShrink: 1 },
   chipDot: { width: 6, height: 6, borderRadius: radius.pill },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 12, flexShrink: 1 },
-  amount: { alignItems: 'flex-end', flexShrink: 0 },
+  amount: { marginLeft: 'auto', alignItems: 'flex-end', flexShrink: 0 },
   amountValue: { fontFamily: fonts.bodySemi, fontWeight: '700', fontSize: 15, color: palette.ink },
   amountSub: { fontFamily: fonts.body, fontSize: 11, color: palette.caption },
   suggest: { gap: 10, paddingHorizontal: space[1], paddingBottom: space[2] },
