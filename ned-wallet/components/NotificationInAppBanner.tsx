@@ -114,7 +114,7 @@ export function NotificationInAppBanner() {
         {/* Hard black shadow 4px 4px */}
         <View style={styles.bannerShadow} />
 
-        {/* Banner body, neo-brutalism style */}
+        {/* Banner body */}
         <TouchableOpacity
           style={[
             styles.bannerBody,

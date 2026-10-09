@@ -1,5 +1,5 @@
 /**
- * N.E.D Wallet Mascot Asset Registry
+ * N.E.D mascot (Teddy) asset registry
  * The purple bear of the N.E.D brand — 16 official expressions
  */
 

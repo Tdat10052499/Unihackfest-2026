@@ -61,7 +61,7 @@ html, #root {
 }
 
 @media (hover: hover) {
-  /* Button bounce (neo-brutalism) on hover on desktop */
+  /* Button bounce on hover on desktop */
   [role="button"]:hover, button:hover, a:hover {
     transform: translateY(-1px);
     transition: transform 0.1s ease-in-out;
