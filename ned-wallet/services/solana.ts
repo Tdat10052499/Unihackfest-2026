@@ -215,22 +215,10 @@ export function getActivityTitle(
   t?: (key: string, options?: any) => string
 ): string {
   if (!t) return item.title;
-  if (item.title === 'Faucet tokens received') {
-    return t('activities.faucet', { defaultValue: 'Faucet tokens received' });
-  }
-  if (item.title === 'SOL received') {
-    return t('activities.receivedSol', { defaultValue: 'SOL received' });
-  }
-  if (item.title === 'SOL sent') {
-    return t('activities.sentSol', { defaultValue: 'SOL sent' });
-  }
   if (item.type === 'received') {
     return t('activities.received', { defaultValue: 'Received' });
   }
   if (item.type === 'sent') {
-    if (item.title === 'Web3 interaction') {
-      return t('activities.web3', { defaultValue: 'Web3 interaction' });
-    }
     return t('activities.sent', { defaultValue: 'Sent' });
   }
   if (item.type === 'reward') {
@@ -364,7 +352,7 @@ export function parseTransactionForAddress(
         return {
           id: signature,
           type: 'received',
-          title: isFaucet ? 'Deposit' : 'Received',
+          title: 'Received',
           time: timeStr,
           amount: `+${currencySymbol}${tokenDiff.toFixed(2)}`,
           isPositive: true,
@@ -435,7 +423,7 @@ export function parseTransactionForAddress(
             return {
               id: signature,
               type: 'received',
-              title: 'Deposit',
+              title: 'Received',
               time: timeStr,
               amount: `+$${rawAmt.toFixed(2)}`,
               isPositive: true,
