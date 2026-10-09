@@ -96,7 +96,7 @@ export const solanaConnection = connection;
 
 export interface ActivityItem {
   id: string;
-  type: 'received' | 'sent' | 'reward' | 'GAS_FEE';
+  type: 'received' | 'sent' | 'GAS_FEE';
   title: string;
   time: string;
   amount: string;
@@ -221,9 +221,6 @@ export function getActivityTitle(
   if (item.type === 'sent') {
     return t('activities.sent', { defaultValue: 'Sent' });
   }
-  if (item.type === 'reward') {
-    return t('activities.reward', { defaultValue: 'Reward' });
-  }
   return item.title || t('activities.contract', { defaultValue: 'Contract interaction' });
 }
 
@@ -334,21 +331,6 @@ export function parseTransactionForAddress(
 
     if (Math.abs(tokenDiff) > 0.000001) {
       if (tokenDiff > 0) {
-        // Did another account lose tokens in this transaction? (tells a P2P transfer from a faucet mint)
-        let isOtherSenderLost = false;
-        for (const pre of preTokens) {
-          if (pre.owner !== address) {
-            const post = postTokens.find((p) => p.accountIndex === pre.accountIndex);
-            const pPre = pre.uiTokenAmount?.uiAmount ?? 0;
-            const pPost = post?.uiTokenAmount?.uiAmount ?? 0;
-            if (pPre - pPost > 0.000001) {
-              isOtherSenderLost = true;
-              break;
-            }
-          }
-        }
-
-        const isFaucet = !isOtherSenderLost;
         return {
           id: signature,
           type: 'received',

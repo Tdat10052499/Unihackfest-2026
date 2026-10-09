@@ -23,10 +23,9 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'received', label: 'Received' },
   { key: 'sent', label: 'Sent' },
-  { key: 'reward', label: 'Rewards' },
 ] as const;
 
-type FilterType = 'all' | 'received' | 'sent' | 'reward';
+type FilterType = 'all' | 'received' | 'sent';
 
 export default function HistoryScreen() {
   const { t } = useTranslation();
@@ -134,9 +133,7 @@ export default function HistoryScreen() {
   const iconFor = (item: ActivityItem) =>
     item.type === 'received'
       ? { name: 'arrow-down-left' as const, bg: glass.successFill, fg: colors.successText }
-      : item.type === 'reward'
-        ? { name: 'gift' as const, bg: glass.warningFill, fg: colors.warningText }
-        : { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text };
+      : { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text };
 
   return (
     <View style={styles.page}>

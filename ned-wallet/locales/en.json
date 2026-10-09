@@ -4,7 +4,6 @@
     "all": "All",
     "received": "Received",
     "sent": "Sent",
-    "reward": "Lucky Reward",
     "contract": "Smart Contract",
     "searchPlaceholder": "Search by amount, tx signature...",
     "empty": "No transactions found",
