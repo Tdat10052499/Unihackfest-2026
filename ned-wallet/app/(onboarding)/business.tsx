@@ -96,7 +96,7 @@ export default function BusinessScreen() {
   const regName = form.registeredIn ? countryName(form.registeredIn) : undefined;
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <KeyboardAvoidingView style={accountStyles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {edit ? <EditHeader onBack={() => router.back()} /> : <StepHeader step={3} total={signupSteps(draft)} onBack={() => router.replace('/country')} />}
         <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll} keyboardShouldPersistTaps="handled">

@@ -2,12 +2,12 @@
 import React, { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Button, IconButton, Notice, Screen } from '@/components/design';
-import { colors, fonts, palette, radius, sizes, space, type, type OrbPreset } from '@/constants/design';
+import { colors, fonts, palette, radius, sizes, space, type } from '@/constants/design';
 
 /** Onboarding frame: ground background, the screen lays out its own content */
-export function OnbScreen({ children, glow = 'brand' }: { children: ReactNode; glow?: OrbPreset | false }) {
+export function OnbScreen({ children }: { children: ReactNode }) {
   return (
-    <Screen scroll={false} glow={glow} contentStyle={styles.bare}>
+    <Screen scroll={false} contentStyle={styles.bare}>
       {children}
     </Screen>
   );

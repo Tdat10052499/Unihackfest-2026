@@ -1,7 +1,7 @@
 // N.E.D DesignKit — "Modern Minimal v2" (build-plan B2, decision D17): light theme, no outlines; depth comes from
 // tone and a soft shadow. Values from docs/02-design/canvas-v2/Main.dc.html and MotionSurfaces.dc.html.
 // Screens never write colours, font sizes or radii themselves: they use this file or components/design.
-// The dark-theme names (surface1–3, glass.*, light.*, home.*, gradients.screen, orbs) are kept as DEPRECATED aliases
+// The dark-theme names (surface1–3, glass.*, light.*, home.*, gradients.screen) are kept as DEPRECATED aliases
 // with light values so screens keep working until B3/B4 rebuild them on `palette`; do not use them in new code.
 import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 
@@ -338,28 +338,3 @@ export const blur = {
   glass: { backdropFilter: 'blur(18px)' },
   soft: { backdropFilter: 'blur(16px)' },
 } as const;
-
-/**
- * Ambient background glows (orbs) per board. Coordinates on a 390px frame; `x` is the horizontal centre relative to the middle of the screen,
- * `y` is the top edge. `color` is rgb, `alpha` the strength at the centre, `stop` where it fades out (transparent X%).
- */
-export type Orb = { x: number; y: number; w: number; h: number; color: string; alpha: number; stop: number; mid?: [string, number, number] };
-/** @deprecated ambient glows belong to the dark theme; AmbientGlow renders nothing in v2 */
-export const orbs = {
-  /** OnbWelcome / Setup / Profile / Send: purple centre with an indigo band */
-  brand: [{ x: 0, y: 40, w: 400, h: 380, color: '123,47,190', alpha: 0.36, stop: 0.68, mid: ['99,102,241', 0.1, 0.45] }],
-  /** Receive: purple centre, behind the QR card */
-  receive: [{ x: 0, y: 90, w: 400, h: 360, color: '123,47,190', alpha: 0.3, stop: 0.65 }],
-  /** Settings / History: purple top right */
-  settings: [{ x: 105, y: -60, w: 260, h: 260, color: '123,47,190', alpha: 0.22, stop: 0.65 }],
-  /** OnbSetup: indigo centre */
-  setup: [{ x: 0, y: 120, w: 380, h: 360, color: '99,102,241', alpha: 0.26, stop: 0.65 }],
-  /** Success screen: green centre */
-  success: [{ x: 0, y: 140, w: 340, h: 300, color: '34,197,94', alpha: 0.18, stop: 0.62 }],
-  /** Home hero: indigo ellipse right + purple left */
-  homeHero: [
-    { x: 125, y: 150, w: 420, h: 340, color: '99,102,241', alpha: 0.32, stop: 0.7, mid: ['99,102,241', 0.12, 0.4] },
-    { x: -155, y: 210, w: 380, h: 300, color: '155,79,222', alpha: 0.26, stop: 0.7, mid: ['155,79,222', 0.1, 0.4] },
-  ],
-} satisfies Record<string, Orb[]>;
-export type OrbPreset = keyof typeof orbs;

@@ -50,7 +50,7 @@ export default function ConsentScreen() {
   ];
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <StepHeader step={1} total={3} onBack={() => router.replace('/welcome')} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll}>
         <Text style={onbText.h1} accessibilityRole="header">

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { resolveRecipient, recipientLabel, shortAddress, type Recipient } from '../services/identity/resolve';
 import { prepareUsdcTransfer, type PreparedUsdcTransfer } from '../services/p2pTransfer';
 import { solAmount } from '../services/identity/transactionCost';
-import { AmbientGlow, Badge, Button, Card, DText, Header, IconButton, InfoRow, Notice } from './design';
+import { Badge, Button, Card, DText, Header, IconButton, InfoRow, Notice } from './design';
 import { colors, fonts, glass, gradients, radius, shadows, sizes, space, type } from '../constants/design';
 import { MASCOT_IMAGES } from '../constants/mascot';
 import { amountNumber, sanitizeAmountInput } from '../utils/amountInput';
@@ -86,7 +86,6 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
   const shown = Number(amount).toFixed(2);
   const overBalance = balance != null && amountNumber(amount) > balance;
   return <LinearGradient colors={gradients.screen} locations={gradients.screenLocations} style={styles.root}>
-    {stage === 'success' ? <AmbientGlow preset="success" /> : null}
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       {stage !== 'success' && <Header
         title={stage === 'review' ? 'Review' : 'Send'}

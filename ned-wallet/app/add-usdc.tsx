@@ -119,7 +119,6 @@ export default function AddUsdcScreen() {
 
   return (
     <Screen
-      glow={false}
       footer={
         enough ? <Button title="Back to lock" icon="lock" onPress={() => router.replace(`/contracts/${fund}/lock` as Href)} /> : undefined
       }

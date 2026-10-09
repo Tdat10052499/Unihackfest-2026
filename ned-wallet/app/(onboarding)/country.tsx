@@ -51,7 +51,7 @@ function SignupCountry() {
   };
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <StepHeader step={2} total={signupSteps(draft)} onBack={() => router.replace('/role')} />
       <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll} keyboardShouldPersistTaps="handled">
         <StepTitle title={COUNTRY_COPY.title} sub={COUNTRY_COPY.sub} />
@@ -156,7 +156,7 @@ function CountryEdit() {
   };
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <EditHeader onBack={() => router.back()} />
       <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll} keyboardShouldPersistTaps="handled">
         <StepTitle title={COUNTRY_COPY.title} sub={COUNTRY_COPY.sub} />

@@ -41,7 +41,7 @@ export default function ResidenceScreen() {
   };
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <StepHeader step={3} total={3} onBack={() => router.replace('/profile')} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll}>
         <Text style={onbText.h1} accessibilityRole="header">

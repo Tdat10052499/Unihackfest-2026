@@ -259,7 +259,7 @@ export default function ScanQrScreen() {
   // No camera permission yet
   if (!permission?.granted) {
     return (
-      <Screen glow="settings">
+      <Screen>
         <StatusBar barStyle="light-content" />
         <Header title="Scan QR code" onBack={() => router.back()} />
         <View style={styles.permissionCenter}>

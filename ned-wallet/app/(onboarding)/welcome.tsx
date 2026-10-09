@@ -41,7 +41,7 @@ export default function WelcomeScreen() {
   const shownError = loginError || (status === 'error' || status === 'unconfigured' ? error : '');
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <View style={styles.body}>
         <View style={styles.mascotWrap}>
           <Image

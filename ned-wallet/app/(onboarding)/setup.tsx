@@ -85,7 +85,7 @@ export default function SetupScreen() {
   const failure = checkError || (status === 'error' ? authError : '');
 
   return (
-    <OnbScreen glow="setup">
+    <OnbScreen>
       <View style={styles.body}>
         <Image source={MASCOT_IMAGES.thinking} style={styles.mascot} resizeMode="contain" accessibilityIgnoresInvertColors />
         <Text style={[onbText.h1Center, styles.heading]} accessibilityRole="header" accessibilityLiveRegion="polite">

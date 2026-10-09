@@ -53,7 +53,7 @@ export default function RoleScreen() {
   if (!FEATURES.accountRoles) return <Redirect href="/setup" />;
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <StepHeader step={1} total={signupSteps(draft)} onBack={update ? undefined : () => router.replace('/welcome')} />
       <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll}>
         {update ? <TintNotice text={ROLE_COPY.update} style={styles.update} /> : null}

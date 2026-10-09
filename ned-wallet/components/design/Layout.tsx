@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { colors, palette, radius, sizes, space, type OrbPreset } from '@/constants/design';
+import { colors, palette, radius, sizes, space } from '@/constants/design';
 import { riseStyle, useMotion } from '@/constants/motion';
 import { PressableScale } from './PressableScale';
 import { DText } from './Text';
@@ -20,21 +20,17 @@ export function useNarrow(): boolean {
 export function Screen({
   children,
   scroll = true,
-  glow = false,
   footer,
   contentStyle,
   edges = ['top', 'bottom', 'left', 'right'],
 }: {
   children: ReactNode;
   scroll?: boolean;
-  /** @deprecated ambient glows belong to the dark theme; ignored in v2 */
-  glow?: OrbPreset | false;
   /** Fixed area at the bottom of the screen (CTA) */
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
 }) {
-  void glow;
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={edges}>
@@ -79,11 +75,6 @@ function Staggered({ children }: { children: ReactNode }) {
       })}
     </>
   );
-}
-
-/** @deprecated ambient glows belong to the dark theme; renders nothing in v2 (kept so screens compile) */
-export function AmbientGlow(_props: { preset?: OrbPreset; style?: StyleProp<ViewStyle> }) {
-  return null;
 }
 
 /** Square 44 × 44 icon button, radius 12, tonal fill (back, QR, close…); scales on press */

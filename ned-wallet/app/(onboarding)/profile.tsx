@@ -206,7 +206,7 @@ export default function ProfileScreen() {
 
 
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {FEATURES.accountRoles ? (
           <StepHeader step={accountSteps} total={accountSteps} onBack={() => router.replace('/agreement')} />

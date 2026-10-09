@@ -66,7 +66,7 @@ export default function AgreementScreen() {
 
   const links = agreementLinks(draft);
   return (
-    <OnbScreen glow={false}>
+    <OnbScreen>
       <StepHeader step={business ? 4 : 3} total={signupSteps(draft)} onBack={() => router.replace(business ? '/business' : '/country')} />
       <ScrollView style={accountStyles.flex} contentContainerStyle={accountStyles.scroll}>
         <StepTitle title={AGREEMENT_COPY.title} sub={AGREEMENT_COPY.sub} />
