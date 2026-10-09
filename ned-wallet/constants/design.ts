@@ -1,5 +1,5 @@
 // N.E.D DesignKit — "Modern Minimal v2" (build-plan B2, decision D17): light theme, no outlines; depth comes from
-// tone and a soft shadow. Values from docs/02-thiet-ke/canvas-v2/Main.dc.html and MotionSurfaces.dc.html.
+// tone and a soft shadow. Values from docs/02-design/canvas-v2/Main.dc.html and MotionSurfaces.dc.html.
 // Screens never write colours, font sizes or radii themselves: they use this file or components/design.
 // The dark-theme names (surface1–3, glass.*, light.*, home.*, gradients.screen, orbs) are kept as DEPRECATED aliases
 // with light values so screens keep working until B3/B4 rebuild them on `palette`; do not use them in new code.
@@ -268,7 +268,7 @@ export const type = StyleSheet.create({
 
 export type TypeVariant = keyof typeof type;
 
-/** Màu dữ liệu (đã chạy validator dataviz trên nền tối — docs/archive/02-thiet-ke-v1/trang-thai-thiet-ke.md v62/v85) và màu nhận diện tài sản (HomeV4) */
+/** Màu dữ liệu (đã chạy validator dataviz trên nền tối — docs/archive/02-design-v1/design-status.md v62/v85) và màu nhận diện tài sản (HomeV4) */
 export const dataColors = {
   series: ['#9B4FDE', '#C98500', '#3987E5', '#199E70'] as const,
   other: '#6B6780',

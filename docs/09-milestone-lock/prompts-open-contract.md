@@ -34,7 +34,7 @@ Where the tag is kept:
 
 ## How to run
 
-One new Claude Code session per prompt, in order N1 → N3. Each follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, pull first, tests before each push, no secrets, English UI, the word table, a progress row in `docs/tong-hop-tien-do.md`.
+One new Claude Code session per prompt, in order N1 → N3. Each follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, pull first, tests before each push, no secrets, English UI, the word table, a progress row in `docs/progress-log.md`.
 
 ---
 

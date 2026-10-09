@@ -5,9 +5,9 @@
 > Bản thiết kế gốc nằm trên canvas **Claude Design** "NED Wallet Design System" (bản v85, 26/09/2026). Thư mục này là **bản sao để đội phát triển đọc và code theo**. Khi thiết kế thay đổi, canvas là nguồn mới nhất; hãy xuất lại vào đây.
 
 - **Canvas (xem & bấm thử prototype)**: https://claude.ai/artifact/JvAg5gy7bAg5hDqvz74huY — mặc định **riêng tư**; chủ canvas cần mở quyền trong menu *Share* thì thành viên khác mới xem được.
-- **Trạng thái & quyết định thiết kế đầy đủ**: [`trang-thai-thiet-ke.md`](trang-thai-thiet-ke.md)
-- **Quy tắc dùng mascot Teddy**: [`mascot-brief.md`](../../02-thiet-ke/mascot-brief.md)
-- **Dữ liệu/API cho từng màn hình**: [`../03-ky-thuat/dev-handoff.md`](../03-ky-thuat/dev-handoff.md)
+- **Trạng thái & quyết định thiết kế đầy đủ**: [`design-status.md`](design-status.md)
+- **Quy tắc dùng mascot Teddy**: [`mascot-brief.md`](../../02-design/mascot-brief.md)
+- **Dữ liệu/API cho từng màn hình**: [`../03-engineering/dev-handoff.md`](../03-engineering/dev-handoff.md)
 
 ## Cách đọc các file `.dc.html`
 
@@ -30,15 +30,15 @@ Mỗi file trong [`canvas/`](canvas) là **toàn bộ mã nguồn một màn hì
 
 | `/_blob/…` | File |
 |---|---|
-| `3606719d081640f73145640e612b071e` | [`assets/mascot/teddy-line-art.png`](../../02-thiet-ke/assets/mascot/teddy-line-art.png) |
-| `5bb51609a7ff36b0643dc0cc23146ac6` | [`teddy-waving.png`](../../02-thiet-ke/assets/mascot/teddy-waving.png) |
-| `3385a7c81923ce262d24f4cda7f87bcd` | [`teddy-thinking.png`](../../02-thiet-ke/assets/mascot/teddy-thinking.png) |
-| `e22583d8a70ae1fb499f29d477b5e1c9` | [`teddy-exciting.png`](../../02-thiet-ke/assets/mascot/teddy-exciting.png) |
-| `6b5178b3c2e1fe17910ea565b9a1f09f` | [`teddy-curious.png`](../../02-thiet-ke/assets/mascot/teddy-curious.png) |
-| `195e0aeefc275136e89ec220d2c399a1` | [`teddy-confused.png`](../../02-thiet-ke/assets/mascot/teddy-confused.png) |
-| `22f5490f03888bc46a04dbf909a17ab4` | [`teddy-happy.png`](../../02-thiet-ke/assets/mascot/teddy-happy.png) |
+| `3606719d081640f73145640e612b071e` | [`assets/mascot/teddy-line-art.png`](../../02-design/assets/mascot/teddy-line-art.png) |
+| `5bb51609a7ff36b0643dc0cc23146ac6` | [`teddy-waving.png`](../../02-design/assets/mascot/teddy-waving.png) |
+| `3385a7c81923ce262d24f4cda7f87bcd` | [`teddy-thinking.png`](../../02-design/assets/mascot/teddy-thinking.png) |
+| `e22583d8a70ae1fb499f29d477b5e1c9` | [`teddy-exciting.png`](../../02-design/assets/mascot/teddy-exciting.png) |
+| `6b5178b3c2e1fe17910ea565b9a1f09f` | [`teddy-curious.png`](../../02-design/assets/mascot/teddy-curious.png) |
+| `195e0aeefc275136e89ec220d2c399a1` | [`teddy-confused.png`](../../02-design/assets/mascot/teddy-confused.png) |
+| `22f5490f03888bc46a04dbf909a17ab4` | [`teddy-happy.png`](../../02-design/assets/mascot/teddy-happy.png) |
 
-Thư mục [`assets/mascot/`](../../02-thiet-ke/assets/mascot) có đủ 16 cảm xúc (~200px, bản gốc; bản @3x đang chờ — xem mascot brief).
+Thư mục [`assets/mascot/`](../../02-design/assets/mascot) có đủ 16 cảm xúc (~200px, bản gốc; bản @3x đang chờ — xem mascot brief).
 
 ## Design tokens (tóm tắt)
 

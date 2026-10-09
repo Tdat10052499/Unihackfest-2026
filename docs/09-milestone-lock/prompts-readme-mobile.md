@@ -8,7 +8,7 @@ The PO decided on 7 Oct that **the phone app is the main product**. The Workspac
 
 **Update 8 Oct:** the main `README.md` is already on `main` with the app first. Its phone gallery is inside an HTML comment (`<!-- PHONE-GALLERY … PHONE-GALLERY -->`), so nothing is broken. M1 only has to add the images and remove the two comment lines. There is no separate README for the app: this is the repository's main README.
 
-**Update 8 Oct (PO):** the gallery is now open, with eight screens rendered from the design boards (`docs/02-thiet-ke/screenshots/mobile-app/README.md` gives the source of each and the A4 note). A line under the gallery says they are designs. M1 still applies: overwrite the eight files with captures from the running app (same names), then change the line under the gallery to say they are app captures. Steps 4 to 6 stay the same; skip the step-5 comment removal.
+**Update 8 Oct (PO):** the gallery is now open, with eight screens rendered from the design boards (`docs/02-design/screenshots/mobile-app/README.md` gives the source of each and the A4 note). A line under the gallery says they are designs. M1 still applies: overwrite the eight files with captures from the running app (same names), then change the line under the gallery to say they are app captures. Steps 4 to 6 stay the same; skip the step-5 comment removal.
 
 ## M1 · Capture the phone screens and publish the README
 
@@ -31,7 +31,7 @@ Task:
    For each screen:
    - wait for the data to load (no skeletons, no spinners);
    - hide any Google name or e-mail address on screen.
-3. Capture these eight screens to docs/02-thiet-ke/screenshots/mobile-app/ (exact names):
+3. Capture these eight screens to docs/02-design/screenshots/mobile-app/ (exact names):
    - 01-welcome.png: / signed out (welcome, "Continue with Google").
    - 02-home-vn.png: /dev/home-preview?wallet=<B>&view=vn.
    - 03-accept-vn.png: /dev/contract-preview?wallet=<B>&fund=<Created contract>&view=vn&screen=accept&k=<key>, with
@@ -43,7 +43,7 @@ Task:
      transfer simulated").
    - 07-records-vn.png: /dev/contract-preview?wallet=<B>&view=vn&screen=records.
    - 08-lock-client.png: …wallet=<A>&view=intl&screen=lock for an Accepted contract (Slide to lock).
-4. Frame each image the same way, with a small script under docs/02-thiet-ke/screenshots/mobile-app/ or ned-wallet/scripts/:
+4. Frame each image the same way, with a small script under docs/02-design/screenshots/mobile-app/ or ned-wallet/scripts/:
    - rounded corners, radius 48 px at 2×;
    - a 12 px dark bezel (#16161C);
    - a transparent background;
@@ -53,7 +53,7 @@ Task:
    - no screen shows a personal e-mail or phone number.
 5. In README.md, delete the two comment lines around the phone gallery (the line starting "<!-- PHONE-GALLERY" and the
    line "PHONE-GALLERY -->"). Check that every image path in README.md exists:
-   grep -o 'docs/02-thiet-ke/screenshots/[^"]*' README.md | xargs ls
+   grep -o 'docs/02-design/screenshots/[^"]*' README.md | xargs ls
 6. Commit the images and the README together (docs: phone screenshots and README with the app first), and push.
 Done when: the eight framed images and the README are on main; the README renders on GitHub with no broken image;
 progress row "M1 README phone screens"; CL notified (README is in the CL's CODEOWNERS paths).

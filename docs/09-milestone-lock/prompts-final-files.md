@@ -37,7 +37,7 @@ After a milestone is released, the client has no place to receive the final file
 
 ## How to run
 
-One new Claude Code session per prompt, in order F1 → F3. Each follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, pull first, tests before each push, no secrets, English UI, the word table, a progress row in `docs/tong-hop-tien-do.md`.
+One new Claude Code session per prompt, in order F1 → F3. Each follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, pull first, tests before each push, no secrets, English UI, the word table, a progress row in `docs/progress-log.md`.
 
 **Not changing:** program, note kinds, the encryption, the evidence hash of existing deliveries, settlement rules.
 

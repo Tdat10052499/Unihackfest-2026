@@ -3,7 +3,7 @@
 Run the prompts in order. Each prompt is one session.
 
 - Paste the text in the code block as it is.
-- Where a prompt says "I attach", attach the screenshots of the boards named; the board sources are already in `docs/02-thiet-ke/canvas-v2/`.
+- Where a prompt says "I attach", attach the screenshots of the boards named; the board sources are already in `docs/02-design/canvas-v2/`.
 - Every prompt relies on [`build-plan.md`](build-plan.md) section 10 (rules for every task), so the rules are not repeated in full.
 
 | Order | Prompt | Phase | Run when |
@@ -57,7 +57,7 @@ Do:
 7. Tests: update every existing call site and helper for the new arguments; layout test (740; offsets 12, 44, 676); add program-spec section 8 tests 16, 17, 18 (including "delivery note in the same transaction right after submit" and "fund bytes unchanged after post_note"). Log compute units for post_note.
 Rules: build-plan section 10. Do not touch identity instructions or their error codes. Do not deploy, do not run `anchor idl upgrade`.
 Acceptance: `anchor build && cargo test` — all milestone tests (old + new) and the 10 identity tests pass, 0 warnings; program_autofixer (if available) 0 issues. Report the new .so size versus the deployed 475,280 bytes and whether `solana program extend` will be needed.
-Finish: commit, push the branch; do not merge yet (A2 merges after deploy). Update docs/tong-hop-tien-do.md.
+Finish: commit, push the branch; do not merge yet (A2 merges after deploy). Update docs/progress-log.md.
 ```
 
 ## 2 · A2: devnet upgrade and app layout
@@ -65,14 +65,14 @@ Finish: commit, push the branch; do not merge yet (A2 merges after deploy). Upda
 ```text
 Task: build-plan.md phase A2 — upgrade ned_program on devnet to v1.1 and align the app's layout constants and IDL.
 Branch: continue feat/a1-program-v1-1.
-Read first: build-plan.md sections 2 (G4), 3, 10; program-spec.md section 9; docs/tong-hop-tien-do.md "Thông tin devnet".
+Read first: build-plan.md sections 2 (G4), 3, 10; program-spec.md section 9; docs/progress-log.md "Thông tin devnet".
 Do, stopping for my OK where marked:
 1. List program accounts of ned_program with dataSize 708 on devnet (v1 funds): address, state, vault balance, client. Print the table. STOP and ask me what to close/settle; then do only what I approve, using existing scripts (close, refund, recycle) with my keypairs passed as arguments, never stored in the repo.
 2. anchor build. If the .so is larger than the allocated program data, show the `solana program extend` command and the SOL cost; STOP for my OK.
 3. Upgrade the program (same program ID, deploy wallet from Anchor.toml); then `anchor idl upgrade`. STOP for my OK before each of these two commands.
 4. Copy the generated IDL to ned-wallet/idl/ (json + ts). Update ned-wallet/services/milestone/layout.ts (FUND_SIZE 740, OFFSET_BRIEF_HASH 676, NOTE_MAX_LEN, NOTE_MAX_PARTS) and decode.ts (brief_hash). Make the minimum change in services/milestone/client.ts so existing callers still compile: buildCreateFund takes a briefHash (temporary: SHA-256 of the title until B1), buildAccept takes expectedBriefHash (TEMPORARY, smoke script and harness only: read from the fund; B1 replaces it with the hash of the decrypted brief shown to the freelancer, never the fund's value), buildSubmit refuses an all-zero evidence. Update scripts/milestone-devnet.ts accordingly.
 5. Run `npm run milestone:devnet` twice (VND path) and once with --refund.
-Acceptance: cargo test green; npm test, npx tsc --noEmit, npx expo export --platform web green; smoke runs PASS. Record in docs/tong-hop-tien-do.md: deploy and IDL signatures, program size, extend (if any), smoke results.
+Acceptance: cargo test green; npm test, npx tsc --noEmit, npx expo export --platform web green; smoke runs PASS. Record in docs/progress-log.md: deploy and IDL signatures, program size, extend (if any), smoke results.
 Finish: commit, push, fast-forward main (stop if not a fast-forward).
 ```
 
@@ -100,7 +100,7 @@ Finish: update non-ui-plan 3.1 if types changed; commit, push, fast-forward main
 ```text
 Task: build-plan.md phase B2 — move the app to the light "Modern Minimal v2" tokens, remove outlines, add the motion system.
 Branch: feat/b2-theme-motion.
-Read first: build-plan.md sections 4 (B2) and 10; docs/02-thiet-ke/canvas-v2/README.md, Main.dc.html, MotionSurfaces.dc.html, MilestoneComponents.dc.html; README.md D17; constants/design.ts; components/design/*.
+Read first: build-plan.md sections 4 (B2) and 10; docs/02-design/canvas-v2/README.md, Main.dc.html, MotionSurfaces.dc.html, MilestoneComponents.dc.html; README.md D17; constants/design.ts; components/design/*.
 Do:
 1. constants/design.ts: light tokens from Main.dc.html (ground #F4F4F6, card #FFFFFF, ink #111116, caption #5E5E6A, accent #7B2FBE, link #6A22B0, tint #F2EAFB, divider #F0F0F3, status tints) and shadows S1 / S-accent from MotionSurfaces.dc.html (iOS shadow props + Android elevation + web boxShadow). Keep old token names as aliases only where needed to avoid breaking screens in this PR; mark them deprecated.
 2. constants/motion.ts: durations and curves from the MotionSurfaces token table (press 160, hover 200, enter 200 + 360 with 40 ms stagger max 5, state change 320, popover 200, sheet 360, focus 180; cubicBezier(0.2,0,0,1) and Easing.bezier(0.16,1,0.3,1)); a useReducedMotion guard.
@@ -116,7 +116,7 @@ Finish: commit, push, fast-forward main.
 ```text
 Task: build-plan.md phase B3 (refactor-plan PR4 adapt list) — WalletNav, onboarding order, Settings, Avatar, Home (both views), remove Swap/xStocks entry points and the N11 bridge.
 Branch: feat/b3-nav-onboarding.
-Read first: build-plan.md sections 4 (B3) and 10; refactor-plan.md PR4; product-spec sections 4, 6, 9; docs/tong-hop-tien-do.md open issues 5 and 7; boards Onb*.dc.html, HomeVN/HomeIntl.dc.html, Settings*.dc.html, Disclosures.dc.html, Avatar*.dc.html, Receive/Send*.dc.html. I attach screenshots of HomeVN, HomeIntl, OnbProfile, OnbResidence, Settings.
+Read first: build-plan.md sections 4 (B3) and 10; refactor-plan.md PR4; product-spec sections 4, 6, 9; docs/progress-log.md open issues 5 and 7; boards Onb*.dc.html, HomeVN/HomeIntl.dc.html, Settings*.dc.html, Disclosures.dc.html, Avatar*.dc.html, Receive/Send*.dc.html. I attach screenshots of HomeVN, HomeIntl, OnbProfile, OnbResidence, Settings.
 Do:
 1. WalletNav: Home · Contracts · Records · Settings; remove the SWAP/XSTOCKS tiles and tab (routes stay behind FEATURES flags).
 2. Onboarding: welcome → setup → (fund) → consent → profile (with generated avatar) → residence → home; set CONSENT_SCREEN_READY = true and delete the TODO(N11 bridge) path.
@@ -126,7 +126,7 @@ Do:
 6. Copy fixes listed in refactor-plan PR4.
 Rules: build-plan section 10.
 Acceptance: npm test, tsc, web export; the N11 web checklist (sign-in, returning user, new user to Home, Send, /swap and /xstocks redirect to Home) passes in Chromium; screenshots of both Home views.
-Finish: commit, push, fast-forward main; close open issues 5 and 7 in tong-hop-tien-do.md.
+Finish: commit, push, fast-forward main; close open issues 5 and 7 in progress-log.md.
 ```
 
 ## 6 · B4a: contracts list, detail, accept, lock
@@ -250,9 +250,9 @@ Finish: commit, push, fast-forward main.
 ```text
 Task: build-plan.md phase D1 — run the full demo on the deployed builds and fix only what fails.
 Branch: fix/d1-e2e (only if something must change).
-Read first: build-plan.md sections 7, 8, 10; product-spec section 7; docs/tong-hop-tien-do.md open issues.
+Read first: build-plan.md sections 7, 8, 10; product-spec section 7; docs/progress-log.md open issues.
 Do: write the step list for me first (who, which device, which URL, expected screen and on-chain result), then guide me step by step: 1) Mia creates on her laptop (Vercel) with a brief; 2) Vinh opens the invite link on the iPhone (GitHub Pages) and accepts VND; 3) Mia locks on her phone; 4) Vinh opens the same invite link on his laptop (gives the laptop the key), then submits there (Vercel) with links + a file; 5) Mia reviews on her laptop and releases; 6) close; 7) repeat with a 1-minute review and release after review (anyone). After each step, check the chain state with a read-only script and report. Collect every defect with a screenshot; fix them in small commits; re-run the failed steps.
-Acceptance: two consecutive clean runs; results and URLs recorded in docs/tong-hop-tien-do.md.
+Acceptance: two consecutive clean runs; results and URLs recorded in docs/progress-log.md.
 ```
 
 ## 15 · D2: demo operations and deploys
@@ -260,8 +260,8 @@ Acceptance: two consecutive clean runs; results and URLs recorded in docs/tong-h
 ```text
 Task: build-plan.md phase D2 — demo operations, README, deploys, records.
 Branch: chore/d2-demo-ops.
-Read first: build-plan.md sections 6, 7, 10; refactor-plan PR7; docs/tong-hop-tien-do.md (devnet facts, open issues).
-Do: recycle demo USDC (scripts/recycle-demo-usdc.ts, keypair path as an argument); prepare contract B with a 1-minute review so "Release now" is ready on stage; README "what runs" for mobile (GitHub Pages), Workspace (Vercel), landing (Vercel), program v1.1 facts; deploy GitHub Pages (`npm run deploy`) and confirm both Vercel production deploys; record URLs, program signature, size, IDL account and the compute-unit table in docs/tong-hop-tien-do.md; write the 2-minute backup video shot list. Ask me before any spending or deploy step.
+Read first: build-plan.md sections 6, 7, 10; refactor-plan PR7; docs/progress-log.md (devnet facts, open issues).
+Do: recycle demo USDC (scripts/recycle-demo-usdc.ts, keypair path as an argument); prepare contract B with a 1-minute review so "Release now" is ready on stage; README "what runs" for mobile (GitHub Pages), Workspace (Vercel), landing (Vercel), program v1.1 facts; deploy GitHub Pages (`npm run deploy`) and confirm both Vercel production deploys; record URLs, program signature, size, IDL account and the compute-unit table in docs/progress-log.md; write the 2-minute backup video shot list. Ask me before any spending or deploy step.
 Acceptance: the demo script runs from the landing page QR and the Workspace link with no manual fixes.
 Finish: commit, push, fast-forward main.
 ```

@@ -53,11 +53,11 @@ Notes:
 
 ## Screenshots
 
-- `docs/02-thiet-ke/screenshots/h1-hub-v4/`: 1-header-top.png, 2-header-scrolled.png, 3-profile-menu.png, 4-header-guest.png, 5-header-vn.png, 6-footer-cta-client.png, 7-footer-vn.png, 8-mobile-header.png, 9-mobile-footer.png
-- `docs/02-thiet-ke/screenshots/h2-overview-v4/`: desktop-client.png, desktop-guest.png, desktop-vn.png, mobile-client.png, mobile-guest.png, mobile-vn.png, overview-scroll.gif, state-empty.png, state-error.png, state-loading.png
-- `docs/02-thiet-ke/screenshots/h3-find-v4/`: d-client-budget.png, d-client-chips.png, d-client-field.png, d-client-grid.png, d-client-list.png, d-client-sheet.png, d-client-tab-applied.png, d-client-tab-listings.png, d-guest-tab-applied.png, d-nomatch.png, d-sticky.png, d-vn-budget.png, d-vn-chips.png, d-vn-field.png, d-vn-grid.png, d-vn-list.png, d-vn-sheet.png, d-vn-tab-applied.png, m-client-budget.png, m-client-chips.png, m-client-field.png, m-client-grid.png, m-client-list.png, m-client-sheet.png, m-client-tab-applied.png, m-client-tab-listings.png, m-guest-tab-applied.png, m-nomatch.png, m-vn-budget.png, m-vn-chips.png, m-vn-field.png, m-vn-grid.png, m-vn-list.png, m-vn-sheet.png, m-vn-tab-applied.png
-- `docs/02-thiet-ke/screenshots/h4-legal/`: d-anchor-privacy-4.png, d-disclosures.png, d-privacy.png, d-rules.png, d-spy-scrolled.png, d-terms.png, m-disclosures.png, m-privacy.png, m-rules.png, m-terms.png
-- `docs/02-thiet-ke/screenshots/h5-qa/`: applicants-1440.png, applicants-390.png, detail-1440.png, detail-390.png, detail-client-1440.png, post-1440.png, post-390.png
+- `docs/02-design/screenshots/h1-hub-v4/`: 1-header-top.png, 2-header-scrolled.png, 3-profile-menu.png, 4-header-guest.png, 5-header-vn.png, 6-footer-cta-client.png, 7-footer-vn.png, 8-mobile-header.png, 9-mobile-footer.png
+- `docs/02-design/screenshots/h2-overview-v4/`: desktop-client.png, desktop-guest.png, desktop-vn.png, mobile-client.png, mobile-guest.png, mobile-vn.png, overview-scroll.gif, state-empty.png, state-error.png, state-loading.png
+- `docs/02-design/screenshots/h3-find-v4/`: d-client-budget.png, d-client-chips.png, d-client-field.png, d-client-grid.png, d-client-list.png, d-client-sheet.png, d-client-tab-applied.png, d-client-tab-listings.png, d-guest-tab-applied.png, d-nomatch.png, d-sticky.png, d-vn-budget.png, d-vn-chips.png, d-vn-field.png, d-vn-grid.png, d-vn-list.png, d-vn-sheet.png, d-vn-tab-applied.png, m-client-budget.png, m-client-chips.png, m-client-field.png, m-client-grid.png, m-client-list.png, m-client-sheet.png, m-client-tab-applied.png, m-client-tab-listings.png, m-guest-tab-applied.png, m-nomatch.png, m-vn-budget.png, m-vn-chips.png, m-vn-field.png, m-vn-grid.png, m-vn-list.png, m-vn-sheet.png, m-vn-tab-applied.png
+- `docs/02-design/screenshots/h4-legal/`: d-anchor-privacy-4.png, d-disclosures.png, d-privacy.png, d-rules.png, d-spy-scrolled.png, d-terms.png, m-disclosures.png, m-privacy.png, m-rules.png, m-terms.png
+- `docs/02-design/screenshots/h5-qa/`: applicants-1440.png, applicants-390.png, detail-1440.png, detail-390.png, detail-client-1440.png, post-1440.png, post-390.png
 
 ## Left open
 

@@ -1,4 +1,4 @@
-// Motion tokens of docs/02-thiet-ke/canvas-v2/MotionSurfaces.dc.html, for Motion for React (D17, D20).
+// Motion tokens of docs/02-design/canvas-v2/MotionSurfaces.dc.html, for Motion for React (D17, D20).
 // Rules: only opacity and transform; nothing over 400 ms; exits ≈ 70 % of the enter; stagger ≤ 5 items, 40 ms apart;
 // amounts never animate; Reduce Motion → instant (MotionConfig reducedMotion="user" in main.tsx).
 import { MotionGlobalConfig, type Transition, type Variants } from 'motion/react';

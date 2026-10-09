@@ -1,11 +1,13 @@
 # N.E.D Wallet — Đề xuất hướng đi v2: "Hụi minh bạch" cho người Việt xa quê
 
+> **Lưu trữ (09/10/2026):** bản tiếng Việt, chỉ để tra lịch sử; bản đang dùng là bản tiếng Anh `docs/06-strategy-v2/strategy-v2.en.md`. Xem `archive/README.md`.
+
 > **Đã được thay thế ngày 02/10/2026 bởi đề xuất v3 (Shared Money):** [`../07-strategy-v3/strategy-v3.en.md`](../07-strategy-v3/strategy-v3.en.md). Giữ lại để tra cứu dữ liệu thị trường và pháp lý.
 
 > **Trạng thái:** đề xuất v2. Chủ dự án đã đồng ý hướng đi ngày 01/10/2026. Chưa được mentor, Compliance Lead hay luật sư thẩm định.
 > **Thay thế:** [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md) (v1). V1 vẫn giữ để tra cứu phần pháp lý.
 > **Cập nhật:** 01/10/2026 · **Người lập:** Ho Du Tuan Dat, cùng trợ lý AI nghiên cứu
-> **Bản tiếng Anh:** [`strategy-v2.en.md`](strategy-v2.en.md) · **Mô hình số liệu:** [`unit_economics.py`](unit_economics.py)
+> **Bản tiếng Anh:** [`strategy-v2.en.md`](../06-strategy-v2/strategy-v2.en.md) · **Mô hình số liệu:** [`unit_economics.py`](../06-strategy-v2/unit_economics.py)
 
 ---
 
@@ -32,9 +34,9 @@ Nếu bạn clone repo và dùng Claude (hoặc trợ lý AI khác) để phân 
 
 **File liên quan trong repo:**
 
-- `../archive/01-dinh-huong-du-an.md`: định hướng gốc và lời mentor.
-- `../tong-hop-tien-do.md`: tiến độ code đến 28/09/2026.
-- `../archive/04-ke-hoach-code.md`: kế hoạch code theo phase.
+- `../archive/01-product-direction.md`: định hướng gốc và lời mentor.
+- `../progress-log.md`: tiến độ code đến 28/09/2026.
+- `../archive/04-code-plan.md`: kế hoạch code theo phase.
 - `../05-legal/compliance-lead-tasks.md`: việc của Compliance Lead và các quyết định đã xác nhận với ban tổ chức.
 - `../../ned_program/programs/ned-program/src/lib.rs`: Anchor program hiện có (định danh).
 - `unit_economics.py`: mô hình doanh thu. Đổi giả định rồi chạy `python3 unit_economics.py`.

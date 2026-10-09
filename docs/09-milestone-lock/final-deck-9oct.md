@@ -75,7 +75,7 @@ Trang 15–17 là trang thừa của template: **xoá tay trong Canva** (API kh�
 ## 5. Kiểm tra trước khi lưu (9/10)
 
 - Rà toàn bộ chữ trên slide và ghi chú theo bảng từ cấm: chỉ còn các câu nhắc "không nói …" và tên nghị định trích dẫn ("phương tiện thanh toán hợp pháp" là nội dung NĐ 52/2024, không gọi USDC là thanh toán).
-- Số liệu khớp `program-spec.md` / `tong-hop-tien-do.md`: 29 instruction, 55 mã lỗi, 26 event, 67 test (62 LiteSVM), post_job 49.173 CU = 24,6% của 200.000, transaction chọn người 789/1.232 byte.
+- Số liệu khớp `program-spec.md` / `progress-log.md`: 29 instruction, 55 mã lỗi, 26 event, 67 test (62 LiteSVM), post_job 49.173 CU = 24,6% của 200.000, transaction chọn người 789/1.232 byte.
 - Tổng thời lượng 4:40, dư 20 s trong 5:00.
 - So khớp từng phần tử bản đã lưu với bản xem trước đã được duyệt: trùng hết.
 
@@ -134,4 +134,4 @@ Trang 15–17 là trang thừa của template: **xoá tay trong Canva** (API kh�
 - Superteam Earn (kênh client): https://superteam.fun/earn
 
 **Trong repo**
-- [`final-pitch.md`](final-pitch.md), [`product-spec.md`](product-spec.md) §6 (bảng từ ngữ), [`program-spec.md`](program-spec.md), [`unit_economics.py`](unit_economics.py), [`../08-research/ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md) (mục Business model, rubric map), [`../05-legal/compliance-lead-tasks.md`](../05-legal/compliance-lead-tasks.md), [`../05-legal/qa-cheatsheet.md`](../05-legal/qa-cheatsheet.md), [`../tong-hop-tien-do.md`](../tong-hop-tien-do.md).
+- [`final-pitch.md`](final-pitch.md), [`product-spec.md`](product-spec.md) §6 (bảng từ ngữ), [`program-spec.md`](program-spec.md), [`unit_economics.py`](unit_economics.py), [`../08-research/ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md) (mục Business model, rubric map), [`../05-legal/compliance-lead-tasks.md`](../05-legal/compliance-lead-tasks.md), [`../05-legal/qa-cheatsheet.md`](../05-legal/qa-cheatsheet.md), [`../progress-log.md`](../progress-log.md).

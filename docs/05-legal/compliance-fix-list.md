@@ -248,7 +248,7 @@ Word table: `docs/09-milestone-lock/product-spec.md` §6. Use: lock, release, re
 `docs/09-milestone-lock/README.md` says the team may override D1–D5 "by 6 Oct". No confirmation is recorded. Write "Confirmed 6 Oct" (or the change) in the decision log, so the pitch, the app and the Q&A use the same rules.
 
 ### D4 · Survey go/no-go not recorded (owner: CL + PO, due 6 Oct)
-D10 thresholds: go if ≥ 30% have lost money to a client and ≥ 30% say clients would lock money. Record the sample size and both numbers in `docs/tong-hop-tien-do.md` and the Hub. If below the threshold, the pitch uses only the sourced figures (68%, 2017; 85%, 2025) and calls Milestone Lock the technical demo.
+D10 thresholds: go if ≥ 30% have lost money to a client and ≥ 30% say clients would lock money. Record the sample size and both numbers in `docs/progress-log.md` and the Hub. If below the threshold, the pitch uses only the sourced figures (68%, 2017; 85%, 2025) and calls Milestone Lock the technical demo.
 
 ---
 
@@ -263,7 +263,7 @@ D10 thresholds: go if ≥ 30% have lost money to a client and ≥ 30% say client
 | F5 | Workspace `/new` editor and mobile new-contract step | The contract title (≤ 32 bytes) is public on Solana forever. → Add a hint under the field: "Public on Solana. Don't put names or personal details here." |
 | F6 | new `.github/pull_request_template.md`, `.github/CODEOWNERS` | Copy changes reach `main` with no CL check. → The PR template gets a box: "User-facing text follows product-spec §6 and CL has reviewed". CODEOWNERS gives @F4ol4n review on `ned-wallet/app/**`, `ned-wallet/components/**`, `ned-workspace/src/pages/**`, `packages/ned-core/src/milestone/view.ts`, `README.md`, `docs/05-legal/**`. |
 | F7 | `docs/08-research/ned-research-and-compliance.md` | Stale facts: 708 → 740 bytes (lines 95, 385); "twelve instructions" (line 93) → 13 Milestone Lock instructions incl. `post_note`, plus 3 device-key instructions (21 in the whole program); "contract terms: hash only, never the file" (line 365) → encrypted content on-chain (D15, D22); the bottom line's "zero lines of program code" (line 9) is outdated. CL updates. |
-| F8 | `docs/02-thiet-ke/trang-thai-thiet-ke.md` §6/§8 | Still says "N.E.D fee 0.25%" and "Network fee free". → Add a "superseded for fees: no fee in v1 (D2)" banner. |
+| F8 | `docs/02-design/design-status.md` §6/§8 | Still says "N.E.D fee 0.25%" and "Network fee free". → Add a "superseded for fees: no fee in v1 (D2)" banner. |
 | F9 | landing-page repo (D21) | Not covered by this review. → Send CL the text and the link before it goes public. |
 | F10 | Compliance Hub | No Due or Nium reply is logged (D5). → PO forwards replies; CL logs them. If none, the pitch says "partners contacted 2 Oct, no reply yet". |
 | F11 | program upgrade authority (`ned-research-and-compliance.md` security checklist, day plan 9 Oct) | The plan keeps upgrade authority on the deploy wallet through 10 Oct so bugs can be fixed on the day; a Squads multisig or an immutable program comes before mainnet. → Nothing to move at freeze, but the README, deck and Q&A 2 must say this plainly; never claim "nobody can change the program". (Corrected 6 Oct: an earlier version of this list said "move to Squads on 9 Oct".) |

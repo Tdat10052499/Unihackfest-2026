@@ -147,7 +147,7 @@ Commit: docs: program-spec v1.4 title, runbook USDC and checklist (A5)
 1. Run every test suite: ned_program (cargo test, if the toolchain is on this machine), packages/ned-core,
    ned-workspace, ned-wallet (npm test in each). Fix only what A1–A5 broke.
 2. git pull --ff-only origin main, then push main (never force).
-3. docs/tong-hop-tien-do.md: one progress row per step A1–A5 (commit, tests, what is left).
+3. docs/progress-log.md: one progress row per step A1–A5 (commit, tests, what is left).
 4. docs/05-legal/pre-pitch-check-7oct.md: append "§15 Dev: A1–A5 landed (8 Oct)" with the commit list, so the CL can
    check D2, F-1, S-1 and §14.1 before the 9 Oct walkthrough.
 Commit: docs: A1–A6 progress rows and note for the CL

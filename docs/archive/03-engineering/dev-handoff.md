@@ -2,7 +2,7 @@
 
 > **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
 
-> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](../../tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../../../ned-wallet/ARCHITECTURE.md).
+> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`progress-log.md`](../../progress-log.md) và [`ned-wallet/ARCHITECTURE.md`](../../../ned-wallet/ARCHITECTURE.md).
 
 > Tổng hợp từ các buổi trao đổi thiết kế (25–26/09/2026). Mỗi mục ghi rõ **đã chốt**, **đề xuất** hay **chưa xác minh**. Trước khi code một tính năng, hãy kiểm tra lại tài liệu API chính thức ở các mục đánh dấu ⚠️.
 

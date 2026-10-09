@@ -69,7 +69,7 @@ The core system judges should see is three layers: **identity** (built), **Share
 | **Improve** | Use `Clock.unix_timestamp` with a short grace window for deadlines; compute period from `(now - start) / period_len` | SharedFund | Clock can drift; slots vary | P0 |
 | **Remove from the pitch** | xStocks, Swap, T.E.D, dApp browser, Earn | deck, demo path | Off-story, legally sensitive, or not built | Now |
 | **Remove or hide** | Orphaned screens and `MwaProvider` fake signing; `poc-dynamic.tsx` open without login | `app/(tabs)/overview.tsx`, `card.tsx`, `transfer-hub.tsx`, `miniapps.tsx`, `contexts/MwaProvider.tsx` | A judge clicking around should not find fake behaviour | P1 |
-| **Fix docs** | README claims (Vietnamese/English switch, dApp browser, sub-wallets); design canvas "No fee" | `ned-wallet/README.md`, `docs/02-thiet-ke/canvas` | Public repo is judged | P1 |
+| **Fix docs** | README claims (Vietnamese/English switch, dApp browser, sub-wallets); design canvas "No fee" | `ned-wallet/README.md`, `docs/02-design/canvas` | Public repo is judged | P1 |
 | **Keep** | Google login + MPC wallet, @username and phone lookup, real devnet USDC send, history, 10 identity tests, no backend | — | Already real and demo-able | — |
 
 **Gas fees.** Dynamic's Solana gas sponsorship is Enterprise-only. For the demo, fund the demo wallets with devnet SOL and show the real fee. Roadmap: Kora (Solana Foundation fee relayer) with a program allowlist; Octane was archived in April 2026.

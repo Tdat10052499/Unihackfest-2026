@@ -1,4 +1,4 @@
-// Motion tokens (build-plan B2, decision D17): the token table of docs/02-thiet-ke/canvas-v2/MotionSurfaces.dc.html.
+// Motion tokens (build-plan B2, decision D17): the token table of docs/02-design/canvas-v2/MotionSurfaces.dc.html.
 // Same numbers as ned-workspace/src/motion.ts. Rules: only opacity and transform animate; nothing lasts over 400 ms;
 // exits take about 70 % of the enter; stagger 40 ms for at most 5 items; amounts never animate;
 // Reduce Motion turns every animation into an instant change (useMotion below, ReduceMotion.System on layout animations).

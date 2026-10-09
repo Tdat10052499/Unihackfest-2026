@@ -100,7 +100,7 @@ Legal copy has one source: `packages/ned-core/src/legal/copy.ts`. Changing it br
 | O1 | **README rewrite** (still the old wallet README: "17 instructions", "24 tests", "708 bytes", "updated 3 Oct"). Needs: what Milestone Lock and N.E.D Jobs are, live links, program ID, v1.3 numbers (27 / 53 / 24 / 54), exact build and test commands, compute-unit table, limits and disclosures | PO + Dev | 8 Oct |
 | O2 | **LICENSE** file (README claims MIT) or remove the claim | PO | 8 Oct |
 | O3 | Reproducibility: pin the Anchor CLI version in `Anchor.toml` `[toolchain]`; `jobs:smoke --skip-binary-check`; re-upload IDL v1.3 before saying "IDL on-chain"; re-measure CU on v1.3; run `pnpm install && pnpm test` and `cargo test` on the final commit and record the result | Dev | 8 Oct |
-| O4 | `solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet` on 9 Oct: confirm v1.3 and the upgrade authority; update the stale "Thông tin devnet" table in `tong-hop-tien-do.md` (still v1.1) | Dev | 9 Oct |
+| O4 | `solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet` on 9 Oct: confirm v1.3 and the upgrade authority; update the stale "Thông tin devnet" table in `progress-log.md` (still v1.1) | Dev | 9 Oct |
 | O5 | Runbook gaps (`final-pitch.md` §3): each window ≥ 900 px wide or the phone gate appears (two laptops, or test the projector); decide how B opens contract A (copy the invite link, or wait about 8 s for key sync) and rehearse it; Person A needs **≥ 40 devnet USDC** because every rehearsal leaves M2 locked; both stage accounts re-consent (v2) and register a device key in the exact stage browser profile (max 5 per user) | PO | 9 Oct |
 | O6 | Funded Jobs is claimed on Slide 4 but not shown live. Show it as evidence: Explorer links from a `jobs:smoke` run on a slide, or a 15 s clip in the backup video | PO | 9 Oct |
 | O7 | R3 two-account test on production (`review-preview-e2e.md`) and the backup video (60–90 s) | PO | 9 Oct |
@@ -409,7 +409,7 @@ L6 and the extra expert question in §11.1 are not needed, because the name no l
 
 ### 12.2 v1.4 is live: use the v1.4 number set (§10.3, first row)
 
-Dev ran V3–V7 on 7 Oct (progress rows V3–V7 in `docs/tong-hop-tien-do.md`):
+Dev ran V3–V7 on 7 Oct (progress rows V3–V7 in `docs/progress-log.md`):
 
 - **V3:** program extended by 20,000 B and upgraded on devnet; the deployed binary equals the build.
 - **V4:** IDL v1.4 on-chain; smoke Runs 1–4 green.
@@ -600,5 +600,5 @@ The PO switched D30 on before the final (9 Oct), with the two environment variab
 - Copy edits from the CL reply above: `43a1416` (operator, governing law, singular/plural, new lines in the copy deck). The placeholder test now runs and passes.
 - Workspace and the wallet extension `/wallet`: Vercel Production deployed from `d47fc8e` with `VITE_FEATURE_ACCOUNT_ROLES=true` and `EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true`; both bundles checked (`accountRoles` on).
 - Phone app on GitHub Pages: built from `d47fc8e` with the flag on (gh-pages `69f4a09`); bundle checked.
-- Build history: R0–R8 in `docs/tong-hop-tien-do.md` (rows "D30 R0" … "D30 R9").
+- Build history: R0–R8 in `docs/progress-log.md` (rows "D30 R0" … "D30 R9").
 - **Still for the PO with real accounts:** each existing demo account sees the update flow once and keeps its contracts; a new Google account goes role → country → (business) → agreement → profile → home.

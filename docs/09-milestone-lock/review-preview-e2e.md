@@ -2,7 +2,7 @@
 
 **Written:** 7 Oct 2026 · **For:** the PO, on production (`https://unihackfest-2026.vercel.app`) after the R3 deploy · **Needs:** two Google accounts (A = client, outside the Vietnam view; B = freelancer), two browser windows, a little devnet test USDC and SOL on A.
 
-The run cannot be scripted: it needs two Google sign-ins and a Drive file owned by B. Tick each line and save a screenshot where it says 📷 into `docs/02-thiet-ke/screenshots/r3-e2e/`.
+The run cannot be scripted: it needs two Google sign-ins and a Drive file owned by B. Tick each line and save a screenshot where it says 📷 into `docs/02-design/screenshots/r3-e2e/`.
 
 ## 0. Prepare (B)
 
@@ -15,7 +15,7 @@ The run cannot be scripted: it needs two Google sign-ins and a Drive file owned 
 New contracts now need a done-when point per milestone (R1), so a milestone without points only exists on contracts created before R1. Two ways:
 
 - **Use an older contract** that already has a milestone with an empty "Done when" (made before 7 Oct), with B as the freelancer; or
-- **Skip step 3b** and run step 3 with done-when points (the reason-only sheet is covered by the tests and the screenshots in `docs/02-thiet-ke/screenshots/r2-review-preview/d-sheet-no-points.png`).
+- **Skip step 3b** and run step 3 with done-when points (the reason-only sheet is covered by the tests and the screenshots in `docs/02-design/screenshots/r2-review-preview/d-sheet-no-points.png`).
 
 For a new contract: `/new` → title, 2 milestones × small test amounts, one done-when point each → **Create** → wallet panel → confirm. Send the invite link to B; B accepts (**Open in wallet** → **Slide to accept**); A locks (**Open in wallet** → **Slide to lock**).
 
@@ -92,4 +92,4 @@ Same two accounts. Prepare on B's computer three local files: `logo.svg`, `logo@
 1. Use a contract where every milestone is released (or refunded) and one released milestone has **no** hand-over, so the contract is Settled.
 2. Contract page → **Open in wallet** (Close): before the wallet opens, "@B has not handed over the final files for milestone N. Closing ends this contract's page for both of you, and @B can no longer hand them over." with **Keep open** and **Close anyway**. 📷 Press **Keep open** (do not close a demo contract).
 
-Save the 📷 screenshots to `docs/02-thiet-ke/screenshots/f3-e2e/`.
+Save the 📷 screenshots to `docs/02-design/screenshots/f3-e2e/`.

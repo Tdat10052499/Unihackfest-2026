@@ -6,7 +6,7 @@
 ## How to run
 
 - One **new** Claude Code session per prompt, in the repo, in order V0 → V7. V8 only if a step fails and cannot be fixed before the cut line.
-- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, `git pull --ff-only origin main` first, no secrets, tests before each push, a progress row in `docs/tong-hop-tien-do.md`.
+- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md): work on `main`, `git pull --ff-only origin main` first, no secrets, tests before each push, a progress row in `docs/progress-log.md`.
 - **Stop rule:** when a prompt says STOP, the session reports and waits. The next prompt runs only after the PO reads the report.
 - **Before V1:** the draft patch must be reachable from the repo. In WSL: `/mnt/c/Users/tdat1/github/ned-v14-program-draft.patch`. Copy it to the repo root if the session cannot read outside the repo.
 - **CL review (Chính, `c5fff71`):** `docs/05-legal/pre-pitch-check-7oct.md` §9 approves D29. Its points R-1 to R-8 are built into V1–V6. Its ready copy (§9.3) is used word for word in V6, and its pitch lines (§9.4) in V7.
@@ -119,7 +119,7 @@ Task:
    - accept + lock_from_job;
    - withdraw_job;
    - the milestone instructions.
-   Update the CU table in docs/tong-hop-tien-do.md and program-spec.md, labelled "LiteSVM, v1.4, <date>".
+   Update the CU table in docs/progress-log.md and program-spec.md, labelled "LiteSVM, v1.4, <date>".
    If any single instruction is above 40,000 CU, say so (the pitch says "dưới 20%" of 200,000).
 3. Recount from the source: instructions (lib.rs pub fn), error variants, #[event] structs. Expected 29 / 55 / 26.
    Put the counted numbers in program-spec.md §11.3.
@@ -140,7 +140,7 @@ Done when: review notes, CU table and counts are committed; tests still all pass
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main). Deploying is allowed in this prompt only after
 the PO types "go" in this session. Never print or commit a keypair.
 Read: lock-at-hire-plan.md sections 2 (P7) and 7, the S2 smoke row and the "Thông tin devnet" table in
-docs/tong-hop-tien-do.md, the V0 and V1 progress rows.
+docs/progress-log.md, the V0 and V1 progress rows.
 Task:
 1. Show the PO:
    - solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet (authority, data length, last slot);
@@ -164,7 +164,7 @@ If the deploy fails: STOP, report the error, do not retry more than twice. The P
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
-Read: docs/tong-hop-tien-do.md (IDL upload with program-metadata; the S2 smoke row), ned-wallet/scripts/jobs-smoke.ts,
+Read: docs/progress-log.md (IDL upload with program-metadata; the S2 smoke row), ned-wallet/scripts/jobs-smoke.ts,
 lock-at-hire-plan.md section 2.
 Task:
 1. IDL:
@@ -181,7 +181,7 @@ Task:
    Use the throwaway keys in ned-wallet/.smoke-keys/ (gitignored) as before. The script never moves USDC from team or
    demo wallets. If SOL or USDC is short, it prints the addresses and stops: ask the PO to fund them (Circle faucet).
 3. npm run jobs:smoke (and -- --check). Runs 1–4 must be green.
-4. Update the "Thông tin devnet" table in docs/tong-hop-tien-do.md: v1.4, upgrade signature, data length, IDL
+4. Update the "Thông tin devnet" table in docs/progress-log.md: v1.4, upgrade signature, data length, IDL
    account, smoke transaction links (Explorer, devnet).
 Done when: Runs 1–4 green with Explorer links in the progress row "V4 smoke v1.4"; the IDL in core and wallet equals the
 build; pushed.

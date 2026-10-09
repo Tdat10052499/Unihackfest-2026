@@ -5,10 +5,10 @@ Thư mục này là nguồn sự thật chung của cả đội (và trợ lý A
 | Đọc gì | Khi nào |
 |---|---|
 | [`09-milestone-lock/`](09-milestone-lock/README.md) | **Hướng đi hiện hành, đọc trước khi code (từ 02/10/2026):** Milestone Lock cho freelancer có khách nước ngoài; ở Việt Nam freelancer chỉ nhận VND qua đối tác chi trả (mô phỏng trong demo). Đặc tả sản phẩm, đặc tả program, kế hoạch build, nhật ký quyết định D1–D30. Tiếng Anh |
-| [`tong-hop-tien-do.md`](tong-hop-tien-do.md) | Những gì đã build và đã test, theo từng ngày |
+| [`progress-log.md`](progress-log.md) | Những gì đã build và đã test, theo từng ngày |
 | [`08-research/`](08-research/README.md) | Nghiên cứu của Compliance Lead: khách hàng, thị trường, đối thủ, đối tác chi trả, pháp lý, rubric. Bắt đầu từ `ned-research-and-compliance.md` |
 | [`05-legal/compliance-lead-tasks.md`](05-legal/compliance-lead-tasks.md) | Việc của Compliance Lead, quyết định đã xác nhận với ban tổ chức, quy tắc rà soát mọi thứ đưa cho giám khảo |
-| [`02-thiet-ke/`](02-thiet-ke/README.md) | Thiết kế hiện hành: board `canvas-v2/`, ảnh chụp, demo, test, mascot Teddy |
+| [`02-design/`](02-design/README.md) | Thiết kế hiện hành: board `canvas-v2/`, ảnh chụp, demo, test, mascot Teddy |
 | [`07-strategy-v3/`](07-strategy-v3/README.md), [`06-strategy-v2/`](06-strategy-v2/README.md) | Đề xuất v3 (02/10) và v2 (01/10), **đã bị `09-milestone-lock/` thay thế**; giữ để tra dữ liệu thị trường và pháp lý |
 | [`archive/`](archive/README.md) | Tài liệu thời N.E.D Wallet (25/09 – 01/10/2026: Swap, xStocks, Earn, chế độ ví). Chỉ để tra lịch sử, không làm theo |
 
@@ -21,7 +21,7 @@ Thư mục này là nguồn sự thật chung của cả đội (và trợ lý A
 
 ## Cập nhật tài liệu
 
-- Board thiết kế mới xuất vào `02-thiet-ke/canvas-v2/` và cập nhật `canvas-v2/README.md`.
+- Board thiết kế mới xuất vào `02-design/canvas-v2/` và cập nhật `canvas-v2/README.md`.
 - Quyết định sản phẩm mới → thêm một dòng vào nhật ký quyết định trong `09-milestone-lock/README.md` (ghi ngày + ai quyết).
 - Không xoá tài liệu cũ: đánh dấu đã bị thay thế, hoặc chuyển vào `archive/` và sửa các link.
 

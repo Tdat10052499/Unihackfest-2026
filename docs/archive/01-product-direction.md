@@ -2,9 +2,9 @@
 
 > **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
 
-> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](../tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
+> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`progress-log.md`](../progress-log.md) và [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
 
-> Bản rút gọn từ tài liệu định hướng trong Project "N.E.D Wallet" (cập nhật 25/09/2026), giữ nguyên các quyết định và số liệu. Đây là **nguồn sự thật về định hướng sản phẩm**; các quyết định thiết kế sau ngày 25/09 nằm ở [`02-thiet-ke/trang-thai-thiet-ke.md`](02-thiet-ke-v1/trang-thai-thiet-ke.md) (mục 6) và [`03-ky-thuat/dev-handoff.md`](03-ky-thuat/dev-handoff.md).
+> Bản rút gọn từ tài liệu định hướng trong Project "N.E.D Wallet" (cập nhật 25/09/2026), giữ nguyên các quyết định và số liệu. Đây là **nguồn sự thật về định hướng sản phẩm**; các quyết định thiết kế sau ngày 25/09 nằm ở [`02-design/design-status.md`](02-design-v1/design-status.md) (mục 6) và [`03-engineering/dev-handoff.md`](03-engineering/dev-handoff.md).
 
 ## Lưu ý về nguồn & phạm vi tài liệu
 
@@ -17,7 +17,7 @@ N.E.D Wallet là ví thông minh Web3 trên Solana, dự thi **UniHackfest 2026*
 - **Frontend**: React Native / Expo SDK 57, TypeScript, Zustand, Reanimated, i18next (song ngữ Việt–Anh).
 - **Auth & ví (đã chốt 26/09)**: **Dynamic SDK** — đăng nhập **chỉ bằng Google**, ví nhúng **MPC** (không seed phrase), tài trợ phí gas cho người dùng. **Không dùng Privy nữa.**
 - **RPC**: Helius. **Lưu trữ cục bộ**: MMKV. **Tên miền**: SNS (`.sol`).
-- **Hướng kiến trúc**: không backend riêng; ngoại lệ duy nhất là 1 proxy serverless nhỏ giữ khoá LLM và khoá Jupiter (xem `03-ky-thuat/dev-handoff.md` mục 7).
+- **Hướng kiến trúc**: không backend riêng; ngoại lệ duy nhất là 1 proxy serverless nhỏ giữ khoá LLM và khoá Jupiter (xem `03-engineering/dev-handoff.md` mục 7).
 - ⚠️ **Code trên `main` vẫn là stack cũ**: Privy (`@privy-io/expo`) + Supabase (PostgreSQL + RLS + Realtime) + relayer `ned-hub` (Vercel, 5 giao dịch miễn phí/ngày/user). Việc chuyển sang Dynamic là **hạng mục code chưa làm** (xem mục 8–9).
 - **Smart contract**: Anchor `ned_program` (Rust) — hồ sơ người dùng, chuyển stablecoin qua `TransferChecked`, định danh qua PDA (username/số điện thoại → ví).
 
@@ -68,7 +68,7 @@ Mentor gợi ý **hai chế độ ví**: "tiền mặt" (tự quy đổi về US
 
 ## 7. Định hướng AI — giải Best AI Product (15.000.000đ)
 
-Tiêu chí chấm: giá trị AI mang lại, cách tích hợp vào sản phẩm, khả năng dùng thực tế. Hướng cảnh báo lừa đảo đã bị loại (đội khác đã làm). **Hướng đã chọn: trợ lý AI phân bổ tài sản** — hỏi khẩu vị rủi ro ngắn, đọc dữ liệu Jupiter thật (APY Earn, giá xStocks), gợi ý tỷ lệ tiền mặt/đầu tư, giải thích bằng tiếng Việt đơn giản. **Mentor chưa thẩm định hướng này.** (Thiết kế chi tiết: mục "T.E.D — Plan my money" trong tài liệu thiết kế; kiến trúc: `03-ky-thuat/dev-handoff.md`.)
+Tiêu chí chấm: giá trị AI mang lại, cách tích hợp vào sản phẩm, khả năng dùng thực tế. Hướng cảnh báo lừa đảo đã bị loại (đội khác đã làm). **Hướng đã chọn: trợ lý AI phân bổ tài sản** — hỏi khẩu vị rủi ro ngắn, đọc dữ liệu Jupiter thật (APY Earn, giá xStocks), gợi ý tỷ lệ tiền mặt/đầu tư, giải thích bằng tiếng Việt đơn giản. **Mentor chưa thẩm định hướng này.** (Thiết kế chi tiết: mục "T.E.D — Plan my money" trong tài liệu thiết kế; kiến trúc: `03-engineering/dev-handoff.md`.)
 
 ## 8. Quyết định đã chốt ngày 25/09
 

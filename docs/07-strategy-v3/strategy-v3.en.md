@@ -36,7 +36,7 @@ Read this section first if you are analysing the repo with Claude or another AI 
 | --- | --- |
 | `../05-legal/compliance-lead-tasks.md` | Competition decisions and wording rules |
 | `../06-strategy-v2/strategy-v2.en.md` | Detailed market data and Vietnamese legal research (v2) |
-| `../tong-hop-tien-do.md` | What is already built (Vietnamese) |
+| `../progress-log.md` | What is already built (Vietnamese) |
 | `../../ned_program/programs/ned-program/src/lib.rs` | Existing Anchor program (identity) |
 | `unit_economics.py` | Revenue model; edit the assumptions and run `python3 unit_economics.py` |
 
@@ -88,7 +88,7 @@ A trust layer sits on top: contribution history linked to @username, receiver ch
 | It meets the judges' "couldn't exist without crypto" test | Colosseum's guidance asks for ideas that "enable new markets that couldn't exist without crypto" **[Sourced]** |
 | It grows by itself | Every Rotating Fund invites 2–12 people; every Milestone Lock brings in a client **[Inference]** |
 | It builds a lasting advantage | On-time contribution and delivered-milestone history accumulates against each @username **[Inference]** |
-| It reuses what is built | Google login, embedded wallet, on-chain @username/phone identity, USDC transfers and history are done (`../tong-hop-tien-do.md`) |
+| It reuses what is built | Google login, embedded wallet, on-chain @username/phone identity, USDC transfers and history are done (`../progress-log.md`) |
 
 ---
 

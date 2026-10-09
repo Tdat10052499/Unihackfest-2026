@@ -1,6 +1,6 @@
 # Build plan: program change → mobile wallet → web Workspace (3 → 9 Oct 2026)
 
-Status: **adopted 3 Oct 2026** by the PO. This plan replaces the schedule in [`refactor-plan.md`](refactor-plan.md) section 4 for everything not yet built. PR0–PR3, N0–N13 and PR7 items already in `main` (`b267b4f`) stay as they are; their facts are in [`../tong-hop-tien-do.md`](../tong-hop-tien-do.md) "Milestone Lock — progress". Decisions D14–D19 behind this plan are in [`README.md`](README.md#decision-log). Prompts for each task: [`prompts-build.md`](prompts-build.md).
+Status: **adopted 3 Oct 2026** by the PO. This plan replaces the schedule in [`refactor-plan.md`](refactor-plan.md) section 4 for everything not yet built. PR0–PR3, N0–N13 and PR7 items already in `main` (`b267b4f`) stay as they are; their facts are in [`../progress-log.md`](../progress-log.md) "Milestone Lock — progress". Decisions D14–D19 behind this plan are in [`README.md`](README.md#decision-log). Prompts for each task: [`prompts-build.md`](prompts-build.md).
 
 ## 0. Summary
 
@@ -94,7 +94,7 @@ Specification: [`program-spec.md`](program-spec.md) v1.1 (sections 2, 3.1, 4, 4.
    - `FUND_SIZE = 740`;
    - `OFFSET_BRIEF_HASH = 676`.
 8. Run `milestone:devnet` twice.
-9. Record the signature, program size and IDL account in `tong-hop-tien-do.md`.
+9. Record the signature, program size and IDL account in `progress-log.md`.
 
 ## 4. Phase B · Mobile wallet (Expo app; screens follow the canvas boards)
 
@@ -313,7 +313,7 @@ In the Vietnam view the page shows the block message.
   - recycle USDC; prepared contract B;
   - README "what runs";
   - deploy GitHub Pages and both Vercel projects;
-  - record the URLs, program signature and compute-unit table in `tong-hop-tien-do.md`;
+  - record the URLs, program signature and compute-unit table in `progress-log.md`;
   - 2-minute backup video.
 
 ## 8. Testing per phase
@@ -341,7 +341,7 @@ In the Vietnam view the page shows the block message.
 
 ## 10. Rules for every task (each prompt refers to this section)
 
-1. **Read first:** `CLAUDE.md` (read order), this file (the task's section and sections 8–10), the specs named in the task, and the design boards in [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md) for any screen.
+1. **Read first:** `CLAUDE.md` (read order), this file (the task's section and sections 8–10), the specs named in the task, and the design boards in [`../02-design/canvas-v2/`](../02-design/canvas-v2/README.md) for any screen.
 2. **Branches:** one branch per task, from an up-to-date `main`. Exception: A1 and A2 share one branch, because the merge waits for the devnet upgrade.
    - Small commits with conventional messages.
    - Push the branch.
@@ -360,6 +360,6 @@ In the Vietnam view the page shows the block message.
    - Motion only through `constants/motion.ts` (D17).
 6. **When spec and code disagree:** fix both in the same PR, or stop and ask.
 7. **When a task ends:**
-   - Add a row to "Milestone Lock — progress" in `docs/tong-hop-tien-do.md` (Vietnamese): task, branch, commits, test results.
+   - Add a row to "Milestone Lock — progress" in `docs/progress-log.md` (Vietnamese): task, branch, commits, test results.
    - List new open issues there.
    - Then give the PO the manual test steps for what changed.

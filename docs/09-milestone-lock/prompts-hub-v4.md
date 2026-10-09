@@ -1,6 +1,6 @@
 # Community hub v4: Claude Code prompts to update the N.E.D Jobs UI (H1–H5)
 
-**Owner:** PO (Hồ Du Tuấn Đạt) · **Written:** 7 Oct 2026 · **Design:** canvas version 113, exported to [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md)
+**Owner:** PO (Hồ Du Tuấn Đạt) · **Written:** 7 Oct 2026 · **Design:** canvas version 113, exported to [`../02-design/canvas-v2/`](../02-design/canvas-v2/README.md)
 
 ## What changed in v4
 
@@ -24,7 +24,7 @@ The written spec is **appendix V** of this file.
 **How to run:**
 
 - One new Claude Code session per prompt, in order H1 → H5.
-- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md) (no secrets, English UI, the word table, tests, a progress row in `docs/tong-hop-tien-do.md`), including the git rule changed on 7 Oct: **work and push directly on `main`**, no branches and no pull requests. Pull before each step; run the tests before each push; never force-push.
+- Every prompt follows section 0 of [`prompts-6oct.md`](prompts-6oct.md) (no secrets, English UI, the word table, tests, a progress row in `docs/progress-log.md`), including the git rule changed on 7 Oct: **work and push directly on `main`**, no branches and no pull requests. Pull before each step; run the tests before each push; never force-push.
 - **Starting point (main at `bb69e02`):** S5 and S6 are built (`ned-workspace/src/jobs/`: `JobsLayout`, `ProfileMenu`, `hub.module.css`, `components/`, `pages/`, `__tests__/`), S9 added `LegalLinks` in the Workspace, S11 added the legal text in `ned-wallet/services/legalCopy.ts` and the `/terms`, `/privacy`, `/disclosures` screens. H1–H5 **restyle and extend** that code; they do not rebuild it.
 
 **Not changing:**
@@ -41,7 +41,7 @@ The written spec is **appendix V** of this file.
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main: git switch main && git pull --ff-only origin main).
 Read: docs/09-milestone-lock/prompts-hub-v4.md (run notes and appendix V1–V4, V7, V9), README.md D28, the boards
-docs/02-thiet-ke/canvas-v2/{WebJobs,WebJobsFind,WebJobsLegal}.dc.html (the helmet <style> is the exact CSS of the
+docs/02-design/canvas-v2/{WebJobs,WebJobsFind,WebJobsLegal}.dc.html (the helmet <style> is the exact CSS of the
 effects), and the code already built in S5/S6: ned-workspace/src/jobs/{JobsLayout.tsx,ProfileMenu.tsx,hub.module.css,
 components/*,__tests__/*}, ned-workspace/src/{motion.ts,styles/*,components/LegalLinks.tsx}.
 Task: replace the hub's visual foundation; page content changes come in H2–H5.
@@ -75,7 +75,7 @@ menu, the footer; progress row added; pushed to main.
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
-Read: prompts-hub-v4.md appendix V5 (every subsection) and V9, the board docs/02-thiet-ke/canvas-v2/WebJobs.dc.html
+Read: prompts-hub-v4.md appendix V5 (every subsection) and V9, the board docs/02-design/canvas-v2/WebJobs.dc.html
 (inline styles are the exact values; renderVals() holds the copy per view: guest, Vietnam view, client), the H1
 components, and the current ned-workspace/src/jobs/{pages/Overview.tsx,pages/Overview.module.css,overview.ts,hooks.ts}.
 Task: rebuild pages/Overview.tsx top to bottom as V5, keeping the data from overview.ts/hooks.ts:
@@ -102,7 +102,7 @@ Vietnam view and client; a short screen recording or GIF of the scroll effects i
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
 Read: prompts-hub-v4.md appendix V6, funded-jobs-plan.md section 6.1, the board
-docs/02-thiet-ke/canvas-v2/WebJobsFind.dc.html, packages/ned-core/src/jobs/ (search, filtersToQuery/filtersFromQuery),
+docs/02-design/canvas-v2/WebJobsFind.dc.html, packages/ned-core/src/jobs/ (search, filtersToQuery/filtersFromQuery),
 the H1 components, and the current ned-workspace/src/jobs/{pages/Find.tsx,pages/Find.module.css,find.ts}.
 Task: replace the v3 filter bar and grid in pages/Find.tsx with the v4 search model (V6); filter logic stays in
 @ned/core and find.ts:
@@ -129,7 +129,7 @@ progress row; pushed.
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
-Read: prompts-hub-v4.md appendix V8, the board docs/02-thiet-ke/canvas-v2/WebJobsLegal.dc.html, the shipped text in
+Read: prompts-hub-v4.md appendix V8, the board docs/02-design/canvas-v2/WebJobsLegal.dc.html, the shipped text in
 ned-wallet/services/legalCopy.ts (+ its test), ned-wallet/app/{terms,privacy,disclosures}.tsx,
 ned-workspace/src/components/LegalLinks.tsx, compliance-fix-list.md appendices 1–2 and P3.
 Task:
@@ -155,7 +155,7 @@ the table of contents follows the scroll; screenshots desktop and 390 px; progre
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main).
-Read: prompts-hub-v4.md appendix V1–V4 and V10, the boards docs/02-thiet-ke/canvas-v2/{WebJobDetail,WebJobPost,
+Read: prompts-hub-v4.md appendix V1–V4 and V10, the boards docs/02-design/canvas-v2/{WebJobDetail,WebJobPost,
 WebJobApplicants}.dc.html, and ned-workspace/src/jobs/pages/{JobDetail.tsx,Job.module.css,PostJob.tsx,Applicants.tsx}.
 Task:
 1. /jobs/:job, /jobs/new and /jobs/:job/applicants: v4 header and footer, page background #F5F5F7, v4 pills, the dark

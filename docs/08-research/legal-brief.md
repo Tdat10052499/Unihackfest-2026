@@ -1,6 +1,6 @@
 # Legal brief: escrow and crypto tax
 
-Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · Vietnamese version: [`legal-brief.vi.md`](legal-brief.vi.md)
+Research of 2 Oct 2026 · Author: Nguyễn Minh Chính (Compliance Lead) · Vietnamese version: [`legal-brief.vi.md`](../archive/legal-brief.vi.md)
 
 > **Update (2 Oct 2026):** question 1 led to the Vietnam path in [`../09-milestone-lock/`](../09-milestone-lock/README.md): the freelancer in Vietnam receives only VND from a payout partner abroad and never holds USDC, so Milestone Lock is now the main demo. The Milestone Lock rows below ("Planned", "Roadmap only") are superseded. The open legal question has moved to whether N.E.D's software is a crypto-asset related service (Decree 284/2026 Art. 7(4)): see the legal section of [`ned-research-and-compliance.md`](ned-research-and-compliance.md). Also note that the application of Decree 52/2024 to a *recipient* is our inference, not a verified rule.
 

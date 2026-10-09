@@ -31,7 +31,7 @@ The J, U and K prompts in those files remain the **specs**. The prompts **below*
    - Never "payment", "escrow" (in the UI), "safe" or "guaranteed".
    - The Vietnam view shows no USDC or SOL amounts.
    - Every new user-facing text goes past CL (PR template).
-6. Every step ends with a row in `docs/tong-hop-tien-do.md` (Vietnamese): branch, commits, tests.
+6. Every step ends with a row in `docs/progress-log.md` (Vietnamese): branch, commits, tests.
 
 ## Step 0 · Owner tasks (PO, before anything is deployed)
 

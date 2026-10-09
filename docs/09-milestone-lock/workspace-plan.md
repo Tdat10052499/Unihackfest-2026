@@ -64,7 +64,7 @@ About 22 hours instead of 16 for C1–C4: a separate app costs about 6 more hour
 ## 3. Rules specific to `ned-workspace`
 
 - `build-plan.md` section 10 applies.
-- Screens follow `docs/02-thiet-ke/canvas-v2/Web*.dc.html` and `MotionSurfaces.dc.html`: same tokens, no outlines, the same motion values.
+- Screens follow `docs/02-design/canvas-v2/Web*.dc.html` and `MotionSurfaces.dc.html`: same tokens, no outlines, the same motion values.
 - Motion:
   - only `opacity` and `transform`;
   - no duration over 400 ms;
@@ -97,7 +97,7 @@ Do:
 5. Move the moved modules' tests to packages/ned-core (node --test) and keep ned-wallet's npm test running the remaining ones; add a root script or document how to run both.
 Rules: build-plan section 10; no logic change (a pure move + configuration injection); one copy of @solana/web3.js per app bundle (prove it: list resolved paths, or check the web bundle contains one copy).
 Acceptance: core tests + ned-wallet npm test all pass (same count as before: 91 total split across both); ned-wallet tsc and `npx expo export --platform web` green; `npm run milestone:devnet` still PASS; the GitHub Pages deploy command unchanged. Report the diff size and any import you could not keep stable.
-Finish: commit in small steps, push, fast-forward main; update docs/tong-hop-tien-do.md and ned-wallet/ARCHITECTURE.md (new package).
+Finish: commit in small steps, push, fast-forward main; update docs/progress-log.md and ned-wallet/ARCHITECTURE.md (new package).
 ```
 
 ### W1 · Scaffold `ned-workspace`, login, wallet panel, first Vercel deploy
@@ -105,7 +105,7 @@ Finish: commit in small steps, push, fast-forward main; update docs/tong-hop-tie
 ```text
 Task: workspace-plan.md W1 — create ned-workspace (Vite + React + TypeScript) with routing, design tokens, Motion, Dynamic Google login, the top bar and wallet panel (signed out + home), and the Vercel config, so the first deploy gives us the production domain.
 Branch: feat/w1-workspace-scaffold.
-Read first: CLAUDE.md; workspace-plan.md sections 1–3; build-plan.md section 10; README.md D16–D20; packages/ned-core/README.md; ned-wallet/services/auth/* (how the Dynamic JS SDK headless is set up: client creation, Solana extension, web social redirect flow, signTransaction); docs/archive/poc-dynamic.md; boards docs/02-thiet-ke/canvas-v2/WebSignIn, WebWorkspace, WebWalletPanel, MotionSurfaces, Main, Avatar. I attach screenshots of WebSignIn and WebWorkspace with the panel open.
+Read first: CLAUDE.md; workspace-plan.md sections 1–3; build-plan.md section 10; README.md D16–D20; packages/ned-core/README.md; ned-wallet/services/auth/* (how the Dynamic JS SDK headless is set up: client creation, Solana extension, web social redirect flow, signTransaction); docs/archive/poc-dynamic.md; boards docs/02-design/canvas-v2/WebSignIn, WebWorkspace, WebWalletPanel, MotionSurfaces, Main, Avatar. I attach screenshots of WebSignIn and WebWorkspace with the panel open.
 Do:
 1. ned-workspace/: Vite React-TS app in the monorepo (W0 mechanics), depends on @ned/core, @dynamic-labs-sdk/client + /solana (same versions as ned-wallet), react-router, @tanstack/react-query, motion, react-qr-code (or another tiny QR lib — ask if you want something else). Buffer polyfill for web3.js/anchor done the minimal way.
 2. src/styles/tokens.css: CSS variables from the boards (ground #F4F4F6, card #FFFFFF, ink #111116, caption #5E5E6A, accent #7B2FBE, link #6A22B0, tint #F2EAFB, divider #F0F0F3, status tints, shadows S1/S-accent, radii, Space Grotesk / Inter / Space Mono). No borders around components. src/motion.ts: the MotionSurfaces token table for Motion (durations, cubic-bezier curves, stagger 40 ms max 5); LazyMotion + domAnimation; MotionConfig reducedMotion="user".
@@ -116,7 +116,7 @@ Do:
 7. ned-workspace/vercel.json: framework vite, SPA rewrite to /index.html, headers (Content-Security-Policy listing every host really used: Dynamic API/auth, Helius + Solana devnet RPC https/wss, Google Fonts; frame-ancestors 'none'; start as Report-Only if unsure and say so), X-Frame-Options DENY, Referrer-Policy no-referrer.
 Rules: build-plan section 10; workspace-plan section 3; do not create the Vercel project or touch dashboards.
 Acceptance: `pnpm --filter ned-workspace build` and typecheck green; ned-wallet and core tests still green; `vite preview` locally: Google login (localhost must be in the Dynamic sandbox allowed origins — tell me if it is not), the wallet address equals the phone's, the panel opens/closes with motion and with Reduce Motion on; Lighthouse desktop performance and accessibility ≥ 90. Then give me: the exact Vercel project settings (Root Directory ned-workspace, framework Vite, install/build commands for the monorepo, env var names) and the domains I must add in Dynamic and Helius.
-Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+Finish: commit, push, fast-forward main; progress-log.md row.
 ```
 
 ### W2 · Overview, contract page, invite-link router
@@ -132,7 +132,7 @@ Do:
 4. /contract/:fund: read-only summary (state, destination, milestones with chain-time countdowns, brief status: ok / mismatch / noKey with "Paste the contract link" input that accepts a full link or #k=…), and the role-based next step button linking to /contract/:fund/submit or /review (pages come in W4).
 5. Page transitions with Motion (AnimatePresence, fade + 10 px rise, stagger ≤ 5).
 Acceptance: build + typecheck + tests; on the Vercel preview with Mia and Vinh accounts: both lists correct, an invite link opened on the laptop lands on the contract with the key imported and the hash cleared, the same link on the iPhone goes to GitHub Pages with #k= intact.
-Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+Finish: commit, push, fast-forward main; progress-log.md row.
 ```
 
 ### W3 · Brief editor
@@ -143,7 +143,7 @@ Branch: feat/w3-brief-editor.
 Read first: workspace-plan.md 2–3; build-plan.md 4 (B1), 10; product-spec 3, 5.1; non-ui-plan 3.1; board WebContractNew (tweaks who = mia, who = vinh, created = true); packages/ned-core content.ts, keys.ts, actions.ts, rules.ts. I attach screenshots.
 Do: freelancer chip (@username → wallet with a fresh on-chain read via core dualPda/resolveCore; ned-wallet's resolve.ts stays mobile-only because of AsyncStorage), title with 32-byte counter, scope, references, milestone cards (amount, submit-by, review time incl. "1 min (devnet demo)", "Done when" list with add/remove), live brief fingerprint (core briefHash), summary aside and rule list, validation identical to mobile (core rules + content limits), Create → WalletPanel.confirm (summary) → actions.create → created state with invite link (copy), QR for the phone, fingerprint. Vietnam view: the block message (D18). Motion: add/remove of milestone and criterion rows with layout animation (transform only), state change 320 ms.
 Acceptance: build + typecheck + tests; create a 2-milestone contract with criteria on devnet from the Vercel preview; the invite link opened on the iPhone shows the brief with "Brief matches ✓" on mobile (after B4a).
-Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+Finish: commit, push, fast-forward main; progress-log.md row.
 ```
 
 ### W4 · Submit, review, confirm panel
@@ -157,7 +157,7 @@ Do:
 2. Submit: links with the "Fixed version" hint (Figma version-id, Git commit / tree/<sha> / blob/<sha>), file drop + picker hashed with crypto.subtle.digest('SHA-256') (refuse > 200 MB, progress for > 20 MB, nothing uploaded), note (≤ 500), self-check of the brief criteria (local only), live delivery fingerprint (core deliveryEvidence), deadline from chain time with "How on-time is decided", Submit → confirm → actions.submit(index, delivery) → done state. Vietnam view: ≈ VND only.
 3. Review: delivery (links open with rel="noopener noreferrer", files with fingerprints, note), "On time" from submitted_at vs submit_by, integrity block ("Same delivery that was submitted ✓" / changed), "Drop a file to compare" (local hash vs listed fingerprint), criteria ticks (local), timeline, auto-release countdown, Release → confirm → actions.approve; Dispute only with the P1 flag.
 Acceptance: build + typecheck + tests; devnet run: Vinh opens the invite link on his laptop and submits 2 links + 1 file → Mia reviews on her laptop: matches; the same file → "Same file ✓", another file → "Different file"; release; the iPhone (Vinh) shows Released in the VN view.
-Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+Finish: commit, push, fast-forward main; progress-log.md row.
 ```
 
 ### W5 · Polish and production deploy
@@ -167,7 +167,7 @@ Task: workspace-plan.md W5 — accessibility, Reduce Motion, performance, final 
 Branch: chore/w5-workspace-polish.
 Read first: workspace-plan.md 3; build-plan.md 8, 10.
 Do: keyboard pass on every page (Tab order, focus-visible ring, Escape closes panel/sheets, focus returns to the trigger); Reduce Motion verified; bundle report (keep the initial JS reasonable; lazy-load the editor/submit/review routes); CSP switched from Report-Only to enforcing once no violations remain; Lighthouse desktop ≥ 90 for performance and accessibility on /, /new, /contract/:fund/review; README section for ned-workspace (how to run, env names, deploy). Ask me before the production deploy.
-Acceptance: the D1 end-to-end run passes on the production URL; results recorded in docs/tong-hop-tien-do.md.
+Acceptance: the D1 end-to-end run passes on the production URL; results recorded in docs/progress-log.md.
 Finish: commit, push, fast-forward main.
 ```
 
@@ -175,7 +175,7 @@ Finish: commit, push, fast-forward main.
 
 ## 5. Additions (4 Oct 2026): wallet extension (W6) and Records page (W7)
 
-Decisions D23 and D24 in [`README.md`](README.md#decision-log). Boards: `WebWalletPanel.dc.html`, `WebExtensionGallery.dc.html` and `WebRecords.dc.html` in [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md) (canvas version 104).
+Decisions D23 and D24 in [`README.md`](README.md#decision-log). Boards: `WebWalletPanel.dc.html`, `WebExtensionGallery.dc.html` and `WebRecords.dc.html` in [`../02-design/canvas-v2/`](../02-design/canvas-v2/README.md) (canvas version 104).
 
 ### 5.1 W6 · The wallet panel becomes an extension that **is** the mobile app
 
@@ -254,7 +254,7 @@ Run W7 first if time is short. W6 has the higher risk: session sharing must be p
 ```text
 Task: workspace-plan.md section 5.1 (W6) — the wallet panel becomes an extension whose signed-in body is the real mobile app: the ned-wallet web build served at /wallet on the Workspace origin and shown in a same-origin iframe.
 Branch: feat/w6-wallet-extension (from up-to-date main).
-Read first: CLAUDE.md; workspace-plan.md sections 1, 3 and 5; README.md D20–D24; key-sync-plan.md (device keys); ned-workspace/src/components/WalletPanel.tsx, WalletPanelContext.tsx, TopBar.tsx, vercel.json, src/auth/*; ned-wallet/app.json, package.json (export/deploy scripts), app/_layout.tsx, services/auth/*, the storage keys used for session, contract keys, device keys, region and consent; docs/02-thiet-ke/canvas-v2/WebWalletPanel.dc.html and WebExtensionGallery.dc.html. I attach screenshots of the gallery.
+Read first: CLAUDE.md; workspace-plan.md sections 1, 3 and 5; README.md D20–D24; key-sync-plan.md (device keys); ned-workspace/src/components/WalletPanel.tsx, WalletPanelContext.tsx, TopBar.tsx, vercel.json, src/auth/*; ned-wallet/app.json, package.json (export/deploy scripts), app/_layout.tsx, services/auth/*, the storage keys used for session, contract keys, device keys, region and consent; docs/02-design/canvas-v2/WebWalletPanel.dc.html and WebExtensionGallery.dc.html. I attach screenshots of the gallery.
 Do, in this order, stopping after step 1 if it fails:
 1. Spike (≤ 2 h): build ned-wallet for the web with base URL /wallet (add app.config.ts reading EXPO_BASE_URL, default "/Unihackfest-2026" so GitHub Pages is unchanged), copy it to ned-workspace/dist/wallet, serve both from one origin locally, sign in on the Workspace and open /wallet in an iframe. Report: is the iframe app signed in without a second login? Same wallet? Contract keys visible? Device key reused or a new DeviceKeys entry? Region/consent asked again? If the session is not shared, try aligning storage keys; if still not shared, STOP and tell me (fallback: popup window to the GitHub Pages build, workspace-plan 5.1).
 2. Build: the Vercel install/build for ned-workspace also builds ned-wallet web (/wallet) and copies it into dist/wallet; keep the build time reasonable and report it. Keep `npm run deploy` (GitHub Pages) unchanged.
@@ -263,7 +263,7 @@ Do, in this order, stopping after step 1 if it fails:
 5. WalletPanel: signed-in state = extension header (Back when not a tab root, avatar, @handle, Devnet · short address, Open in full view, Close) + the iframe (390 px wide, height min(780px, 100vh − 96px)), mounted on first open and kept mounted; openWalletAt(path) in WalletPanelContext; Workspace "Settings" nav and "Release now" rows call it. Signed out and confirm states stay. Motion from motion.ts; Escape/focus behaviour unchanged.
 Rules: build-plan section 10; workspace-plan section 3; no change to signing logic; never post keys or tokens through postMessage.
 Acceptance: workspace + wallet tests, typechecks, both builds; on the Vercel preview: one Google login, open the panel → mobile Home signed in (no second login), Contracts → a contract → Back, Settings deep link, a Send and a Submit done inside the panel, the same wallet and keys as the Workspace; headers checked with curl -I for / and /wallet/; GitHub Pages build unchanged. Report bundle/initial-load impact (the iframe must not load before the panel opens).
-Finish: commit in small steps, push, fast-forward main; tong-hop-tien-do.md row with the spike results.
+Finish: commit in small steps, push, fast-forward main; progress-log.md row with the spike results.
 ```
 
 ### W7 · Prompt
@@ -271,12 +271,12 @@ Finish: commit in small steps, push, fast-forward main; tong-hop-tien-do.md row 
 ```text
 Task: workspace-plan.md section 5.2 (W7) — /records in the Workspace following WebRecords.dc.html, from a new chain history in @ned/core.
 Branch: feat/w7-workspace-records.
-Read first: CLAUDE.md; workspace-plan.md sections 3 and 5.2; README.md D24; packages/ned-core/src/milestone/records.ts, events.ts, queries.ts, view.ts, format.ts; ned-wallet Records screen (B5); docs/02-thiet-ke/canvas-v2/WebRecords.dc.html (tweaks who = mia / vinh, view = contract / activity). I attach screenshots of both views.
+Read first: CLAUDE.md; workspace-plan.md sections 3 and 5.2; README.md D24; packages/ned-core/src/milestone/records.ts, events.ts, queries.ts, view.ts, format.ts; ned-wallet Records screen (B5); docs/02-design/canvas-v2/WebRecords.dc.html (tweaks who = mia / vinh, view = contract / activity). I attach screenshots of both views.
 Do:
 1. packages/ned-core/src/milestone/history.ts: fund addresses = open funds where the wallet is client or freelancer + funds from the wallet's own create_fund / accept transactions; for each fund read getSignaturesForAddress(fund) (works after close) and decode program events with the IDL (FundCreated, FundAccepted, FundLocked, MilestoneSubmitted, MilestoneReleased, MilestoneRefunded, MilestoneDisputed, FundCancelled, FundClosed, NotePosted ignored); return per-contract timelines + a flat activity list with time, kind, milestone, amount units, actor, signature. Incremental cache per wallet in the existing records cache (newest signature per fund). Unit tests with recorded transaction fixtures.
 2. ned-workspace /records page exactly as the board: stats, By contract (expand/collapse cards with milestones + history), All activity (filters by event, period selector, Explorer link per row), CSV export (core recordsCsv extended), footer disclaimer; Vietnam view in ≈ VND only, from the freelancer's side; link in WorkspaceNav; Overview "History" link to /records.
 3. Optional if time: ned-wallet Records uses the same history for clients (Mia sees her created contracts and milestone steps, not an empty list).
 Rules: build-plan section 10; RPC calls batched and cached (no request per row on every render); amounts never animate.
 Acceptance: tests, typechecks, builds; with Mia's account the page shows the open contracts and one closed contract with every step, numbers equal to the chain (spot-check 3 signatures on Explorer); Vinh's view shows only VND; CSV opens in a spreadsheet.
-Finish: commit, push, fast-forward main; tong-hop-tien-do.md row.
+Finish: commit, push, fast-forward main; progress-log.md row.
 ```

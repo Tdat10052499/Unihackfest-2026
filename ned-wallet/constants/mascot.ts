@@ -21,7 +21,7 @@ export const MASCOT_IMAGES = {
   surprised: require('@/assets/images/mascot teddy - surprised.png'),
   thinking: require('@/assets/images/mascot teddy - thinking.png'),
   waving: require('@/assets/images/mascot teddy - waving.png'),
-  // Line-art (icon Splash) — docs/02-thiet-ke/assets/mascot/teddy-line-art.png
+  // Line-art (icon Splash) — docs/02-design/assets/mascot/teddy-line-art.png
   lineArt: require('@/assets/images/mascot teddy - line-art.png'),
 
   // Các bí danh (Aliases) để tương thích và thuận tiện sử dụng

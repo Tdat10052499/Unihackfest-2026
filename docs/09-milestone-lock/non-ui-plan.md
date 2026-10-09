@@ -169,7 +169,7 @@ Write `tests/milestone.rs` covering program-spec section 8:
 - groups 1–6 and 9–15;
 - for group 13, the approve + auto-release + refund half.
 
-Use the real `DEMO_PAYOUT_PARTNER` public key, or the placeholder until N12; receiving needs no private key. Record the compute units per instruction in a table in `docs/tong-hop-tien-do.md`.
+Use the real `DEMO_PAYOUT_PARTNER` public key, or the placeholder until N12; receiving needs no private key. Record the compute units per instruction in a table in `docs/progress-log.md`.
 
 **Done when:** all P0 tests and the 10 identity tests pass.
 
@@ -180,7 +180,7 @@ Use the real `DEMO_PAYOUT_PARTNER` public key, or the placeholder until N12; rec
 3. Deploy: `anchor deploy --provider.cluster devnet`.
 4. Upgrade the IDL: `anchor idl upgrade -f target/idl/ned_program.json --provider.cluster devnet`.
 5. Copy the IDL into the app: `target/idl/ned_program.json` → `ned-wallet/idl/ned_program.json`, and `target/types/ned_program.ts` → `ned-wallet/idl/ned_program.ts`, keeping its header and footer.
-6. Record the deploy signature, program size and authority in `docs/tong-hop-tien-do.md`.
+6. Record the deploy signature, program size and authority in `docs/progress-log.md`.
 
 **Done when:** `scripts/identity-readonly.ts` still passes against devnet, which shows identity was not broken by the upgrade.
 
@@ -262,7 +262,7 @@ The **screens** for consent and region come with the designs. Until then, `mode.
 
 - **Keys:**
   - blank `EXPO_PUBLIC_JUPITER_API_KEY` in `.env.example:18` (B8);
-  - the owner rotates the old relayer, Helius and Supabase keys and drains the relayer wallet (`docs/tong-hop-tien-do.md`);
+  - the owner rotates the old relayer, Helius and Supabase keys and drains the relayer wallet (`docs/progress-log.md`);
   - restrict the Helius key to the GitHub Pages domain.
 - **`package.json`:** `"test": "node --test \"services/**/*.test.ts\" \"utils/**/*.test.ts\""` (quoted, so Node expands the globs, including `services/__tests__`), so every test runs, including `history` and `amountInput`. Remove `deploy:web` and `scripts/deploy-web.js` (old Vercel deploy).
 - **README technical part:** what runs; how to build the program and run the tests; how to deploy; environment variables. The product description and screenshots wait for the designs. Add a LICENSE file or remove the MIT claim (owner decides).

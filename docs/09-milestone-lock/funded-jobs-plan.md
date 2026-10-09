@@ -249,7 +249,7 @@ Faucet limit: 20 devnet USDC per address every 2 hours \[Verified in 08-research
 | `docs/05-legal/compliance-fix-list.md` Terms draft | Replace "not … a marketplace" with: "N.E.D shows job listings that businesses post with a budget locked in the program. N.E.D does not choose, vet or employ anyone and is not a party to the work." | CL |
 | `docs/05-legal/qa-cheatsheet.md` | New answer: "Is this a job marketplace?" → "Businesses post jobs with the budget already locked. We don't match, vet or employ anyone, and we take no fee. It runs on devnet with test tokens." | CL |
 | `docs/05-legal/compliance-fix-list-review.md` A6 | Marked superseded by D25 (done in this PR) | PO |
-| `docs/tong-hop-tien-do.md` | One row per task J1–J6 | Each dev |
+| `docs/progress-log.md` | One row per task J1–J6 | Each dev |
 | Canvas | Boards WebJobs, WebJobDetail, WebJobApplicants | Design |
 
 Legal status: not reviewed. Law 74/2025 and Decree 352/2025 (employment services) and the e-commerce platform rules may apply to a public job board \[Unverified\]. The PO accepted this for the devnet demo on 6 Oct; it goes to the expert-check pack as a new question.
@@ -350,7 +350,7 @@ Branch: feat/jobs-select. Done when: section 7 steps 1–4 pass on devnet with t
 Run funded-jobs-plan.md section 7 twice on devnet with two logins (one Vietnam view). Check Records on both sides, the Explorer
 links, and that withdraw works on a second job with no applicants. Fix only what blocks the demo.
 Then merge feat/jobs-* to main (fast-forward or PR), deploy the Workspace (Vercel) and ned-wallet (gh-pages) after the PO says go.
-Update docs/tong-hop-tien-do.md (rows J1–J6, open issues). If section 7 fails at 18:00, set FEATURES.jobs = false and deploy that.
+Update docs/progress-log.md (rows J1–J6, open issues). If section 7 fails at 18:00, set FEATURES.jobs = false and deploy that.
 ```
 
 ## 11. Limits

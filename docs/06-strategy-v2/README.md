@@ -6,7 +6,7 @@ Proposed product direction after UniHackfest 2026 feedback (1 Oct 2026). Superse
 
 | File | What it is |
 | --- | --- |
-| [`strategy-v2.vi.md`](strategy-v2.vi.md) | Full proposal in Vietnamese |
+| [`strategy-v2.vi.md`](../archive/strategy-v2.vi.md) | Full proposal in Vietnamese |
 | [`strategy-v2.en.md`](strategy-v2.en.md) | Same proposal in English |
 | [`unit_economics.py`](unit_economics.py) | Revenue model (Japan → Vietnam). Edit the assumptions at the top, then run `python3 unit_economics.py` (standard library only) |
 

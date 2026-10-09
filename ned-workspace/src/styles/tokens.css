@@ -1,4 +1,4 @@
-/* N.E.D design tokens for the Workspace: values from docs/02-thiet-ke/canvas-v2 (Main, MotionSurfaces,
+/* N.E.D design tokens for the Workspace: values from docs/02-design/canvas-v2 (Main, MotionSurfaces,
    WebSignIn, WebWorkspace, WebWalletPanel). Light theme, no outlines: depth comes from tone and a soft shadow. */
 :root {
   /* surfaces */

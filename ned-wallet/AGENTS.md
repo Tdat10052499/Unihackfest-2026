@@ -4,7 +4,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 # Project context
 
-Before building any feature, read `../docs/09-milestone-lock/` (current product: Milestone Lock; `product-spec.md` for screens and words, `program-spec.md` for the on-chain account layout and instructions), then `../docs/README.md` and the screen designs in `../docs/02-thiet-ke/canvas-v2/`. Never re-propose mini-app platform, Perps or Gacha. Swap, xStocks, Earn, the dApp browser and the Simple/Crypto wallet mode were removed from the code on 9 Oct 2026; do not bring them back. `../docs/archive/` is history only.
+Before building any feature, read `../docs/09-milestone-lock/` (current product: Milestone Lock; `product-spec.md` for screens and words, `program-spec.md` for the on-chain account layout and instructions), then `../docs/README.md` and the screen designs in `../docs/02-design/canvas-v2/`. Never re-propose mini-app platform, Perps or Gacha. Swap, xStocks, Earn, the dApp browser and the Simple/Crypto wallet mode were removed from the code on 9 Oct 2026; do not bring them back. `../docs/archive/` is history only.
 
 # Architecture (after T0.5)
 

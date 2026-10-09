@@ -74,7 +74,7 @@ Code layout: `services/milestone/` with `pda.ts` (seeds), `client.ts` (Anchor bu
 
 ### 5.2 Account screens (D30, behind `FEATURES.accountRoles`, off until R9)
 
-Design: `roles-and-agreement-plan.md`; build: `roles-and-agreement-build.md`; boards: `../02-thiet-ke/canvas-v2/` ("D30" heading); copy: `packages/ned-core/src/account/copy.ts` and `legal/agreement.ts` (copy deck, draft for CL review). Renders: `../02-thiet-ke/screenshots/d30/`.
+Design: `roles-and-agreement-plan.md`; build: `roles-and-agreement-build.md`; boards: `../02-design/canvas-v2/` ("D30" heading); copy: `packages/ned-core/src/account/copy.ts` and `legal/agreement.ts` (copy deck, draft for CL review). Renders: `../02-design/screenshots/d30/`.
 
 | Route | Who | Content | Step |
 | --- | --- | --- | --- |

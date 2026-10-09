@@ -54,7 +54,7 @@ Each prompt starts with "Follow prompts-d30.md section 0". These rules **add to*
    - a board or a copy-deck line is missing;
    - the plan and the code disagree;
    - a step would need a program change, a dashboard change or a deploy.
-9. **End of step.** Add a row to "Milestone Lock — progress" in `docs/tong-hop-tien-do.md` (Vietnamese) with the step id, commits, test results and open issues. Then write a short report: what changed, the test results, the PO check, anything left.
+9. **End of step.** Add a row to "Milestone Lock — progress" in `docs/progress-log.md` (Vietnamese) with the step id, commits, test results and open issues. Then write a short report: what changed, the test results, the PO check, anything left.
 
 ---
 
@@ -173,14 +173,14 @@ Done when: core, wallet and Workspace suites pass with the flag off.
 
 R3 is the design track: [`prompts-d30-design.md`](prompts-d30-design.md), **D0–D8**, run by the Designer in the canvas.
 
-Its last step (D8) is a Claude Code commit that exports the boards to `docs/02-thiet-ke/canvas-v2/` and adds the README rows. R4–R7 read those boards.
+Its last step (D8) is a Claude Code commit that exports the boards to `docs/02-design/canvas-v2/` and adds the README rows. R4–R7 read those boards.
 
 ## R4 · Wallet: the new onboarding (behind the flag)
 
 ```
 Follow docs/09-milestone-lock/prompts-d30.md section 0.
 Read: roles-and-agreement-build.md §2–§3; the boards OnbRole*, OnbCountry*, OnbBusiness*, OnbAgreement* in
-docs/02-thiet-ke/canvas-v2/; ned-wallet/AGENTS.md (Expo v57 docs, useAuth only); ned-wallet/services/onboarding.ts
+docs/02-design/canvas-v2/; ned-wallet/AGENTS.md (Expo v57 docs, useAuth only); ned-wallet/services/onboarding.ts
 (resolveOnboarding, onboardingRoute, the V2 rule "consent before the faucet"); ned-wallet/app/(onboarding)/
 {_layout,setup,consent,residence,profile,fund}.tsx; ned-wallet/components/onboarding/ui.tsx (OnbScreen, StepHeader,
 PrimaryButton, NoticeCard); ned-wallet/stores/{useConsentStore,useRegionStore}.ts; ned-wallet/app/_layout.tsx
@@ -334,7 +334,7 @@ Done when: npm test passes in ned-wallet and ned-workspace.
 ```
 Follow docs/09-milestone-lock/prompts-d30.md section 0.
 Read: roles-and-agreement-build.md §7 and §9, docs/09-milestone-lock/product-spec.md (screens, §6 word table),
-docs/09-milestone-lock/system-tracker.md, docs/tong-hop-tien-do.md.
+docs/09-milestone-lock/system-tracker.md, docs/progress-log.md.
 Task:
 1. Run every suite (core, wallet, Workspace incl. vitest) with the flag off and on. Fix only D30 regressions.
 2. Manual run with both flags on (EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true npm run web in ned-wallet;
@@ -343,7 +343,7 @@ Task:
    b. new business client in Singapore;
    c. an existing v2 account (update flow);
    d. a VN account opening /new and /jobs/new by URL.
-   Save screenshots (phone 390 × 844, Workspace 1280 wide) to docs/02-thiet-ke/screenshots/d30/, with no personal
+   Save screenshots (phone 390 × 844, Workspace 1280 wide) to docs/02-design/screenshots/d30/, with no personal
    e-mail on screen.
 3. product-spec.md:
    - add the screens (Role, Country, Business, Agreement, Your account);
@@ -351,7 +351,7 @@ Task:
      design §6.
 4. system-tracker.md: rows for R0–R8, and the open items (operator name, governing law, the rights-to-work line,
    Phase 2).
-5. Progress rows R0–R8 in docs/tong-hop-tien-do.md.
+5. Progress rows R0–R8 in docs/progress-log.md.
 Commit: docs: D30 build recorded (R0–R8), product-spec screens and word table, screenshots
 Done when: all suites pass in both flag states; the four paths are recorded with screenshots.
 ```
@@ -388,7 +388,7 @@ Commit: feat: D30 roles and agreement live (CL ok <date>)
 
 ---
 
-## Progress row template (`docs/tong-hop-tien-do.md`)
+## Progress row template (`docs/progress-log.md`)
 
 ```
 | R<n> D30 <short name> | <commits> | core x/x · wallet x/x · workspace x/x (flag off) · … (flag on) | <open issues or "—"> |

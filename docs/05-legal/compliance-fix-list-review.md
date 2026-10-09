@@ -135,7 +135,7 @@ That legal point is \[Unverified\]: we did not read Decree 352/2025 Art. 19, and
 
 ### A7 · The design boards repeat banned wording
 
-The canvas boards and `docs/02-thiet-ke/canvas-v2/` contain banned or vague wording:
+The canvas boards and `docs/02-design/canvas-v2/` contain banned or vague wording:
 - "paid out in VND" in WebReview and the wallet panel confirm state;
 - "VND payout simulated" in WebRecords.
 
@@ -170,7 +170,7 @@ Note: every app screen path is owned by CL alone. Set the rule to "one approving
 
 ### A11 · Keep the build plan and the fix list in one place
 
-The fix list is now the source of truth for compliance work until 9 Oct. Add one line to `docs/tong-hop-tien-do.md` under open issues:
+The fix list is now the source of truth for compliance work until 9 Oct. Add one line to `docs/progress-log.md` under open issues:
 
 > "Compliance P0: see `docs/05-legal/compliance-fix-list.md` and this review"
 

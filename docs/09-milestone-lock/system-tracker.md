@@ -377,12 +377,12 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-07 | Test T1–T15 (S15), merge & deploy (S16) | Dev | 🔧 | 9 Oct | Cả hai build được deploy |
 | B-08 | Keys S1–S3 | PO | 🔧 | ngay | Bundle mới không còn key; register row 12 |
 | B-09 | README R1 + LICENSE R2 | PO + Dev | 🔧 | 8 Oct | CL đọc README đối chiếu app live |
-| B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs, H4 trang Legal (chỉ ở footer), H5 restyle + QA. 7/10: H1–H5 đã vào `main` (`hub-v4-qa.md`, `tong-hop-tien-do.md`) | Dev | ✅ | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
+| B-21 | Hub v4 (`prompts-hub-v4.md`): H1 nền tảng, H2 Overview, H3 Find jobs, H4 trang Legal (chỉ ở footer), H5 restyle + QA. 7/10: H1–H5 đã vào `main` (`hub-v4-qa.md`, `progress-log.md`) | Dev | ✅ | 8 Oct | H1–H5 trên `main`; demo dùng giao diện v4. Nếu không kịp freeze: demo giao diện S5/S6 hiện có |
 | B-22 | Review có khung xem trước (`prompts-review-preview.md`): R1 core, R2 Workspace, R3 CSP + Privacy + docs | Dev + CL | ✅ | — | Trên `main`; còn chạy e2e 2 login (danh sách thao tác trong progress log R3) |
 | B-23 | File cuối (`prompts-final-files.md`): F1 core, F2 Workspace (+ mobile chỉ đọc danh sách) | Dev | ✅ | — | Trên `main` `0b808d1` |
 | B-24 | F3: docs (D27 amendment, guide, Terms — CL duyệt), câu Q&A tiếng Việt, e2e | CL + PO + Dev | 🔧 | 8 Oct | Mục tracker đã cập nhật ở đây; còn review-decision-plan, README D27, copy, final-pitch, e2e |
 | B-25 | **D29 Lock at hire, program v1.4 (tính năng cuối)**: L1 program + test (kèm G1), L2 upgrade devnet + smoke Run 3–4, L3 core + hub (chip "Locks when hired", lọc "Funded only"), L4 docs + copy (CL). L1–L4 được thay bằng V0–V7 (`prompts-program-v14.md`), các dòng bên dưới | Dev + PO + CL | 🔧 (V0–V6 ✅, V7 đang làm) | 8 Oct 18:00 | Smoke Run 1–4 xanh trên devnet ✅ (V4); không cần rollback |
-| B-25.V0 | Pre-flight: công cụ, baseline 54/54 test, backup v1.3 (`.so` + IDL) để rollback, binary devnet khớp | Dev | ✅ | — | `tong-hop-tien-do.md` dòng V0 |
+| B-25.V0 | Pre-flight: công cụ, baseline 54/54 test, backup v1.3 (`.so` + IDL) để rollback, binary devnet khớp | Dev | ✅ | — | `progress-log.md` dòng V0 |
 | B-25.V1 | Build + test v1.4: `anchor build` sạch, 61/61 test (54 v1.3 + 7 `v14_*`), G1 trong `lock_from_job` | Dev | ✅ | — | Dòng V1 |
 | B-25.V2 | Tự review + CU + đếm + kích thước giao dịch: thêm 6 test (67/67); 29 instruction · 55 lỗi (mới: `JobNotFunded`, `JobAlreadyFunded`) · 26 event; CU cao nhất `post_job` 49,173 (24.6%, "dưới 25%"); `fund_job + create_fund + select_job` 789 byte / 1,232 | Dev | ✅ | — | Dòng V2; `program-spec.md` §11 |
 | B-25.V3 | Upgrade devnet (PO "go"): extend +20,000 B, tx `4u1Gcc2v…SEdwg`, program data 688,464 B, binary = build local | Dev + PO | ✅ | — | Dòng V3 |
@@ -392,7 +392,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-25.V7 | Docs và copy, final check: pre-pitch-check §9.4 vào `final-pitch.md`, `qa-cheatsheet.md`, `expert-check-pack.vi.md`, research; tracker, README; legal copy (`copy.ts`) với CL | CL + PO + Dev | 🔧 đang làm | 8 Oct 18:00 | CL kiểm tra lại số trên slide 4–7 và câu §9.3 trên app live |
 | B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🗺 **Roadmap sau final** (PO, 7 Oct sau V7: feature freeze; listing mở đã có ở `/jobs/new`) | Sau final | Chạy N1–N3 nguyên văn sau final |
 | B-27 | **D30 roles, country, business, N.E.D Agreement** (`roles-and-agreement-build.md`, sau `FEATURES.accountRoles`) | Dev + CL + PO | ✅ live 9 Oct | sau final | CL ký copy; Q10–Q11 có câu trả lời |
-| B-27.R0 | Cờ `accountRoles` (tắt) ở core, ví, Workspace; khung module `account/`, `legal/agreement.ts` | Dev | ✅ | — | `tong-hop-tien-do.md` dòng R0 |
+| B-27.R0 | Cờ `accountRoles` (tắt) ở core, ví, Workspace; khung module `account/`, `legal/agreement.ts` | Dev | ✅ | — | `progress-log.md` dòng R0 |
 | B-27.R1 | Core: model account, 249 quốc gia, rules (`capabilities`, `canChangeCountry`) | Dev | ✅ | — | Dòng R1 |
 | B-27.R2 | Core: agreement + hash, consent v3, Terms 1.2 / Privacy 2 nháp (CL); câu F11 sửa theo PO | Dev + CL | ✅ code, 🔧 CL | — | Dòng R2, F11 |
 | B-27.R3 | 18 board D30 + ảnh @2x | Dev | ✅ | — | Dòng R3 |
@@ -400,7 +400,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-27.R5 | Ví: chặn theo vai trò, Settings "Your account" (đóng D17 khi cờ bật) | Dev | ✅ | — | Dòng R5 |
 | B-27.R6 | Workspace + N.E.D Jobs: AccountPrompt, `ensureAccount`, cổng `/new` `/jobs/new`, nhãn business | Dev | ✅ | — | Dòng R6 |
 | B-27.R7 | Người dùng cũ: luồng update, chọn sẵn từ money view + lịch sử | Dev | ✅ | — | Dòng R7 |
-| B-27.R8 | Test cả hai trạng thái cờ, ảnh 4 luồng (`docs/02-thiet-ke/screenshots/d30/`), product-spec, tracker | Dev | ✅ | — | Dòng R8; còn chạy thật bằng Google (PO) |
+| B-27.R8 | Test cả hai trạng thái cờ, ảnh 4 luồng (`docs/02-design/screenshots/d30/`), product-spec, tracker | Dev | ✅ | — | Dòng R8; còn chạy thật bằng Google (PO) |
 | B-27.R9 | CL duyệt copy → bật cờ production | CL + PO | ✅ 9 Oct (PO bật trước final) | — | CL ok 8 Oct; Vercel prod + GitHub Pages từ `d47fc8e`; còn PO thử tài khoản thật |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |

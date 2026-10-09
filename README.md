@@ -47,20 +47,20 @@
 
 <table>
   <tr>
-    <td align="center" width="25%"><img src="docs/02-thiet-ke/screenshots/mobile-app/01-welcome.png" width="200" alt="Sign in with Google" /><br/><sub><b>Sign in with Google</b><br/>embedded wallet, no seed phrase</sub></td>
-    <td align="center" width="25%"><img src="docs/02-thiet-ke/screenshots/mobile-app/02-home-vn.png" width="200" alt="Home in the Vietnam view" /><br/><sub><b>Home, Vietnam view</b><br/>≈ VND only, no USDC</sub></td>
-    <td align="center" width="25%"><img src="docs/02-thiet-ke/screenshots/mobile-app/03-accept-vn.png" width="200" alt="Accept a contract" /><br/><sub><b>Accept</b><br/>read the brief, choose VND to my bank, Slide to accept</sub></td>
-    <td align="center" width="25%"><img src="docs/02-thiet-ke/screenshots/mobile-app/04-locked-vn.png" width="200" alt="Budget locked" /><br/><sub><b>Locked for you</b><br/>start work only after this</sub></td>
+    <td align="center" width="25%"><img src="docs/02-design/screenshots/mobile-app/01-welcome.png" width="200" alt="Sign in with Google" /><br/><sub><b>Sign in with Google</b><br/>embedded wallet, no seed phrase</sub></td>
+    <td align="center" width="25%"><img src="docs/02-design/screenshots/mobile-app/02-home-vn.png" width="200" alt="Home in the Vietnam view" /><br/><sub><b>Home, Vietnam view</b><br/>≈ VND only, no USDC</sub></td>
+    <td align="center" width="25%"><img src="docs/02-design/screenshots/mobile-app/03-accept-vn.png" width="200" alt="Accept a contract" /><br/><sub><b>Accept</b><br/>read the brief, choose VND to my bank, Slide to accept</sub></td>
+    <td align="center" width="25%"><img src="docs/02-design/screenshots/mobile-app/04-locked-vn.png" width="200" alt="Budget locked" /><br/><sub><b>Locked for you</b><br/>start work only after this</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/mobile-app/05-contract-vn.png" width="200" alt="Contract and milestones" /><br/><sub><b>Milestones</b><br/>deadlines, Release now, delivery</sub></td>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/mobile-app/06-released-vn.png" width="200" alt="Released" /><br/><sub><b>Released</b><br/>to the payout partner, VND simulated</sub></td>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/mobile-app/07-records-vn.png" width="200" alt="Records" /><br/><sub><b>Records</b><br/>CSV export, not tax advice</sub></td>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/mobile-app/08-lock-client.png" width="200" alt="Client locks the budget" /><br/><sub><b>Client side</b><br/>Slide to lock the budget</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/mobile-app/05-contract-vn.png" width="200" alt="Contract and milestones" /><br/><sub><b>Milestones</b><br/>deadlines, Release now, delivery</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/mobile-app/06-released-vn.png" width="200" alt="Released" /><br/><sub><b>Released</b><br/>to the payout partner, VND simulated</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/mobile-app/07-records-vn.png" width="200" alt="Records" /><br/><sub><b>Records</b><br/>CSV export, not tax advice</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/mobile-app/08-lock-client.png" width="200" alt="Client locks the budget" /><br/><sub><b>Client side</b><br/>Slide to lock the budget</sub></td>
   </tr>
 </table>
 
-<sub>Screens rendered from the design boards in <a href="docs/02-thiet-ke/canvas-v2">docs/02-thiet-ke/canvas-v2</a>, with sample data (devnet, simulated VND payout). The app follows these boards; captures from the running app will replace them under the same file names (<a href="docs/09-milestone-lock/prompts-readme-mobile.md">prompt M1</a>).</sub>
+<sub>Screens rendered from the design boards in <a href="docs/02-design/canvas-v2">docs/02-design/canvas-v2</a>, with sample data (devnet, simulated VND payout). The app follows these boards; captures from the running app will replace them under the same file names (<a href="docs/09-milestone-lock/prompts-readme-mobile.md">prompt M1</a>).</sub>
 
 | On the phone | What it does |
 | --- | --- |
@@ -153,8 +153,8 @@ These support the phone app. They use the same Google sign-in and the same walle
 
 <table>
   <tr>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/h2-overview-v4/desktop-client.png" width="420" alt="N.E.D Jobs overview" /><br/><sub>N.E.D Jobs · Overview</sub></td>
-    <td align="center"><img src="docs/02-thiet-ke/screenshots/r2-review-preview/d-review-drive-after.png" width="420" alt="Review with preview" /><br/><sub>Workspace · review with the preview, loaded on click</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/h2-overview-v4/desktop-client.png" width="420" alt="N.E.D Jobs overview" /><br/><sub>N.E.D Jobs · Overview</sub></td>
+    <td align="center"><img src="docs/02-design/screenshots/r2-review-preview/d-review-drive-after.png" width="420" alt="Review with preview" /><br/><sub>Workspace · review with the preview, loaded on click</sub></td>
   </tr>
 </table>
 
@@ -188,12 +188,12 @@ flowchart TB
 | **N.E.D app (phone)** | Live on GitHub Pages and at `/wallet`: sign-in and onboarding, Vietnam view, accept and lock, contract and milestone screens, records, Help and legal pages. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages. Lock at hire: **Lock now** / **Lock when I hire** on `/jobs/new`, "Budget locked" / "Locks when hired" chips, a "Funded only" filter, and "Select @x and lock X USDC". An open contract from `/new` is not built yet. |
 | **Removed (9 Oct)** | Swap, xStocks, Jupiter and the Simple/Crypto wallet mode: code deleted; the old N.E.D Wallet documents are in [`docs/archive/`](docs/archive/README.md) |
-| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 185 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V7). |
+| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 185 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/progress-log.md` (rows V0–V7). |
 
 **Compute units:**
 - Measured with LiteSVM on v1.4, 7 Oct 2026, over 10 runs.
 - Each range is lowest–highest: test keypairs are random, and every extra PDA bump search costs about 1,500 CU.
-- Source: `docs/tong-hop-tien-do.md` and `program-spec.md` §11.5.
+- Source: `docs/progress-log.md` and `program-spec.md` §11.5.
 
 | Instruction | CU |
 | --- | ---: |
@@ -362,10 +362,10 @@ Unihackfest-2026/
 | Program specification (byte layouts, instructions, errors, tests; v1.4 in §11) | [`docs/09-milestone-lock/program-spec.md`](docs/09-milestone-lock/program-spec.md) |
 | Product spec and word table | [`docs/09-milestone-lock/product-spec.md`](docs/09-milestone-lock/product-spec.md) |
 | How the system must behave, scenarios, build tracker | [`docs/09-milestone-lock/system-tracker.md`](docs/09-milestone-lock/system-tracker.md) |
-| Progress log with every test run and devnet record (Vietnamese) | [`docs/tong-hop-tien-do.md`](docs/tong-hop-tien-do.md) |
+| Progress log with every test run and devnet record (Vietnamese) | [`docs/progress-log.md`](docs/progress-log.md) |
 | Research, market and law | [`docs/08-research/ned-research-and-compliance.md`](docs/08-research/ned-research-and-compliance.md) |
 | Compliance reviews | [`docs/05-legal/`](docs/05-legal/) |
-| Design boards | [`docs/02-thiet-ke/canvas-v2/`](docs/02-thiet-ke/canvas-v2/README.md) |
+| Design boards | [`docs/02-design/canvas-v2/`](docs/02-design/canvas-v2/README.md) |
 
 **Contributing:**
 - Commits go straight to `main` as Conventional Commits; run the tests before each push.

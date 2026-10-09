@@ -1,4 +1,4 @@
-// D30 sign-up pieces (boards OnbRole, OnbCountry, OnbBusiness, OnbAgreement in docs/02-thiet-ke/canvas-v2/), built on
+// D30 sign-up pieces (boards OnbRole, OnbCountry, OnbBusiness, OnbAgreement in docs/02-design/canvas-v2/), built on
 // the v2 tokens. Copy comes from @ned/core (account/copy.ts, legal/agreement.ts); nothing is typed inline here.
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';

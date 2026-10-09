@@ -5,7 +5,7 @@
 > **Status:** proposal v2. The project owner approved this direction on 1 Oct 2026. Not yet reviewed by a mentor, the Compliance Lead or a lawyer.
 > **Supersedes:** [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md) (v1). V1 is kept as a legal reference.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat, with an AI research assistant
-> **Vietnamese version:** [`strategy-v2.vi.md`](strategy-v2.vi.md) · **Numbers model:** [`unit_economics.py`](unit_economics.py)
+> **Vietnamese version:** [`strategy-v2.vi.md`](../archive/strategy-v2.vi.md) · **Numbers model:** [`unit_economics.py`](unit_economics.py)
 
 *Hụi* (also *họ*) is the Vietnamese rotating savings and credit association (ROSCA): a group of people pay a fixed amount every period and each member takes the whole pot once. The person who runs it is the *chủ hụi* (organiser). *Giật hụi* means the organiser runs off with the money; *bể hụi* means the circle collapses.
 
@@ -34,9 +34,9 @@ If you cloned the repo and are using Claude (or another AI assistant) to analyse
 
 **Related files in the repo:**
 
-- `../archive/01-dinh-huong-du-an.md`: original direction and mentor input (Vietnamese).
-- `../tong-hop-tien-do.md`: code progress up to 28 Sep 2026 (Vietnamese).
-- `../archive/04-ke-hoach-code.md`: phased code plan (Vietnamese).
+- `../archive/01-product-direction.md`: original direction and mentor input (Vietnamese).
+- `../progress-log.md`: code progress up to 28 Sep 2026 (Vietnamese).
+- `../archive/04-code-plan.md`: phased code plan (Vietnamese).
 - `../05-legal/compliance-lead-tasks.md`: Compliance Lead tasks and decisions confirmed with the organisers.
 - `../../ned_program/programs/ned-program/src/lib.rs`: the existing Anchor program (identity).
 - `unit_economics.py`: revenue model. Change the assumptions and run `python3 unit_economics.py`.

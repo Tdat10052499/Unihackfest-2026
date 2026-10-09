@@ -7,7 +7,7 @@
 > **Status:** proposal, not yet reviewed by a mentor or a lawyer.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat (with an AI research assistant)
 > **Suggested location in the repo:** `docs/05-vietnam-strategy-and-revenue-model.md`
-> **Read together with:** [`01-dinh-huong-du-an.md`](01-dinh-huong-du-an.md), [`tong-hop-tien-do.md`](../tong-hop-tien-do.md), [`04-ke-hoach-code.md`](04-ke-hoach-code.md)
+> **Read together with:** [`01-product-direction.md`](01-product-direction.md), [`progress-log.md`](../progress-log.md), [`04-code-plan.md`](04-code-plan.md)
 
 This document is for team members and anyone reading the repo who wants to analyse where N.E.D should go after UniHackfest 2026. Each claim is labelled as a **sourced fact**, an **inference** or an **assumption**. Section 10 lists what is still unverified. This is research, not legal or financial advice.
 
@@ -274,7 +274,7 @@ Most of the existing code can be reused: Dynamic login, on-chain identity in `ne
 
 | Change | Reason | Implementation hint |
 | --- | --- | --- |
-| International / Vietnam region switch (region gating) | Turn features on/off by law | Replaces Phase 4 "two wallet modes" in `04-ke-hoach-code.md`; can build on `stores/useWalletModeStore.ts` |
+| International / Vietnam region switch (region gating) | Turn features on/off by law | Replaces Phase 4 "two wallet modes" in `04-code-plan.md`; can build on `stores/useWalletModeStore.ts` |
 | Disable real swaps and xStocks in the Vietnam version | Decree 284/2026, Decree 135/2015 | Keep `app/xstocks/*` in Demo mode with an educational label |
 | Change wording: drop "payment" | Decree 52/2024 | `locales/vi.json`, `locales/en.json` |
 | "Send home" shortcut on Home | Core feature | Reuse `components/SendFlow.tsx` |

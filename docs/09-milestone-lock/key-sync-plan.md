@@ -83,4 +83,4 @@ About 1.5 days. **Freeze is 9 Oct.** Cut line: if P1–P3 are not green by 7 Oct
 - `README.md` decision log: D22, plus a note on D15;
 - `program-spec.md` v1.2: account, instruction, note kind, errors, tests;
 - `build-plan.md` (new phase), `product-spec.md` (flow wording), `non-ui-plan.md` 3.1 (`ContractContent` gets the key source);
-- `docs/tong-hop-tien-do.md`.
+- `docs/progress-log.md`.

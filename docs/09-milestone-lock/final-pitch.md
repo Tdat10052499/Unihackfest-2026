@@ -147,7 +147,7 @@ Slide này chỉ có tiêu đề "Chạy trực tiếp trên Solana devnet" và 
 | `fund_job + create_fund + select_job` (1 transaction, 5 milestone) | 57,985–71,485 |
 
 - Dòng nguồn (chữ nhỏ): *LiteSVM, program v1.4, 7/10, 10 lần chạy; khoảng dao động do keypair test ngẫu nhiên (mỗi lần tìm bump PDA thêm ~1,500 CU)*. Bảng cũ (v1.0, 2/10) không dùng nữa.
-- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 25% hạn mức mặc định 200,000 CU* (đo lại 7/10 bằng LiteSVM, 10 lần chạy: cao nhất `post_job` 49,173 = 24,6%; `lock_from_job` 45,045; `accept_cancel` 43,015. Các mức trên 40,000 đã có từ v1.3, nên câu "dưới 20%" cũ không còn đúng. Nguồn: `docs/tong-hop-tien-do.md`, dòng V2. Smoke trên devnet, cả transaction: `fund_job + create_fund + select_job` 51,633; `accept + lock_from_job` 36,505; `post_job_open` 22,080. Transaction chọn người 5 milestone: 789 byte / 1,232, không cần lookup table)
+- Dòng dưới bảng: *Mọi instruction đã đo đều dùng dưới 25% hạn mức mặc định 200,000 CU* (đo lại 7/10 bằng LiteSVM, 10 lần chạy: cao nhất `post_job` 49,173 = 24,6%; `lock_from_job` 45,045; `accept_cancel` 43,015. Các mức trên 40,000 đã có từ v1.3, nên câu "dưới 20%" cũ không còn đúng. Nguồn: `docs/progress-log.md`, dòng V2. Smoke trên devnet, cả transaction: `fund_job + create_fund + select_job` 51,633; `accept + lock_from_job` 36,505; `post_job_open` 22,080. Transaction chọn người 5 milestone: 789 byte / 1,232, không cần lookup table)
 - ~~"IDL đăng on-chain" **chỉ đưa lên slide khi IDL v1.3 đã được đăng lại** (hiện bản on-chain là v1.1).~~ **7/10 (V4):** IDL v1.4 đã đăng on-chain (tx `2AsdDUbn…uCC7`), nên được nói "IDL on-chain".
 
 **Lời nói**
@@ -330,7 +330,7 @@ Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm n�
 | `docs/09-milestone-lock/system-tracker.md` | Workflow, tình huống, bất biến |
 | `docs/09-milestone-lock/product-spec.md` §6–7 | Word table, demo script gốc |
 | `docs/09-milestone-lock/funded-jobs-plan.md`, `lock-at-hire-plan.md`, `review-decision-plan.md` | Funded Jobs (D25), lock at hire (D29), yêu cầu chỉnh sửa (D27) |
-| `docs/tong-hop-tien-do.md` | Kết quả test, bảng CU, thông tin devnet |
+| `docs/progress-log.md` | Kết quả test, bảng CU, thông tin devnet |
 | `docs/05-legal/qa-cheatsheet.md` | Bản Q&A tham khảo bằng tiếng Anh (đã khớp với mục 4, cập nhật 7/10) |
 | `docs/05-legal/cl-review-7oct.md` | Các lỗi đã sửa và việc còn mở |
 | `docs/08-research/ned-research-and-compliance.md` | Nguồn số liệu và luật |
@@ -342,7 +342,7 @@ Mỗi con số phải có nguồn (mục 7); con số nào cũ thì nói kèm n�
 | 68% freelancer ở Việt Nam từng gặp tình trạng không được trả tiền công | [Khảo sát PayPal, qua The Leader](https://e.theleader.vn/68-per-cent-of-freelancers-in-vietnam-having-experiences-of-not-being-paid-d2518.html): khảo sát 10/2017, công bố 3/2018; 1.602 người ở SG, ID, VN, PH | Verified 7/10, số liệu cũ (nói kèm năm) |
 | ≈ 7,2 tỷ đô USDC trên Solana | [DefiLlama](https://defillama.com/stablecoins/Solana): $7.221bn ngày 7/10 | Verified 7/10; kiểm tra lại 9/10 |
 | 67 test; 62 test LiteSVM | `ned_program/programs/ned-program/tests` (identity 10, milestone 29, jobs 23) + helpers 4 + lib 1 | Verified trên repo 7/10 (v1.4, V2); v1.3 là 54 / 49 |
-| Bảng CU | `docs/tong-hop-tien-do.md` (dòng V2: LiteSVM v1.4, 7/10, 10 lần chạy; smoke devnet V4) | Verified 7/10; cao nhất 49,173 = 24,6% → "dưới 25%" |
+| Bảng CU | `docs/progress-log.md` (dòng V2: LiteSVM v1.4, 7/10, 10 lần chạy; smoke devnet V4) | Verified 7/10; cao nhất 49,173 = 24,6% → "dưới 25%" |
 | 29 instruction, 55 mã lỗi, 26 event | `ned_program/programs/ned-program/src/` (v1.4) | Verified 7/10 (v1.3 là 27 / 53 / 24) |
 | Hơn 420 commit | `git log` trên `main` | Verified 7/10 (441 commit) |
 | ≈ 520,000 VND cho 20 USDC | Hằng số trong app: 26,019.5 (Wise, 2/10); Wise 7/10: 25,990 | Vẫn đúng ≈ 520,000 |

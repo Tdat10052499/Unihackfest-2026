@@ -1,4 +1,4 @@
-// Generated user avatar, ported from docs/02-thiet-ke/canvas-v2/Avatar.dc.html (same numbers, same output).
+// Generated user avatar, ported from docs/02-design/canvas-v2/Avatar.dc.html (same numbers, same output).
 // Seed = the wallet address in the apps (never the username, so the avatar never changes). FNV-1a 32-bit hash +
 // murmur3 finaliser → palette, pattern, rotation and accent. Same seed = same avatar on every device.
 

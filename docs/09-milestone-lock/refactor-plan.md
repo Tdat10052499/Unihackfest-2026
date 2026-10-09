@@ -1,6 +1,6 @@
 # Refactor plan: from wallet demo to Milestone Lock (3 → 10 Oct 2026)
 
-> **3 Oct 2026:** the schedule (section 4) and the order of the remaining work are replaced by [`build-plan.md`](build-plan.md). PR4–PR6 content below still applies as the detail for build-plan B3–B5; section 0 "Where we are" is out of date (see `docs/tong-hop-tien-do.md`).
+> **3 Oct 2026:** the schedule (section 4) and the order of the remaining work are replaced by [`build-plan.md`](build-plan.md). PR4–PR6 content below still applies as the detail for build-plan B3–B5; section 0 "Where we are" is out of date (see `docs/progress-log.md`).
 
 Status: **plan, 3 Oct 2026**, based on a full read of `main` at `dbfe2ea`. It turns [`product-spec.md`](product-spec.md) and [`program-spec.md`](program-spec.md) into an ordered list of pull requests. The owner of each estimate is the developer; the hours are estimates \[Assumption\] for one developer working with an AI coding assistant.
 
@@ -87,7 +87,7 @@ Status: **plan, 3 Oct 2026**, based on a full read of `main` at `dbfe2ea`. It tu
 | B5 | Fake Mobile Wallet Adapter signing (returns unsigned payloads) is mounted around the whole app | `contexts/MwaProvider.tsx:89,107-127`, `app/_layout.tsx:68` |
 | B6 | Dev page `poc-dynamic` (airdrop and test buttons) is public in the production web build | `app/_layout.tsx:21` |
 | B7 | The persisted network store can say `mainnet-beta` while signing is devnet-only | `stores/useNetworkStore.ts`, `services/p2pTransfer.ts:12` |
-| B8 | A real-looking Jupiter key is committed in `.env.example:18`. Old relayer, Helius and Supabase keys remain in git history (`docs/tong-hop-tien-do.md`) | — |
+| B8 | A real-looking Jupiter key is committed in `.env.example:18`. Old relayer, Helius and Supabase keys remain in git history (`docs/progress-log.md`) | — |
 
 **Navigation:**
 
@@ -168,7 +168,7 @@ Every PR must:
 - keep the identity tests green;
 - run its new tests;
 - be reviewed for wording by the Compliance Lead when it changes UI text;
-- update `docs/tong-hop-tien-do.md` when merged.
+- update `docs/progress-log.md` when merged.
 
 ### PR0 · Foundations and spike (3 Oct, about 5 h)
 
@@ -191,7 +191,7 @@ Every PR must:
 | `SharedFund`, `Milestone`, enums, constants, errors and events exactly as in the program spec, sections 2–6 | layout test: size 708, `client` at offset 12, `freelancer` at offset 44 |
 | `create_fund`, `accept`, `lock`, `submit`, `approve`, `release_after_review`, `refund`, `close` | program spec section 8, tests 1–6 and 9–15, pass |
 | Generate `DEMO_PAYOUT_PARTNER` (keypair stays outside the repo) and put its public key in `PAYOUT_PARTNERS` | Vietnam-path test uses the real public key |
-| Build, copy the IDL (JSON and `.ts`), deploy to devnet. Run `solana program show` first, and `solana program extend` if needed (the deploy wallet has about 8.5 devnet SOL); upgrade the IDL | deploy signature, program size and upgrade authority recorded in `tong-hop-tien-do.md` |
+| Build, copy the IDL (JSON and `.ts`), deploy to devnet. Run `solana program show` first, and `solana program extend` if needed (the deploy wallet has about 8.5 devnet SOL); upgrade the IDL | deploy signature, program size and upgrade authority recorded in `progress-log.md` |
 
 ### PR2 · Program P1 group (5–6 Oct, about 6 h, cut as one block)
 

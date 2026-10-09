@@ -14,7 +14,7 @@
 | Order and gates | [`build-order-6oct.md`](build-order-6oct.md) |
 | Specs | [`funded-jobs-plan.md`](funded-jobs-plan.md) (D25), [`delivery-review-updates.md`](delivery-review-updates.md) (D26), [`review-decision-plan.md`](review-decision-plan.md) (D27), D28 in [`README.md`](README.md) |
 | Compliance | [`../05-legal/compliance-fix-list.md`](../05-legal/compliance-fix-list.md), [`../05-legal/compliance-fix-list-review.md`](../05-legal/compliance-fix-list-review.md) |
-| Screens | [`../02-thiet-ke/canvas-v2/`](../02-thiet-ke/canvas-v2/README.md) |
+| Screens | [`../02-design/canvas-v2/`](../02-design/canvas-v2/README.md) |
 
 > **Update 7 Oct (hub v4):** the community hub was redesigned (canvas version 113). The S5/S6 code stays; its visuals are updated by **H1–H5 in [`prompts-hub-v4.md`](prompts-hub-v4.md)**, which also adds the Legal page. Appendix H below is **superseded** by appendix V of that file and kept for reference.
 
@@ -50,7 +50,7 @@ Each prompt starts with "Follow prompts-6oct.md section 0". Those rules:
 7. **When spec and code disagree,** fix both in the same commit, or stop and ask.
 8. **End of every step.**
    - Run typecheck, lint and tests for every package you touched, and fix failures you caused.
-   - Add a row to "Milestone Lock — progress" in `docs/tong-hop-tien-do.md` (Vietnamese): step, commits, test results, open issues.
+   - Add a row to "Milestone Lock — progress" in `docs/progress-log.md` (Vietnamese): step, commits, test results, open issues.
    - Finish with a short report: what changed, test results, the manual checks for the PO, anything left undone.
 
 ---
@@ -67,7 +67,7 @@ Task: prepare the work for today.
    versions (anchor, solana, node, pnpm/npm).
 4. Check that docs/09-milestone-lock/{funded-jobs-plan,delivery-review-updates,review-decision-plan,build-order-6oct,
    prompts-6oct}.md and the boards WebJobs, WebJobsFind, WebJobDetail, WebJobPost, WebJobApplicants exist in
-   docs/02-thiet-ke/canvas-v2/. Report anything missing.
+   docs/02-design/canvas-v2/. Report anything missing.
 Done when: release/6oct exists on origin and the baseline report is written in the progress log.
 ```
 
@@ -178,7 +178,7 @@ Done when: ned-core tests pass; ned-wallet and ned-workspace typecheck; the repo
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0.
 Read: README.md D28, funded-jobs-plan.md sections 2, 6, 6.1, 6.2, workspace-plan.md, the boards
-docs/02-thiet-ke/canvas-v2/{WebJobs,WebJobsFind}.dc.html, and ned-workspace/src/{App.tsx,config.ts,motion.ts,
+docs/02-design/canvas-v2/{WebJobs,WebJobsFind}.dc.html, and ned-workspace/src/{App.tsx,config.ts,motion.ts,
 components/{Layout,TopBar,WorkspaceNav,WalletExtension,WalletPanel,WalletPanelContext}.tsx,hooks/*}.
 Task:
 1. FEATURES.jobs in ned-workspace/src/config.ts (default true; env override).
@@ -207,7 +207,7 @@ view; the URL of a filtered search reopens the same results.
 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0.
-Read: funded-jobs-plan.md sections 3, 4.3, 6, 6.2 and 7, the boards docs/02-thiet-ke/canvas-v2/{WebJobDetail,WebJobPost,
+Read: funded-jobs-plan.md sections 3, 4.3, 6, 6.2 and 7, the boards docs/02-design/canvas-v2/{WebJobDetail,WebJobPost,
 WebJobApplicants}.dc.html, and ned-workspace/src/{pages/NewContract.tsx,lib/newContract.ts,jobs/*}.
 Task (inside JobsLayout from S5):
 1. /jobs/:job (WebJobDetail): categories and skills, verified brief badge (or the warning when fetchJobBrief is not ok),
@@ -422,9 +422,9 @@ final row.
 > **Superseded (7 Oct):** replaced by appendix V of [`prompts-hub-v4.md`](prompts-hub-v4.md) (canvas version 113). Kept for reference; where they differ, appendix V wins.
 
 Added on 6 Oct 2026 for S5. The S5 prompt referred to this appendix before it existed; the PO chose to take it from
-the boards `docs/02-thiet-ke/canvas-v2/WebJobs.dc.html` and `WebJobsFind.dc.html`. If a board and this appendix
+the boards `docs/02-design/canvas-v2/WebJobs.dc.html` and `WebJobsFind.dc.html`. If a board and this appendix
 disagree, fix both. Code: `ned-workspace/src/jobs/` (`hub.module.css`, `JobsLayout.tsx`, `ProfileMenu.tsx`,
-`components/`). Screenshots: `docs/02-thiet-ke/screenshots/s5-jobs-shell/`.
+`components/`). Screenshots: `docs/02-design/screenshots/s5-jobs-shell/`.
 
 **H.1 Colours.** Ink `#16161C`, ink-2 `#3F3F49`, ink-3 `#4B4B57`, caption `#5E5E6A`, muted `#8A8A96`. Page `#FFFFFF`;
 lavender (header, hero) `#EFE6FB` with `#DCC9F7` / `#D0B7F3` for the hero circles; peach band `#FFE4CF` (its caption

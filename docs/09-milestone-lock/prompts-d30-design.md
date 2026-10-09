@@ -5,7 +5,7 @@
 ## How to use
 
 1. **Open the canvas.** Paste **D0** first, once per canvas session. It gives the shared rules and the copy deck. Then paste D1–D7, one board group per prompt, and check each result against its checklist before moving on.
-2. **Export.** **D8** reviews all the boards together and exports them to `docs/02-thiet-ke/canvas-v2/`, adding the README rows.
+2. **Export.** **D8** reviews all the boards together and exports them to `docs/02-design/canvas-v2/`, adding the README rows.
 3. **Copy deck.** The copy deck in §C is the **source of the English copy**.
    - Code prompt R1 copies it into `packages/ned-core/src/account/copy.ts`, and R2 copies the agreement text into `legal/agreement.ts`.
    - If the CL changes a line, change it here first, then in code.
@@ -442,9 +442,9 @@ Review all the D30 boards together:
 2. Every string matches the copy deck exactly (C1–C6); list any line you had to shorten and why.
 3. Search all boards for the banned words in D0. Check that no board shows USDC or SOL in a Vietnam context and
    that "self-declared" appears with every business name.
-4. Export each board as <Name>.dc.html into docs/02-thiet-ke/canvas-v2/, wrappers as wrappers. Add one row per board
+4. Export each board as <Name>.dc.html into docs/02-design/canvas-v2/, wrappers as wrappers. Add one row per board
    to canvas-v2/README.md under a new heading "D30 · roles, country, business, agreement (8 Oct)":
    | Board | Title | Build task (R4/R5/R6/R7) | Note |
-5. Render the phone boards at 390 × 844 @2x into docs/02-thiet-ke/screenshots/d30-boards/ for review.
+5. Render the phone boards at 390 × 844 @2x into docs/02-design/screenshots/d30-boards/ for review.
 Commit (Claude Code, on main): design: D30 boards (role, country, business, agreement, account settings, web prompt)
 ```

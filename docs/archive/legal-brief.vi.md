@@ -1,8 +1,10 @@
 # Bản tóm tắt pháp lý: escrow và thuế crypto
 
-Nghiên cứu ngày 2/10/2026 · Người thực hiện: Nguyễn Minh Chính (Compliance Lead) · Bản tiếng Anh: [`legal-brief.md`](legal-brief.md). Nếu hai bản khác nhau, hãy báo để sửa cả hai.
+> **Lưu trữ (09/10/2026):** bản tiếng Việt, chỉ để tra lịch sử; bản đang dùng là bản tiếng Anh `docs/08-research/legal-brief.md`. Xem `archive/README.md`.
 
-> **Cập nhật (2/10/2026):** câu hỏi 1 đã dẫn tới đường Việt Nam trong [`../09-milestone-lock/`](../09-milestone-lock/README.md): freelancer ở Việt Nam chỉ nhận VND từ đối tác chi trả ở nước ngoài và không bao giờ giữ USDC, nên Milestone Lock nay là demo chính. Các dòng về Milestone Lock bên dưới ("Dự kiến", "Chỉ đưa vào lộ trình") đã bị thay thế. Câu hỏi pháp lý còn mở chuyển sang việc phần mềm của N.E.D có bị coi là "dịch vụ liên quan đến tài sản mã hóa" không (Nghị định 284/2026 Điều 7 khoản 4): xem mục pháp lý trong [`ned-research-and-compliance.md`](ned-research-and-compliance.md). Việc áp dụng Nghị định 52/2024 cho *người nhận* là suy luận của nhóm, chưa phải quy định đã xác minh.
+Nghiên cứu ngày 2/10/2026 · Người thực hiện: Nguyễn Minh Chính (Compliance Lead) · Bản tiếng Anh: [`legal-brief.md`](../08-research/legal-brief.md). Nếu hai bản khác nhau, hãy báo để sửa cả hai.
+
+> **Cập nhật (2/10/2026):** câu hỏi 1 đã dẫn tới đường Việt Nam trong [`../09-milestone-lock/`](../09-milestone-lock/README.md): freelancer ở Việt Nam chỉ nhận VND từ đối tác chi trả ở nước ngoài và không bao giờ giữ USDC, nên Milestone Lock nay là demo chính. Các dòng về Milestone Lock bên dưới ("Dự kiến", "Chỉ đưa vào lộ trình") đã bị thay thế. Câu hỏi pháp lý còn mở chuyển sang việc phần mềm của N.E.D có bị coi là "dịch vụ liên quan đến tài sản mã hóa" không (Nghị định 284/2026 Điều 7 khoản 4): xem mục pháp lý trong [`ned-research-and-compliance.md`](../08-research/ned-research-and-compliance.md). Việc áp dụng Nghị định 52/2024 cho *người nhận* là suy luận của nhóm, chưa phải quy định đã xác minh.
 
 Đây không phải tư vấn pháp lý, chỉ là cách đọc các nguồn công khai của một nhóm sinh viên, viết ra để mentor, giảng viên luật hoặc phòng tư vấn pháp luật của trường chỉ cần xác nhận hoặc sửa lại.
 

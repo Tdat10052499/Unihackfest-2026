@@ -1,4 +1,4 @@
-// The avatar must match docs/02-thiet-ke/canvas-v2/Avatar.dc.html exactly. The vectors below were produced by running
+// The avatar must match docs/02-design/canvas-v2/Avatar.dc.html exactly. The vectors below were produced by running
 // the board's own renderVals() code (3 Oct 2026) on the demo wallets and two names; they are not computed by the port.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

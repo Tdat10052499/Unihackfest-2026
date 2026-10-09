@@ -2,7 +2,7 @@
 
 > **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
 
-> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](../tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
+> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`progress-log.md`](../progress-log.md) và [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
 
 > Tài liệu để **dev + Claude Code** làm theo từng bước. Mỗi task có: mục tiêu, file liên quan, tiêu chí hoàn thành (DoD), ước tính giờ và **prompt dán thẳng vào Claude Code**.
 > Soạn ngày 26/09/2026 sau khi khảo sát trực tiếp code trên `main` (commit `205eae4`); **cập nhật 26/09 23:30: bỏ Supabase và `ned-hub`, hệ thống chạy hoàn toàn web3**. Ước tính giờ là **ước tính của Claude, chưa kiểm chứng** — cập nhật lại sau mỗi phase.
@@ -57,7 +57,7 @@ Chi tiết: [`poc-dynamic.md`](poc-dynamic.md), [`cleanup-report-t0-5.md`](clean
   - Onboarding tốn khoảng 0,0043 SOL rent (Name + Reverse + Phone PDA + ATA USDC).
 - **Ưu tiên web**: bản demo chính chạy trên GitHub Pages (chủ dự án chỉ có iPhone, không có tài khoản Apple Developer trả phí). Bản native (Android APK qua EAS) vẫn phải build được.
 - **scrypt cho Phone PDA (T1.5)**: dùng **N = 2^15** (r=8, p=1, dkLen=32), khoảng 0,19 giây trên iPhone Safari. Kết quả băm giống nhau trên mọi nền tảng.
-- **Thiết kế cần đổi**: dòng **"Network fee free"** / "paid by N.E.D" (SwapV1, SwapReview, SendReview trong `02-thiet-ke/`, và `03-ky-thuat/dev-handoff.md`) phải hiển thị **phí mạng thật** (~0,000005 SOL).
+- **Thiết kế cần đổi**: dòng **"Network fee free"** / "paid by N.E.D" (SwapV1, SwapReview, SendReview trong `02-design/`, và `03-engineering/dev-handoff.md`) phải hiển thị **phí mạng thật** (~0,000005 SOL).
 - **T1.2 + T1.4 đã xong** (nhánh `feat/t1-dynamic-auth`):
   - `services/auth` với `useAuth()` là lớp duy nhất gọi SDK Dynamic;
   - Privy, `WalletProvider`, `patch-privy.js` đã được gỡ.
@@ -70,12 +70,12 @@ Chi tiết: [`poc-dynamic.md`](poc-dynamic.md), [`cleanup-report-t0-5.md`](clean
 
 **Mẫu prompt chung** (đầu mỗi phiên):
 ```
-Đọc docs/README.md, docs/03-ky-thuat/dev-handoff.md và docs/04-ke-hoach-code.md (task <MÃ TASK>).
+Đọc docs/README.md, docs/03-engineering/dev-handoff.md và docs/04-code-plan.md (task <MÃ TASK>).
 Dùng MCP (dynamic / jupiter / solana / expo) để xác minh API trước khi viết code.
 Lập kế hoạch ngắn, chờ tôi duyệt, rồi làm trên nhánh feat/<ten>. Chạy `npx tsc --noEmit` và `pnpm lint` trước khi báo xong.
 ```
 
-**Definition of Done chung**: `tsc` không lỗi · chạy được trên điện thoại (dev build) · không có khoá bí mật trong `EXPO_PUBLIC_*` · UI text tiếng Anh · khớp màn hình thiết kế tương ứng trong `docs/02-thiet-ke/canvas/`.
+**Definition of Done chung**: `tsc` không lỗi · chạy được trên điện thoại (dev build) · không có khoá bí mật trong `EXPO_PUBLIC_*` · UI text tiếng Anh · khớp màn hình thiết kế tương ứng trong `docs/02-design/canvas/`.
 
 **Dùng model**: Opus cho task kiến trúc/tích hợp (T1.x, T2.1–T2.3, T5.x); Sonnet cho task UI thuần.
 
@@ -165,17 +165,17 @@ Ghi kết quả từng bước vào docs/poc-dynamic.md, gồm: có tài trợ p
   - (b) **Bỏ LLM**, trợ lý chạy thuần quy tắc + câu chữ mẫu (phần "AI" yếu đi đáng kể với tiêu chí giải Best AI Product);
   - (c) Bỏ hẳn Phase 5.
 - [ ] Chế độ Simple: ô thứ 3 là **EARN** hay **SWAP/Convert**?
-Ghi kết quả vào `docs/02-thiet-ke/trang-thai-thiet-ke.md` mục "Quyết định đã chốt".
+Ghi kết quả vào `docs/02-design/design-status.md` mục "Quyết định đã chốt".
 
 ---
 
 ## Phase 1 — Auth Privy → Dynamic + Onboarding (27–29/09, 10–14h)
 
-Thiết kế: `OnbSplash`, `OnbWelcome`, `OnbSetup`, `OnbProfile`, `OnbMode` trong `docs/02-thiet-ke/canvas/`.
+Thiết kế: `OnbSplash`, `OnbWelcome`, `OnbSetup`, `OnbProfile`, `OnbMode` trong `docs/02-design/canvas/`.
 
 ### T1.1 Khảo sát & kế hoạch chuyển (1h, Opus)
 ```
-Task T1.1: đọc docs/04-ke-hoach-code.md mục 0 (F3, F5). Dùng MCP dynamic tìm cách tích hợp Dynamic vào Expo SDK 57 / React Native:
+Task T1.1: đọc docs/04-code-plan.md mục 0 (F3, F5). Dùng MCP dynamic tìm cách tích hợp Dynamic vào Expo SDK 57 / React Native:
 đăng nhập Google, ví nhúng Solana (MPC), lấy địa chỉ ví, ký transaction/message, lấy JWT. Liệt kê gói npm cần cài và cấu hình app.json.
 Sau đó quét toàn bộ ned-wallet, lập bảng: file dùng Privy → API Privy đang dùng → API Dynamic thay thế. Chưa sửa code, chỉ gửi kế hoạch.
 ```
@@ -200,7 +200,7 @@ Chưa sửa các màn khác. Biến môi trường: EXPO_PUBLIC_DYNAMIC_ENVIRONM
 - **DoD**: người mới đi hết 5 màn; người cũ vào thẳng Home; thoát giữa chừng → mở lại quay về bước Profile.
 
 ```
-Task T1.3: dựng lại onboarding theo docs/02-thiet-ke/canvas/OnbSplash, OnbWelcome, OnbSetup, OnbProfile, OnbMode (.dc.html là đặc tả UI).
+Task T1.3: dựng lại onboarding theo docs/02-design/canvas/OnbSplash, OnbWelcome, OnbSetup, OnbProfile, OnbMode (.dc.html là đặc tả UI).
 Sau đăng nhập, kiểm tra reverse PDA [b"reverse", wallet] của ned_program (IDL mới sau T1.5): có → Home, không → Profile.
 Profile gọi create_profile(username, phone) — tạo 3 PDA phone/name/reverse trong 1 giao dịch, signer = ví người dùng (không còn ned-hub).
 OnbMode lưu chế độ ví (cash|crypto) vào AsyncStorage. Bỏ màn Email OTP và nút Phantom.
@@ -241,7 +241,7 @@ Quy tắc phía app:
 - Pitch: production = xác minh OTP + attestation, liên kết đã xác minh thay thế liên kết chưa xác minh.
 
 ```
-Task T1.5: thay phần identity của ned_program theo docs/04-ke-hoach-code.md T1.5 (Phương án C).
+Task T1.5: thay phần identity của ned_program theo docs/04-code-plan.md T1.5 (Phương án C).
 Tạo account NameRecord [b"name", username], ReverseRecord [b"reverse", signer] (username, has_phone, created_at), PhoneRecord [b"phone_v1", phone_key 32 byte].
 Instruction: create_profile(username) tạo Name + Reverse; link_phone(phone_key) chỉ khi has_phone=false, lỗi PhoneTaken nếu trùng;
 unlink_phone() đóng PhoneRecord của signer và hoàn rent; (tuỳ chọn) update_username. Signer = ví người dùng và là payer.
@@ -303,7 +303,7 @@ Báo lại kết quả xác minh trước khi code phần phí. Viết hook useS
 - **DoD**: đi hết luồng Swap trên máy; không gọi `/execute`; hiển thị đúng phí 0.25%.
 
 ```
-Task T2.3: dựng các màn Swap theo docs/02-thiet-ke/canvas/SwapV1, SwapTokenPick, SwapReview, SwapSuccess (+ SwapFailed = SwapSuccess result=failed).
+Task T2.3: dựng các màn Swap theo docs/02-design/canvas/SwapV1, SwapTokenPick, SwapReview, SwapSuccess (+ SwapFailed = SwapSuccess result=failed).
 Dùng useSwapQuote() từ T2.2. KHÔNG gọi /execute: sau slide-to-confirm hiển thị kết quả giả lập với nhãn "Demo mode · real price, no real funds moved".
 Thay thế NeoSwapModal. Font: Space Grotesk / Inter / Space Mono như thiết kế.
 ```
@@ -359,7 +359,7 @@ cash chỉ hiện USDC (gọi là "Cash") + xStocks; crypto hiện tất cả. T
 ### T4.2 Home V4 (5–6h)
 - Tổng số dư, thẻ ví mini + thẻ "+", 4 ô thao tác (ô 3 = EARN hoặc SWAP theo Gate D0), Simple Earn row, Your Assets/Your money.
 ```
-Task T4.2: dựng lại Home theo docs/02-thiet-ke/canvas/HomeV4.dc.html (mode crypto) và HomeCash (mode cash), đọc từ useWalletModeStore.
+Task T4.2: dựng lại Home theo docs/02-design/canvas/HomeV4.dc.html (mode crypto) và HomeCash (mode cash), đọc từ useWalletModeStore.
 Số dư thật từ useUsdcBalance/useOnchainBalance + vị thế xStocks. Thanh điều hướng viên thuốc nổi: Home / dApps / xStocks / Settings.
 ```
 
@@ -386,7 +386,7 @@ Thiết kế: `TEDPlanAsk`, `TEDPlanResult`, `TEDPlanAdjust`, `TEDPlanApply`. **
 ### T5.3 Màn trong T.E.D (4–6h)
 - Chip "Plan my money" → hỏi 5 câu → kế hoạch → "Make it safer" → Apply (mở EarnDeposit/XStockBuy điền sẵn).
 ```
-Task T5: làm theo docs/03-ky-thuat/dev-handoff.md mục 7 và thiết kế TEDPlanAsk/Result/Adjust/Apply.
+Task T5: làm theo docs/03-engineering/dev-handoff.md mục 7 và thiết kế TEDPlanAsk/Result/Adjust/Apply.
 (1) services/allocation.ts: bộ quy tắc thuần, có test. (2) phần LLM theo Gate D0 (hàm serverless chỉ giữ khoá LLM, hoặc không LLM).
 (3) Màn chat. Nếu LLM lỗi hoặc không dùng LLM, dùng chip + lời giải thích mẫu. Luôn hiển thị "not financial advice".
 ```

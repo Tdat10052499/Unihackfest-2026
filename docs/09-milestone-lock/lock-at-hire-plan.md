@@ -96,7 +96,7 @@ Done when: all tests pass (old and new); the spec is updated; progress row with 
 ```
 Follow docs/09-milestone-lock/prompts-6oct.md section 0 (work on main). Deploying is allowed in this step only when the
 PO says "go" in the session.
-Read: lock-at-hire-plan.md sections 2 and 7, the S2 smoke row in docs/tong-hop-tien-do.md, ned-wallet/scripts/jobs-smoke.ts.
+Read: lock-at-hire-plan.md sections 2 and 7, the S2 smoke row in docs/progress-log.md, ned-wallet/scripts/jobs-smoke.ts.
 Task:
 1. `solana program show 8azx4HdoXQ8VQFn5QWaoBU2PMg3RX99Z2agrWyMbX5Wh --url devnet`: check the authority and the data
    size. If extend is needed, report the SOL cost and wait for the PO's go.
@@ -108,7 +108,7 @@ Task:
    post_job_open → apply → fund_job + create_fund + select_job (one tx) → accept + lock_from_job → submit → approve.
    It also gets Run 4: post_job_open → withdraw with nothing locked.
    Runs 1–2 (v1.3 listings) must still pass.
-4. Update the "Thông tin devnet" table in docs/tong-hop-tien-do.md (v1.4, authority, data size, IDL).
+4. Update the "Thông tin devnet" table in docs/progress-log.md (v1.4, authority, data size, IDL).
 Done when: smoke Runs 1–4 green on devnet with transaction links in the progress row; pushed.
 If anything fails and cannot be fixed by 8 Oct 18:00: run the rollback (section 7) and report.
 ```

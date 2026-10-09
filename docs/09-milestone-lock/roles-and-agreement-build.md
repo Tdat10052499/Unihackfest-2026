@@ -11,7 +11,7 @@
 **How:** one Claude Code session per prompt, on `main`.
 - Follow `prompts-6oct.md` section 0: `git switch main && git pull --ff-only origin main`.
 - Small conventional commits; run the tests of every package the step touches; push.
-- Add one progress row per step in `docs/tong-hop-tien-do.md`.
+- Add one progress row per step in `docs/progress-log.md`.
 - Never put keys, invite fragments or `.env` values in the repo.
 
 **Order:**
@@ -36,7 +36,7 @@ R1, R2 and R3 can run in parallel. R4 needs R1 and R2. R6 needs R1 and R2. R7 ne
 | **Wallet Settings** | "I live in Vietnam" toggle without a confirm (`settings.tsx:59-62`, D17) | "Your account": roles (**Also hire / Also work**), country (guarded change, closes D17), business details, agreement record, withdraw |
 | **Workspace** | `RegionPrompt` (`Layout.tsx:23`, `JobsLayout.tsx:101`); `ConsentGate`; `hooks/consent.ts` mirrors v2; `ensureConsent()` in `WalletPanelContext.tsx:98-106` | `AccountPrompt` replaces `RegionPrompt` (opens the wallet panel at `/role`); `hooks/account.ts` reads `@ned_account_v1`; consent mirror v3; `ensureAccount()` before client and freelancer actions |
 | **N.E.D Jobs** | Post blocked for `vn` only (`PostJob.tsx:101-103`, core `jobs/actions.ts:78`); Applicants gated by poster wallet | Post and Select need the client role; Apply needs the freelancer role (offers "Also work"); the job card shows "Business · self-declared" (Phase 2 for other people's devices) |
-| **Design** `docs/02-thiet-ke/canvas-v2/` | `OnbConsent`, `OnbResidence`, `Settings` | New boards `OnbRole`, `OnbCountry`, `OnbBusiness`, `OnbAgreement` (+ VN and business variants), `SettingsAccount`, `WebAccountPrompt` |
+| **Design** `docs/02-design/canvas-v2/` | `OnbConsent`, `OnbResidence`, `Settings` | New boards `OnbRole`, `OnbCountry`, `OnbBusiness`, `OnbAgreement` (+ VN and business variants), `SettingsAccount`, `WebAccountPrompt` |
 | **Docs** | D30 proposed | D30 accepted, product-spec screens and word table, tracker, progress rows, CL file |
 | **Program** | Profile = username + phone flag | **Phase 2 only (v1.5):** BusinessCard PDA, encrypted settings note, agreement memo |
 
