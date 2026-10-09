@@ -48,7 +48,7 @@ export function TopBar() {
               onClick={toggle}
             >
               <WalletIcon />
-              {status === 'setting-up' ? 'Setting up your wallet…' : 'Sign in with N.E.D Wallet'}
+              {status === 'setting-up' ? 'Setting up your wallet…' : 'Sign in with N.E.D'}
               <Icon name="chevronDown" size={14} width={2.4} />
             </button>
           )}

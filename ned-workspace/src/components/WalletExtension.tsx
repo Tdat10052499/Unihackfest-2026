@@ -89,7 +89,7 @@ export function WalletExtension({ wallet, id }: { wallet: string; id: string }) 
       id={id}
       role="dialog"
       aria-modal="false"
-      aria-label="N.E.D Wallet"
+      aria-label="N.E.D app"
       aria-hidden={!visible}
       className={`${styles.ext} ${visible ? '' : styles.hidden}`}
       initial={false}
@@ -121,7 +121,7 @@ export function WalletExtension({ wallet, id }: { wallet: string; id: string }) 
           <Icon name="close" size={17} />
         </button>
       </div>
-      <iframe ref={frame} title="N.E.D Wallet" src={initialSrc} className={styles.frame} onLoad={() => setLoaded(true)} />
+      <iframe ref={frame} title="N.E.D app" src={initialSrc} className={styles.frame} onLoad={() => setLoaded(true)} />
     </m.div>
   );
 }

@@ -183,7 +183,7 @@ export default function NotificationDetailScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const isReceive = notification.type === 'RECEIVE_MONEY';
       const content = [
-        `[N.E.D Wallet - Transaction details]`,
+        `[N.E.D - Transaction details]`,
         `Title: ${notification.title}`,
         notification.amount
           ? `Amount: ${isReceive ? '+' : '-'}$${Number(notification.amount).toFixed(2)} ${notification.currency || 'USDC'}`

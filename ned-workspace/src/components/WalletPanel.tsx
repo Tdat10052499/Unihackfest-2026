@@ -87,7 +87,7 @@ export function WalletPanel({ id }: { id: string }) {
       role="dialog"
       tabIndex={-1}
       aria-modal={request ? 'true' : 'false'}
-      aria-label={request ? `Confirm to sign: ${request.title}` : signedIn ? 'Your N.E.D Wallet' : 'Sign in with N.E.D Wallet'}
+      aria-label={request ? `Confirm to sign: ${request.title}` : signedIn ? 'Your N.E.D app' : 'Sign in with N.E.D'}
       variants={popover}
       initial="closed"
       animate="open"
@@ -195,7 +195,7 @@ function SignedOut() {
       <div className={styles.brandRow}>
         <Logo size={40} />
         <div>
-          <h2 className={styles.title}>Sign in with N.E.D Wallet</h2>
+          <h2 className={styles.title}>Sign in with N.E.D</h2>
           <div className={styles.caption}>The same wallet as on your phone</div>
         </div>
       </div>

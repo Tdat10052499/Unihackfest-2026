@@ -3,7 +3,7 @@
   "private": true,
   "license": "Apache-2.0",
   "version": "0.1.0",
-  "description": "N.E.D Workspace: the computer side of the N.E.D Wallet (Vite + React). Deployed on Vercel.",
+  "description": "N.E.D Workspace: the computer side of the N.E.D app (Vite + React). Deployed on Vercel.",
   "type": "module",
   "scripts": {
     "dev": "vite",

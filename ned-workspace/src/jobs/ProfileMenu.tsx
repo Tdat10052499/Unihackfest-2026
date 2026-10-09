@@ -119,7 +119,7 @@ export function ProfileMenu({ wallet, name, viewLabel, onOpenWallet, buttonRef, 
             </span>
             <span className={hub.menuText}>
               <span className={hub.menuTitle}>Open wallet</span>
-              <span className={hub.menuNote}>The N.E.D Wallet, as on your phone</span>
+              <span className={hub.menuNote}>The N.E.D app, as on your phone</span>
             </span>
           </button>
           <Link to="/" role="menuitem" className={hub.menuItem} onClick={() => setOpen(false)}>

@@ -18,9 +18,9 @@ export const dynamicClient: DynamicClient | null = DYNAMIC_ENVIRONMENT_ID
       autoInitialize: false,
       environmentId: DYNAMIC_ENVIRONMENT_ID,
       metadata: IS_WEB
-        ? { name: 'N.E.D Wallet' }
+        ? { name: 'N.E.D' }
         : {
-            name: 'N.E.D Wallet',
+            name: 'N.E.D',
             nativeLink: DYNAMIC_NATIVE_LINK,
             universalLink: DYNAMIC_UNIVERSAL_LINK,
           },

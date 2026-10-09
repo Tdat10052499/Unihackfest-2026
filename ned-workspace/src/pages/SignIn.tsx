@@ -35,12 +35,12 @@ export function SignIn() {
         <span className={styles.chip}>For freelancers and the clients who hire them</span>
         <h1 className={styles.h1}>Write the brief. Deliver the work. Get it released.</h1>
         <p className={styles.lead}>
-          The Workspace is the computer side of your N.E.D Wallet. Clients write the brief and lock money per milestone. Freelancers submit their work
+          The Workspace is the computer side of the N.E.D app. Clients write the brief and lock money per milestone. Freelancers submit their work
           before the deadline. Money moves only from a wallet, when its owner confirms.
         </p>
         <div className={styles.ctaRow}>
           <button type="button" className={styles.cta} onClick={() => setOpen(true)}>
-            Sign in with N.E.D Wallet
+            Sign in with N.E.D
           </button>
           <span className={styles.hint}>Use the same Google account as on your phone.</span>
         </div>
