@@ -116,5 +116,6 @@
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "license": "Apache-2.0"
 }

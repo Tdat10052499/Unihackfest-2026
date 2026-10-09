@@ -382,4 +382,4 @@ Built by team **N.E.D** for **UniHackFest 2026** (final round, 10 Oct 2026; Best
 
 ## License
 
-No license file has been added yet, so all rights are reserved by the team until one is chosen.
+The code in this repository is released under the [Apache License 2.0](LICENSE); see [NOTICE](NOTICE). The N.E.D name, logo and Teddy mascot are not covered by it. The fonts in `site/src/fonts/` keep their own SIL Open Font License 1.1.

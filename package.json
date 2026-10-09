@@ -1,6 +1,7 @@
 {
   "name": "unihackfest-2026",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Monorepo root: ned-wallet (Expo app), packages/ned-core (shared core). Install with pnpm from this folder.",
   "scripts": {
     "test": "npm run test:core && npm run test:wallet && npm run test:workspace",

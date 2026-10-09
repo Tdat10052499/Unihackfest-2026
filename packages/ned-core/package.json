@@ -2,6 +2,7 @@
   "name": "@ned/core",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Shared Milestone Lock core for ned-wallet (Expo) and ned-workspace (web): chain config, IDL coder, builders, rules, views. No React, no React Native, no env reads.",
   "type": "module",
   "main": "./src/index.ts",

@@ -1,6 +1,7 @@
 {
   "name": "ned-site",
   "private": true,
+  "license": "Apache-2.0",
   "version": "0.1.0",
   "description": "N.E.D landing page (build-plan C5): static HTML/CSS, Vercel project 1 (Root Directory site). Not part of the pnpm workspace: its own npm lockfile, one build-time dependency (qrcode) that inlines the QR code.",
   "type": "module",
