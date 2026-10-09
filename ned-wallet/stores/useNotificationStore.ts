@@ -17,15 +17,15 @@ export interface InAppNotification {
   txHash?: string;
   sender?: string;
   senderNote?: string;
-  senderWallet?: string; // Địa chỉ ví người gửi
-  recipientWallet?: string; // Địa chỉ ví nhận (ví gửi đến)
-  senderName?: string; // Tên ví người gửi (username / nhãn ví)
-  senderPhone?: string; // Số điện thoại người gửi
-  recipientName?: string; // Tên ví người nhận (username / nhãn ví)
-  recipientPhone?: string; // Số điện thoại người nhận
-  network?: string; // Mạng lưới (Solana Devnet / Mainnet)
-  fee?: string; // Phí mạng
-  blockNumber?: number | string; // Số khối / Slot
+  senderWallet?: string; // Sender wallet address
+  recipientWallet?: string; // Recipient wallet address (the wallet sent to)
+  senderName?: string; // Sender wallet name (username / wallet label)
+  senderPhone?: string; // Sender phone number
+  recipientName?: string; // Recipient wallet name (username / wallet label)
+  recipientPhone?: string; // Recipient phone number
+  network?: string; // Network (Solana Devnet / Mainnet)
+  fee?: string; // Network fee
+  blockNumber?: number | string; // Block number / slot
   /** CONTRACT notifications (B5): screen to open instead of the transfer detail */
   route?: string;
 }
@@ -75,7 +75,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         AsyncStorage.getItem(readKey),
       ]);
 
-      // 1. Lọc bỏ toàn bộ mock data cũ (nếu có các id bắt đầu bằng seed-notif-)
+      // 1. Drop all old mock data (ids starting with seed-notif-)
       let localList: InAppNotification[] = [];
       if (saved) {
         try {
@@ -146,10 +146,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             });
         }
       } catch (err) {
-        console.warn('⚠️ [useNotificationStore] Không thể kéo on-chain history:', err);
+        console.warn('⚠️ [useNotificationStore] Could not load the on-chain history:', err);
       }
 
-      // 3. Hợp nhất thông báo giao dịch trong app và on-chain, khử trùng lặp theo txHash/id
+      // 3. Merge in-app and on-chain transaction notices, deduplicated by txHash/id
       const seen = new Set<string>();
       const combined: InAppNotification[] = [];
 
@@ -167,11 +167,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         }
       }
 
-      // Sắp xếp thời gian giảm dần (mới nhất lên đầu)
+      // Sort newest first
       combined.sort((a, b) => b.createdAt - a.createdAt);
       const unreadCount = combined.filter((n) => !n.isRead).length;
 
-      // 4. Phát hiện giao dịch nhận tiền mới vừa xuất hiện trên chuỗi và kích hoạt Banner
+      // 4. Detect a newly received on-chain transfer and show the banner
       const prevNotifications = get().notifications;
       if (prevNotifications.length > 0) {
         const prevKeys = new Set(prevNotifications.map((n) => n.txHash || n.id));
@@ -184,7 +184,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         );
 
         if (newReceivedTx) {
-          console.log('🎉 [useNotificationStore] Phát hiện giao dịch nhận tiền mới on-chain:', newReceivedTx);
+          console.log('🎉 [useNotificationStore] New incoming on-chain transfer:', newReceivedTx);
           set({ bannerNotification: newReceivedTx });
           import('expo-haptics')
             .then((Haptics) => {
@@ -200,10 +200,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         activeWalletAddress: walletAddress,
       });
 
-      // Lưu lại danh sách dữ liệu thật vào storage
+      // Save the real data to storage
       await AsyncStorage.setItem(storageKey, JSON.stringify(combined));
     } catch (err) {
-      console.error('⚠️ [useNotificationStore] Lỗi khi load thông báo:', err);
+      console.error('⚠️ [useNotificationStore] Could not load notifications:', err);
     }
   },
 
@@ -286,7 +286,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({
       notifications: updated,
       unreadCount,
-      bannerNotification: newNotif, // Kích hoạt top in-app banner
+      bannerNotification: newNotif, // Shows the in-app banner at the top
     });
 
     if (activeWalletAddress) {

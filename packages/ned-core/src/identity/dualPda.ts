@@ -1,9 +1,9 @@
-// Identity on-chain (Phương án C, T1.5) — ned_program:
+// On-chain identity (option C, T1.5) — ned_program:
 //   NameRecord    [b"name", username]        → wallet
 //   ReverseRecord [b"reverse", wallet]       → username, has_phone
-//   PhoneRecord   [b"phone_v1", phone_key]   → wallet   (phone_key = scrypt(SĐT) — xem phoneKey.ts)
-// Đọc: decode thủ công theo layout Borsh (không cần Anchor client). Ghi: builder trả Transaction để ký bằng
-// useAuth().signAndSendTransaction (ví người dùng là signer và trả phí + rent).
+//   PhoneRecord   [b"phone_v1", phone_key]   → wallet   (phone_key = scrypt(phone) — see phoneKey.ts)
+// Read: decoded by hand from the Borsh layout (no Anchor client needed). Write: builders return a Transaction signed with
+// useAuth().signAndSendTransaction (the user's wallet is the signer and pays fees + rent).
 import { Buffer } from 'buffer';
 import { PublicKey, Transaction, TransactionInstruction, type Connection } from '@solana/web3.js';
 import idl from '../idl/ned_program.json' with { type: 'json' };
@@ -91,45 +91,45 @@ function decodeReverseRecord(address: PublicKey, data: Buffer): ReverseRecord | 
 }
 
 // -----------------------------------------------------------------------------
-// Đọc
+// Read
 // -----------------------------------------------------------------------------
 
-/** Ai sở hữu @username? null nếu tên còn trống */
+/** Who owns @username? null if the name is free */
 export async function fetchNameRecord(connection: Connection, username: string): Promise<NameRecord | null> {
   const address = deriveNamePda(username);
   const info = await connection.getAccountInfo(address, 'confirmed');
   return info?.owner.equals(identityProgramId()) ? decodeWalletRecord(address, Buffer.from(info.data), 'NameRecord') : null;
 }
 
-/** Hồ sơ của ví (người quay lại = có ReverseRecord) */
+/** Profile of the wallet (returning user = has a ReverseRecord) */
 export async function fetchReverseRecord(connection: Connection, wallet: PublicKey): Promise<ReverseRecord | null> {
   const address = deriveReversePda(wallet);
   const info = await connection.getAccountInfo(address, 'confirmed');
   return info?.owner.equals(identityProgramId()) ? decodeReverseRecord(address, Buffer.from(info.data)) : null;
 }
 
-/** Ví đã liên kết SĐT này (chưa xác minh OTP) */
+/** Wallet that linked this phone number (not OTP-verified) */
 export async function fetchPhoneRecord(connection: Connection, phoneKey: Uint8Array): Promise<PhoneRecord | null> {
   const address = derivePhonePda(phoneKey);
   const info = await connection.getAccountInfo(address, 'confirmed');
   return info?.owner.equals(identityProgramId()) ? decodeWalletRecord(address, Buffer.from(info.data), 'PhoneRecord') : null;
 }
 
-/** Tra nhiều username một lượt (1 RPC / 100 tên) — kết quả theo đúng thứ tự đầu vào */
+/** Looks up many usernames at once (1 RPC / 100 names) — results in input order */
 export async function fetchNameRecords(connection: Connection, usernames: string[]): Promise<(NameRecord | null)[]> {
   const addresses = usernames.map((u) => deriveNamePda(u));
   const infos = await getMultiple(connection, addresses);
   return infos.map((info, i) => (info ? decodeWalletRecord(addresses[i], info, 'NameRecord') : null));
 }
 
-/** Tra nhiều ví một lượt (vd. hiển thị @username trong lịch sử giao dịch) */
+/** Looks up many wallets at once (e.g. to show @username in the transaction history) */
 export async function fetchReverseRecords(connection: Connection, wallets: PublicKey[]): Promise<(ReverseRecord | null)[]> {
   const addresses = wallets.map((w) => deriveReversePda(w));
   const infos = await getMultiple(connection, addresses);
   return infos.map((info, i) => (info ? decodeReverseRecord(addresses[i], info) : null));
 }
 
-/** Tra nhiều phone_key một lượt (vd. danh bạ đã băm) */
+/** Looks up many phone_keys at once (e.g. a hashed contact list) */
 export async function fetchPhoneRecords(connection: Connection, phoneKeys: Uint8Array[]): Promise<(PhoneRecord | null)[]> {
   const addresses = phoneKeys.map((k) => derivePhonePda(k));
   const infos = await getMultiple(connection, addresses);
@@ -146,7 +146,7 @@ async function getMultiple(connection: Connection, addresses: PublicKey[]): Prom
 }
 
 // -----------------------------------------------------------------------------
-// Ghi — builder instruction (discriminator + thứ tự account lấy từ IDL)
+// Write — instruction builders (discriminator + account order from the IDL)
 // -----------------------------------------------------------------------------
 
 type InstructionName = 'create_profile' | 'link_phone' | 'unlink_phone' | 'update_username';
@@ -188,7 +188,7 @@ function assertUsername(username: string) {
   }
 }
 
-/** create_profile(username): tạo NameRecord + ReverseRecord */
+/** create_profile(username): creates NameRecord + ReverseRecord */
 export function buildCreateProfileTx(wallet: PublicKey, username: string): Transaction {
   assertUsername(username);
   return new Transaction().add(
@@ -200,7 +200,7 @@ export function buildCreateProfileTx(wallet: PublicKey, username: string): Trans
   );
 }
 
-/** link_phone(phone_key): tạo PhoneRecord, đặt has_phone = true */
+/** link_phone(phone_key): creates PhoneRecord, sets has_phone = true */
 export function buildLinkPhoneTx(wallet: PublicKey, phoneKey: Uint8Array): Transaction {
   return new Transaction().add(
     buildInstruction(
@@ -211,7 +211,7 @@ export function buildLinkPhoneTx(wallet: PublicKey, phoneKey: Uint8Array): Trans
   );
 }
 
-/** unlink_phone(): đóng PhoneRecord của chính mình (hoàn rent) */
+/** unlink_phone(): closes the signer's own PhoneRecord (rent refunded) */
 export function buildUnlinkPhoneTx(wallet: PublicKey, phoneKey: Uint8Array): Transaction {
   return new Transaction().add(
     buildInstruction('unlink_phone', {
@@ -222,7 +222,7 @@ export function buildUnlinkPhoneTx(wallet: PublicKey, phoneKey: Uint8Array): Tra
   );
 }
 
-/** update_username(new): đóng NameRecord cũ, tạo NameRecord mới, cập nhật ReverseRecord */
+/** update_username(new): closes the old NameRecord, creates the new NameRecord, updates the ReverseRecord */
 export function buildUpdateUsernameTx(wallet: PublicKey, oldUsername: string, newUsername: string): Transaction {
   assertUsername(newUsername);
   return new Transaction().add(
@@ -239,7 +239,7 @@ export function buildUpdateUsernameTx(wallet: PublicKey, oldUsername: string, ne
   );
 }
 
-/** Mã lỗi program (IDL) → tên, để màn hình hiện thông báo phù hợp */
+/** Program error code (IDL) → name, so screens can show the right message */
 export const IDENTITY_ERRORS: Record<number, string> = Object.fromEntries(
   (idl.errors ?? []).map((e) => [e.code, e.name])
 );

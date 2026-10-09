@@ -14,7 +14,6 @@ export interface SupportedLanguage {
 }
 
 export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
-  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', available: true },
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', available: true },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', available: false },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', available: false },
@@ -24,19 +23,17 @@ export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', available: false },
 ];
 
-import viTranslation from '../locales/vi.json';
 import enTranslation from '../locales/en.json';
 
 export const resources = {
-  vi: { translation: viTranslation },
   en: { translation: enTranslation },
 };
 
-// Khởi tạo cấu hình i18next trực tiếp với tài nguyên
+// i18next set up directly with the resources (English only since 9 Oct 2026)
 i18n.init({
   compatibilityJSON: 'v3',
   resources,
-  // Thiết kế chốt toàn bộ UI tiếng Anh (docs/archive/02-design-v1/design-status.md, quyết định 3); Settings không còn chọn ngôn ngữ
+  // The whole UI is English (docs/archive/02-design-v1/design-status.md, decision 3); Settings no longer picks a language
   lng: 'en',
   fallbackLng: 'en',
   interpolation: {
@@ -44,42 +41,42 @@ i18n.init({
   },
 });
 
-// Tải ngôn ngữ đã lưu từ AsyncStorage khi ứng dụng khởi động
+// Loads the language saved in AsyncStorage at start-up
 export const initLanguageFromStorage = async () => {
   if (Platform.OS === 'web' && typeof window === 'undefined') return;
   try {
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (savedLanguage && (savedLanguage === 'vi' || savedLanguage === 'en')) {
+    if (savedLanguage === 'en') {
       await i18n.changeLanguage(savedLanguage);
-      console.log(`🌐 [i18n] Đã nạp ngôn ngữ từ bộ nhớ: ${savedLanguage}`);
+      console.log(`🌐 [i18n] Loaded the saved language: ${savedLanguage}`);
     } else {
-      console.log('🌐 [i18n] Sử dụng ngôn ngữ mặc định: vi');
+      console.log('🌐 [i18n] Using the default language: en');
     }
   } catch (error) {
-    console.error('Lỗi khi đọc ngôn ngữ từ AsyncStorage:', error);
+    console.error('Could not read the language from AsyncStorage:', error);
   }
 };
 
-// Không tự nạp ngôn ngữ đã lưu: UI chỉ có tiếng Anh, giá trị 'vi' cũ trong bộ nhớ sẽ bị bỏ qua
+// The saved language is not loaded automatically: the UI is English only, and an old 'vi' value is ignored
 
 /**
- * Hàm thay đổi ngôn ngữ đồng thời lưu vào AsyncStorage
+ * Changes the language and saves it in AsyncStorage
  */
 export const changeAppLanguage = async (newLang: string) => {
   try {
     await i18n.changeLanguage(newLang);
     await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
-    console.log(`🌐 [i18n] Đã chuyển ngôn ngữ sang: ${newLang}`);
+    console.log(`🌐 [i18n] Switched the language to: ${newLang}`);
   } catch (error) {
-    console.error('Lỗi khi lưu ngôn ngữ vào AsyncStorage:', error);
+    console.error('Could not save the language to AsyncStorage:', error);
   }
 };
 
 /**
- * React Hook useTranslation siêu nhẹ, phản hồi tức thì khi đổi ngôn ngữ
+ * Lightweight useTranslation hook that reacts immediately to a language change
  */
 export function useTranslation() {
-  const [currentLanguage, setCurrentLanguage] = useState(i18n.language || 'vi');
+  const [currentLanguage, setCurrentLanguage] = useState(i18n.language || 'en');
 
   useEffect(() => {
     const handleLanguageChanged = (newLang: string) => {
@@ -94,10 +91,10 @@ export function useTranslation() {
 
   const t = useCallback(
     (key: string, options?: any) => {
-      const activeLang = (currentLanguage?.startsWith('en') ? 'en' : 'vi') as 'vi' | 'en';
-      const dict = (resources[activeLang]?.translation as any) || (resources.vi?.translation as any);
+      void currentLanguage; // re-create t when the language changes
+      const dict = resources.en.translation as any;
 
-      // Tra cứu trực tiếp theo đường dẫn dot-notation (vd: 'miniapps.bannerTitle')
+      // Direct lookup by dot-notation path (e.g. 'activities.received')
       let val: any = dict;
       const parts = key.split('.');
       for (const part of parts) {

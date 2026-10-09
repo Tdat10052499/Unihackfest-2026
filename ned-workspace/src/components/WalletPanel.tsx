@@ -409,7 +409,7 @@ function QuickActions({ username, client }: { username: string | null; client: b
 
 function FlagVn() {
   return (
-    <div className={styles.flag} title="Vietnamese đồng (VND)">
+    <div className={styles.flag} title="Vietnamese dong (VND)">
       <svg width="32" height="32" viewBox="0 0 20 20" role="img" aria-label="Flag of Vietnam" style={{ display: 'block' }}>
         <rect width="20" height="20" fill="#DA251D" />
         <polygon points="10.00,4.00 11.35,8.15 15.71,8.15 12.18,10.71 13.53,14.85 10.00,12.29 6.47,14.85 7.82,10.71 4.29,8.15 8.65,8.15" fill="#FFCD00" />

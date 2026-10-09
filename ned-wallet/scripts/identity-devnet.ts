@@ -1,12 +1,12 @@
 /**
- * Kiểm chứng identity on-chain (T1.5) trên devnet bằng keypair local.
+ * Checks the on-chain identity (T1.5) on devnet with a local keypair.
  *
- *   pnpm run identity:devnet                       # dùng ~/.config/solana/id.json
- *   pnpm run identity:devnet -- --fresh            # tạo ví tạm, nạp 0.05 SOL từ id.json
+ *   pnpm run identity:devnet                       # uses ~/.config/solana/id.json
+ *   pnpm run identity:devnet -- --fresh            # temporary wallet, funded with 0.05 SOL from id.json
  *   pnpm run identity:devnet -- --keypair <path> --username alice_01 --phone 0901234567
  *
- * Luồng: create_profile (nếu ví chưa có hồ sơ) → đọc Name + Reverse → link_phone → đọc Phone
- *        → in kích thước + rent thực tế → unlink_phone (hoàn rent).
+ * Flow: create_profile (if the wallet has no profile) → read Name + Reverse → link_phone → read Phone
+ *        → print the real sizes + rent → unlink_phone (rent refunded).
  */
 import fs from 'fs';
 import os from 'os';
@@ -41,7 +41,7 @@ function arg(name: string): string | undefined {
 }
 
 function loadEnvRpc(): string {
-  // Đọc EXPO_PUBLIC_HELIUS_DEVNET_URL từ .env nếu có (không in ra), mặc định RPC công khai
+  // Read EXPO_PUBLIC_HELIUS_DEVNET_URL from .env if present (never printed); defaults to the public RPC
   try {
     const env = fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8');
     const line = env.split('\n').find((l) => l.startsWith('EXPO_PUBLIC_HELIUS_DEVNET_URL='));
@@ -130,7 +130,7 @@ async function main() {
   console.log(`Program: ${IDENTITY_PROGRAM_ID.toBase58()}`);
   console.log(`Wallet:  ${user.publicKey.toBase58()} (${(await connection.getBalance(user.publicKey)) / LAMPORTS_PER_SOL} SOL)`);
 
-  // 1. create_profile (nếu chưa có)
+  // 1. create_profile (if missing)
   let reverse = await fetchReverseRecord(connection, user.publicKey);
   if (!reverse) {
     const username = arg('username') ?? `ned_${user.publicKey.toBase58().slice(0, 8).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
@@ -147,7 +147,7 @@ async function main() {
   console.log(`\nReverseRecord → @${reverse.username}, has_phone=${reverse.hasPhone}`);
   console.log(`NameRecord @${reverse.username} → ${name?.wallet.toBase58()} (${name?.wallet.equals(user.publicKey) ? 'matches' : 'MISMATCH'})`);
 
-  // 2. link_phone → đọc lại → unlink_phone (hoàn rent)
+  // 2. link_phone → read back → unlink_phone (rent refunded)
   const rawPhone = arg('phone') ?? `09${Math.floor(10000000 + Math.random() * 89999999)}`;
   const { e164, phoneKey } = await getPhoneKey(rawPhone);
   console.log(`\nPhone ${e164} → phone_key ${Buffer.from(phoneKey).toString('hex').slice(0, 16)}… (plain number never sent on-chain)`);

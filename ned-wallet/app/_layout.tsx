@@ -24,13 +24,13 @@ import { SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold 
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 
-// Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
-// (onboarding): welcome công khai; các màn còn lại (setup, consent, fund, profile, residence; D30: role, country, business, agreement) tự chuyển về welcome nếu chưa đăng nhập
+// Routes that can be viewed before sign-in (first expo-router segment)
+// (onboarding): welcome is public; the other screens (setup, consent, fund, profile, residence; D30: role, country, business, agreement) go back to welcome when signed out
 // 'c': the invite link route decides itself (it keeps the #k= fragment for after sign-in)
 // terms, privacy, disclosures: readable before sign-in and before consent (P3; the Workspace footers link here)
 const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c', 'terms', 'privacy', 'disclosures']);
 
-/** Chưa đăng nhập mà mở màn cần đăng nhập → chuyển về màn đăng nhập */
+/** Signed out and opening a screen that needs sign-in → go to the sign-in screen */
 function AuthGate() {
   const { isReady, isAuthenticated } = useAuth();
   const segments = useSegments();
@@ -47,8 +47,8 @@ function AuthGate() {
 }
 
 /**
- * Đã đăng nhập nhưng chưa xong onboarding (chưa có ReverseRecord hoặc chưa chọn khu vực) mà mở thẳng một màn
- * trong app (deep link) → về /setup; setup tự chọn bước tiếp theo. Kiểm tra một lần cho mỗi ví; lỗi RPC thì không chặn.
+ * Signed in but onboarding not finished (no ReverseRecord or no region yet) and a screen inside the app opened
+ * directly (deep link) → /setup, which picks the next step. Checked once per wallet; an RPC error does not block.
  */
 /** An invite opened before sign-in (app/c/[fund]) is imported once the wallet exists, then opens that contract */
 /**
@@ -154,7 +154,7 @@ function OnboardingGate() {
 }
 
 export default function RootLayout() {
-  // Chờ font chữ + font icon nạp xong rồi mới vẽ app (tránh chữ hệ thống và icon trống lúc đầu); lỗi nạp font thì vẫn vẽ
+  // Wait for the text and icon fonts before drawing the app (avoids system fonts and empty icons at first); a font error still draws
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
     ...Feather.font,

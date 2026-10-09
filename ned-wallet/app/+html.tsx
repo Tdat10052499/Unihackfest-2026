@@ -4,9 +4,9 @@ import { colors } from '@/constants/design';
 
 /**
  * Custom root HTML cho Expo Router Static Web Output (PWA)
- * Đảm bảo:
- * 1. Tắt cache cứng (no-cache, no-store, must-revalidate) để phục vụ cập nhật nhanh tại sự kiện.
- * 2. Cấu hình thẻ meta PWA chuẩn standalone và nền tối theo DesignKit.
+ * Makes sure that:
+ * 1. Hard caching is off (no-cache, no-store, must-revalidate) so updates reach the event quickly.
+ * 2. The PWA meta tags are standalone and the background follows the DesignKit.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -19,18 +19,18 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
         />
 
-        {/* Chống cache cứng để mỗi lần đẩy code mới là web tự làm mới ngay */}
+        {/* No hard caching, so every code push refreshes the web app right away */}
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
 
-        {/* Cấu hình PWA Standalone */}
+        {/* PWA standalone settings */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content={colors.background} />
         <meta name="mobile-web-app-capable" content="yes" />
 
-        {/* Reset cuộn màn hình trên Web */}
+        {/* Reset scrolling on the web */}
         <ScrollViewStyleReset />
 
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
@@ -61,7 +61,7 @@ html, #root {
 }
 
 @media (hover: hover) {
-  /* Hiệu ứng nảy nút (neo-brutalism) khi hover trên desktop */
+  /* Button bounce (neo-brutalism) on hover on desktop */
   [role="button"]:hover, button:hover, a:hover {
     transform: translateY(-1px);
     transition: transform 0.1s ease-in-out;

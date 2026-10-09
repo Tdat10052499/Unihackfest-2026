@@ -70,7 +70,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   setLinkedPhone: (linkedPhone: string | null) => {
     set({ linkedPhone });
     if (linkedPhone) {
-      // SĐT dạng rõ chỉ lưu an toàn trên máy (SecureStore / localStorage)
+      // The phone number in clear is stored only on the device, securely (SecureStore / localStorage)
       saveOwnPhone(linkedPhone).catch(() => {});
     }
   },
@@ -144,7 +144,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
       return null;
     } catch (e) {
-      console.warn('⚠️ [useUserStore] Không thể đọc username/phone/avatar/externalWallet từ AsyncStorage:', e);
+      console.warn('⚠️ [useUserStore] Could not read username/phone/avatar/externalWallet from AsyncStorage:', e);
       return null;
     }
   },

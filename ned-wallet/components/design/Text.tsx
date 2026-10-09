@@ -16,7 +16,7 @@ export const tones = {
 } as const;
 export type Tone = keyof typeof tones;
 
-/** Chữ theo Typography System: `variant` = cấp chữ, `tone` = Text Hierarchy / semantic */
+/** Text in the typography system: `variant` = text level, `tone` = text hierarchy / semantic */
 export function DText({
   variant = 'body',
   tone,

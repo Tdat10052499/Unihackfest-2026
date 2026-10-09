@@ -1,5 +1,5 @@
-// Onboarding — Fund wallet (T1.6, không có trong thiết kế): không có gas sponsorship nên ví cần SOL devnet
-// để trả rent hồ sơ (Name + Reverse [+ Phone]) + ATA USDC + phí. Tự kiểm tra số dư mỗi 3s, đủ → Profile.
+// Onboarding — Fund wallet (T1.6, not in the design): no gas sponsorship, so the wallet needs devnet SOL
+// for the profile rent (Name + Reverse [+ Phone]) + the USDC ATA + fees. Checks the balance every 3s; enough → Profile.
 // A4 / V2: runs after consent. In the Vietnam view (and before a region is chosen, which defaults to it) the step is
 // silent: it asks the faucet by itself and shows "Preparing your account…", never a SOL amount. The international
 // view keeps the amounts, labelled as test SOL for network fees.
@@ -37,7 +37,7 @@ export default function FundScreen() {
     if (isReady && !isAuthenticated) router.replace('/welcome');
   }, [isReady, isAuthenticated]);
 
-  // Số SOL cần: rent thật (getMinimumBalanceForRentExemption) + phí + biên an toàn
+  // SOL needed: real rent (getMinimumBalanceForRentExemption) + fees + safety margin
   useEffect(() => {
     let cancelled = false;
     getSetupCost(connection)
@@ -57,7 +57,7 @@ export default function FundScreen() {
     }
   }, [walletAddress, connection]);
 
-  // Poll số dư mỗi 3s
+  // Poll the balance every 3s
   useEffect(() => {
     const first = setTimeout(refresh, 0);
     const timer = setInterval(refresh, POLL_MS);

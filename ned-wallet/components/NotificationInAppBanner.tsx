@@ -37,10 +37,10 @@ export function NotificationInAppBanner() {
 
   useEffect(() => {
     if (bannerNotification) {
-      // 1. Rung nhẹ haptics khi thông báo mới tới
+      // 1. Light haptic when a new notice arrives
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
-      // 2. Trượt banner từ trên xuống
+      // 2. Slide the banner down
       translateY.value = withSpring(0, {
         stiffness: 240,
         damping: 20,
@@ -48,7 +48,7 @@ export function NotificationInAppBanner() {
       });
       opacity.value = withTiming(1, { duration: 200 });
 
-      // 3. Tự động ẩn sau 4.5 giây
+      // 3. Hide automatically after 4.5 seconds
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         hideBanner();
@@ -111,10 +111,10 @@ export function NotificationInAppBanner() {
       pointerEvents="box-none"
     >
       <View style={styles.bannerWrapper}>
-        {/* Bóng đổ đen cứng 4px 4px */}
+        {/* Hard black shadow 4px 4px */}
         <View style={styles.bannerShadow} />
 
-        {/* Thân banner phong cách Neo-brutalism */}
+        {/* Banner body, neo-brutalism style */}
         <TouchableOpacity
           style={[
             styles.bannerBody,
@@ -123,7 +123,7 @@ export function NotificationInAppBanner() {
           onPress={handlePressBanner}
           activeOpacity={0.9}
         >
-          {/* Icon loại thông báo */}
+          {/* Notice type icon */}
           <View
             style={[
               styles.iconWrapper,
@@ -139,7 +139,7 @@ export function NotificationInAppBanner() {
             )}
           </View>
 
-          {/* Nội dung thông báo */}
+          {/* Notice content */}
           <View style={styles.contentColumn}>
             <View style={styles.titleRow}>
               <Text style={styles.titleText} numberOfLines={1}>
@@ -156,7 +156,7 @@ export function NotificationInAppBanner() {
             </Text>
           </View>
 
-          {/* Nút đóng nhanh */}
+          {/* Quick close button */}
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={(e) => {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bannerNormal: {
-    backgroundColor: '#FEF9C3', // Vàng chanh pastel ấm
+    backgroundColor: '#FEF9C3', // warm pastel lemon
   },
   bannerWarning: {
     backgroundColor: '#FEF08A',

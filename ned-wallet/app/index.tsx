@@ -1,5 +1,5 @@
-// Onboarding — Splash (OnbSplash, variant "mark"): nền tím, icon Teddy nảy vào, ≤1s, không spinner.
-// Đã đăng nhập → Setting up (quyết định Home / tạo hồ sơ); chưa → Welcome.
+// Onboarding — Splash (OnbSplash, variant "mark"): purple background, Teddy icon bounces in, ≤1s, no spinner.
+// Signed in → Setting up (decides Home / create profile); otherwise → Welcome.
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,7 +19,7 @@ export default function SplashScreen() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [icon] = useState(() => new Animated.Value(0));
   const [word] = useState(() => new Animated.Value(0));
-  // Đọc trạng thái đăng nhập mới nhất khi hết thời gian splash (không đọc ref trong lúc render)
+  // Read the latest sign-in state when the splash time ends (never read a ref while rendering)
   const authRef = useRef(isAuthenticated);
   useEffect(() => {
     authRef.current = isAuthenticated;
@@ -54,7 +54,7 @@ export default function SplashScreen() {
       clearTimeout(timer);
       clearTimeout(cap);
     };
-    // Chạy một lần khi mở app
+    // Runs once when the app opens
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 128,
     height: 128,
-    borderRadius: 36, // biểu tượng app (OnbSplash), không thuộc thang radius thẻ
+    borderRadius: 36, // app icon (OnbSplash), not part of the card radius scale
     backgroundColor: glass.onBrand,
     borderWidth: 1,
     borderColor: glass.onBrandBorder,

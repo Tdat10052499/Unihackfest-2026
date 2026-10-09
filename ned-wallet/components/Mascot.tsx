@@ -12,24 +12,24 @@ import { MASCOT_IMAGES, MascotMood } from '@/constants/mascot';
 
 export interface MascotProps {
   /**
-   * Biểu cảm của mascot:
-   * - 'happy': Vui vẻ, ngón tay cái, nháy mắt
-   * - 'sad': Buồn bã, rơi nước mắt
-   * - 'question': Thắc mắc, suy nghĩ, dấu hỏi
-   * - 'angry': Tức giận, bốc khói
-   * - 'love': Ngại ngùng, má hồng, trái tim
-   * - 'welcome': Vẫy tay chào mừng
-   * - 'sleepy': Buồn ngủ
+   * Mascot expression:
+   * - 'happy': cheerful, thumbs up, wink
+   * - 'sad': sad, tears
+   * - 'question': wondering, thinking, question mark
+   * - 'angry': angry, steaming
+   * - 'love': shy, pink cheeks, heart
+   * - 'welcome': waving hello
+   * - 'sleepy': sleepy
    */
   mood?: MascotMood;
-  /** Kích thước vuông (tương đương cả width và height) */
+  /** Square size (width and height) */
   size?: number;
   width?: number;
   height?: number;
   style?: StyleProp<ImageStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   resizeMode?: ImageResizeMode;
-  /** Bật hiệu ứng chuyển động bồng bềnh nhẹ */
+  /** Gentle floating animation */
   floatAnimation?: boolean;
 }
 

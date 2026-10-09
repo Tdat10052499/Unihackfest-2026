@@ -1,4 +1,4 @@
-// Logic onboarding (T1.3 + T1.6): chi phí thật (không có gas sponsorship), bước tiếp theo, dựng giao dịch tạo hồ sơ.
+// Onboarding logic (T1.3 + T1.6): real costs (no gas sponsorship), next step, building the create-profile transaction.
 import { LAMPORTS_PER_SOL, PublicKey, Transaction, type Connection } from '@solana/web3.js';
 import {
   buildCreateProfileTx,
@@ -14,21 +14,21 @@ import { useAccountStore, waitForAccountHydration } from '../stores/useAccountSt
 import { accountState, hasOlderAgreement, type AccountStep } from './accountOnboarding';
 import { consentVersion } from '@ned/core/legal/agreement.ts';
 
-/** Kích thước account on-chain (ned_program + SPL Token) — xem docs/archive/03-engineering/dev-handoff.md mục 1a */
+/** On-chain account sizes (ned_program + SPL Token) — see docs/archive/03-engineering/dev-handoff.md section 1a */
 export const ACCOUNT_SIZES = { name: 49, reverse: 42, phone: 49, usdcAta: 165 } as const;
-/** Phí cơ bản 1 chữ ký */
+/** Base fee for one signature */
 export const FEE_PER_TX = 5_000;
-/** Biên an toàn cho số SOL nạp trước (rent có thể đổi, thêm vài giao dịch đầu tiên) */
+/** Safety margin for the SOL funded in advance (rent may change, plus the first few transactions) */
 const SAFETY_MARGIN = 1.25;
 
 export interface SetupCost {
-  /** Name + Reverse + phí 1 giao dịch */
+  /** Name + Reverse + the fee of one transaction */
   profile: number;
-  /** Thêm Phone (nếu bật) */
+  /** Plus Phone (when enabled) */
   phone: number;
-  /** ATA USDC của chính ví (khi nhận/gửi USDC lần đầu) */
+  /** The wallet's own USDC ATA (first time it receives/sends USDC) */
   usdcAta: number;
-  /** Số lamports tối thiểu cần có trước khi tạo hồ sơ (profile + phone + ATA + vài phí, cộng biên an toàn) */
+  /** Minimum lamports needed before creating the profile (profile + phone + ATA + a few fees, plus the safety margin) */
   required: number;
 }
 
@@ -40,7 +40,7 @@ export async function getSetupCost(connection: Connection): Promise<SetupCost> {
     connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZES.usdcAta),
   ]);
   const base = name + reverse + phone + usdcAta + 3 * FEE_PER_TX;
-  // Làm tròn lên bội số 0.0005 SOL cho dễ đọc
+  // Round up to a multiple of 0.0005 SOL so it reads easily
   const step = 0.0005 * LAMPORTS_PER_SOL;
   return {
     profile: name + reverse + FEE_PER_TX,
@@ -50,7 +50,7 @@ export async function getSetupCost(connection: Connection): Promise<SetupCost> {
   };
 }
 
-/** Hiển thị lamports thành "0.0053" (tối đa 4 chữ số thập phân, bỏ số 0 thừa) */
+/** Shows lamports as "0.0053" (at most 4 decimals, trailing zeros dropped) */
 export function formatSol(lamports: number, digits = 4): string {
   return (lamports / LAMPORTS_PER_SOL).toFixed(digits).replace(/\.?0+$/, '');
 }
@@ -68,9 +68,9 @@ export interface OnboardingState {
 export const CONSENT_SCREEN_READY = true;
 
 /**
- * Bước tiếp theo sau khi đăng nhập + có ví (non-ui-plan N11):
- *   chưa có ReverseRecord → consent (V2: trước mọi thứ) → fund (thiếu SOL, chạy âm thầm) → profile
- *   đã có ReverseRecord   → consent (nếu chưa đồng ý) → region (nếu chưa chọn) → home
+ * Next step after sign-in once the wallet exists (non-ui-plan N11):
+ *   no ReverseRecord  → consent (V2: before anything else) → fund (short of SOL, runs quietly) → profile
+ *   ReverseRecord     → consent (if not given) → region (if not chosen) → home
  */
 export async function resolveOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
   if (FEATURES.accountRoles) return resolveAccountOnboarding(connection, wallet);
@@ -132,7 +132,7 @@ export function onboardingRoute(
   }
 }
 
-/** create_profile (+ link_phone) gộp trong MỘT giao dịch; ví người dùng ký và trả phí + rent */
+/** create_profile (+ link_phone) in ONE transaction; the user's wallet signs and pays fees + rent */
 export function buildOnboardingTx(wallet: string, username: string, phoneKey?: Uint8Array): Transaction {
   const owner = new PublicKey(wallet);
   const tx = new Transaction().add(...buildCreateProfileTx(owner, username).instructions);
@@ -140,7 +140,7 @@ export function buildOnboardingTx(wallet: string, username: string, phoneKey?: U
   return tx;
 }
 
-/** Home hiện @username từ user store — đồng bộ sau khi đọc/tạo hồ sơ on-chain */
+/** Home shows @username from the user store — synced after reading/creating the on-chain profile */
 export function syncProfileToUserStore(wallet: string, username: string): void {
   const store = useUserStore.getState();
   store.setWalletAddress(wallet);

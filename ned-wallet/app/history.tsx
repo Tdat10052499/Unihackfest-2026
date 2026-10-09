@@ -44,10 +44,10 @@ export default function HistoryScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Địa chỉ ví Solana nhúng (Dynamic)
+  // Embedded Solana wallet address (Dynamic)
   const solanaAddress = walletAddress;
 
-  // Nạp Cache khởi tạo
+  // Load the cache first
   useEffect(() => {
     const loadCache = async () => {
       try {
@@ -64,7 +64,7 @@ export default function HistoryScreen() {
     loadCache();
   }, []);
 
-  // Kéo dữ liệu On-chain từ Solana Devnet
+  // Load the on-chain data from Solana devnet
   const loadOnChainHistory = useCallback(async (force: boolean = false) => {
     if (!solanaAddress) return;
     try {
@@ -75,7 +75,7 @@ export default function HistoryScreen() {
     }
   }, [solanaAddress]);
 
-  // Tự động làm mới khi màn hình được Focus
+  // Refresh automatically when the screen is focused
   useFocusEffect(
     useCallback(() => {
       if (solanaAddress) {
@@ -90,7 +90,7 @@ export default function HistoryScreen() {
     setIsRefreshing(false);
   };
 
-  // Sao chép Signature
+  // Copy the signature
   const handleCopySignature = async (sig?: string) => {
     if (!sig) return;
     try {
@@ -101,7 +101,7 @@ export default function HistoryScreen() {
     }
   };
 
-  // Mở Solscan Devnet Explorer
+  // Open Solana Explorer (devnet)
   const handleOpenExplorer = (sig?: string) => {
     if (!sig) return;
     const url = `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
@@ -110,13 +110,13 @@ export default function HistoryScreen() {
     });
   };
 
-  // Lọc danh sách giao dịch
+  // Filter the transaction list
   const filteredActivities = activities.filter((item) => {
-    // 1. Lọc theo tab
+    // 1. By tab
     if (filter !== 'all' && item.type !== filter) {
       return false;
     }
-    // 2. Lọc theo chuỗi tìm kiếm
+    // 2. By search text
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       const matchTitle = (getActivityTitle(item, t) || item.title).toLowerCase().includes(q);

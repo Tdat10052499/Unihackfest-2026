@@ -18,7 +18,7 @@ const tints: Record<Status, { bg: string; fg: string }> = {
   info: { bg: status.info.bg, fg: status.info.ink },
 };
 
-/** Nhãn viên thuốc nhỏ (DEVNET, Demo mode, RECOMMENDED, ▲ +1.2%…) */
+/** Small pill label (DEVNET, Demo mode, RECOMMENDED, ▲ +1.2%…) */
 export function Badge({
   label,
   tone = 'neutral',
@@ -41,7 +41,7 @@ export function Badge({
   );
 }
 
-/** Hộp thông tin / cảnh báo / lỗi / thành công */
+/** Info / warning / error / success box */
 export function Notice({
   tone = 'info',
   children,
@@ -101,7 +101,7 @@ export function Toggle({
   );
 }
 
-/** Vòng dấu tick kết quả thành công: 88px, nền xanh mờ, vầng sáng 40px */
+/** Success tick ring: 88px, faint green fill, 40px glow */
 export function SuccessMark({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[styles.success, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

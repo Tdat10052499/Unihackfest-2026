@@ -1,5 +1,5 @@
-// SĐT dạng rõ của CHÍNH người dùng — chỉ lưu trên máy (native: expo-secure-store; web: localStorage), không bao giờ lên chain.
-// Dùng để hiển thị ở Settings. Trên chain chỉ có phone_key = scrypt(SĐT) (xem phoneKey.ts).
+// The user's OWN phone number in clear — stored only on the device (native: expo-secure-store; web: localStorage), never on chain.
+// Shown in Settings. On chain there is only phone_key = scrypt(phone) (see phoneKey.ts).
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 

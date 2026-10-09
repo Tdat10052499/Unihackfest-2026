@@ -1,7 +1,7 @@
-// Onboarding — Create profile (OnbProfile board, step 2 of 3; generated avatar from the wallet address). Phương án C:
-// - Username công khai [a-z0-9_] 3–20, kiểm tra trùng khi gõ (NameRecord), gợi ý 3 tên còn trống.
-// - SĐT TUỲ CHỌN (để trống = không liên kết): chỉ phone_key = scrypt(E.164) lên chain; số dạng rõ chỉ lưu trên máy.
-// - create_profile (+ link_phone) trong MỘT giao dịch, ký bằng ví người dùng (tự trả phí + rent).
+// Onboarding — Create profile (OnbProfile board, step 2 of 3; generated avatar from the wallet address). Option C:
+// - Public username [a-z0-9_] 3–20, checked for duplicates while typing (NameRecord), 3 free names suggested.
+// - Phone number OPTIONAL (empty = not linked): only phone_key = scrypt(E.164) goes on chain; the number in clear stays on the device.
+// - create_profile (+ link_phone) in ONE transaction, signed by the user's wallet (pays fees + rent).
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -51,7 +51,7 @@ const SHOW_PHONE_FIELD = false;
 
 type PhoneState = 'empty' | 'invalid' | 'checking' | 'ok' | 'taken' | 'error';
 
-/** Chữ thường, bỏ khoảng trắng và ký tự không hợp lệ, tối đa 20 */
+/** Lower case, drops spaces and invalid characters, at most 20 */
 function normalizeUsername(raw: string): string {
   return raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
 }
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
     if (isReady && !isAuthenticated) router.replace('/welcome');
   }, [isReady, isAuthenticated]);
 
-  // Đã có hồ sơ (vd. quay lại bằng nút back) → sang chọn mode
+  // Profile already exists (e.g. came back with the back button) → next step
   useEffect(() => {
     if (!walletAddress) return;
     fetchReverseRecord(connection, new PublicKey(walletAddress))
@@ -98,7 +98,7 @@ export default function ProfileScreen() {
     getSetupCost(connection).then(setCost).catch((err) => console.warn('[profile] cost failed:', err));
   }, [connection]);
 
-  // Kiểm tra username (debounce 400ms, đọc NameRecord)
+  // Username check (debounce 400ms, reads NameRecord)
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(async () => {
@@ -127,7 +127,7 @@ export default function ProfileScreen() {
     };
   }, [username, connection]);
 
-  // Kiểm tra SĐT: chuẩn hoá E.164 → scrypt → PhoneRecord
+  // Phone check: normalise to E.164 → scrypt → PhoneRecord
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(async () => {

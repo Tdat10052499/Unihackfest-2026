@@ -1,5 +1,5 @@
 // Onboarding — Welcome (OnbWelcome board): illustration, title, three points, only "Continue with Google".
-// Web: login() chuyển sang trang Google rồi quay về đây; khi đã đăng nhập → Setting up.
+// Web: login() goes to the Google page and comes back here; once signed in → Setting up.
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
   const [starting, setStarting] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Quay về từ Google (web) hoặc phiên còn hạn → Setting up
+  // Back from Google (web) or a session still valid → Setting up
   useEffect(() => {
     if (isAuthenticated) router.replace('/setup');
   }, [isAuthenticated]);

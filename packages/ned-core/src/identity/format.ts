@@ -1,12 +1,12 @@
 /**
  * Identity & Phone Utilities (100% Solana Native Architecture)
  * 
- * Cung cấp các hàm tiện ích định danh, chuẩn hóa số điện thoại
- * và các dummy function an toàn trong quá trình kết nối Anchor Program PDA.
+ * Identity helpers and phone number normalisation,
+ * plus safe placeholder functions while connecting to the Anchor program PDAs.
  */
 
 /**
- * Chuẩn hóa số điện thoại về định dạng tiêu chuẩn (E.164 +84...)
+ * Normalises a phone number to the standard format (E.164 +84...)
  */
 export function normalizePhoneNumber(phone: string): string {
   let cleaned = phone.trim().replace(/[^\d+]/g, '');
@@ -21,7 +21,7 @@ export function normalizePhoneNumber(phone: string): string {
 }
 
 /**
- * So sánh xem 2 chuỗi số điện thoại có phải là một hay không (bỏ qua định dạng +84 / 0 / dấu cách)
+ * Whether two phone number strings are the same number (ignores +84 / 0 / spaces)
  */
 export function isSamePhoneNumber(phone1?: string | null, phone2?: string | null): boolean {
   if (!phone1 || !phone2) return false;
@@ -36,7 +36,7 @@ export function isSamePhoneNumber(phone1?: string | null, phone2?: string | null
 }
 
 /**
- * Tạo danh sách các biến thể số điện thoại để tra cứu không bỏ sót (+84..., 0..., 84...)
+ * Builds the variants of a phone number so lookups miss nothing (+84..., 0..., 84...)
  */
 export function getPhoneVariants(phone: string): string[] {
   const cleaned = phone.trim().replace(/[^\d+]/g, '');
@@ -56,7 +56,7 @@ export function getPhoneVariants(phone: string): string[] {
 }
 
 /**
- * Định dạng số điện thoại ẩn các ký tự ở giữa (VD: 0912 ••• 678)
+ * Formats a phone number with the middle digits hidden (e.g. 0912 ••• 678)
  */
 export function getMaskedPhone(phone?: string | null): string {
   if (!phone) return '';
@@ -68,7 +68,7 @@ export function getMaskedPhone(phone?: string | null): string {
 }
 
 /**
- * Lấy Mã Định Danh Tài Khoản N.E.D động
+ * Gets the dynamic N.E.D account identifier
  */
 export function getAccountIdentifier(user?: any, phone?: string | null): string {
   if (phone) {
@@ -85,7 +85,7 @@ export function getAccountIdentifier(user?: any, phone?: string | null): string 
 }
 
 
-/** SĐT E.164 VN hiển thị che giữa theo thiết kế: +84901234567 → "+84 90 •••• 4567" */
+/** Vietnamese E.164 number shown with the middle hidden, as in the design: +84901234567 → "+84 90 •••• 4567" */
 export function maskPhoneDisplay(e164?: string | null): string {
   if (!e164) return '';
   const digits = e164.replace(/[^\d]/g, '');

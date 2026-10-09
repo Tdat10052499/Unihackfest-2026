@@ -49,7 +49,7 @@ export default function ScanQrScreen() {
 
   const isScanningLocked = useRef(false);
 
-  // Lấy thông tin ví Solana hiện tại của người dùng
+  // The user's current Solana wallet
   const { walletAddress: solanaAddress } = useAuth();
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function ScanQrScreen() {
     });
   }, []);
 
-  // Reanimated - Laser Scan Line chạy dọc lên xuống liên tục
+  // Reanimated: the laser scan line moves up and down continuously
   const scanLineY = useSharedValue(0);
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function ScanQrScreen() {
     transform: [{ translateY: scanLineY.value }],
   }));
 
-  // Xử lý quét mã QR thành công (Live camera hoặc Gallery)
+  // A QR code was scanned (live camera or gallery)
   const handleSuccessScan = (rawData: string) => {
     if (isScanningLocked.current) return;
     isScanningLocked.current = true;
@@ -89,7 +89,7 @@ export default function ScanQrScreen() {
     let recipient = rawData.trim();
     let amount: string | undefined;
 
-    // Phân tích cú pháp Solana Pay URL (solana:ADDRESS?amount=X...)
+    // Parse a Solana Pay URL (solana:ADDRESS?amount=X...)
     if (recipient.toLowerCase().startsWith('solana:')) {
       const withoutPrefix = recipient.slice(7);
       const [addr, query] = withoutPrefix.split('?');
@@ -115,14 +115,14 @@ export default function ScanQrScreen() {
     });
   };
 
-  // Quét barcode trực tiếp từ Camera
+  // Scan a barcode straight from the camera
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (!isScanned && !isScanningLocked.current && data) {
       handleSuccessScan(data);
     }
   };
 
-  // Tải ảnh từ thư viện thiết bị & quét QR
+  // Pick an image from the device library and scan the QR
   const handlePickImage = async () => {
     try {
       if (Platform.OS !== 'web') {
@@ -163,7 +163,7 @@ export default function ScanQrScreen() {
     }
   };
 
-  // Sao chép địa chỉ ví vào bộ nhớ tạm
+  // Copy the wallet address to the clipboard
   const handleCopyWalletAddress = async () => {
     if (!solanaAddress) {
       Alert.alert('Wallet not ready', 'No wallet address found yet.');
@@ -181,7 +181,7 @@ export default function ScanQrScreen() {
     }
   };
 
-  // Sao chép số điện thoại ví vào bộ nhớ tạm
+  // Copy the wallet's phone number to the clipboard
   const handleCopyPhone = async () => {
     if (!phoneState) return;
     try {
@@ -205,7 +205,7 @@ export default function ScanQrScreen() {
     setShowMyQrModal(true);
   };
 
-  // Modal QR của tôi
+  // My QR modal
   function renderMyQrModal() {
     return (
       <Modal visible={showMyQrModal} transparent animationType="fade" onRequestClose={() => setShowMyQrModal(false)}>
@@ -256,7 +256,7 @@ export default function ScanQrScreen() {
     );
   }
 
-  // Chưa có quyền Camera
+  // No camera permission yet
   if (!permission?.granted) {
     return (
       <Screen glow="settings">
@@ -309,7 +309,7 @@ export default function ScanQrScreen() {
         onBarcodeScanned={isScanned ? undefined : handleBarcodeScanned}
       />
 
-      {/* Lớp tối đục lỗ vùng quét */}
+      {/* Dark overlay with a hole for the scan area */}
       <View style={styles.overlayContainer} pointerEvents="box-none">
         <View style={styles.overlayTop} />
         <View style={styles.overlayMiddleRow}>

@@ -1,5 +1,5 @@
-// Nhật ký đồng ý xử lý dữ liệu theo từng ví, lưu trên máy (Decree 356/2025 Art. 6; non-ui-plan N11).
-// Ghi lại thời điểm, phạm vi và phiên bản văn bản; rút lại đồng ý giữ bản ghi và đánh dấu withdrawnAt.
+// Per-wallet log of consent to data processing, stored on the device (Decree 356/2025 Art. 6; non-ui-plan N11).
+// Records the time, scope and text version; withdrawing consent keeps the record and sets withdrawnAt.
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';

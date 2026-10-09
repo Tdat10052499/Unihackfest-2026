@@ -170,7 +170,7 @@ export function SendFlow({ wallet, initialRecipient = '', balance, onClose, onSc
   </LinearGradient>;
 }
 
-/** Thẻ người nhận: chữ cái đầu · tên · địa chỉ / nguồn · nhãn N.E.D / .SOL / Unverified */
+/** Recipient card: initial · name · address / source · N.E.D / .SOL / Unverified label */
 function RecipientCard({ recipient, input }: { recipient: Recipient; input: string }) {
   const label = recipientLabel(recipient);
   const initials = (recipient.username ?? input.trim() ?? '?').replace(/^@/, '').slice(0, 2).toUpperCase() || '?';

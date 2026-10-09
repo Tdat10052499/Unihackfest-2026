@@ -1,5 +1,5 @@
-// Khu vực của người dùng theo từng ví: 'vn' (Vietnam view: VND ước tính, payout partner) hoặc 'intl'.
-// product-spec 4.2: cài đặt cục bộ "I live in Vietnam", chọn khi onboarding và trong Settings (non-ui-plan N11).
+// The user's region per wallet: 'vn' (Vietnam view: estimated VND, payout partner) or 'intl'.
+// product-spec 4.2: a local "I live in Vietnam" setting, chosen during onboarding and in Settings (non-ui-plan N11).
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,7 +34,7 @@ export const useRegionStore = create<RegionState>()(
   )
 );
 
-/** Chờ store đọc xong AsyncStorage (dùng trước khi quyết định bước onboarding) */
+/** Waits until the store has read AsyncStorage (used before deciding the onboarding step) */
 export function waitForRegionHydration(): Promise<void> {
   if (useRegionStore.getState().isHydrated) return Promise.resolve();
   return new Promise((resolve) => {

@@ -3,9 +3,9 @@ import { AppState } from 'react-native';
 import { useNotificationStore } from '../stores/useNotificationStore';
 
 /**
- * Đồng bộ thông báo từ lịch sử on-chain (Helius RPC) theo chu kỳ 8s
- * để phát hiện giao dịch nhận tiền từ mọi nguồn.
- * TODO(Phase 1): thay polling bằng Helius WebSocket (accountSubscribe/logsSubscribe trên ATA USDC).
+ * Syncs notices from the on-chain history (Helius RPC) every 8s
+ * to detect money received from any source.
+ * TODO(Phase 1): replace polling with a Helius WebSocket (accountSubscribe/logsSubscribe on the USDC ATA).
  */
 export function useNotificationSync(walletAddress?: string | null) {
   const { loadNotifications } = useNotificationStore();
@@ -14,15 +14,15 @@ export function useNotificationSync(walletAddress?: string | null) {
   useEffect(() => {
     if (!walletAddress) return;
 
-    // 1. Tải danh sách thông báo đã lưu của ví
+    // 1. Load the wallet's saved notices
     loadNotifications(walletAddress, true);
 
-    // 2. Chu kỳ tự động kiểm tra on-chain (8s) phòng trường hợp chuyển tiền từ bên ngoài/faucet
+    // 2. Automatic on-chain check every 8s, in case money arrives from outside or the faucet
     syncIntervalRef.current = setInterval(() => {
       loadNotifications(walletAddress, true);
     }, 8000);
 
-    // 3. Lắng nghe khi App quay lại từ Background
+    // 3. Listen for the app coming back from the background
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         loadNotifications(walletAddress, true);

@@ -7,9 +7,9 @@ import { useContractWatch } from '../hooks/useContractWatch';
 import { NotificationInAppBanner } from './NotificationInAppBanner';
 
 /**
- * Quản lý Thông báo Toàn cục (Global Notification Manager)
- * Đảm bảo đồng bộ thông báo on-chain trên toàn bộ các màn hình của ứng dụng
- * và hiển thị NotificationInAppBanner trượt từ trên xuống khi nhận tiền
+ * Global Notification Manager
+ * Keeps on-chain notices in sync on every screen of the app
+ * and shows NotificationInAppBanner sliding down when money arrives
  */
 export function GlobalNotificationManager() {
   const userWallet = useUserStore((state) => state.walletAddress);
@@ -17,7 +17,7 @@ export function GlobalNotificationManager() {
 
   const activeWallet = userWallet || activeWalletStore;
 
-  // Polling on-chain liên tục
+  // Continuous on-chain polling
   useNotificationSync(activeWallet);
   // Contract changes (B5): new contract, locked, submitted, released
   useContractWatch();

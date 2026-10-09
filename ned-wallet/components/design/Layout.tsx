@@ -29,7 +29,7 @@ export function Screen({
   scroll?: boolean;
   /** @deprecated ambient glows belong to the dark theme; ignored in v2 */
   glow?: OrbPreset | false;
-  /** Vùng cố định dưới màn (CTA) */
+  /** Fixed area at the bottom of the screen (CTA) */
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
@@ -113,7 +113,7 @@ export function IconButton({
   );
 }
 
-/** Hàng đầu màn: back · tiêu đề giữa (H3) · phần phải */
+/** Screen top row: back · centred title (H3) · right part */
 export function Header({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
   return (
     <View style={styles.header}>
@@ -132,7 +132,7 @@ export function Header({ title, onBack, right }: { title?: string; onBack?: () =
   );
 }
 
-/** Nhãn nhóm in hoa (Label: Inter Medium 12 / uppercase) */
+/** Upper-case group label (Label: Inter Medium 12 / uppercase) */
 export function SectionLabel({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[styles.section, style]}>

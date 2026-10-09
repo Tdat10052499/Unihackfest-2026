@@ -1,4 +1,4 @@
-// N.E.D DesignKit — component dùng chung, token ở constants/design.ts
+// N.E.D DesignKit — shared components; tokens in constants/design.ts
 export { DText, tones, type Tone } from './Text';
 export { Button, type ButtonVariant } from './Button';
 export { Card, type CardVariant } from './Card';

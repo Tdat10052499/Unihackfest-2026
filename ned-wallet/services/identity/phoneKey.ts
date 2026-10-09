@@ -1,17 +1,17 @@
-// phone_key cho PhoneRecord [b"phone_v1", phone_key] của ned_program (Phương án C, T1.5).
-// SĐT dạng rõ KHÔNG bao giờ lên chain: app chuẩn hoá về E.164 rồi băm scrypt → 32 byte.
-// Tham số chốt ở docs/archive/04-code-plan.md "Cập nhật sau Phase 0": N=2^15, r=8, p=1, dkLen=32 (~0.19s trên iPhone Safari).
+// phone_key for ned_program's PhoneRecord [b"phone_v1", phone_key] (option C, T1.5).
+// The phone number in clear NEVER goes on chain: the app normalises it to E.164, then hashes it with scrypt → 32 bytes.
+// Parameters fixed in docs/archive/04-code-plan.md "Update after Phase 0": N=2^15, r=8, p=1, dkLen=32 (~0.19s on iPhone Safari).
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
 
-/** Salt công khai, cố định (chống bảng tra sẵn, không phải bí mật). Đổi salt = đổi toàn bộ phone_key → phải dùng seed mới. */
+/** Public, fixed salt (against precomputed tables, not a secret). Changing the salt changes every phone_key → needs a new seed. */
 export const PHONE_KEY_SALT = 'ned-wallet/phone/v1';
 export const PHONE_KEY_PARAMS = { N: 2 ** 15, r: 8, p: 1, dkLen: 32 } as const;
 
 /**
- * Chuẩn hoá SĐT di động Việt Nam về E.164 (+84 + 9 chữ số).
- * Nhận: "0901234567", "090 123 4567", "+84 901 234 567", "84901234567", "(+84) 90-123-4567".
- * Trả null nếu không phải số di động VN hợp lệ (đầu số 3/5/7/8/9).
+ * Normalises a Vietnamese mobile number to E.164 (+84 + 9 digits).
+ * Accepts: "0901234567", "090 123 4567", "+84 901 234 567", "84901234567", "(+84) 90-123-4567".
+ * Returns null if it is not a valid Vietnamese mobile number (prefix 3/5/7/8/9).
  */
 export function normalizeVietnamPhone(raw: string): string | null {
   const compact = raw.trim().replace(/[\s.\-()]/g, '');
@@ -26,10 +26,10 @@ export function normalizeVietnamPhone(raw: string): string | null {
   return /^[35789]\d{8}$/.test(national) ? `+84${national}` : null;
 }
 
-// Cache trong bộ nhớ: SĐT của mình + danh bạ chỉ băm 1 lần mỗi phiên
+// In-memory cache: our own number and contacts are hashed once per session
 const phoneKeyCache = new Map<string, Promise<Uint8Array>>();
 
-/** scrypt(E.164, PHONE_KEY_SALT) → 32 byte. Đầu vào phải là E.164 đã chuẩn hoá. */
+/** scrypt(E.164, PHONE_KEY_SALT) → 32 bytes. The input must be a normalised E.164. */
 export function computePhoneKey(e164: string): Promise<Uint8Array> {
   let cached = phoneKeyCache.get(e164);
   if (!cached) {
@@ -40,14 +40,14 @@ export function computePhoneKey(e164: string): Promise<Uint8Array> {
   return cached;
 }
 
-/** Chuẩn hoá + băm. Ném lỗi nếu SĐT không hợp lệ. */
+/** Normalise + hash. Throws if the number is invalid. */
 export async function getPhoneKey(rawPhone: string): Promise<{ e164: string; phoneKey: Uint8Array }> {
   const e164 = normalizeVietnamPhone(rawPhone);
   if (!e164) throw new Error('Invalid Vietnamese mobile number');
   return { e164, phoneKey: await computePhoneKey(e164) };
 }
 
-/** Chỉ dùng cho test */
+/** For tests only */
 export function clearPhoneKeyCache(): void {
   phoneKeyCache.clear();
 }

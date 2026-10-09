@@ -5,14 +5,14 @@ import { Button, DText, Screen } from '@/components/design';
 import { colors, glass, radius, space } from '@/constants/design';
 
 /**
- * Catch-all route cho Expo Router: Tự động hấp thụ mọi URL không khớp (bao gồm các callback deep link)
- * và điều hướng an toàn về Dashboard/Home
+ * Catch-all route for Expo Router: absorbs every unmatched URL (including deep-link callbacks)
+ * and navigates safely back to Home
  */
 export default function NotFoundScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // Tự động điều hướng về màn hình chính
+    // Go back to the main screen automatically
     const timer = setTimeout(() => {
       router.replace('/(tabs)');
     }, 200);

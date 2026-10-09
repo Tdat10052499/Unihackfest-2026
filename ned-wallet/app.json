@@ -58,7 +58,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Cho phép ứng dụng truy cập camera để quét mã QR thanh toán."
+          "cameraPermission": "Allow N.E.D to use the camera to scan QR codes."
         }
       ],
       [

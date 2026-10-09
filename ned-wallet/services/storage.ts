@@ -10,7 +10,7 @@ const STORAGE_KEYS = {
 };
 
 /**
- * Lưu danh sách lịch sử giao dịch vào local cache
+ * Saves the transaction history list to the local cache
  */
 export const cacheActivities = async (activities: any[]): Promise<void> => {
   try {
@@ -21,7 +21,7 @@ export const cacheActivities = async (activities: any[]): Promise<void> => {
 };
 
 /**
- * Lấy danh sách lịch sử giao dịch từ local cache
+ * Reads the transaction history list from the local cache
  */
 export const getCachedActivities = async (): Promise<any[] | null> => {
   try {
@@ -50,10 +50,10 @@ export const getCachedActivities = async (): Promise<any[] | null> => {
 };
 
 /**
- * Lấy số điện thoại đã liên kết
+ * Reads the linked phone number
  */
 export const getLinkedPhone = async (): Promise<string | null> => {
-  // SĐT dạng rõ của chính người dùng: SecureStore (native) / localStorage (web) — không dùng AsyncStorage
+  // The user's own phone number in clear: SecureStore (native) / localStorage (web), never AsyncStorage
   try {
     return await getOwnPhone();
   } catch (error) {
@@ -63,7 +63,7 @@ export const getLinkedPhone = async (): Promise<string | null> => {
 };
 
 /**
- * Lưu số điện thoại đã liên kết vào AsyncStorage
+ * Saves the linked phone number
  */
 export const setLinkedPhone = async (phone: string): Promise<void> => {
   try {
@@ -74,10 +74,10 @@ export const setLinkedPhone = async (phone: string): Promise<void> => {
 };
 
 /**
- * Dọn dẹp sâu toàn bộ Corrupted State, logout an toàn và xóa sạch AsyncStorage
+ * Deep clean of all corrupted state, safe logout and a full AsyncStorage wipe
  */
 export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<void> => {
-  console.log('🧹 [Hard Reset] Bắt đầu dọn dẹp sâu session và bộ nhớ đệm...');
+  console.log('🧹 [Hard Reset] Starting a deep clean of the session and caches...');
 
   if (typeof logoutFn === 'function') {
     try {
@@ -85,9 +85,9 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
         logoutFn(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 2500)),
       ]);
-      console.log('✅ [Hard Reset] Đã đăng xuất thành công');
+      console.log('✅ [Hard Reset] Signed out');
     } catch (logoutErr) {
-      console.warn('⚠️ [Hard Reset] Bỏ qua lỗi timeout logout (mfa:clear / user-signer):', logoutErr);
+      console.warn('⚠️ [Hard Reset] Ignoring the logout timeout (mfa:clear / user-signer):', logoutErr);
     }
   }
 
@@ -112,10 +112,10 @@ export const executeHardReset = async (logoutFn?: () => Promise<void>): Promise<
   try {
     const keys = await AsyncStorage.getAllKeys();
     await AsyncStorage.multiRemove(keysToClearOnSignOut(keys));
-    // SĐT của chính người dùng nằm ngoài AsyncStorage → xoá riêng khi đăng xuất
+    // The user's own phone number lives outside AsyncStorage → removed separately at sign-out
     await removeOwnPhone().catch(() => {});
-    console.log('✅ [Hard Reset] Đã dọn dẹp AsyncStorage (giữ hồ sơ cục bộ)');
+    console.log('✅ [Hard Reset] AsyncStorage cleaned (local profiles kept)');
   } catch (storageErr) {
-    console.error('Lỗi khi xóa AsyncStorage:', storageErr);
+    console.error('Could not clear AsyncStorage:', storageErr);
   }
 };

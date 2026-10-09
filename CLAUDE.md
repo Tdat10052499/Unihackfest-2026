@@ -21,4 +21,5 @@ Rules:
 - `docs/09-milestone-lock/unit_economics.py` holds every revenue assumption; change numbers there, not only in prose.
 - The freelancer in Vietnam never holds or receives USDC. N.E.D holds no funds, converts nothing and charges no fee in v1.
 - Do not delete earlier documents; mark them superseded instead, or move them to `docs/archive/` and fix the links.
+- Write everything in this repository in English: code, comments, logs, file and folder names, and new documents (PO decision, 9 Oct 2026). The Vietnamese documents still in `docs/` are translated after the final; the spoken pitch on 10 Oct stays in Vietnamese, as the organisers require. Test data may keep Vietnamese text on purpose (accents, multi-byte UTF-8).
 - Nothing here is legal advice. Legal points marked [Unverified] or [Inference] need a lawyer.

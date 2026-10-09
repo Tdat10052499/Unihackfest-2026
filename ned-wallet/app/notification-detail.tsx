@@ -11,8 +11,8 @@ import { Badge, Button, Card, DText, Header, IconButton, InfoRow, Screen, Sectio
 import { colors, fonts, glass, radius, space } from '@/constants/design';
 
 /**
- * Định dạng số điện thoại hiển thị rõ ràng
- * VD: +84 912 345 678 hoặc 0912 345 678
+ * Formats a phone number for display
+ * e.g. +84 912 345 678 or 0912 345 678
  */
 function formatDisplayPhone(phone?: string | null): string {
   if (!phone) return '';
@@ -33,11 +33,11 @@ export default function NotificationDetailScreen() {
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Tìm thông báo theo id truyền qua param hoặc dùng activeNotification
+  // Find the notification by the id param, or use activeNotification
   const notification: InAppNotification | undefined =
     notifications.find((n) => n.id === id) || activeNotification || undefined;
 
-  // State quản lý thông tin Người chuyển & Người nhận
+  // Sender and recipient details
   const [senderName, setSenderName] = useState<string>('');
   const [senderPhone, setSenderPhone] = useState<string | null>(null);
   const [senderWallet, setSenderWallet] = useState<string>('');
@@ -48,7 +48,7 @@ export default function NotificationDetailScreen() {
 
   const [isResolving, setIsResolving] = useState<boolean>(true);
 
-  // Phân giải thông tin Người chuyển & Người nhận (Tên ví, Số điện thoại, Địa chỉ ví)
+  // Resolve the sender and recipient (wallet name, phone number, wallet address)
   useEffect(() => {
     if (!notification) return;
 
@@ -63,7 +63,7 @@ export default function NotificationDetailScreen() {
 
       const isReceive = notification!.type === 'RECEIVE_MONEY';
 
-      // 1. Địa chỉ ví khởi tạo
+      // 1. Initial wallet addresses
       const sWallet =
         notification!.senderWallet ||
         (isReceive ? 'Solana wallet' : myWallet || 'Your wallet');
@@ -72,13 +72,13 @@ export default function NotificationDetailScreen() {
         notification!.recipientWallet ||
         (isReceive ? myWallet || 'Your wallet' : 'Recipient wallet on Solana');
 
-      // 2. Tên & SĐT khởi tạo
+      // 2. Initial names and phone numbers
       let sName = notification!.senderName || '';
       let sPhone = notification!.senderPhone || null;
       let rName = notification!.recipientName || '';
       let rPhone = notification!.recipientPhone || null;
 
-      // Nhận diện nếu ví người chuyển là ví của người dùng hiện tại
+      // Is the sender wallet the current user's wallet?
       if (myWallet && sWallet === myWallet) {
         sName = sName || myUsername;
         sPhone = sPhone || myPhone;
@@ -87,7 +87,7 @@ export default function NotificationDetailScreen() {
         sPhone = sPhone || myPhone;
       }
 
-      // Nhận diện nếu ví người nhận là ví của người dùng hiện tại
+      // Is the recipient wallet the current user's wallet?
       if (myWallet && rWallet === myWallet) {
         rName = rName || myUsername;
         rPhone = rPhone || myPhone;
@@ -96,14 +96,14 @@ export default function NotificationDetailScreen() {
         rPhone = rPhone || myPhone;
       }
 
-      // Phục hồi từ sender nếu có
-      if (!sName && notification!.sender && notification!.sender !== 'Bạn') {
+      // Fall back to sender if present
+      if (!sName && notification!.sender && notification!.sender !== 'You') {
         sName = notification!.sender;
       }
 
-      // Trích xuất từ senderNote (VD: "Chuyển đến: 0912345678" hoặc "Chuyển đến: @alice.sol")
+      // Extract from senderNote (e.g. "To: 0912345678" or "To: @alice.sol")
       if (notification!.senderNote) {
-        const matchTo = notification!.senderNote.match(/Chuyển đến:\s*(.+)/i);
+        const matchTo = notification!.senderNote.match(/To:\s*(.+)/i);
         if (matchTo && matchTo[1]) {
           const val = matchTo[1].trim();
           if (val.startsWith('0') || val.startsWith('+84')) {
@@ -122,7 +122,7 @@ export default function NotificationDetailScreen() {
       if (sWallet !== myWallet) sPhone = null;
       if (rWallet !== myWallet) rPhone = null;
 
-      // Fallbacks hiển thị rõ ràng
+      // Clear display fallbacks
       if (!sName) {
         sName = isReceive ? 'Solana wallet' : (myUsername || 'Your wallet');
       }

@@ -1,5 +1,5 @@
-// react-native-web: Alert.alert là hàm rỗng → mọi hộp thoại (xác nhận đăng xuất, báo lỗi…) không hiện trên web.
-// Thay bằng window.alert / window.confirm của trình duyệt. Chỉ chạy trên web; native giữ nguyên Alert gốc.
+// react-native-web: Alert.alert is an empty function → no dialog (sign-out confirmation, errors…) shows on web.
+// Replaced by the browser's window.alert / window.confirm. Web only; native keeps the original Alert.
 import { Alert, Platform, type AlertButton } from 'react-native';
 
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -9,21 +9,21 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const cancel = list.find((b) => b.style === 'cancel');
     const actions = list.filter((b) => b !== cancel);
 
-    // Không có lựa chọn → chỉ thông báo
+    // No buttons → just a message
     if (actions.length === 0) {
       window.alert(text);
       cancel?.onPress?.();
       return;
     }
 
-    // Một lựa chọn không kèm Cancel → thông báo rồi chạy luôn
+    // One button without Cancel → message, then run it
     if (actions.length === 1 && !cancel) {
       window.alert(text);
       actions[0].onPress?.();
       return;
     }
 
-    // Có Cancel hoặc nhiều lựa chọn → OK chạy lựa chọn đầu tiên (confirm chỉ có 2 nút)
+    // Cancel or several buttons → OK runs the first one (confirm has only 2 buttons)
     if (window.confirm(actions.length > 1 ? `${text}\n\n(OK = ${actions[0].text ?? 'OK'})` : text)) {
       actions[0].onPress?.();
     } else {

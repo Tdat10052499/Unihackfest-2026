@@ -22,7 +22,7 @@ export function ListGroup({ children, style }: { children: ReactNode; style?: St
 
 type IconName = React.ComponentProps<typeof Feather>['name'];
 
-/** Hàng: ô icon 34 · tiêu đề + mô tả · giá trị / phần phải · mũi tên nếu bấm được */
+/** Row: 34 icon tile · title + description · value / right part · chevron when pressable */
 export function ListRow({
   icon,
   iconTone = 'accent',
@@ -83,7 +83,7 @@ export function ListRow({
   );
 }
 
-/** Hàng nhãn / giá trị cho bảng chi tiết (review, biên nhận) */
+/** Label / value row for detail tables (review, receipt) */
 export function InfoRow({
   label,
   value,

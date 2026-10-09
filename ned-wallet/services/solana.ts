@@ -7,8 +7,7 @@ import {
 import { solActivityAmount } from './activityAmount';
 import { Buffer } from 'buffer';
 import { formatDistanceToNow } from 'date-fns';
-import { vi, enUS } from 'date-fns/locale';
-import i18n from '../services/i18n';
+import { enUS } from 'date-fns/locale';
 
 import { DEVNET_RPC_URL, connection } from './chain/connection';
 import { ata } from './chain/ata';
@@ -28,7 +27,7 @@ export const SYSVAR_RENT_PUBKEY = new PublicKey('SysvarRent111111111111111111111
 
 
 /**
- * Tính toán địa chỉ ví Associated Token Account (ATA) theo chuẩn Solana Program Derived Address (PDA)
+ * Associated Token Account (ATA) address of a wallet, derived as a Solana PDA
  */
 export function getAssociatedTokenAddress(
   mint: PublicKey,
@@ -41,7 +40,7 @@ export function getAssociatedTokenAddress(
 }
 
 /**
- * Tạo Instruction khởi tạo Associated Token Account (ATA) cho ví người nhận nếu chưa tồn tại
+ * Instruction that creates the recipient's Associated Token Account (ATA) when it does not exist yet
  */
 export function createAssociatedTokenAccountInstruction(
   payer: PublicKey,
@@ -69,7 +68,7 @@ export function createAssociatedTokenAccountInstruction(
 }
 
 /**
- * Tạo Instruction chuyển SPL Token (USDC) chuẩn (Instruction index 3 - Transfer)
+ * Standard SPL Token (USDC) transfer instruction (instruction index 3, Transfer)
  */
 export function createSplTokenTransferInstruction(
   source: PublicKey,
@@ -132,8 +131,8 @@ export function clearSolanaCache() {
 }
 
 /**
- * Lấy số dư SOL của một địa chỉ trên Solana Devnet với commitment 'confirmed'
- * Tích hợp Cache 4 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
+ * SOL balance of an address on Solana devnet, commitment 'confirmed'
+ * 4-second cache and in-flight deduplication against 429 Too Many Requests
  */
 export async function getSolanaBalance(address: string, force: boolean = false): Promise<number> {
   if (!address) return 0;
@@ -156,7 +155,7 @@ export async function getSolanaBalance(address: string, force: boolean = false):
       return sol;
     } catch (error: any) {
       if (error?.message?.includes('429') || error?.toString()?.includes('429')) {
-        console.warn('⚠️ [Solana RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');
+        console.warn('⚠️ [Solana RPC 429 Rate-limit] Using the cached balance for now.');
         if (cached) return cached.balance;
       }
       throw error;
@@ -172,9 +171,9 @@ export async function getSolanaBalance(address: string, force: boolean = false):
 const inFlightUsdcMap = new Map<string, Promise<number>>();
 
 /**
- * Số dư USDC devnet: chỉ đọc USDC ATA của ví (B1 — không cộng token khác), tính từ base units nguyên.
- * Tích hợp Cache 10 giây và In-flight Deduplication chống lỗi 429 Too Many Requests
- * @param address Địa chỉ ví Solana của người dùng
+ * Devnet USDC balance: reads only the wallet's USDC ATA (B1, no other tokens added), computed from integer base units.
+ * 10-second cache and in-flight deduplication against 429 Too Many Requests
+ * @param address The user's Solana wallet address
  */
 export async function getUsdcTokenBalance(address: string, force: boolean = false): Promise<number> {
   if (!address) return 0;
@@ -195,7 +194,7 @@ export async function getUsdcTokenBalance(address: string, force: boolean = fals
       return balance;
     } catch (e: any) {
       if (e?.message?.includes('429') || e?.toString()?.includes('429')) {
-        console.warn('⚠️ [Solana USDC RPC 429 Rate-limit] Sử dụng số dư cache tạm thời.');
+        console.warn('⚠️ [Solana USDC RPC 429 Rate-limit] Using the cached balance for now.');
       }
       if (cached) return cached.balance;
       return 0;
@@ -209,81 +208,76 @@ export async function getUsdcTokenBalance(address: string, force: boolean = fals
 }
 
 /**
- * Hàm lấy tiêu đề động đa ngôn ngữ cho ActivityItem
+ * Display title for an ActivityItem (through the locale file)
  */
 export function getActivityTitle(
   item: ActivityItem,
   t?: (key: string, options?: any) => string
 ): string {
   if (!t) return item.title;
-  if (item.title === 'Nhận Faucet Token') {
-    return t('activities.faucet', { defaultValue: 'Nhận Faucet Token' });
+  if (item.title === 'Faucet tokens received') {
+    return t('activities.faucet', { defaultValue: 'Faucet tokens received' });
   }
-  if (item.title === 'Nhận SOL') {
-    return t('activities.receivedSol', { defaultValue: 'Nhận SOL' });
+  if (item.title === 'SOL received') {
+    return t('activities.receivedSol', { defaultValue: 'SOL received' });
   }
-  if (item.title === 'Chuyển SOL') {
-    return t('activities.sentSol', { defaultValue: 'Chuyển SOL' });
+  if (item.title === 'SOL sent') {
+    return t('activities.sentSol', { defaultValue: 'SOL sent' });
   }
   if (item.type === 'received') {
-    return t('activities.received', { defaultValue: 'Nhận tiền' });
+    return t('activities.received', { defaultValue: 'Received' });
   }
   if (item.type === 'sent') {
-    if (item.title === 'Tương tác Web3') {
-      return t('activities.web3', { defaultValue: 'Tương tác Web3' });
+    if (item.title === 'Web3 interaction') {
+      return t('activities.web3', { defaultValue: 'Web3 interaction' });
     }
-    return t('activities.sent', { defaultValue: 'Chuyển tiền' });
+    return t('activities.sent', { defaultValue: 'Sent' });
   }
   if (item.type === 'reward') {
-    return t('activities.reward', { defaultValue: 'Thưởng Lì Xì' });
+    return t('activities.reward', { defaultValue: 'Reward' });
   }
-  return item.title || t('activities.contract', { defaultValue: 'Tương tác hợp đồng' });
+  return item.title || t('activities.contract', { defaultValue: 'Contract interaction' });
 }
 
 /**
- * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối đa ngôn ngữ
+ * Unix timestamp → relative time, through the locale file
  */
 export function formatLocalizedRelativeTime(
   blockTime: number | null | undefined,
   t?: (key: string, options?: any) => string
 ): string {
-  if (!blockTime) return t ? t('activities.justNow', { defaultValue: 'Vừa xong' }) : formatRelativeTime(blockTime);
-  
-  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
-  const locale = currentLang === 'en' ? enUS : vi;
-  
+  if (!blockTime) return t ? t('activities.justNow', { defaultValue: 'Just now' }) : formatRelativeTime(blockTime);
+
   const date = new Date(blockTime * 1000);
   const diffSec = Math.floor(Date.now() / 1000) - blockTime;
   
-  if (diffSec < 60) return t ? t('activities.justNow', { defaultValue: 'Vừa xong' }) : formatRelativeTime(blockTime);
+  if (diffSec < 60) return t ? t('activities.justNow', { defaultValue: 'Just now' }) : formatRelativeTime(blockTime);
   
-  return formatDistanceToNow(date, { addSuffix: true, locale });
+  return formatDistanceToNow(date, { addSuffix: true, locale: enUS });
 }
 
 /**
- * Chuyển đổi timestamp Unix thành chuỗi thời gian tương đối mặc định
+ * Unix timestamp → relative time (default wording)
  */
 export function formatRelativeTime(blockTime: number | null | undefined): string {
-  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
-  if (!blockTime) return currentLang === 'en' ? 'Just now' : 'Vừa xong';
+  if (!blockTime) return 'Just now';
   
-  const locale = currentLang === 'en' ? enUS : vi;
   const date = new Date(blockTime * 1000);
   const diffSec = Math.floor(Date.now() / 1000) - blockTime;
   
-  if (diffSec < 60) return currentLang === 'en' ? 'Just now' : 'Vừa xong';
+  if (diffSec < 60) return 'Just now';
   
-  return formatDistanceToNow(date, { addSuffix: true, locale });
+  return formatDistanceToNow(date, { addSuffix: true, locale: enUS });
 }
 
 /**
- * Helper delay nhẹ tránh nghẽn RPC rate-limit
+ * Small delay helper to avoid RPC rate limits
  */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Phân tích chi tiết 1 giao dịch On-chain theo góc nhìn của địa chỉ ví `address`
- * Hỗ trợ nhận diện chính xác SPL Token (USDC/USDT), Faucet Tokens, Chuyển tiền P2P và Native SOL
+ * Parses one on-chain transaction from the point of view of the wallet `address`
+ * Recognises SPL tokens (USDC/USDT), faucet tokens, P2P transfers and native SOL
  */
 export function parseTransactionForAddress(
   parsedTx: any,
@@ -299,7 +293,7 @@ export function parseTransactionForAddress(
     return {
       id: signature,
       type: 'sent',
-      title: 'Giao dịch chưa hoàn tất',
+      title: 'Transaction not completed',
       time: timeStr,
       amount: '$0.00',
       isPositive: false,
@@ -310,12 +304,12 @@ export function parseTransactionForAddress(
     };
   }
 
-  // 1. Kiểm tra biến động số dư SPL Token (USDC / USDT / Devnet tokens)
+  // 1. SPL token balance changes (USDC / USDT / devnet tokens)
   if (meta?.preTokenBalances || meta?.postTokenBalances) {
     const preTokens: any[] = meta.preTokenBalances || [];
     const postTokens: any[] = meta.postTokenBalances || [];
 
-    // Tìm token account của địa chỉ này trong pre & post
+    // Find this address's token account in pre and post balances
     const userPreToken = preTokens.find((t) => t.owner === address);
     const userPostToken = postTokens.find((t) => t.owner === address);
 
@@ -323,7 +317,7 @@ export function parseTransactionForAddress(
     const postAmount = userPostToken?.uiTokenAmount?.uiAmount ?? (userPostToken?.uiTokenAmount?.uiAmountString ? parseFloat(userPostToken.uiTokenAmount.uiAmountString) : 0);
     const tokenDiff = (Number(postAmount) || 0) - (Number(preAmount) || 0);
 
-    // Phân loại đơn vị tiền tệ dựa theo Mint
+    // Currency unit from the mint
     const rawMint = userPostToken?.mint || userPreToken?.mint || '';
     const tokenMint = (typeof rawMint === 'string' ? rawMint : (rawMint?.toBase58?.() || String(rawMint || ''))).toUpperCase();
     let detectedCurrency = 'USDC';
@@ -352,7 +346,7 @@ export function parseTransactionForAddress(
 
     if (Math.abs(tokenDiff) > 0.000001) {
       if (tokenDiff > 0) {
-        // Kiểm tra xem có tài khoản khác bị trừ token trong transaction không (để phân biệt P2P vs Faucet mint)
+        // Did another account lose tokens in this transaction? (tells a P2P transfer from a faucet mint)
         let isOtherSenderLost = false;
         for (const pre of preTokens) {
           if (pre.owner !== address) {
@@ -370,7 +364,7 @@ export function parseTransactionForAddress(
         return {
           id: signature,
           type: 'received',
-          title: isFaucet ? 'Nạp tiền' : 'Nhận tiền',
+          title: isFaucet ? 'Deposit' : 'Received',
           time: timeStr,
           amount: `+${currencySymbol}${tokenDiff.toFixed(2)}`,
           isPositive: true,
@@ -384,7 +378,7 @@ export function parseTransactionForAddress(
         return {
           id: signature,
           type: 'sent',
-          title: 'Chuyển tiền',
+          title: 'Sent',
           time: timeStr,
           amount: `-${currencySymbol}${Math.abs(tokenDiff).toFixed(2)}`,
           isPositive: false,
@@ -398,7 +392,7 @@ export function parseTransactionForAddress(
     }
   }
 
-  // 2. Kiểm tra parsed instructions để tìm SPL Token transfer nếu token balances không ghi nhận owner
+  // 2. Parsed instructions: find an SPL token transfer when the token balances do not record the owner
   if (parsedTx?.transaction?.message?.instructions) {
     const instructions = parsedTx.transaction.message.instructions as any[];
     for (const ix of instructions) {
@@ -411,7 +405,7 @@ export function parseTransactionForAddress(
             return {
               id: signature,
               type: 'sent',
-              title: 'Chuyển tiền',
+              title: 'Sent',
               time: timeStr,
               amount: `-$${rawAmt.toFixed(2)}`,
               isPositive: false,
@@ -425,7 +419,7 @@ export function parseTransactionForAddress(
             return {
               id: signature,
               type: 'received',
-              title: 'Nhận tiền',
+              title: 'Received',
               time: timeStr,
               amount: `+$${rawAmt.toFixed(2)}`,
               isPositive: true,
@@ -441,7 +435,7 @@ export function parseTransactionForAddress(
             return {
               id: signature,
               type: 'received',
-              title: 'Nạp tiền',
+              title: 'Deposit',
               time: timeStr,
               amount: `+$${rawAmt.toFixed(2)}`,
               isPositive: true,
@@ -456,7 +450,7 @@ export function parseTransactionForAddress(
     }
   }
 
-  // 3. Kiểm tra biến động Native SOL (Lamports) -> Ẩn toàn bộ chữ SOL, hiển thị theo giá trị USD/VND tương đương
+  // 3. Native SOL (lamports) changes -> never show the word SOL, show the USD/VND equivalent
   if (meta?.preBalances && meta?.postBalances && parsedTx?.transaction?.message?.accountKeys) {
     const accountKeys = parsedTx.transaction.message.accountKeys;
     let userAccountIndex = -1;
@@ -494,7 +488,7 @@ export function parseTransactionForAddress(
         };
       }
 
-      // Chuyển tiền thực tế (loại trừ phí gas ~0.000005 SOL của feePayer)
+      // The actual transfer (excluding the ~0.000005 SOL gas fee of the fee payer)
       const isFeePayer = userAccountIndex === 0;
       const feeSol = isFeePayer ? (meta.fee || 5000) / LAMPORTS_PER_SOL : 0;
       const netSentSol = Math.abs(solDiff) - feeSol;
@@ -516,11 +510,11 @@ export function parseTransactionForAddress(
     }
   }
 
-  // 4. Default: Giao dịch hệ thống / Gas ẩn (Đánh dấu rõ ràng là phí mạng/gas để lọc sạch)
+  // 4. Default: system transaction / hidden gas (marked as a network fee so it is filtered out)
   return {
     id: signature,
     type: 'GAS_FEE',
-    title: 'Phí mạng',
+    title: 'Network fee',
     time: timeStr,
     amount: '$0.00',
     isPositive: false,
@@ -533,9 +527,9 @@ export function parseTransactionForAddress(
 }
 
 /**
- * Truy xuất lịch sử giao dịch on-chain từ Solana Devnet an toàn, chống rate-limit & 429
- * - Tải song song từng Transaction bằng getParsedTransaction độc lập (tránh lỗi 403 Forbidden Batch của Helius RPC)
- * - Lưu Cache theo từng địa chỉ (Address-Scoped Cache) để phân biệt chuẩn giữa Người Gửi (Sent) và Người Nhận (Received)
+ * Reads the on-chain history from Solana devnet safely, against rate limits and 429
+ * - Loads each transaction separately with getParsedTransaction (avoids Helius RPC's 403 Forbidden on batches)
+ * - Caches per address (address-scoped cache) so the sender (Sent) and recipient (Received) views stay apart
  */
 export async function fetchOnChainHistory(address: string, force: boolean = false): Promise<ActivityItem[]> {
   if (!address) return [];
@@ -547,7 +541,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
     return cached.data;
   }
 
-  // Deduplicate các lệnh gọi song song cùng 1 địa chỉ
+  // Deduplicate parallel calls for the same address
   if (inFlightHistoryMap.has(address)) {
     return inFlightHistoryMap.get(address)!;
   }
@@ -556,10 +550,10 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
     try {
       const pubKey = new PublicKey(address);
 
-      // 1. Tính toán địa chỉ USDC ATA chuẩn của ví
+      // 1. The wallet's standard USDC ATA
       const usdcAta = getAssociatedTokenAddress(USDC_DEVNET_MINT, pubKey);
 
-      // 2. Quét thêm các Token Accounts khác của ví (hỗ trợ cả USDT, Token-2022)
+      // 2. Also scan the wallet's other token accounts (USDT, Token-2022)
       let additionalAtas: PublicKey[] = [];
       try {
         const [splTokenAccs, token2022Accs] = await Promise.all([
@@ -580,10 +574,10 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
           .map((a) => a.pubkey)
           .filter((p) => p && p.toBase58() !== usdcAta.toBase58());
       } catch (scanErr) {
-        // bỏ qua lỗi quét phụ
+        // ignore errors of the extra scan
       }
 
-      // 3. Tải song song danh sách signatures từ Ví chính, USDC ATA và các ATA phụ
+      // 3. Load the signature lists of the main wallet, the USDC ATA and the extra ATAs in parallel
       const targetAccountsToScan = [pubKey, usdcAta, ...additionalAtas.slice(0, 3)];
       const sigsResults = await Promise.all(
         targetAccountsToScan.map((acc) =>
@@ -593,7 +587,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
         )
       );
 
-      // 4. Hợp nhất và loại bỏ trùng lặp signatures, sắp xếp theo thời gian mới nhất
+      // 4. Merge, deduplicate and sort the signatures, newest first
       const sigMap = new Map<string, any>();
       sigsResults.flat().forEach((sigInfo) => {
         if (sigInfo && sigInfo.signature && !sigMap.has(sigInfo.signature)) {
@@ -614,7 +608,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
         return {
           id: sigInfo.signature,
           type: 'sent',
-          title: isFailed ? 'Giao dịch lỗi' : 'Giao dịch',
+          title: isFailed ? 'Failed transaction' : 'Transaction',
           time: formatRelativeTime(sigInfo.blockTime),
           amount: '$0.00',
           isPositive: false,
@@ -625,7 +619,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
         };
       });
 
-      // Lọc danh sách các signature chưa có trong parsedTxCache
+      // Signatures not yet in parsedTxCache
       const sigsToFetch: { signature: string; index: number; blockTime?: number | null }[] = [];
       mergedSignatures.forEach((s, idx) => {
         const txCacheKey = `${address}:${s.signature}`;
@@ -641,7 +635,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
         }
       });
 
-      // Fetch các transaction mới bằng Promise.all độc lập (tránh lỗi 403 batch trên Helius)
+      // Fetch the new transactions with independent Promise.all calls (avoids the 403 on batches at Helius)
       if (sigsToFetch.length > 0) {
         try {
           const parsedTxs = await Promise.all(
@@ -652,7 +646,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
                   commitment: 'confirmed',
                 })
                 .catch((e) => {
-                  console.warn('⚠️ [Solana History] Lỗi fetch transaction:', item.signature, e?.message);
+                  console.warn('⚠️ [Solana History] Could not fetch transaction:', item.signature, e?.message);
                   return null;
                 })
             )
@@ -670,11 +664,11 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
             parsedTxCache.set(`${address}:${sig}`, parsedActivity);
           });
         } catch (fetchErr: any) {
-          console.warn('⚠️ [Solana History] Lỗi phân tích transaction:', fetchErr?.message);
+          console.warn('⚠️ [Solana History] Could not parse transaction:', fetchErr?.message);
         }
       }
 
-      // Ẩn toàn bộ các giao dịch gas / $0.00 / tương tác kỹ thuật blockchain
+      // Hide gas, $0.00 and technical blockchain interactions
       const cleanActivities = activities.filter((act) => {
         if (!act) return false;
         if (act.isNetworkFee === true || act.type === 'GAS_FEE') return false;
@@ -687,7 +681,7 @@ export async function fetchOnChainHistory(address: string, force: boolean = fals
       return cleanActivities;
     } catch (error: any) {
       if (error?.message?.includes('429')) {
-        console.warn('⚠️ [Solana History 429] Rate-limited on getSignaturesForAddress, sử dụng cache.');
+        console.warn('⚠️ [Solana History 429] Rate-limited on getSignaturesForAddress, using the cache.');
       } else {
         console.error('Error fetching on-chain history:', error);
       }

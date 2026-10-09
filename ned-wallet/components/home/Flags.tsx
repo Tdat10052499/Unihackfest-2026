@@ -7,7 +7,7 @@ const STARS: [number, number][] = [[2.55, 2.2], [5.85, 2.2], [4.2, 5.4], [7.5, 5
 
 export function FlagVN({ size = 40 }: { size?: number }) {
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel="Vietnamese đồng (VND)" style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
+    <View accessible accessibilityRole="image" accessibilityLabel="Vietnamese dong (VND)" style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
       <Svg width={size} height={size} viewBox="0 0 20 20">
         <Rect width={20} height={20} fill="#DA251D" />
         <Polygon points="10.00,4.00 11.35,8.15 15.71,8.15 12.18,10.71 13.53,14.85 10.00,12.29 6.47,14.85 7.82,10.71 4.29,8.15 8.65,8.15" fill="#FFCD00" />

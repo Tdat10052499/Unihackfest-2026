@@ -56,7 +56,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Dynamic SDK (PoC T0.4): crypto.randomUUID + globalThis.location (origin phải trùng metadata.universalLink)
+// Dynamic SDK (PoC T0.4): crypto.randomUUID + globalThis.location (the origin must match metadata.universalLink)
 // https://www.dynamic.xyz/docs/javascript/react-native/expo
 if (global.crypto && !global.crypto.randomUUID) {
   global.crypto.randomUUID = randomUUID;

@@ -1,10 +1,10 @@
-// Nhánh gh-pages còn .gitignore cũ ("*/node_modules/"), khiến git bỏ qua font chữ + font icon mà Expo xuất vào
-// dist/assets/node_modules/… → web mất icon và rơi về font hệ thống. Ghi đè bằng .gitignore rỗng trong dist
-// (gh-pages chạy với -t nên file dấu chấm được chép sang).
+// The gh-pages branch still has an old .gitignore ("*/node_modules/"), so git skipped the text and icon fonts Expo exports to
+// dist/assets/node_modules/… → the web lost its icons and fell back to system fonts. Overwritten with an empty .gitignore in dist
+// (gh-pages runs with -t, so dot files are copied).
 const fs = require('fs');
 const path = require('path');
 
-const dist = path.resolve(process.cwd(), 'dist'); // npm chạy script từ thư mục ned-wallet
+const dist = path.resolve(process.cwd(), 'dist'); // npm runs the script from the ned-wallet folder
 fs.writeFileSync(path.join(dist, '.gitignore'), '# gh-pages: publish everything in dist (fonts live under assets/node_modules)\n');
 
 const fonts = [];

@@ -1,5 +1,5 @@
 // Onboarding — Setting up (OnbSetup): Signed in → Wallet ready → Checking profile (ReverseRecord [b"reverse", wallet]).
-// Người quay lại → "Welcome back" → Home (hoặc Mode nếu chưa chọn). Người mới → Fund (thiếu SOL) hoặc Profile.
+// Returning user → "Welcome back" → Home (or the next onboarding step). New user → Fund (short of SOL) or Profile.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -20,7 +20,7 @@ export default function SetupScreen() {
   const [checkError, setCheckError] = useState('');
   const checkingFor = useRef<string | null>(null);
 
-  // Chưa đăng nhập → Welcome
+  // Not signed in → Welcome
   useEffect(() => {
     if (isReady && !isAuthenticated) router.replace('/welcome');
   }, [isReady, isAuthenticated]);
@@ -41,7 +41,7 @@ export default function SetupScreen() {
     [connection]
   );
 
-  // Ví sẵn sàng → kiểm tra hồ sơ on-chain (1 lần mỗi ví)
+  // Wallet ready → check the on-chain profile (once per wallet)
   useEffect(() => {
     if (status !== 'ready' || !walletAddress || checkingFor.current === walletAddress) return;
     const timer = setTimeout(() => check(walletAddress), 0);
@@ -53,7 +53,7 @@ export default function SetupScreen() {
     router.replace(onboardingRoute(result.step, result.update) as never);
   }, [result]);
 
-  // Người quay lại: tự vào ví sau một nhịp để kịp đọc "Welcome back"
+  // Returning user: enter the wallet after a beat, so "Welcome back" can be read
   useEffect(() => {
     if (!result?.reverse) return;
     const timer = setTimeout(next, RETURNING_AUTO_MS);

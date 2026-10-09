@@ -1,6 +1,6 @@
-// AuthProvider + useAuth(): lớp duy nhất bọc Dynamic JS SDK (đăng nhập Google + ví nhúng Solana MPC).
-// Các màn hình chỉ gọi useAuth(), không import @dynamic-labs-sdk/* trực tiếp.
-// Không có gas sponsorship (gói Dynamic không phải Enterprise) → mọi giao dịch sponsorshipMode 'off', ví tự trả phí.
+// AuthProvider + useAuth(): the only layer around the Dynamic JS SDK (Google sign-in + embedded Solana MPC wallet).
+// Screens only call useAuth(); they never import @dynamic-labs-sdk/* directly.
+// No gas sponsorship (our Dynamic plan is not Enterprise) → every transaction uses sponsorshipMode 'off'; the wallet pays its own fees.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -37,19 +37,19 @@ export interface AuthUser {
 
 export interface AuthContextValue {
   status: AuthStatus;
-  /** SDK đã khởi tạo xong */
+  /** The SDK has finished initialising */
   isReady: boolean;
   isAuthenticated: boolean;
   user: AuthUser | null;
-  /** Địa chỉ ví Solana nhúng của người dùng */
+  /** The user's embedded Solana wallet address */
   walletAddress: string | null;
-  /** Connection devnet (RPC cấu hình trong Dynamic Console; fallback Helius/public khi chưa sẵn sàng) */
+  /** Devnet connection (RPC set in the Dynamic Console; Helius/public fallback until it is ready) */
   connection: Connection;
   error: string | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
-  /** Ký + gửi, trả về signature (chưa chờ confirm). Tự điền blockhash/feePayer cho Transaction legacy nếu thiếu. */
+  /** Sign + send, returns the signature (does not wait for confirmation). Fills blockhash/feePayer for a legacy Transaction when missing. */
   signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>;
   signMessage: (message: string) => Promise<string>;
 }
@@ -62,7 +62,7 @@ const NOT_CONFIGURED = 'Missing EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID — add it to
 const AuthContext = createContext<AuthContextValue | null>(null);
 const queryClient = new QueryClient();
 
-// Dùng chung 1 promise để listener userChanged và login() không tạo ví 2 lần song song
+// One shared promise so the userChanged listener and login() never create the wallet twice in parallel
 let creatingWallet: Promise<void> | null = null;
 function ensureSolanaWallet(client: DynamicClient): Promise<void> {
   if (!getChainsMissingWaasWalletAccounts(client).includes('SOL')) return Promise.resolve();
@@ -72,7 +72,7 @@ function ensureSolanaWallet(client: DynamicClient): Promise<void> {
   return creatingWallet;
 }
 
-/** Chuyển ví sang Solana devnet (phải bật trong Dynamic Console › Chains & Networks) và trả về Connection devnet */
+/** Switches the wallet to Solana devnet (must be enabled in Dynamic Console › Chains & Networks) and returns the devnet Connection */
 async function switchToDevnet(client: DynamicClient, walletAccount: SolanaWalletAccount): Promise<Connection> {
   const devnet = getNetworksData(client).find(
     (n) => n.chain === 'SOL' && (n.cluster === 'devnet' || /devnet/i.test(n.displayName))
@@ -109,7 +109,7 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
   const [devnet, setDevnet] = useState<{ address: string; connection: Connection } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Khởi tạo SDK; web: hoàn tất đăng nhập khi quay về từ trang Google
+  // 1. Initialise the SDK; web: complete the sign-in when coming back from the Google page
   useEffect(() => {
     if (initStatus !== 'uninitialized') return;
     initializeClient(client)
@@ -126,7 +126,7 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
       });
   }, [client, initStatus]);
 
-  // 2. Ví nhúng không tự tạo sau khi đăng nhập — tạo khi user thay đổi
+  // 2. The embedded wallet is not created automatically after sign-in — create it when the user changes
   useOnEvent({
     event: 'userChanged',
     listener: async ({ user }) => {
@@ -135,7 +135,7 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
     },
   });
 
-  // 3. Phiên được khôi phục (không có userChanged) nhưng chưa có ví → tạo; có ví → chuyển sang devnet
+  // 3. Session restored (no userChanged) but no wallet yet → create one; wallet present → switch to devnet
   const hasUser = Boolean(sdkUser);
   const accountAddress = solanaAccount?.address ?? null;
   useEffect(() => {
@@ -156,7 +156,7 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
     return () => {
       cancelled = true;
     };
-    // solanaAccount được theo dõi qua accountAddress
+    // solanaAccount is tracked through accountAddress
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, hasUser, initStatus, accountAddress, devnet?.address]);
 
@@ -174,7 +174,7 @@ function DynamicAuthProvider({ client, children }: { client: DynamicClient; chil
   const login = useCallback(async () => {
     setError(null);
     if (IS_WEB) {
-      // Trang chuyển sang Google rồi quay lại — bước 1 hoàn tất đăng nhập
+      // The page goes to Google and comes back — step 1 completes the sign-in
       await signInWithSocialRedirect(
         { provider: 'google', redirectUrl: window.location.origin + window.location.pathname },
         client

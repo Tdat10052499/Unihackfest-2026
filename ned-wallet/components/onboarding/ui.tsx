@@ -73,7 +73,7 @@ export function StepHeader({ step, total, onBack }: { step: number; total: numbe
   );
 }
 
-/** Hộp thông tin (indigo) / cảnh báo (vàng) / lỗi (đỏ) */
+/** Info (indigo) / warning (yellow) / error (red) box */
 export function NoticeCard({
   tone = 'info',
   children,
@@ -90,7 +90,7 @@ export function NoticeCard({
   );
 }
 
-/** Cỡ chữ onboarding theo Typography System */
+/** Onboarding text sizes from the typography system */
 export const onbText = StyleSheet.create({
   /** Board H1: Space Grotesk 28/700 */
   h1: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.4, color: palette.ink },
