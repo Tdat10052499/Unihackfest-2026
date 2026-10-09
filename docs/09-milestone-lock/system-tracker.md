@@ -391,7 +391,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-25.V6 | UI Workspace: Lock now / Lock when I hire trên `/jobs/new`, chip "Budget locked" / "Locks when hired", filter "Funded only", sheet "Select @x and lock X USDC"; Workspace 22 node + 123 Vitest, ví 38 | Dev | ✅ | — | Dòng V6 |
 | B-25.V7 | Docs và copy, final check: pre-pitch-check §9.4 vào `final-pitch.md`, `qa-cheatsheet.md`, `expert-check-pack.vi.md`, research; tracker, README; legal copy (`copy.ts`) với CL | CL + PO + Dev | 🔧 đang làm | 8 Oct 18:00 | CL kiểm tra lại số trên slide 4–7 và câu §9.3 trên app live |
 | B-26 | N1–N3: `/new` freelancer tuỳ chọn + tag; contract mở lên N.E.D Jobs (theo D29) | Dev | 🗺 **Roadmap sau final** (PO, 7 Oct sau V7: feature freeze; listing mở đã có ở `/jobs/new`) | Sau final | Chạy N1–N3 nguyên văn sau final |
-| B-27 | **D30 roles, country, business, N.E.D Agreement** (`roles-and-agreement-build.md`, sau `FEATURES.accountRoles`, tắt tới R9) | Dev + CL + PO | 🔧 R0–R8 xong 8 Oct; R9 chờ CL | sau final | CL ký copy; Q10–Q11 có câu trả lời |
+| B-27 | **D30 roles, country, business, N.E.D Agreement** (`roles-and-agreement-build.md`, sau `FEATURES.accountRoles`) | Dev + CL + PO | ✅ live 9 Oct | sau final | CL ký copy; Q10–Q11 có câu trả lời |
 | B-27.R0 | Cờ `accountRoles` (tắt) ở core, ví, Workspace; khung module `account/`, `legal/agreement.ts` | Dev | ✅ | — | `tong-hop-tien-do.md` dòng R0 |
 | B-27.R1 | Core: model account, 249 quốc gia, rules (`capabilities`, `canChangeCountry`) | Dev | ✅ | — | Dòng R1 |
 | B-27.R2 | Core: agreement + hash, consent v3, Terms 1.2 / Privacy 2 nháp (CL); câu F11 sửa theo PO | Dev + CL | ✅ code, 🔧 CL | — | Dòng R2, F11 |
@@ -401,7 +401,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | B-27.R6 | Workspace + N.E.D Jobs: AccountPrompt, `ensureAccount`, cổng `/new` `/jobs/new`, nhãn business | Dev | ✅ | — | Dòng R6 |
 | B-27.R7 | Người dùng cũ: luồng update, chọn sẵn từ money view + lịch sử | Dev | ✅ | — | Dòng R7 |
 | B-27.R8 | Test cả hai trạng thái cờ, ảnh 4 luồng (`docs/02-thiet-ke/screenshots/d30/`), product-spec, tracker | Dev | ✅ | — | Dòng R8; còn chạy thật bằng Google (PO) |
-| B-27.R9 | CL duyệt copy → bật cờ production | CL + PO | ⏳ | sau final | Q10–Q12 xong, test placeholder hết todo |
+| B-27.R9 | CL duyệt copy → bật cờ production | CL + PO | ✅ 9 Oct (PO bật trước final) | — | CL ok 8 Oct; Vercel prod + GitHub Pages từ `d47fc8e`; còn PO thử tài khoản thật |
 | B-10 | Banner "Don't start until Locked" (contract trực tiếp) | Dev | 🆕 | sau freeze | — |
 | B-11 | Preset review 72 h, job accept window 48 h (launch) | Dev | 🆕 | sau freeze | — |
 | B-12 | Reminders 24 h / 1 h | Dev | 🆕 | sau freeze | — |
@@ -429,7 +429,7 @@ Kênh: chuông U3 trên Workspace (đọc chain mỗi 30 s, ✅ S9); mobile bann
 | Q7 | Bond-based penalties | Roadmap, ngoài Việt Nam, cần luật sư | CL | sau final | |
 | Q8 | Q&A mới: "What stops a client from stalling?" và "Is this a job marketplace?" | D-5; câu trong funded-jobs-plan §9 | CL | 8 Oct | |
 | Q9 | Client đăng contract không chỉ định freelancer, chỉ khoá tiền khi hai bên thoả thuận | Lock at hire, program v1.4 (D29) | PO | 7 Oct | **Đã quyết (7 Oct tối): làm trước final, là tính năng cuối.** Kèm sửa G1. Rollback v1.3 nếu không xanh trước 8 Oct 18:00. **Đóng (7 Oct, V7): D29 đã build, v1.4 live trên devnet, smoke Run 1–4 xanh, G1 đã sửa; không rollback.** `/new` (N1–N3) còn ở B-26 |
-| Q10 | D30: "N.E.D" là ai trong hợp đồng (`OPERATOR_NAME`, mục "Who we are" của Terms 1.2) | Pháp nhân đã đăng ký, hoặc một người có tên cho pilot | PO + luật sư | trước R9 | Chưa; test placeholder (todo) chặn R9 |
-| Q11 | D30: luật áp dụng và nơi giải quyết tranh chấp (`GOVERNING_LAW`) | Việt Nam hoặc Singapore | PO + luật sư | trước R9 | Chưa |
-| Q12 | D30: dòng quyền với sản phẩm trước khi release (thẻ freelancer, dòng cuối "You can count on") | Giữ, sửa hoặc bỏ | Luật sư + CL | trước R9 | Chưa; giữ nguyên văn trong bản nháp |
+| Q10 | D30: "N.E.D" là ai trong hợp đồng (`OPERATOR_NAME`, mục "Who we are" của Terms 1.2) | Pháp nhân đã đăng ký, hoặc một người có tên cho pilot | PO + luật sư | trước R9 | **Đã quyết 8 Oct:** "Hồ Du Tuấn Đạt, on behalf of the N.E.D team (UniHackFest 2026 pilot)" |
+| Q11 | D30: luật áp dụng và nơi giải quyết tranh chấp (`GOVERNING_LAW`) | Việt Nam hoặc Singapore | PO + luật sư | trước R9 | **Đã quyết 8 Oct:** luật Việt Nam, toà án có thẩm quyền tại TP.HCM |
+| Q12 | D30: dòng quyền với sản phẩm trước khi release (thẻ freelancer, dòng cuối "You can count on") | Giữ, sửa hoặc bỏ | Luật sư + CL | trước R9 | **Đã quyết 8 Oct (CL):** giữ |
 | Q13 | D30 Phase 2 (program v1.5): BusinessCard PDA công khai, agreement memo, danh sách trừng phạt; consent riêng theo Luật 91/2025? | Chỉ sau luật sư (build §11) | PO + luật sư | sau R9 | Chưa bắt đầu |

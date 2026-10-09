@@ -64,7 +64,8 @@
 
 | On the phone | What it does |
 | --- | --- |
-| **Sign-in and onboarding** | Google sign-in through Dynamic creates an embedded MPC wallet. Then consent, a username, and the residence choice (Vietnam view or USDC wallet). |
+| **Sign-in and onboarding** | Google sign-in through Dynamic creates an embedded MPC wallet. Then the role, the country of residence, business details for a business, the N.E.D Agreement, and a username (D30, below). |
+| **Roles and agreement** (D30, live 9 Oct) | Sign-up asks **How will you use N.E.D?** (freelancer, client, client business), **Where do you live now?** (people in Vietnam join as freelancers and see VND), self-declared **business details**, then **The N.E.D Agreement** with three separate boxes. Settings → **Your account**: Also work / Also hire, change country (blocked while client work is open), business, agreement. Existing accounts confirm once through the update flow. Client actions need the client role. |
 | **Vietnam view** | Amounts show as "≈ … VND (estimate)". There is no USDC balance and no send, receive or swap. Network fees are test SOL, prepared silently. |
 | **Accept** | Read the encrypted brief and its done-when points, choose **VND to my bank account** (or an own wallet outside Vietnam), then **Slide to accept**. The destination is fixed on-chain. |
 | **Lock (client)** | **Slide to lock** moves the budget into the contract's vault. The freelancer sees "Locked for you". |

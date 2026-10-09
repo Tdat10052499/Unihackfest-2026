@@ -592,3 +592,13 @@ CL sign-off: Nguyễn Minh Chính (@F4ol4n). PO answers in the same message.
 PO: production is switched on with the two environment variables (`EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true`, `VITE_FEATURE_ACCOUNT_ROLES=true`); `CORE_FEATURES.accountRoles` stays `false`. "Go" for a Vercel preview first, then production for both builds.
 
 **Timing (prompts file, "How to use"):** D30 goes live after the final (10 Oct); until then the demo build must not change. The copy edits above are in code with the flag still off; the preview and production switch wait for the PO's confirmation of the date.
+
+### D30 live: note to the CL (9 Oct 2026)
+
+The PO switched D30 on before the final (9 Oct), with the two environment variables as decided; `CORE_FEATURES.accountRoles` stays `false`.
+
+- Copy edits from the CL reply above: `43a1416` (operator, governing law, singular/plural, new lines in the copy deck). The placeholder test now runs and passes.
+- Workspace and the wallet extension `/wallet`: Vercel Production deployed from `d47fc8e` with `VITE_FEATURE_ACCOUNT_ROLES=true` and `EXPO_PUBLIC_FEATURE_ACCOUNT_ROLES=true`; both bundles checked (`accountRoles` on).
+- Phone app on GitHub Pages: built from `d47fc8e` with the flag on (gh-pages `69f4a09`); bundle checked.
+- Build history: R0–R8 in `docs/tong-hop-tien-do.md` (rows "D30 R0" … "D30 R9").
+- **Still for the PO with real accounts:** each existing demo account sees the update flow once and keeps its contracts; a new Google account goes role → country → (business) → agreement → profile → home.
