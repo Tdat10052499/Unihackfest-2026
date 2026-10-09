@@ -334,7 +334,7 @@ Unihackfest-2026/
 ├── ned-wallet/                  # N.E.D app for the phone (Expo), deployed on GitHub Pages and at /wallet
 ├── docs/                        # Decisions, specs, research, legal, design boards (start at docs/09-milestone-lock/)
 ├── site/                        # Earlier static landing page, kept for reference (not deployed)
-└── assets/images/               # Logo and README images
+└── assets/images/               # Logo images
 ```
 
 ---

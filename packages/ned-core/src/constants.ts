@@ -12,8 +12,6 @@ export const IDL_PROGRAM_ID = new PublicKey(idl.address);
 
 /** Circle devnet USDC, 6 decimals. Equals USDC_MINT in ned_program. */
 export const USDC_DEVNET_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
-/** Circle mainnet USDC. Used only for Jupiter price quotes (read-only). */
-export const USDC_MAINNET_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 export const USDC_DECIMALS = 6;
 
 export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
