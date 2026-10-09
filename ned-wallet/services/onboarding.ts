@@ -7,10 +7,8 @@ import {
   type ReverseRecord,
 } from './identity';
 import { useUserStore } from '../stores/useUserStore';
-import { useWalletModeStore, waitForWalletModeHydration, type WalletMode } from '../stores/useWalletModeStore';
 import { useRegionStore, waitForRegionHydration } from '../stores/useRegionStore';
 import { useConsentStore, waitForConsentHydration } from '../stores/useConsentStore';
-import type { Region } from './milestone/view';
 import { FEATURES } from '../constants/features';
 import { useAccountStore, waitForAccountHydration } from '../stores/useAccountStore';
 import { accountState, hasOlderAgreement, type AccountStep } from './accountOnboarding';
@@ -78,12 +76,11 @@ export async function resolveOnboarding(connection: Connection, wallet: string):
   if (FEATURES.accountRoles) return resolveAccountOnboarding(connection, wallet);
   const owner = new PublicKey(wallet);
   const reverse = await fetchReverseRecord(connection, owner);
-  await Promise.all([waitForConsentHydration(), waitForRegionHydration(), waitForWalletModeHydration()]);
+  await Promise.all([waitForConsentHydration(), waitForRegionHydration()]);
   const needsConsent = CONSENT_SCREEN_READY && !useConsentStore.getState().getConsent(wallet);
   if (reverse) {
     syncProfileToUserStore(wallet, reverse.username);
     if (needsConsent) return { step: 'consent', reverse };
-    migrateRegionFromMode(wallet);
     return { step: useRegionStore.getState().getRegion(wallet) ? 'home' : 'region', reverse };
   }
   // V2 (compliance fix list): consent before anything that sends the wallet address to a third party (the faucet)
@@ -117,17 +114,6 @@ async function resolveAccountOnboarding(connection: Connection, wallet: string):
     state = accountState({ ...facts, short: balance < cost.required });
   }
   return { step: state.step, reverse, update: state.update };
-}
-
-/** Wallet mode chosen before regions existed → region ('simple' → 'vn', 'crypto' → 'intl'); never asks again */
-export function regionFromMode(mode: WalletMode): Region {
-  return mode === 'crypto' ? 'intl' : 'vn';
-}
-
-function migrateRegionFromMode(wallet: string) {
-  if (useRegionStore.getState().getRegion(wallet)) return;
-  const mode = useWalletModeStore.getState().getMode(wallet);
-  if (mode) useRegionStore.getState().setRegion(wallet, regionFromMode(mode));
 }
 
 /** Route for each step: welcome → setup → consent → (fund) → profile → residence → home; D30 adds /role, /country, /business, /agreement */

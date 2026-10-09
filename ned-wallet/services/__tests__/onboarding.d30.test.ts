@@ -33,17 +33,17 @@ test('flag off: resolveOnboarding keeps its pre-D30 body; only the accountRoles 
   assert.equal(now[1], '  if (FEATURES.accountRoles) return resolveAccountOnboarding(connection, wallet);');
   const legacy = [now[0], ...now.slice(2)].join('\n');
   // The body as it was before D30 (commit 85f7934): consent → (fund) → profile, or consent → region → home
+  // The wallet-mode migration (waitForWalletModeHydration, migrateRegionFromMode) was removed on 9 Oct 2026
   assert.equal(
     legacy,
     `export async function resolveOnboarding(connection: Connection, wallet: string): Promise<OnboardingState> {
   const owner = new PublicKey(wallet);
   const reverse = await fetchReverseRecord(connection, owner);
-  await Promise.all([waitForConsentHydration(), waitForRegionHydration(), waitForWalletModeHydration()]);
+  await Promise.all([waitForConsentHydration(), waitForRegionHydration()]);
   const needsConsent = CONSENT_SCREEN_READY && !useConsentStore.getState().getConsent(wallet);
   if (reverse) {
     syncProfileToUserStore(wallet, reverse.username);
     if (needsConsent) return { step: 'consent', reverse };
-    migrateRegionFromMode(wallet);
     return { step: useRegionStore.getState().getRegion(wallet) ? 'home' : 'region', reverse };
   }
   // V2 (compliance fix list): consent before anything that sends the wallet address to a third party (the faucet)

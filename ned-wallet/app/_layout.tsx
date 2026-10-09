@@ -25,7 +25,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-goog
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 
 // Route xem được khi chưa đăng nhập (segment đầu tiên của expo-router)
-// (onboarding): welcome công khai; setup/fund/profile/mode tự chuyển về welcome nếu chưa đăng nhập
+// (onboarding): welcome công khai; các màn còn lại (setup, consent, fund, profile, residence; D30: role, country, business, agreement) tự chuyển về welcome nếu chưa đăng nhập
 // 'c': the invite link route decides itself (it keeps the #k= fragment for after sign-in)
 // terms, privacy, disclosures: readable before sign-in and before consent (P3; the Workspace footers link here)
 const PUBLIC_SEGMENTS = new Set(['', 'index', '(onboarding)', '+not-found', 'c', 'terms', 'privacy', 'disclosures']);
