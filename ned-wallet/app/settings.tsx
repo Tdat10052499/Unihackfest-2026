@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { PublicKey } from '@solana/web3.js';
 import { Avatar } from '@/components/Avatar';
 import { Badge, Button, PressableScale, Screen, Sheet, Toggle } from '@/components/design';
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const withdraw = useConsentStore((s) => s.withdraw);
   const [phone, setPhone] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  const [copied, setCopied] = useState(false);
   const [sheet, setSheet] = useState<'consent' | 'signOut' | null>(null);
   const [leaving, setLeaving] = useState(false);
 
@@ -57,6 +59,14 @@ export default function SettingsScreen() {
 
   const handle = username ? `@${username}` : walletAddress ? shortAddress(walletAddress) : 'No profile yet';
   const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  // The full address goes to the clipboard; the row shows the start and the end
+  const copyAddress = async () => {
+    if (!walletAddress) return;
+    await Clipboard.setStringAsync(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const toggleVietnam = (next: boolean) => {
     setRegion(next ? 'vn' : 'intl');
@@ -111,6 +121,28 @@ export default function SettingsScreen() {
             <Text style={styles.small}>Signed in with Google</Text>
           </View>
         </View>
+
+        {walletAddress ? (
+          <View style={[styles.card, styles.walletCard]}>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={copied ? 'Wallet address copied' : `Copy wallet address ${walletAddress}`}
+              onPress={() => void copyAddress()}
+              style={styles.row}
+            >
+              <View style={styles.flex}>
+                <Text style={styles.rowTitle}>Wallet address</Text>
+                <Text style={styles.address} numberOfLines={1}>
+                  {`${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}`}
+                </Text>
+              </View>
+              <Text style={[styles.copyLabel, copied && styles.copiedLabel]} accessibilityLiveRegion="polite">
+                {copied ? 'Copied' : 'Copy'}
+              </Text>
+              <Feather name={copied ? 'check' : 'copy'} size={18} color={copied ? status.success.ink : palette.link} />
+            </PressableScale>
+          </View>
+        ) : null}
 
         {FEATURES.accountRoles ? (
           // D30: roles, country (with a confirm, closes D17), business, agreement; consent lives in the agreement
@@ -228,6 +260,10 @@ const styles = StyleSheet.create({
   small: { marginTop: 2, fontFamily: fonts.body, fontSize: 11, color: palette.caption },
   section: { paddingTop: 18, paddingHorizontal: 6, paddingBottom: space[2], fontFamily: fonts.bodySemi, fontSize: 13, color: palette.caption },
   card: { borderRadius: radius.xl, backgroundColor: palette.card },
+  walletCard: { marginTop: space[3] },
+  address: { marginTop: 2, fontFamily: fonts.mono, fontSize: 13, color: palette.caption },
+  copyLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: palette.link },
+  copiedLabel: { color: status.success.ink },
   padded: { padding: 14 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[3], minHeight: 54, paddingHorizontal: 14, paddingVertical: space[2] },
