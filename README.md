@@ -28,7 +28,7 @@
 - [Rules the program enforces](#rules-the-program-enforces)
 - [Around the app: Workspace, N.E.D Jobs, landing page](#around-the-app-workspace-ned-jobs-landing-page)
 - [Architecture](#architecture)
-- [Status](#status-7-oct-2026)
+- [Status](#status-9-oct-2026)
 - [Build and test](#build-and-test)
 - [Run the apps](#run-the-apps)
 - [Deploy (owners only)](#deploy-owners-only)
@@ -149,7 +149,7 @@ These support the phone app. They use the same Google sign-in and the same walle
 | --- | --- | --- |
 | **Workspace** (`ned-workspace/`, Vite + React) | The computer side, for work that needs a big screen:<br/>• the brief editor;<br/>• submitting with a preview link and the promised final files;<br/>• reviewing with an embedded preview, and requesting changes;<br/>• final files and records.<br/>It embeds the app as a **wallet panel**, which handles sign-in and the confirm step of every signature. | [unihackfest-2026.vercel.app](https://unihackfest-2026.vercel.app) |
 | **N.E.D Jobs** (inside the Workspace, `/jobs`) | Where businesses post work and freelancers apply:<br/>• Overview; Find jobs (search by what, field and budget, with filters);<br/>• job detail and apply;<br/>• post a job with **Lock now** or **Lock when I hire**;<br/>• applicants and select.<br/>Legal pages are linked from the footer. | [/jobs](https://unihackfest-2026.vercel.app/jobs) |
-| **Landing page** | The product introduction. It will point visitors to the app. | Planned (separate repository, decision D21) |
+| **Landing page** | The product introduction. It points visitors to the app and the Workspace. | [ned-landing.vercel.app](https://ned-landing.vercel.app) (separate repository, D21) |
 
 <table>
   <tr>
@@ -180,7 +180,7 @@ flowchart TB
 
 ---
 
-## Status (7 Oct 2026)
+## Status (9 Oct 2026)
 
 | Part | State |
 | --- | --- |
@@ -188,7 +188,7 @@ flowchart TB
 | **N.E.D app (phone)** | Live on GitHub Pages and at `/wallet`: sign-in and onboarding, Vietnam view, accept and lock, contract and milestone screens, records, Help and legal pages. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages. Lock at hire: **Lock now** / **Lock when I hire** on `/jobs/new`, "Budget locked" / "Locks when hired" chips, a "Funded only" filter, and "Select @x and lock X USDC". An open contract from `/new` is not built yet. |
 | **Removed (9 Oct)** | Swap, xStocks, Jupiter and the Simple/Crypto wallet mode: code deleted; the old N.E.D Wallet documents are in [`docs/archive/`](docs/archive/README.md) |
-| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 185 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/progress-log.md` (rows V0–V7). |
+| **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 220 · wallet 57 · Workspace 22 (node) + 141 (Vitest). Last full runs: `docs/progress-log.md` (the newest rows, 9 Oct). |
 
 **Compute units:**
 - Measured with LiteSVM on v1.4, 7 Oct 2026, over 10 runs.
@@ -358,7 +358,7 @@ Unihackfest-2026/
 
 | Topic | Where |
 | --- | --- |
-| Product direction and decision log (D1–D29) | [`docs/09-milestone-lock/README.md`](docs/09-milestone-lock/README.md) |
+| Product direction and decision log (D1–D30) | [`docs/09-milestone-lock/README.md`](docs/09-milestone-lock/README.md) |
 | Program specification (byte layouts, instructions, errors, tests; v1.4 in §11) | [`docs/09-milestone-lock/program-spec.md`](docs/09-milestone-lock/program-spec.md) |
 | Product spec and word table | [`docs/09-milestone-lock/product-spec.md`](docs/09-milestone-lock/product-spec.md) |
 | How the system must behave, scenarios, build tracker | [`docs/09-milestone-lock/system-tracker.md`](docs/09-milestone-lock/system-tracker.md) |
