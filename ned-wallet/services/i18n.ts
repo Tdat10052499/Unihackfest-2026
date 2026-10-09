@@ -1,27 +1,5 @@
 import i18n from 'i18next';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
-import { Platform } from 'react-native';
-
-export const LANGUAGE_STORAGE_KEY = '@app_language';
-
-export interface SupportedLanguage {
-  code: string;
-  name: string;
-  nativeName: string;
-  flag: string;
-  available: boolean;
-}
-
-export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', available: true },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', available: false },
-  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', available: false },
-  { code: 'zh', name: 'Chinese', nativeName: '简体中文', flag: '🇨🇳', available: false },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', available: false },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', available: false },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', available: false },
-];
 
 import enTranslation from '../locales/en.json';
 
@@ -40,37 +18,6 @@ i18n.init({
     escapeValue: false,
   },
 });
-
-// Loads the language saved in AsyncStorage at start-up
-export const initLanguageFromStorage = async () => {
-  if (Platform.OS === 'web' && typeof window === 'undefined') return;
-  try {
-    const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (savedLanguage === 'en') {
-      await i18n.changeLanguage(savedLanguage);
-      console.log(`🌐 [i18n] Loaded the saved language: ${savedLanguage}`);
-    } else {
-      console.log('🌐 [i18n] Using the default language: en');
-    }
-  } catch (error) {
-    console.error('Could not read the language from AsyncStorage:', error);
-  }
-};
-
-// The saved language is not loaded automatically: the UI is English only, and an old 'vi' value is ignored
-
-/**
- * Changes the language and saves it in AsyncStorage
- */
-export const changeAppLanguage = async (newLang: string) => {
-  try {
-    await i18n.changeLanguage(newLang);
-    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
-    console.log(`🌐 [i18n] Switched the language to: ${newLang}`);
-  } catch (error) {
-    console.error('Could not save the language to AsyncStorage:', error);
-  }
-};
 
 /**
  * Lightweight useTranslation hook that reacts immediately to a language change
