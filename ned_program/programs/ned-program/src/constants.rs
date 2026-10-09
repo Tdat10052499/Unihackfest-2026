@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-/// Seeds của identity on-chain (Phương án C)
+/// Seeds of the on-chain identity (option C)
 pub const NAME_SEED: &[u8] = b"name";
 pub const REVERSE_SEED: &[u8] = b"reverse";
 pub const PHONE_SEED: &[u8] = b"phone_v1";

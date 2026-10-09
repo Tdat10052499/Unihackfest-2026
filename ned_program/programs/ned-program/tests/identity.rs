@@ -1,5 +1,5 @@
-//! Test identity on-chain (Phương án C) + transfer_stablecoin bằng LiteSVM.
-//! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
+//! On-chain identity (option C) + transfer_stablecoin tests with LiteSVM.
+//! Build first: `anchor build` (reads target/deploy/ned_program.so).
 
 mod common;
 
@@ -87,7 +87,7 @@ fn create_profile_creates_name_and_reverse() {
     assert_eq!(reverse.username, "alice_01");
     assert!(!reverse.has_phone);
 
-    // Kích thước + rent thực tế (in ra để ghi vào báo cáo)
+    // Real sizes + rent (printed for the report)
     for (label, address) in [("NameRecord", name_pda("alice_01")), ("ReverseRecord", reverse_pda(&alice.pubkey()))] {
         let account = svm.get_account(&address).unwrap();
         println!("{label}: {} bytes, {} lamports", account.data.len(), account.lamports);
@@ -122,7 +122,7 @@ fn invalid_usernames_are_rejected() {
     for bad in ["ab", "Alice", "bad-name", "has space", "abcdefghijklmnopqrstu"] {
         assert_err(send(&mut svm, create_profile_ix(&user.pubkey(), bad), &user), "InvalidUsername");
     }
-    // Biên hợp lệ: 3 và 20 ký tự
+    // Valid bounds: 3 and 20 characters
     send(&mut svm, create_profile_ix(&user.pubkey(), "abcdefghijklmnopqrst"), &user).unwrap();
 }
 
@@ -130,7 +130,7 @@ fn invalid_usernames_are_rejected() {
 fn prefunded_name_pda_cannot_block_a_username() {
     let mut svm = setup();
     let alice = new_user(&mut svm);
-    // Kẻ phá gửi SOL vào địa chỉ PDA trước để "chiếm chỗ"
+    // An attacker sends SOL to the PDA address first to "squat" it
     svm.airdrop(&name_pda("grief"), 1_000).unwrap();
     send(&mut svm, create_profile_ix(&alice.pubkey(), "grief"), &alice).unwrap();
     let name: NameRecord = read(&svm, &name_pda("grief")).unwrap();
@@ -152,7 +152,7 @@ fn phone_link_unlink_relink_flow() {
     let key_a = [7u8; 32];
     let key_b = [9u8; 32];
 
-    // Alice liên kết số A
+    // Alice links number A
     send(&mut svm, link_phone_ix(&alice.pubkey(), key_a), &alice).unwrap();
     let phone: PhoneRecord = read(&svm, &phone_pda(&key_a)).unwrap();
     assert_eq!(phone.wallet, alice.pubkey());
@@ -161,14 +161,14 @@ fn phone_link_unlink_relink_flow() {
     let phone_account = svm.get_account(&phone_pda(&key_a)).unwrap();
     println!("PhoneRecord: {} bytes, {} lamports", phone_account.data.len(), phone_account.lamports);
 
-    // Bob không lấy được số A
+    // Bob cannot take number A
     assert_err(send(&mut svm, link_phone_ix(&bob.pubkey(), key_a), &bob), "PhoneTaken");
-    // Alice không liên kết thêm số thứ hai
+    // Alice cannot link a second number
     assert_err(send(&mut svm, link_phone_ix(&alice.pubkey(), key_b), &alice), "PhoneAlreadyLinked");
-    // Bob không huỷ được số của Alice
+    // Bob cannot unlink Alice's number
     assert_err(send(&mut svm, unlink_phone_ix(&bob.pubkey(), phone_pda(&key_a)), &bob), "NotPhoneOwner");
 
-    // Alice huỷ liên kết → account đóng, rent hoàn về Alice
+    // Alice unlinks → account closed, rent refunded to Alice
     let before = svm.get_account(&alice.pubkey()).unwrap().lamports;
     send(&mut svm, unlink_phone_ix(&alice.pubkey(), phone_pda(&key_a)), &alice).unwrap();
     let after = svm.get_account(&alice.pubkey()).unwrap().lamports;
@@ -177,7 +177,7 @@ fn phone_link_unlink_relink_flow() {
     let reverse: ReverseRecord = read(&svm, &reverse_pda(&alice.pubkey())).unwrap();
     assert!(!reverse.has_phone);
 
-    // Số A giờ trống → Bob liên kết được; Alice liên kết lại số B được
+    // Number A is free now → Bob can link it; Alice can link number B
     send(&mut svm, link_phone_ix(&bob.pubkey(), key_a), &bob).unwrap();
     send(&mut svm, link_phone_ix(&alice.pubkey(), key_b), &alice).unwrap();
     let phone: PhoneRecord = read(&svm, &phone_pda(&key_a)).unwrap();
@@ -211,10 +211,10 @@ fn update_username_frees_old_name() {
     let reverse: ReverseRecord = read(&svm, &reverse_pda(&alice.pubkey())).unwrap();
     assert_eq!(reverse.username, "alice2");
 
-    // Tên cũ được giải phóng cho người khác
+    // The old name is free for others
     send(&mut svm, create_profile_ix(&carol.pubkey(), "alice"), &carol).unwrap();
 
-    // Lỗi: trùng tên hiện tại, tên đã có người dùng, tên sai định dạng
+    // Errors: same as the current name, name taken, bad format
     assert_err(send(&mut svm, update_username_ix(&alice.pubkey(), "alice2", "alice2"), &alice), "SameUsername");
     assert_err(send(&mut svm, update_username_ix(&alice.pubkey(), "alice2", "bob"), &alice), "UsernameTaken");
     assert_err(send(&mut svm, update_username_ix(&alice.pubkey(), "alice2", "Bad!"), &alice), "InvalidUsername");
@@ -227,7 +227,7 @@ fn cannot_rename_someone_elses_name() {
     let bob = new_user(&mut svm);
     send(&mut svm, create_profile_ix(&alice.pubkey(), "alice"), &alice).unwrap();
     send(&mut svm, create_profile_ix(&bob.pubkey(), "bob"), &bob).unwrap();
-    // Bob truyền NameRecord "alice" làm tên cũ → seeds không khớp ReverseRecord của Bob
+    // Bob passes the NameRecord "alice" as the old name → seeds do not match Bob's ReverseRecord
     assert_err(send(&mut svm, update_username_ix(&bob.pubkey(), "alice", "bobby"), &bob), "ConstraintSeeds");
     let name: NameRecord = read(&svm, &name_pda("alice")).unwrap();
     assert_eq!(name.wallet, alice.pubkey());

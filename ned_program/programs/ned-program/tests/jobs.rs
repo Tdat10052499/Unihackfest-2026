@@ -1,6 +1,6 @@
 //! Funded Jobs tests (docs/09-milestone-lock/funded-jobs-plan.md section 4.5) and the D27 note rules
 //! (review-decision-plan.md section 2). Same LiteSVM harness as tests/milestone.rs.
-//! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
+//! Build first: `anchor build` (reads target/deploy/ned_program.so).
 
 mod common;
 

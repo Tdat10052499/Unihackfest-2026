@@ -7,6 +7,6 @@ test-ledger
 .yarn
 .surfpool
 
-# Keypair (program / ví) — không bao giờ commit
+# Keypairs (program / wallet) — never commit
 *-keypair.json
 id.json

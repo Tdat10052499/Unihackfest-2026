@@ -112,7 +112,7 @@ pub fn update_username_handler(ctx: Context<UpdateUsername>, new_username: Strin
 // HELPERS
 // =============================================================================
 
-/// Username hợp lệ: 3–20 ký tự, chỉ [a-z0-9_]
+/// Valid username: 3–20 characters, only [a-z0-9_]
 pub fn is_valid_username(username: &str) -> bool {
     let len = username.len();
     (USERNAME_MIN_LEN..=USERNAME_MAX_LEN).contains(&len)
@@ -121,8 +121,8 @@ pub fn is_valid_username(username: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
 }
 
-/// Tạo PDA thuộc program này, signer trả rent. Xử lý cả trường hợp PDA đã bị gửi sẵn lamports
-/// (giống `init` của Anchor) để không ai chặn được một username / SĐT bằng cách chuyển SOL vào địa chỉ.
+/// Creates a PDA owned by this program; the signer pays the rent. Also handles a PDA that already received lamports
+/// (like Anchor's `init`), so nobody can block a username / phone number by sending SOL to the address.
 fn create_pda<'info>(
     payer: &Signer<'info>,
     target: &UncheckedAccount<'info>,
@@ -176,7 +176,7 @@ fn create_pda<'info>(
     Ok(())
 }
 
-/// Ghi discriminator + dữ liệu Borsh vào account vừa tạo
+/// Writes the discriminator + Borsh data into the account just created
 fn write_account<T: AccountSerialize>(target: &UncheckedAccount, value: &T) -> Result<()> {
     let mut data = target.try_borrow_mut_data()?;
     value.try_serialize(&mut &mut data[..])
@@ -184,7 +184,7 @@ fn write_account<T: AccountSerialize>(target: &UncheckedAccount, value: &T) -> R
 
 // =============================================================================
 // ACCOUNTS VALIDATION CONTEXTS
-// Ràng buộc chạy theo thứ tự khai báo: kiểm tra username trên `signer` trước khi derive PDA từ nó.
+// Constraints run in declaration order: check the username on `signer` before deriving the PDA from it.
 // =============================================================================
 
 #[derive(Accounts)]
@@ -193,7 +193,7 @@ pub struct CreateProfile<'info> {
     #[account(mut, constraint = is_valid_username(&username) @ NedError::InvalidUsername)]
     pub signer: Signer<'info>,
 
-    /// CHECK: PDA [b"name", username] — phải còn trống, được tạo trong handler bằng create_pda
+    /// CHECK: PDA [b"name", username] — must be free; created in the handler with create_pda
     #[account(
         mut,
         seeds = [NAME_SEED, username.as_bytes()],
@@ -202,7 +202,7 @@ pub struct CreateProfile<'info> {
     )]
     pub name_record: UncheckedAccount<'info>,
 
-    /// CHECK: PDA [b"reverse", signer] — phải còn trống (mỗi ví một hồ sơ)
+    /// CHECK: PDA [b"reverse", signer] — must be free (one profile per wallet)
     #[account(
         mut,
         seeds = [REVERSE_SEED, signer.key().as_ref()],
@@ -228,7 +228,7 @@ pub struct LinkPhone<'info> {
     )]
     pub reverse_record: Account<'info, ReverseRecord>,
 
-    /// CHECK: PDA [b"phone_v1", phone_key] — phải còn trống (1 SĐT ↔ 1 tài khoản)
+    /// CHECK: PDA [b"phone_v1", phone_key] — must be free (1 phone number ↔ 1 account)
     #[account(
         mut,
         seeds = [PHONE_SEED, phone_key.as_ref()],
@@ -252,7 +252,7 @@ pub struct UnlinkPhone<'info> {
     )]
     pub reverse_record: Account<'info, ReverseRecord>,
 
-    /// PhoneRecord của chính signer (Account<> kiểm tra owner = program + discriminator)
+    /// The signer's own PhoneRecord (Account<> checks owner = program + discriminator)
     #[account(
         mut,
         close = signer,
@@ -275,7 +275,7 @@ pub struct UpdateUsername<'info> {
     )]
     pub reverse_record: Account<'info, ReverseRecord>,
 
-    /// NameRecord hiện tại — đóng và hoàn rent về signer
+    /// Current NameRecord — closed, rent refunded to the signer
     #[account(
         mut,
         close = signer,
@@ -285,7 +285,7 @@ pub struct UpdateUsername<'info> {
     )]
     pub old_name_record: Account<'info, NameRecord>,
 
-    /// CHECK: PDA [b"name", new_username] — phải còn trống, được tạo trong handler bằng create_pda
+    /// CHECK: PDA [b"name", new_username] — must be free; created in the handler with create_pda
     #[account(
         mut,
         seeds = [NAME_SEED, new_username.as_bytes()],

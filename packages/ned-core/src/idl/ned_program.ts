@@ -1,5 +1,5 @@
-// Sinh từ ned_program/target/types/ned_program.ts sau `anchor build` — đừng sửa tay.
-// Cập nhật: chạy anchor build rồi chép lại target/idl/ned_program.json + phần type bên dưới.
+// Generated from ned_program/target/types/ned_program.ts after `anchor build` — do not edit by hand.
+// To update: run anchor build, then copy target/idl/ned_program.json + the type part below again.
 import idlJson from './ned_program.json';
 
 export type NedProgram = {
@@ -1036,7 +1036,7 @@ export type NedProgram = {
     {
       "name": "createProfile",
       "docs": [
-        "Tạo hồ sơ: NameRecord [b\"name\", username] + ReverseRecord [b\"reverse\", wallet]"
+        "Create profile: NameRecord [b\"name\", username] + ReverseRecord [b\"reverse\", wallet]"
       ],
       "discriminator": [
         225,
@@ -1373,8 +1373,8 @@ export type NedProgram = {
     {
       "name": "linkPhone",
       "docs": [
-        "Liên kết SĐT: PhoneRecord [b\"phone_v1\", phone_key]. phone_key = scrypt(SĐT E.164) tính trong app —",
-        "program không bao giờ nhận hay lưu SĐT dạng rõ."
+        "Link phone: PhoneRecord [b\"phone_v1\", phone_key]. phone_key = scrypt(phone in E.164), computed in the app —",
+        "the program never receives or stores the phone number in clear."
       ],
       "discriminator": [
         141,
@@ -2930,7 +2930,7 @@ export type NedProgram = {
     {
       "name": "transferStablecoin",
       "docs": [
-        "Chuyển Stablecoin (SPL Token / Token 2022) an toàn qua CPI TransferChecked"
+        "Transfers a stablecoin (SPL Token / Token 2022) safely through a TransferChecked CPI"
       ],
       "discriminator": [
         63,
@@ -2973,7 +2973,7 @@ export type NedProgram = {
     {
       "name": "unlinkPhone",
       "docs": [
-        "Huỷ liên kết SĐT: đóng PhoneRecord của chính mình (hoàn rent về signer)"
+        "Unlink phone: closes the signer's own PhoneRecord (rent refunded to the signer)"
       ],
       "discriminator": [
         170,
@@ -3018,7 +3018,7 @@ export type NedProgram = {
         {
           "name": "phoneRecord",
           "docs": [
-            "PhoneRecord của chính signer (Account<> kiểm tra owner = program + discriminator)"
+            "The signer's own PhoneRecord (Account<> checks owner = program + discriminator)"
           ],
           "writable": true
         }
@@ -3028,7 +3028,7 @@ export type NedProgram = {
     {
       "name": "updateUsername",
       "docs": [
-        "Đổi username: đóng NameRecord cũ (hoàn rent), tạo NameRecord mới, cập nhật ReverseRecord"
+        "Change username: closes the old NameRecord (rent refunded), creates the new NameRecord, updates the ReverseRecord"
       ],
       "discriminator": [
         233,
@@ -3073,7 +3073,7 @@ export type NedProgram = {
         {
           "name": "oldNameRecord",
           "docs": [
-            "NameRecord hiện tại — đóng và hoàn rent về signer"
+            "Current NameRecord — closed, rent refunded to the signer"
           ],
           "writable": true,
           "pda": {
@@ -4990,7 +4990,7 @@ export type NedProgram = {
     {
       "name": "nameRecord",
       "docs": [
-        "[b\"name\", username] → ví sở hữu username"
+        "[b\"name\", username] → wallet that owns the username"
       ],
       "type": {
         "kind": "struct",
@@ -5085,7 +5085,7 @@ export type NedProgram = {
     {
       "name": "phoneRecord",
       "docs": [
-        "[b\"phone_v1\", scrypt(SĐT)] → ví đã liên kết SĐT (chưa xác minh OTP)"
+        "[b\"phone_v1\", scrypt(phone)] → wallet that linked the phone number (not OTP-verified)"
       ],
       "type": {
         "kind": "struct",
@@ -5140,7 +5140,7 @@ export type NedProgram = {
     {
       "name": "reverseRecord",
       "docs": [
-        "[b\"reverse\", wallet] → hồ sơ công khai của ví (người quay lại = có ReverseRecord)"
+        "[b\"reverse\", wallet] → public profile of the wallet (returning user = has a ReverseRecord)"
       ],
       "type": {
         "kind": "struct",
@@ -5404,7 +5404,7 @@ export type NedProgram = {
   ]
 };
 
-/** IDL runtime (JSON) — dùng với new Program<NedProgram>(IDL, provider) */
+/** Runtime IDL (JSON) — use with new Program<NedProgram>(IDL, provider) */
 export const IDL = idlJson as unknown as NedProgram;
 
 export default IDL;

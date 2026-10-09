@@ -1,5 +1,5 @@
 //! Milestone Lock tests (docs/09-milestone-lock/program-spec.md section 8: groups 1–18; P1 groups 7, 8, 13 below).
-//! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
+//! Build first: `anchor build` (reads target/deploy/ned_program.so).
 
 mod common;
 

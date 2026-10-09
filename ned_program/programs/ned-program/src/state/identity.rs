@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 // STATE ACCOUNTS
 // =============================================================================
 
-/// [b"name", username] → ví sở hữu username
+/// [b"name", username] → wallet that owns the username
 #[account]
 #[derive(InitSpace)]
 pub struct NameRecord {
@@ -17,7 +17,7 @@ impl NameRecord {
     pub const SPACE: usize = 8 + Self::INIT_SPACE;
 }
 
-/// [b"reverse", wallet] → hồ sơ công khai của ví (người quay lại = có ReverseRecord)
+/// [b"reverse", wallet] → public profile of the wallet (returning user = has a ReverseRecord)
 #[account]
 #[derive(InitSpace)]
 pub struct ReverseRecord {
@@ -32,7 +32,7 @@ impl ReverseRecord {
     pub const SPACE: usize = 8 + Self::INIT_SPACE;
 }
 
-/// [b"phone_v1", scrypt(SĐT)] → ví đã liên kết SĐT (chưa xác minh OTP)
+/// [b"phone_v1", scrypt(phone)] → wallet that linked the phone number (not OTP-verified)
 #[account]
 #[derive(InitSpace)]
 pub struct PhoneRecord {

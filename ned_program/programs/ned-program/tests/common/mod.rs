@@ -1,5 +1,5 @@
-//! Helpers dùng chung cho các test LiteSVM (identity, milestone).
-//! Cần build trước: `anchor build` (đọc target/deploy/ned_program.so).
+//! Shared helpers for the LiteSVM tests (identity, milestone).
+//! Build first: `anchor build` (reads target/deploy/ned_program.so).
 #![allow(dead_code)]
 
 use anchor_lang::prelude::{Clock, Pubkey};
@@ -37,8 +37,8 @@ pub fn new_user(svm: &mut LiteSVM) -> Keypair {
     user
 }
 
-/// Gửi nhiều instruction trong một giao dịch, `payer` trả phí, `extra_signers` ký thêm.
-/// Err chứa toàn bộ log để so khớp tên lỗi Anchor.
+/// Sends several instructions in one transaction; `payer` pays the fee, `extra_signers` also sign.
+/// Err holds the whole log so Anchor error names can be matched.
 pub fn send_signed(
     svm: &mut LiteSVM,
     ixs: &[Instruction],
@@ -53,7 +53,7 @@ pub fn send_signed(
     svm.send_transaction(tx).map_err(|e| format!("{:?}\n{}", e.err, e.meta.logs.join("\n")))
 }
 
-/// Gửi 1 instruction; Err chứa toàn bộ log để so khớp tên lỗi Anchor
+/// Sends 1 instruction; Err holds the whole log so Anchor error names can be matched
 pub fn send(svm: &mut LiteSVM, ix: Instruction, payer: &Keypair) -> Result<(), String> {
     send_signed(svm, &[ix], payer, &[]).map(|_| ())
 }
@@ -65,13 +65,13 @@ pub fn assert_err<T>(result: Result<T, String>, expected: &str) {
     }
 }
 
-/// In và trả về compute units của một giao dịch thành công (bảng CU cho deck)
+/// Prints and returns the compute units of a successful transaction (CU table for the deck)
 pub fn cu(label: &str, meta: &TransactionMetadata) -> u64 {
     println!("CU {label}: {}", meta.compute_units_consumed);
     meta.compute_units_consumed
 }
 
-/// Đặt thời gian chain (Clock::unix_timestamp) cho các test deadline
+/// Sets the chain time (Clock::unix_timestamp) for the deadline tests
 pub fn set_clock(svm: &mut LiteSVM, unix_ts: i64) {
     let mut clock = svm.get_sysvar::<Clock>();
     clock.unix_timestamp = unix_ts;
@@ -148,18 +148,18 @@ pub fn token_amount(svm: &LiteSVM, address: &Pubkey) -> u64 {
     u64::from_le_bytes(data[64..72].try_into().unwrap())
 }
 
-/// Đặt mint USDC devnet tại địa chỉ cố định (program ghim `USDC_MINT`); authority không quan trọng vì test đặt số dư trực tiếp
+/// Puts the devnet USDC mint at its fixed address (the program pins `USDC_MINT`); the authority does not matter since tests set balances directly
 pub fn put_usdc_mint(svm: &mut LiteSVM) -> Pubkey {
     put_token_program_account(svm, USDC_MINT, mint_data(&Pubkey::new_unique(), 1_000_000_000_000, USDC_DECIMALS));
     USDC_MINT
 }
 
-/// Địa chỉ ATA: PDA [owner, Token program, mint] của Associated Token program
+/// ATA address: PDA [owner, Token program, mint] of the Associated Token program
 pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[owner.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.as_ref()], &ATA_PROGRAM_ID).0
 }
 
-/// Đặt token account tại ATA của `owner` với `amount`; trả về địa chỉ ATA
+/// Puts a token account at the ATA of `owner` with `amount`; returns the ATA address
 pub fn put_token_account(svm: &mut LiteSVM, owner: &Pubkey, mint: &Pubkey, amount: u64) -> Pubkey {
     let address = ata(owner, mint);
     put_token_program_account(svm, address, token_account_data(mint, owner, amount));

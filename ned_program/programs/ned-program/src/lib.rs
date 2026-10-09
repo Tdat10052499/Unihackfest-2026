@@ -21,26 +21,26 @@ pub mod ned_program {
     use super::*;
 
     // =========================================================================
-    // 1. IDENTITY: username công khai + SĐT tuỳ chọn (chỉ lưu phone_key = scrypt(SĐT))
+    // 1. IDENTITY: public username + optional phone number (only phone_key = scrypt(phone) is stored)
     // =========================================================================
 
-    /// Tạo hồ sơ: NameRecord [b"name", username] + ReverseRecord [b"reverse", wallet]
+    /// Create profile: NameRecord [b"name", username] + ReverseRecord [b"reverse", wallet]
     pub fn create_profile(ctx: Context<CreateProfile>, username: String) -> Result<()> {
         create_profile_handler(ctx, username)
     }
 
-    /// Liên kết SĐT: PhoneRecord [b"phone_v1", phone_key]. phone_key = scrypt(SĐT E.164) tính trong app —
-    /// program không bao giờ nhận hay lưu SĐT dạng rõ.
+    /// Link phone: PhoneRecord [b"phone_v1", phone_key]. phone_key = scrypt(phone in E.164), computed in the app —
+    /// the program never receives or stores the phone number in clear.
     pub fn link_phone(ctx: Context<LinkPhone>, phone_key: [u8; 32]) -> Result<()> {
         link_phone_handler(ctx, phone_key)
     }
 
-    /// Huỷ liên kết SĐT: đóng PhoneRecord của chính mình (hoàn rent về signer)
+    /// Unlink phone: closes the signer's own PhoneRecord (rent refunded to the signer)
     pub fn unlink_phone(ctx: Context<UnlinkPhone>) -> Result<()> {
         unlink_phone_handler(ctx)
     }
 
-    /// Đổi username: đóng NameRecord cũ (hoàn rent), tạo NameRecord mới, cập nhật ReverseRecord
+    /// Change username: closes the old NameRecord (rent refunded), creates the new NameRecord, updates the ReverseRecord
     pub fn update_username(ctx: Context<UpdateUsername>, new_username: String) -> Result<()> {
         update_username_handler(ctx, new_username)
     }
@@ -49,7 +49,7 @@ pub mod ned_program {
     // 2. STABLECOIN TRANSFERS
     // =========================================================================
 
-    /// Chuyển Stablecoin (SPL Token / Token 2022) an toàn qua CPI TransferChecked
+    /// Transfers a stablecoin (SPL Token / Token 2022) safely through a TransferChecked CPI
     pub fn transfer_stablecoin(ctx: Context<TransferStablecoin>, amount: u64) -> Result<()> {
         transfer_stablecoin_handler(ctx, amount)
     }

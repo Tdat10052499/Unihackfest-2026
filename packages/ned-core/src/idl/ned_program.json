@@ -1032,7 +1032,7 @@
     {
       "name": "create_profile",
       "docs": [
-        "Tạo hồ sơ: NameRecord [b\"name\", username] + ReverseRecord [b\"reverse\", wallet]"
+        "Create profile: NameRecord [b\"name\", username] + ReverseRecord [b\"reverse\", wallet]"
       ],
       "discriminator": [
         225,
@@ -1369,8 +1369,8 @@
     {
       "name": "link_phone",
       "docs": [
-        "Liên kết SĐT: PhoneRecord [b\"phone_v1\", phone_key]. phone_key = scrypt(SĐT E.164) tính trong app —",
-        "program không bao giờ nhận hay lưu SĐT dạng rõ."
+        "Link phone: PhoneRecord [b\"phone_v1\", phone_key]. phone_key = scrypt(phone in E.164), computed in the app —",
+        "the program never receives or stores the phone number in clear."
       ],
       "discriminator": [
         141,
@@ -2926,7 +2926,7 @@
     {
       "name": "transfer_stablecoin",
       "docs": [
-        "Chuyển Stablecoin (SPL Token / Token 2022) an toàn qua CPI TransferChecked"
+        "Transfers a stablecoin (SPL Token / Token 2022) safely through a TransferChecked CPI"
       ],
       "discriminator": [
         63,
@@ -2969,7 +2969,7 @@
     {
       "name": "unlink_phone",
       "docs": [
-        "Huỷ liên kết SĐT: đóng PhoneRecord của chính mình (hoàn rent về signer)"
+        "Unlink phone: closes the signer's own PhoneRecord (rent refunded to the signer)"
       ],
       "discriminator": [
         170,
@@ -3014,7 +3014,7 @@
         {
           "name": "phone_record",
           "docs": [
-            "PhoneRecord của chính signer (Account<> kiểm tra owner = program + discriminator)"
+            "The signer's own PhoneRecord (Account<> checks owner = program + discriminator)"
           ],
           "writable": true
         }
@@ -3024,7 +3024,7 @@
     {
       "name": "update_username",
       "docs": [
-        "Đổi username: đóng NameRecord cũ (hoàn rent), tạo NameRecord mới, cập nhật ReverseRecord"
+        "Change username: closes the old NameRecord (rent refunded), creates the new NameRecord, updates the ReverseRecord"
       ],
       "discriminator": [
         233,
@@ -3069,7 +3069,7 @@
         {
           "name": "old_name_record",
           "docs": [
-            "NameRecord hiện tại — đóng và hoàn rent về signer"
+            "Current NameRecord — closed, rent refunded to the signer"
           ],
           "writable": true,
           "pda": {
@@ -4986,7 +4986,7 @@
     {
       "name": "NameRecord",
       "docs": [
-        "[b\"name\", username] → ví sở hữu username"
+        "[b\"name\", username] → wallet that owns the username"
       ],
       "type": {
         "kind": "struct",
@@ -5081,7 +5081,7 @@
     {
       "name": "PhoneRecord",
       "docs": [
-        "[b\"phone_v1\", scrypt(SĐT)] → ví đã liên kết SĐT (chưa xác minh OTP)"
+        "[b\"phone_v1\", scrypt(phone)] → wallet that linked the phone number (not OTP-verified)"
       ],
       "type": {
         "kind": "struct",
@@ -5136,7 +5136,7 @@
     {
       "name": "ReverseRecord",
       "docs": [
-        "[b\"reverse\", wallet] → hồ sơ công khai của ví (người quay lại = có ReverseRecord)"
+        "[b\"reverse\", wallet] → public profile of the wallet (returning user = has a ReverseRecord)"
       ],
       "type": {
         "kind": "struct",
