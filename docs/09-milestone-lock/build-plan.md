@@ -64,7 +64,7 @@ That is about 65 hours for one developer in six days.
 | G2 | Dynamic dashboard: add the Vercel production domain(s) to the allowed origins | Login works on the Vercel preview of C1 | Dynamic advises explicit domains, no wildcards: preview URLs other than production will not log in |
 | G3 | Helius key: add the Vercel domain to its domain restriction (key rotation, open issue 1) | RPC calls succeed from Vercel | Fall back to the public devnet RPC for the demo |
 | G4 | Before the program upgrade: list `SharedFund` accounts of 708 bytes on devnet; settle and close them, or recycle their USDC | Zero 708-byte funds left (the A2 prompt prints the list) | Old funds stay readable only by the old client code; their USDC is stuck |
-| G5 | LICENSE decision (open issue 2) | MIT file added, or the MIT claim removed | — |
+| G5 | LICENSE decision (open issue 2) | MIT file added, or the MIT claim removed | Done 9 Oct 2026: Apache-2.0 (team decision), `LICENSE` + `NOTICE`; replaces the MIT option |
 
 ## 3. Phase A · Program (one PR, deploy once)
 

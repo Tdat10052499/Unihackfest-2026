@@ -221,6 +221,7 @@ Word table: `docs/09-milestone-lock/product-spec.md` §6. Use: lock, release, re
 - **Done when:** CL reads the README against the live app and every claim is true or marked "roadmap".
 
 ### R2 · The README claims MIT, but there is no LICENSE file
+**Closed 9 Oct 2026:** the team chose Apache-2.0; `LICENSE` and `NOTICE` added, README License section updated.
 - **Where:** `README.md:241`; no `LICENSE` in the repo root
 - **Fix:** the team decides. Either add a standard MIT `LICENSE` file (year 2026, team name), or remove the claim.
 - **Done when:** the claim and the file agree.
