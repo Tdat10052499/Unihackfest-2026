@@ -111,7 +111,7 @@ This table replaces `07-strategy-v3` §11.3 and the word lists in `08-research`.
 | D30: "software; the money sits in a vault owned by the Solana program, not by N.E.D" | "intermediary", "trung gian", "escrow agent", "N.E.D holds your money" |
 | D30: "locked in the program before work starts", "released by the deadlines written into the contract" | "guaranteed payment", "safe", "protected" |
 | D30: "client", "freelancer", "contract", "milestone" | "employer", "employee", "salary", "hire staff" (Law 74/2025, lawyer question 7) |
-| "N.E.D" (the product), "the N.E.D app" (the phone app), "your N.E.D wallet" (the user's own embedded wallet) | "N.E.D Wallet" as a product name (9 Oct 2026) |
+| "N.E.D" (the product), "the N.E.D app" (the phone app), "your N.E.D account" (where the user's own USDC goes outside Vietnam: the user's own embedded wallet; N.E.D cannot move it) | "N.E.D Wallet" as a product name, "your N.E.D wallet" (9 Oct 2026) |
 
 The word "escrow" may appear only in technical docs and in answers to judges who use it first.
 
