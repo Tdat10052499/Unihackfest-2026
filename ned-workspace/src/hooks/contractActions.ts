@@ -39,7 +39,7 @@ export function confirmFor(kind: ContractActionKind, fund: FundView, raw: FundAc
         rows: [
           { label: 'Contract', value: fund.title },
           milestone,
-          { label: 'To', value: fund.role === 'client' ? other : 'You', sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'The N.E.D wallet chosen at accept' },
+          { label: 'To', value: fund.role === 'client' ? other : 'You', sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'The N.E.D account chosen at accept' },
           { label: 'Amount', value: amount, mono: true },
           fee,
           NO_FEE,

@@ -71,7 +71,7 @@ export default function RecordsScreen() {
           </View>
           <View style={styles.amount}>
             <Text style={styles.amountValue}>{vn ? vnd(units) : formatUsdc(units)}</Text>
-            <Text style={styles.amountSub}>{vn ? `$${usdcFromUnits(units)} · estimate` : partner ? 'to the payout partner' : 'to your N.E.D wallet'}</Text>
+            <Text style={styles.amountSub}>{vn ? `$${usdcFromUnits(units)} · estimate` : partner ? 'to the payout partner' : 'to your N.E.D account'}</Text>
           </View>
         </View>
         <View style={styles.rowBottom}>

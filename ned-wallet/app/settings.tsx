@@ -159,7 +159,7 @@ export default function SettingsScreen() {
                   <Text style={styles.caption}>
                     {vn
                       ? 'Amounts in VND (estimate). Earnings go to your bank through a payout partner. No crypto balance is shown.'
-                      : 'Off: you see USDC, add test USDC to lock contracts, and earnings go to your N.E.D wallet.'}
+                      : 'Off: you see USDC, add test USDC to lock contracts, and earnings go to your N.E.D account.'}
                   </Text>
                 </View>
                 <Toggle accessibilityLabel="I live in Vietnam" value={vn} onValueChange={toggleVietnam} disabled={!walletAddress} />

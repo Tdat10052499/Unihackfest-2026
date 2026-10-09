@@ -128,7 +128,7 @@ export default function AcceptScreen() {
               </Text>
             </View>
           ) : (
-            option('ownWallet', 'USDC to my N.E.D wallet', 'USDC to your N.E.D wallet. Only where stablecoins are allowed for you.', 'credit-card')
+            option('ownWallet', 'USDC to my N.E.D account', 'USDC to your N.E.D account. Only where stablecoins are allowed for you.', 'credit-card')
           )}
         </View>
 

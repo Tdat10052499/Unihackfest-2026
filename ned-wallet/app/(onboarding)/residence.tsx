@@ -18,7 +18,7 @@ const OPTIONS: { id: Region; title: string; body: string; badge: string | null }
     body: "You'll see amounts in VND and receive earnings in your bank account through a payout partner. No crypto balance is shown.",
     badge: 'VN',
   },
-  { id: 'intl', title: 'I live outside Vietnam', body: "You'll see USDC and receive earnings in your N.E.D wallet.", badge: null },
+  { id: 'intl', title: 'I live outside Vietnam', body: "You'll see USDC and receive earnings in your N.E.D account.", badge: null },
 ];
 
 export default function ResidenceScreen() {

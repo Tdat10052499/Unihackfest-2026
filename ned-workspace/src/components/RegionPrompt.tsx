@@ -15,7 +15,7 @@ const OPTIONS: { id: Region; title: string; body: string }[] = [
     title: 'I live in Vietnam',
     body: "You'll see amounts in VND and receive earnings in your bank account through a payout partner. No crypto balance is shown.",
   },
-  { id: 'intl', title: 'I live outside Vietnam', body: "You'll see USDC and receive earnings in your N.E.D wallet." },
+  { id: 'intl', title: 'I live outside Vietnam', body: "You'll see USDC and receive earnings in your N.E.D account." },
 ];
 
 export function RegionPrompt() {

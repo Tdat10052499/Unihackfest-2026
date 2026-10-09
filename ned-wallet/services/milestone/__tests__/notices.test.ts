@@ -31,5 +31,5 @@ test('each kind has a title and a message in ≈ VND (Vietnam view) or USDC, wit
   }
   assert.equal(contractNotice(kinds[3], true, '@mia').title, 'Milestone 2 released to payout partner · hand over the final files');
   assert.match(contractNotice(kinds[3], true, '@mia').message, /payout partner \(VND transfer simulated in this demo\)\. Hand over the final files\.$/);
-  assert.match(contractNotice(kinds[4], false, '@mia').message, /^Milestone 1: 10\.00 USDC .* your N\.E\.D wallet\. Hand over the final files\.$/);
+  assert.match(contractNotice(kinds[4], false, '@mia').message, /^Milestone 1: 10\.00 USDC .* your N\.E\.D account\. Hand over the final files\.$/);
 });

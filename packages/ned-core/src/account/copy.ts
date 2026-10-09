@@ -40,7 +40,7 @@ export const COUNTRY_COPY = {
   noResult: (query: string) => `No country matches "${query}".`,
   noteVN:
     "In Vietnam you'll see amounts in VND (estimate) and receive earnings in your bank account through a payout partner. No crypto balance is shown.",
-  noteIntl: "You'll see USDC and receive earnings in your N.E.D wallet.",
+  noteIntl: "You'll see USDC and receive earnings in your N.E.D account.",
   settingsHint: 'You can change this in Settings.',
   vnClient: {
     title: 'Join as a freelancer?',

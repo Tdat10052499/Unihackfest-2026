@@ -314,7 +314,7 @@ export function toFundView(fund: FundAccount, me: string, region: Region, now: n
 
   const destination: FundView['destination'] =
     fund.payoutKind === 'OwnWallet'
-      ? { kind: 'ownWallet', label: role === 'freelancer' ? 'USDC to your N.E.D wallet' : 'USDC to the freelancer’s own wallet', simulated: false }
+      ? { kind: 'ownWallet', label: role === 'freelancer' ? 'USDC to your N.E.D account' : 'USDC to the freelancer’s own wallet', simulated: false }
       : fund.payoutKind === 'PayoutPartner'
         ? { kind: 'payoutPartner', label: 'VND to a Vietnamese bank account through a payout partner (simulated)', simulated: true }
         : null;

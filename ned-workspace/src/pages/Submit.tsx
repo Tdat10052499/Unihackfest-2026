@@ -756,7 +756,7 @@ export function SubmitView(p: SubmitViewProps) {
               </div>
               <div className={flow.caption}>
                 {pay.sub}
-                {fund.destination ? ` · ${fund.destination.kind === 'payoutPartner' ? 'to your bank via the payout partner' : 'to your N.E.D wallet'}` : ''}
+                {fund.destination ? ` · ${fund.destination.kind === 'payoutPartner' ? 'to your bank via the payout partner' : 'to your N.E.D account'}` : ''}
               </div>
             </m.div>
           ) : null}
@@ -939,7 +939,7 @@ function DoneView({ fund, raw, index, vn, done }: { fund: FundView; raw: FundAcc
               ? `${other} sees the revised version on the contract. The amount stays locked until you both agree.`
               : done.mode === 'handover'
                 ? `${other} can check the final files against the fingerprints you committed at submit.`
-                : `${other} sees your delivery in the Workspace and on the phone. If ${other} does not review it by ${formatDeadline(msRaw.reviewBy)}, anyone can release it ${partner ? 'to your bank in VND' : 'to your N.E.D wallet'}.`}
+                : `${other} sees your delivery in the Workspace and on the phone. If ${other} does not review it by ${formatDeadline(msRaw.reviewBy)}, anyone can release it ${partner ? 'to your bank in VND' : 'to your N.E.D account'}.`}
           </p>
           <div className={styles.rowsBox}>
             <div className={styles.doneRow}>

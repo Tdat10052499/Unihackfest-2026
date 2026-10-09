@@ -83,7 +83,7 @@ export function Review() {
       rows: [
         { label: 'Contract', value: fund.title },
         { label: 'Milestone', value: `${page.index + 1}${ms.name ? ` · ${ms.name}` : ''}` },
-        { label: 'To', value: other, sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'Their N.E.D wallet' },
+        { label: 'To', value: other, sub: partner ? 'Through the payout partner, sent as VND (simulated)' : 'Their N.E.D account' },
         { label: 'Amount', value: amount, mono: true },
         { label: 'Network fee', value: '~0.000005 SOL', sub: 'devnet test SOL' },
         { label: 'N.E.D fee', value: 'None during the pilot' },
@@ -330,7 +330,7 @@ export function ReviewView(p: ReviewViewProps) {
                 {amount.replace(' USDC', '')}
                 <span className={styles.amountUnit}> USDC</span>
               </div>
-              <div className={flow.caption}>{partner ? `To the payout partner for ${other} · sent as VND (simulated)` : `To ${other}’s N.E.D wallet`}</div>
+              <div className={flow.caption}>{partner ? `To the payout partner for ${other} · sent as VND (simulated)` : `To ${other}’s N.E.D account`}</div>
               <div className={styles.decide}>
                 <button type="button" className={flow.create} onClick={() => void release()} disabled={Boolean(busy)}>
                   {busy === 'release' ? p.status || 'Releasing…' : 'Accept & release'}
@@ -550,7 +550,7 @@ function Done({ fund, raw, index, released }: { fund: FundView; raw: FundAccount
           <h1 className={flow.createdTitle}>Milestone {index + 1} released</h1>
           <p className={flow.noticeText}>
             {formatUsdc(raw.milestones[index].amount)} went from the contract to{' '}
-            {partner ? `the payout partner for ${other}, who receives VND in a bank account (simulated in the demo).` : `${other}’s N.E.D wallet.`}
+            {partner ? `the payout partner for ${other}, who receives VND in a bank account (simulated in the demo).` : `${other}’s N.E.D account.`}
           </p>
           <div className={styles.rowsBox}>
             <div className={styles.doneRow}>
