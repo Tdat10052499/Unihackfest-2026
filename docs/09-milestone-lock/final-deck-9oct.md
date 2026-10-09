@@ -79,6 +79,32 @@ Trang 15–17 là trang thừa của template: **xoá tay trong Canva** (API kh�
 - Tổng thời lượng 4:40, dư 20 s trong 5:00.
 - So khớp từng phần tử bản đã lưu với bản xem trước đã được duyệt: trùng hết.
 
+## 5b. Viết lại cho người không chuyên (9/10, chiều; đã lưu trên Canva)
+
+**Lý do:** người xem ngoài ngành không hiểu được nhiều thuật ngữ (vault, program, release, payout partner, devnet, CU, PDA, multisig), và một số dòng viết như ghi chú cho dev. **Nguyên tắc:** nói bằng lời thường trước, thuật ngữ để trong ngoặc. Mốc giờ, số liệu và thứ tự slide không đổi.
+
+| Slide | Trước | Sau |
+| --- | --- | --- |
+| Bìa | Khoá trước khi làm. | Khoá tiền công trước khi làm. |
+| Vấn đề | Làm xong cho người A ở Singapore, rồi A biến mất … | B làm xong cho client A ở Singapore, rồi A biến mất, không trả tiền. Nhận crypto thay tiền cũng không ổn (theo cách nhóm đọc NĐ 52/2024). |
+| Giải pháp | Từng milestone · Khoá trong vault do program sở hữu | Chia việc theo mốc · Client khoá USDC (đô la số) cho từng mốc, trong một két do code giữ. Không phải N.E.D giữ. |
+| Giải pháp | Release hoặc refund theo code | Duyệt xong → tiền đi cho B · Quá hạn nộp → tiền về lại client |
+| Giải pháp | VND vào ngân hàng qua payout partner (mô phỏng) | Nhận VND vào ngân hàng qua đối tác chuyển tiền (đang mô phỏng) |
+| Demo | Chạy trực tiếp trên devnet · kiểm chứng trên Explorer | Chạy thật trên mạng thử Solana · kiểm chứng trên Explorer; mỗi bước có một câu "ai làm gì" (tên nút giữ tiếng Anh) |
+| Ba bài toán khó | Hết hạn: ai cũng gọi được lệnh · … · fund_job + create_fund + select_job | Tiền chỉ đi theo hạn chót trong hợp đồng … · Bí mật trên blockchain công khai · Có tiền khoá rồi mới nhận việc (tên lệnh chuyển vào ghi chú) |
+| Kiến trúc | Một program, kiểm chứng sau mỗi bước · 29 instruction · Bất biến | Một smart contract, kiểm tra sau mỗi bước · 29 lệnh · 26 nhật ký · Sổ sách luôn khớp (đã trả + đã hoàn + còn khoá = tổng tiền) |
+| Solana | IDL on-chain · ví MPC nhúng, không seed phrase · compute budget | Framework chuẩn để viết smart contract · đăng nhập Google là có ví, không phải nhớ 12 từ khôi phục · "của sức tính toán cho phép mỗi lệnh" |
+| Build | Binary trên devnet trùng bản build của nhóm | Code trên devnet trùng khớp mã nguồn công khai · Nhật ký 30 quyết định thiết kế (D1–D30) |
+| Kinh doanh | Client trả 1% khi release · xin sandbox Due, Nium | Client trả 1% khi duyệt xong mỗi mốc · thử với đối tác chuyển tiền (Due, Nium) |
+| Lộ trình | Partner · Audit · Multisig | Đối tác · Kiểm toán · Đa chữ ký, mỗi mục có một dòng giải thích |
+| Kết | Release theo luật. · VND cho người B. | Tiền đi theo luật trong code. · Freelancer nhận VND. |
+
+**Ghi chú người nói:** lời thoại slide 2, 4, 5, 6 viết lại bằng lời thường; ghi chú trang bìa có từ điển thuật ngữ (lần đầu nhắc thì giải thích một câu): USDC = đô la số (không gọi là "thanh toán"); vault = két do code giữ; milestone = mốc việc; release = chuyển tiền khi xong mốc; refund = trả lại client; devnet = mạng thử, token không có giá trị; Explorer = trang tra cứu công khai; payout partner = đối tác chuyển tiền (mô phỏng); CU = đơn vị sức tính toán.
+
+**Cách nói đúng về smart contract:** "đoạn code tự chạy trên blockchain; tiền chỉ đi theo luật đã ghi trong code". **Không nói** "không ai sửa được code/luật": quyền nâng cấp program hiện vẫn ở ví của nhóm (sẽ chuyển sang multisig, xem slide Giới hạn & lộ trình). Bản ghi chú trang bìa trên Canva (lưu 9/10) còn câu "không ai sửa giữa chừng được luật đã ghi": cần sửa theo câu ở trên, hoặc không đọc câu đó.
+
+**Lưu ý:** dòng "Đội N.E.D · UniHackFest 2026 · Vòng chung kết" không còn trên bìa bản Canva hiện tại (đã bị xoá trước đợt sửa này); thêm lại nếu nhóm muốn.
+
 ## 6. Nguồn đã dùng / đã tìm (để truy vết)
 
 **Cuộc thi**
