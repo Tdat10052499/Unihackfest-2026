@@ -42,3 +42,17 @@ test('D2: a SOL balance change reads as SOL, never as dollars', () => {
   assert.equal(solActivityAmount(-0.0123), '-0.0123 SOL');
   assert.doesNotMatch(solActivityAmount(1), /\$|USDC/);
 });
+
+test('Add USDC: blocked in the Vietnam view and for a wallet with no region, open in the international view', () => {
+  assert.ok((VN_BLOCKED_ROUTES as readonly string[]).includes('/add-usdc'));
+  assert.equal(blockedForRegion('/add-usdc', 'vn'), true);
+  assert.equal(blockedForRegion('/add-usdc/', 'vn'), true, 'trailing slash (the guard reads the pathname, never the query)');
+  assert.equal(blockedForRegion('/add-usdc', null), true);
+  assert.equal(blockedForRegion('/add-usdc', 'intl'), false);
+  // Inside the Workspace's wallet extension the path carries the /wallet base
+  assert.equal(appPath('/wallet/add-usdc', '/wallet'), '/add-usdc');
+  assert.equal(blockedForRegion(appPath('/wallet/add-usdc', '/wallet'), 'vn'), true);
+  assert.equal(blockedForRegion(appPath('/wallet/add-usdc', '/wallet'), 'intl'), false);
+  // /receive is now a redirect to /add-usdc and stays blocked too
+  assert.equal(blockedForRegion('/receive', 'vn'), true);
+});

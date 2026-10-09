@@ -159,7 +159,7 @@ export default function SettingsScreen() {
                   <Text style={styles.caption}>
                     {vn
                       ? 'Amounts in VND (estimate). Earnings go to your bank through a payout partner. No crypto balance is shown.'
-                      : 'Off: you see USDC, can send and receive, and earnings go to your N.E.D wallet.'}
+                      : 'Off: you see USDC, add test USDC to lock contracts, and earnings go to your N.E.D wallet.'}
                   </Text>
                 </View>
                 <Toggle accessibilityLabel="I live in Vietnam" value={vn} onValueChange={toggleVietnam} disabled={!walletAddress} />
@@ -179,6 +179,10 @@ export default function SettingsScreen() {
             </View>
             <Text style={styles.value}>{vn ? 'VND estimate' : 'USDC'}</Text>
           </View>
+          {region === 'intl' ? (
+            // International view only: sending moved off Home (Milestone Lock); the Vietnam view never sends (V1)
+            <LinkRow title="Move USDC out" onPress={() => router.push('/send')} divider />
+          ) : null}
         </View>
 
         <Text style={styles.section} accessibilityRole="header">

@@ -9,7 +9,8 @@ import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { Feather } from '@expo/vector-icons';
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { requestTestSol, testSolBusy } from '../../services/testSol';
 import { useAuth } from '../../services/auth';
 import { formatSol, getSetupCost } from '../../services/onboarding';
 import { NoticeCard, OnbScreen, PrimaryButton, onbText } from '../../components/onboarding/ui';
@@ -19,8 +20,6 @@ import { useRegion } from '../../hooks/useRegion';
 
 const POLL_MS = 3000;
 const FAUCET_URL = 'https://faucet.solana.com';
-// RPC công khai cho requestAirdrop (RPC Helius/Dynamic có thể không hỗ trợ airdrop)
-const PUBLIC_DEVNET_RPC = 'https://api.devnet.solana.com';
 
 export default function FundScreen() {
   const { isReady, isAuthenticated, walletAddress, connection } = useAuth();
@@ -85,16 +84,13 @@ export default function FundScreen() {
     setAirdrop('loading');
     setAirdropError('');
     try {
-      const faucet = new Connection(PUBLIC_DEVNET_RPC, 'confirmed');
-      const signature = await faucet.requestAirdrop(new PublicKey(walletAddress), LAMPORTS_PER_SOL);
-      await faucet.confirmTransaction(signature, 'confirmed');
+      await requestTestSol(walletAddress, LAMPORTS_PER_SOL);
       setAirdrop('sent');
       refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
       setAirdrop('failed');
       setAirdropError(
-        /429|limit|dry/i.test(message)
+        testSolBusy(err)
           ? 'The in-app faucet is busy (daily limit reached). Use the Solana faucet below instead.'
           : 'Could not get test SOL right now. Use the Solana faucet below instead.'
       );

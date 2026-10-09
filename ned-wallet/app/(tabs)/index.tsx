@@ -209,8 +209,8 @@ export default function HomeScreen() {
                   {cap.createContract ? (
                     <QuickTall icon="plus" filled title="New contract" label="New contract: lock USDC per milestone for a freelancer" onPress={() => go('/contracts/new')} />
                   ) : null}
-                  <QuickTall icon="arrow-down" title="Receive" label="Receive USDC" onPress={() => go('/receive')} />
-                  <QuickTall icon="arrow-up" title="Send" label="Send USDC" onPress={() => go('/send')} />
+                  {/* Milestone Lock: a client needs test USDC to lock; sending moved to Settings → Move USDC out */}
+                  <QuickTall icon="plus-circle" title="Add USDC" label="Add USDC: get test USDC to lock your contracts" onPress={() => go('/add-usdc')} />
                 </View>
               )}
 

@@ -396,9 +396,10 @@ function QuickActions({ username, client }: { username: string | null; client: b
             {dot('plus', true)}
             New contract
           </Link>
-          <a className={styles.quickItem} href={mobileHref(env.mobileOrigin, '/receive')} target="_blank" rel="noreferrer">
+          {/* Milestone Lock: a client adds test USDC to lock contracts (the phone app's /add-usdc) */}
+          <a className={styles.quickItem} href={mobileHref(env.mobileOrigin, '/add-usdc')} target="_blank" rel="noreferrer">
             {dot('receive', false)}
-            Receive
+            Add USDC
           </a>
         </>
       )}

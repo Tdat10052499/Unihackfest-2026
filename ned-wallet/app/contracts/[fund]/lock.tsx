@@ -1,13 +1,14 @@
 // Lock (ContractLock board): total to lock, destination and milestones, the rules, balance check with the faucet
 // link, itemised fees, slide to lock. Client only, never in the Vietnam view (D18).
-import React, { useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { short, windowText } from '@/components/contracts/format';
 import { Card, FeesCard, RulesList, Tag, TopBar } from '@/components/contracts/ui';
 import { SlideConfirm } from '@/components/wallet/SlideConfirm';
+import { Button } from '@/components/design';
 import { fonts, palette, space, status } from '@/constants/design';
 import { riseStyle, useMotion } from '@/constants/motion';
 import { useFund } from '@/hooks/useFund';
@@ -20,7 +21,6 @@ import { useAuth } from '@/services/auth';
 import { formatDeadline, formatUsdc } from '@/services/milestone/format';
 import { getUsdcTokenBalance } from '@/services/solana';
 
-const FAUCET = 'https://faucet.circle.com/';
 
 export default function LockScreen() {
   const { fund: address = '' } = useLocalSearchParams<{ fund: string }>();
@@ -34,12 +34,15 @@ export default function LockScreen() {
   const { reduce } = useMotion();
   const [balance, setBalance] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!walletAddress || vn) return;
-    getUsdcTokenBalance(walletAddress, true)
-      .then(setBalance)
-      .catch(() => setBalance(null));
-  }, [walletAddress, vn]);
+  // Read on focus, so coming back from Add USDC updates "Your balance" and enables Slide to lock
+  useFocusEffect(
+    useCallback(() => {
+      if (!walletAddress || vn) return;
+      getUsdcTokenBalance(walletAddress, true)
+        .then(setBalance)
+        .catch(() => setBalance(null));
+    }, [walletAddress, vn])
+  );
 
   if (!fund) {
     return (
@@ -120,9 +123,7 @@ export default function LockScreen() {
                 <Text style={l.alert} accessibilityRole="alert">
                   Not enough USDC. You need {formatUsdc(totalUnits)} plus a little test SOL for the network fee.
                 </Text>
-                <Text style={l.link} accessibilityRole="link" onPress={() => void Linking.openURL(FAUCET)}>
-                  Get test USDC (devnet faucet) ↗
-                </Text>
+                <Button title="Add USDC" variant="secondary" icon="plus-circle" onPress={() => router.push(`/add-usdc?fund=${fund.address}` as Href)} />
               </View>
             ) : null}
           </Card>
