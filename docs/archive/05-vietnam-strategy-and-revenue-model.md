@@ -1,11 +1,13 @@
 # N.E.D Wallet — Proposed Direction and New Revenue Model
 
-> **Superseded on 1 Oct 2026 by strategy v2:** [`06-strategy-v2/strategy-v2.en.md`](06-strategy-v2/strategy-v2.en.md). Kept as a legal reference. Note: the 5–7% remittance-cost figure used below was corrected in v2 (World Bank: Japan → VN 3.70% / 2.05%).
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
+> **Superseded on 1 Oct 2026 by strategy v2:** [`06-strategy-v2/strategy-v2.en.md`](../06-strategy-v2/strategy-v2.en.md). Kept as a legal reference. Note: the 5–7% remittance-cost figure used below was corrected in v2 (World Bank: Japan → VN 3.70% / 2.05%).
 
 > **Status:** proposal, not yet reviewed by a mentor or a lawyer.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat (with an AI research assistant)
 > **Suggested location in the repo:** `docs/05-vietnam-strategy-and-revenue-model.md`
-> **Read together with:** [`01-dinh-huong-du-an.md`](01-dinh-huong-du-an.md), [`tong-hop-tien-do.md`](tong-hop-tien-do.md), [`04-ke-hoach-code.md`](04-ke-hoach-code.md)
+> **Read together with:** [`01-dinh-huong-du-an.md`](01-dinh-huong-du-an.md), [`tong-hop-tien-do.md`](../tong-hop-tien-do.md), [`04-ke-hoach-code.md`](04-ke-hoach-code.md)
 
 This document is for team members and anyone reading the repo who wants to analyse where N.E.D should go after UniHackfest 2026. Each claim is labelled as a **sourced fact**, an **inference** or an **assumption**. Section 10 lists what is still unverified. This is research, not legal or financial advice.
 

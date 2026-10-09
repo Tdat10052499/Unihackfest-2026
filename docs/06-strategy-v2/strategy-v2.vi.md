@@ -3,7 +3,7 @@
 > **Đã được thay thế ngày 02/10/2026 bởi đề xuất v3 (Shared Money):** [`../07-strategy-v3/strategy-v3.en.md`](../07-strategy-v3/strategy-v3.en.md). Giữ lại để tra cứu dữ liệu thị trường và pháp lý.
 
 > **Trạng thái:** đề xuất v2. Chủ dự án đã đồng ý hướng đi ngày 01/10/2026. Chưa được mentor, Compliance Lead hay luật sư thẩm định.
-> **Thay thế:** [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). V1 vẫn giữ để tra cứu phần pháp lý.
+> **Thay thế:** [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md) (v1). V1 vẫn giữ để tra cứu phần pháp lý.
 > **Cập nhật:** 01/10/2026 · **Người lập:** Ho Du Tuan Dat, cùng trợ lý AI nghiên cứu
 > **Bản tiếng Anh:** [`strategy-v2.en.md`](strategy-v2.en.md) · **Mô hình số liệu:** [`unit_economics.py`](unit_economics.py)
 
@@ -32,9 +32,9 @@ Nếu bạn clone repo và dùng Claude (hoặc trợ lý AI khác) để phân 
 
 **File liên quan trong repo:**
 
-- `../01-dinh-huong-du-an.md`: định hướng gốc và lời mentor.
+- `../archive/01-dinh-huong-du-an.md`: định hướng gốc và lời mentor.
 - `../tong-hop-tien-do.md`: tiến độ code đến 28/09/2026.
-- `../04-ke-hoach-code.md`: kế hoạch code theo phase.
+- `../archive/04-ke-hoach-code.md`: kế hoạch code theo phase.
 - `../05-legal/compliance-lead-tasks.md`: việc của Compliance Lead và các quyết định đã xác nhận với ban tổ chức.
 - `../../ned_program/programs/ned-program/src/lib.rs`: Anchor program hiện có (định danh).
 - `unit_economics.py`: mô hình doanh thu. Đổi giả định rồi chạy `python3 unit_economics.py`.
@@ -380,7 +380,7 @@ Lợi nhuận gộp/người   = 8.000 × (1,5% − 1,0%) + 1.200 × (1% − 0,1
 | --- | --- | --- | --- |
 | Mua USDC bằng yên | Sàn đã đăng ký (ví dụ SBI VC Trade) | ? | Biểu phí công khai |
 | Cầu nối Ethereum → Solana (nếu cần) | Dịch vụ bridge | ? | Đo thực tế |
-| Phí mạng Solana | Mạng lưới | ~0,000005 SOL/giao dịch | Đo trên devnet (`../poc-dynamic.md`); cần đo lại trên mainnet |
+| Phí mạng Solana | Mạng lưới | ~0,000005 SOL/giao dịch | Đo trên devnet (`../archive/poc-dynamic.md`); cần đo lại trên mainnet |
 | Đổi USDC → USD | Đối tác off-ramp | ? | Báo giá |
 | Chi trả VND tại Việt Nam | Tổ chức kiều hối hoặc ngân hàng | ? | Đàm phán |
 | KYC | Nhà cung cấp KYC | ? | Báo giá |
@@ -587,7 +587,7 @@ Nếu không đạt hai chỉ số đầu, quay về hướng "gửi về nhà" 
 - NDAChain: https://tuoitre.vn/viet-nam-co-nen-tang-blockchain-quoc-gia-xuyen-suot-tu-trung-uong-den-dia-phuong-2025101317482419.htm
 - TT 121/2020/TT-BTC: https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-121-2020-TT-BTC-huong-dan-hoat-dong-cua-cong-ty-chung-khoan-453690.aspx
 - Cuộc thi RongViet Invest 2026: https://vietstock.vn/2026/09/rongviet-invest-2026-lan-toa-suc-nong-den-sinh-vien-32-truong-dai-hoc-830-1494966.htm
-- Các văn bản khác (NĐ 52/2024, NĐ 89/2016, NĐ 135/2015, Luật 91/2025, Luật 116/2025, Luật 23/2026…): xem mục 11 của [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md)
+- Các văn bản khác (NĐ 52/2024, NĐ 89/2016, NĐ 135/2015, Luật 91/2025, Luật 116/2025, Luật 23/2026…): xem mục 11 của [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md)
 
 ---
 

@@ -1,5 +1,7 @@
 # NHẬT KÝ TIẾN ĐỘ DỰ ÁN N.E.D (PROCESS LOG)
 
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
 ---
 
 ## 📌 Bảng phân loại Types (Log Conventions)

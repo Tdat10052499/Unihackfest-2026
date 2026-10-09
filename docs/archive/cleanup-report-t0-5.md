@@ -1,6 +1,8 @@
 # Báo cáo dọn dẹp T0.5 — kiến trúc web3 (26/09/2026)
 
-Nhánh `chore/t0-5-web3-cleanup` (tạo từ `main` @ `7c7674c`, đã gồm PoC Dynamic). Kiến trúc mới: **không Supabase, không `ned-hub`, không relayer**. Sơ đồ thư mục + luồng dữ liệu: [`ned-wallet/ARCHITECTURE.md`](../ned-wallet/ARCHITECTURE.md).
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
+Nhánh `chore/t0-5-web3-cleanup` (tạo từ `main` @ `7c7674c`, đã gồm PoC Dynamic). Kiến trúc mới: **không Supabase, không `ned-hub`, không relayer**. Sơ đồ thư mục + luồng dữ liệu: [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
 
 ## Các commit
 

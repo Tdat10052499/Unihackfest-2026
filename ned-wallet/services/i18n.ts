@@ -36,7 +36,7 @@ export const resources = {
 i18n.init({
   compatibilityJSON: 'v3',
   resources,
-  // Thiết kế chốt toàn bộ UI tiếng Anh (trang-thai-thiet-ke.md, quyết định 3); Settings không còn chọn ngôn ngữ
+  // Thiết kế chốt toàn bộ UI tiếng Anh (docs/archive/02-thiet-ke-v1/trang-thai-thiet-ke.md, quyết định 3); Settings không còn chọn ngôn ngữ
   lng: 'en',
   fallbackLng: 'en',
   interpolation: {

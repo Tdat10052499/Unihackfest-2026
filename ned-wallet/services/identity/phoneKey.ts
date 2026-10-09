@@ -1,6 +1,6 @@
 // phone_key cho PhoneRecord [b"phone_v1", phone_key] của ned_program (Phương án C, T1.5).
 // SĐT dạng rõ KHÔNG bao giờ lên chain: app chuẩn hoá về E.164 rồi băm scrypt → 32 byte.
-// Tham số chốt ở docs/04-ke-hoach-code.md "Cập nhật sau Phase 0": N=2^15, r=8, p=1, dkLen=32 (~0.19s trên iPhone Safari).
+// Tham số chốt ở docs/archive/04-ke-hoach-code.md "Cập nhật sau Phase 0": N=2^15, r=8, p=1, dkLen=32 (~0.19s trên iPhone Safari).
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
 

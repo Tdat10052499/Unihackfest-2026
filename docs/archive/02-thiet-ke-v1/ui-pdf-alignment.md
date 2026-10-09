@@ -1,5 +1,7 @@
 # Home, Swap và xStocks — đối chiếu PDF
 
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
 Ngày: 28/09/2026. Nhánh `feat/ui-pdf-alignment`, từ `main` tại `698dd7e`.
 
 Phạm vi theo yêu cầu mới nhất: Home, Swap, xStocks. Nguồn: `ned-wallet-ui.pdf` trang 8–11, 13–18, 29–33 và canvas tương ứng. Các màn khác chưa đổi giao diện trong đợt này.

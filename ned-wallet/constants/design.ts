@@ -268,7 +268,7 @@ export const type = StyleSheet.create({
 
 export type TypeVariant = keyof typeof type;
 
-/** Màu dữ liệu (đã chạy validator dataviz trên nền tối — trang-thai-thiet-ke.md v62/v85) và màu nhận diện tài sản (HomeV4) */
+/** Màu dữ liệu (đã chạy validator dataviz trên nền tối — docs/archive/02-thiet-ke-v1/trang-thai-thiet-ke.md v62/v85) và màu nhận diện tài sản (HomeV4) */
 export const dataColors = {
   series: ['#9B4FDE', '#C98500', '#3987E5', '#199E70'] as const,
   other: '#6B6780',

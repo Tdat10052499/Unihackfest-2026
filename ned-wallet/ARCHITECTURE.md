@@ -1,6 +1,6 @@
-# Kiến trúc N.E.D Wallet (ned-wallet)
+# Kiến trúc app N.E.D trên điện thoại (ned-wallet)
 
-Cập nhật 03/10/2026, sau N0–N13 (Milestone Lock) và W0 (gói dùng chung `packages/ned-core`). Sản phẩm và đặc tả: [`../docs/09-milestone-lock/`](../docs/09-milestone-lock/README.md). Cài đặt, test, deploy, biến môi trường: [README gốc](../README.md#app-install-test-and-run).
+Cập nhật 03/10/2026, sau N0–N13 (Milestone Lock) và W0 (gói dùng chung `packages/ned-core`); dọn phần N.E.D Wallet cũ ngày 09/10/2026. Sản phẩm và đặc tả: [`../docs/09-milestone-lock/`](../docs/09-milestone-lock/README.md). Cài đặt, test, deploy, biến môi trường: [README gốc](../README.md#build-and-test).
 
 ## Nguyên tắc
 
@@ -31,15 +31,15 @@ ned-wallet/
 │   ├── _layout.tsx           AuthProvider (Dynamic) → Stack + AuthGate (chưa đăng nhập → /welcome)
 │   │                         + OnboardingGate (đã đăng nhập nhưng chưa xong onboarding → /setup)
 │   ├── index.tsx             Splash → welcome hoặc setup
-│   ├── (onboarding)/         welcome → setup → fund (thiếu SOL) → consent → profile → residence (mode → residence)
+│   ├── (onboarding)/         welcome → setup → consent → fund (thiếu SOL) → profile → residence; D30: role, country,
+│   │                         business, agreement
 │   ├── (tabs)/               Home (index, Vietnam view / international view) với thanh WalletNav
 │   ├── contracts/            index (danh sách, B4 làm lại), new (tạm); records.tsx (= history tới B5); disclosures.tsx
 │   ├── send.tsx, receive.tsx, history.tsx, notification-detail.tsx, scan-qr.tsx, settings.tsx
-│   ├── swap.tsx, xstocks/    Ẩn bằng FEATURES (route chuyển về Home), code giữ lại
 │   └── dev/milestone.tsx     Harness Milestone Lock, chỉ khi __DEV__ hoặc EXPO_PUBLIC_DEV_TOOLS=1
-├── components/               design/ (bộ UI chung), onboarding/, wallet/, xstocks/, SendFlow, thông báo, mascot
-├── constants/                chain.ts (shim → @ned/core/constants + PROGRAM_ID), features.ts (cờ swap/xstocks/
-│                             dispute/devTools…), design.ts, mascot.ts
+├── components/               design/ (bộ UI chung), onboarding/, wallet/, contracts/, home/, settings/, SendFlow, thông báo, mascot
+├── constants/                chain.ts (shim → @ned/core/constants + PROGRAM_ID), features.ts (cờ dispute,
+│                             records, lockAtHire, accountRoles, devTools), design.ts, mascot.ts
 ├── hooks/                    Milestone Lock: useFunds, useFund, useMilestoneActions, useChainTime, useRegion
 │                             (+ milestoneRefresh); useOnchainTransfer (gửi USDC), useNotificationSync
 ├── services/
@@ -51,15 +51,14 @@ ned-wallet/
 │   │                         phoneKey (E.164 + scrypt), ownPhone, resolve (người nhận / tên hiển thị), sns: ở app
 │   ├── onboarding.ts         Chi phí thật, bước tiếp theo (fund | consent | profile | region | home), tạo hồ sơ
 │   ├── p2pTransfer.ts        Chuẩn bị giao dịch gửi USDC devnet (số tiền → base units, không dùng float)
-│   ├── solana.ts, solanaConnection.ts   Số dư, lịch sử, lệnh SPL (dùng hằng số và connection ở trên)
-│   ├── jupiter/, xstocks*, demoLedger*  Swap/xStocks (đang ẩn)
-│   └── storage.ts, history.ts, i18n.ts, webAlert.ts
-├── stores/                   Zustand: user, network (luôn devnet), region (@ned_region_v1), consent
-│                             (@ned_consent_v1), walletMode, notification, xstocks
+│   ├── solana.ts             Số dư, lịch sử, lệnh SPL (dùng hằng số và connection ở trên)
+│   └── storage.ts, i18n.ts (chỉ còn nhóm chuỗi activities), webAlert.ts
+├── stores/                   Zustand: user, region (@ned_region_v1), consent (@ned_consent_v1),
+│                             account (@ned_account_v1, D30), signupDraft (D30, chỉ trong bộ nhớ), notification
 ├── idl/                      shim → @ned/core/idl (IDL thật nằm ở packages/ned-core/src/idl/)
 ├── utils/amountInput.ts      shim → @ned/core/utils/amountInput
-├── scripts/                  identity-devnet, identity-readonly, milestone-devnet (smoke run),
-│                             recycle-demo-usdc, xstocks-diagnose, gh-pages-gitignore
+├── scripts/                  identity-devnet, identity-readonly, milestone-devnet (smoke run), milestone-status,
+│                             jobs-smoke, jobs-e2e, recycle-demo-usdc, gh-pages-gitignore
 │                             (chạy bằng ts-node -P tsconfig.scripts.json để nạp được @ned/core)
 └── polyfill.js, index.js     Polyfill (Buffer, crypto, location cho Dynamic) nạp trước expo-router
 ```
@@ -80,13 +79,12 @@ ned-wallet/
   gửi USDC P2P             (vault USDC theo hợp đồng)
         │
         ▼
-  AsyncStorage / SecureStore: khu vực, nhật ký đồng ý, chế độ ví, SĐT của chính mình, cache
+  AsyncStorage / SecureStore: khu vực, nhật ký đồng ý, hồ sơ D30, SĐT của chính mình, cache
 ```
 
 - **Đăng nhập** (`useAuth().login()`): web = redirect Google → SDK tạo ví Solana nếu chưa có → chuyển ví sang devnet. `setup` gọi `resolveOnboarding`, rồi chuyển sang bước tiếp theo bằng `onboardingRoute`.
-- **Onboarding** (B3): `fund` (thiếu SOL) → `consent` → `profile` → `residence` → `home`.
+- **Onboarding** (B3): `consent` → `fund` (thiếu SOL) → `profile` → `residence` → `home`; khi bật D30: `role` → `country` → (`business`) → `agreement` → `fund` → `profile` → `home`.
   - Consent lưu theo ví (`@ned_consent_v1`); residence ghi region (`@ned_region_v1`) quyết định chế độ xem Vietnam / international.
-  - Ví đã chọn mode trước đây được tự gán region, không bị hỏi lại; `/mode` chuyển sang `/residence`.
 - **Ký và gửi giao dịch**: `services/chain/send.ts` `sendAndConfirm` làm lần lượt:
   1. tính phí + rent thật;
   2. kiểm tra SOL;
@@ -105,3 +103,4 @@ ned-wallet/
 - **Identity on-chain**: `NameRecord [b"name", username] → wallet`, `ReverseRecord [b"reverse", wallet] → username, has_phone`, `PhoneRecord [b"phone_v1", scrypt(SĐT)] → wallet`.
 - **Thông báo**: `useNotificationSync` đọc lịch sử on-chain mỗi 8 giây → banner + danh sách.
 - **Đã bỏ ở N11**: dApp Browser, cầu nối ví (`useWeb3Bridge`), Mobile Wallet Adapter (`MwaProvider`), trang `poc-dynamic`, các tab và modal không dùng.
+- **Đã bỏ 09/10/2026**: Swap, xStocks, client Jupiter, sổ demo (`demoLedger`), `services/history.ts`, chế độ ví Simple/Crypto (`/mode`, `useWalletModeStore`), `useNetworkStore`, `solanaConnection.ts`, `anchorClient.ts`, các modal và ảnh không dùng, chuỗi dịch cũ. Tài liệu thời đó: [`../docs/archive/`](../docs/archive/README.md).

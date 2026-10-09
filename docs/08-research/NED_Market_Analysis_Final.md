@@ -424,7 +424,7 @@ Phần này không phải danh sách việc cần làm chung chung cho một sta
 | Giao diện | Ứng dụng web cho điện thoại (GitHub Pages) và Workspace cho máy tính (Vercel). Đăng nhập Google qua Dynamic. Có giao diện cho người ở Việt Nam (hiển thị VND ước tính) và giao diện quốc tế |
 | Bảo mật nội dung | Brief và bài nộp mã hóa đầu cuối; khóa được chia sẻ tự động giữa các thiết bị đã đăng ký |
 | Tài liệu kỹ thuật | Đặc tả chương trình v1.3 đầy đủ (07/10); hướng dẫn build, test, deploy |
-| Đang ẩn hoặc tắt | Swap và xStocks (tính năng của sản phẩm cũ, vẫn còn code) |
+| Đã gỡ | Swap và xStocks (tính năng của sản phẩm cũ), gỡ khỏi code ngày 09/10/2026 |
 
 ### 2.4.2 Các hoạt động cần làm, theo khoảng trống
 

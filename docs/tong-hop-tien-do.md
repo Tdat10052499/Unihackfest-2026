@@ -1,8 +1,8 @@
-# Tổng hợp tiến độ N.E.D Wallet (26–27/09/2026)
+# Tổng hợp tiến độ N.E.D (bắt đầu từ thời N.E.D Wallet, 26/09/2026)
 
 > **Cập nhật 02/10/2026:** việc tiếp theo là Milestone Lock theo [`09-milestone-lock/`](09-milestone-lock/README.md) (program + màn hình hợp đồng). Các mục bên dưới vẫn là trạng thái đã xây và đã test đến 27/09.
 
-> Tài liệu bàn giao cho phiên làm việc tiếp theo (người hoặc trợ lý AI). Đọc cùng: [`README.md`](README.md), [`04-ke-hoach-code.md`](04-ke-hoach-code.md) (mục "Cập nhật sau Phase 0"), [`03-ky-thuat/dev-handoff.md`](03-ky-thuat/dev-handoff.md) (mục 1a — identity on-chain), [`../ned-wallet/ARCHITECTURE.md`](../ned-wallet/ARCHITECTURE.md).
+> Tài liệu bàn giao cho phiên làm việc tiếp theo (người hoặc trợ lý AI). Đọc cùng: [`README.md`](README.md), [`04-ke-hoach-code.md`](archive/04-ke-hoach-code.md) (mục "Cập nhật sau Phase 0"), [`03-ky-thuat/dev-handoff.md`](archive/03-ky-thuat/dev-handoff.md) (mục 1a — identity on-chain), [`../ned-wallet/ARCHITECTURE.md`](../ned-wallet/ARCHITECTURE.md).
 
 ## 0. Trạng thái nhanh
 
@@ -47,12 +47,12 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - Web: `signInWithSocialRedirect` + `detectSocialRedirectUrl/completeSocialRedirect`. Native: `signInWithSocialPopUp` + `expo-web-browser`.
 - Sửa `patch-privy.js` (lỗi pnpm) để web hết trắng trang (sau đó Privy bị gỡ hẳn ở T1.4).
 - **Kết quả trên iPhone Safari**: đăng nhập Google OK (~13 s lần đầu, 0.5 s khi còn phiên); memo devnet OK; **gas sponsorship: không khả dụng** (công tắc bị khoá); tạo ATA USDC tốn **0.001488 SOL rent** + 5 000 lamports phí; scrypt N=2^14: 85 ms, N=2^15: **187 ms**; airdrop trong app hay bị **429**.
-- Chi tiết: [`poc-dynamic.md`](poc-dynamic.md).
+- Chi tiết: [`poc-dynamic.md`](archive/poc-dynamic.md).
 
 ### T0.5 — Dọn dẹp theo kiến trúc web3 (PR #6)
 - Xoá: Shake to Split, Coin Toss Room, Geo-Red Packet, presence, thông báo Supabase Realtime, UI liên kết ví ngoài (Phantom…), Developer Mode, file nháp, `ned-mock-dapp/`, `Process.md` trùng, `reset-project.js`, `@supabase/supabase-js`.
 - `services/profile.ts` thay Supabase (lưu cục bộ, tạm thời); gộp `src/` vào thư mục gốc; khung `services/auth|identity|jupiter`, `stores/useWalletModeStore`; viết `ARCHITECTURE.md`.
-- Đã xoá thư mục rác trên máy: `ned-hub/`, `ned-mock-dapp/`, `.vercel/`, `.venv/`. Báo cáo: [`cleanup-report-t0-5.md`](cleanup-report-t0-5.md).
+- Đã xoá thư mục rác trên máy: `ned-hub/`, `ned-mock-dapp/`, `.vercel/`, `.venv/`. Báo cáo: [`cleanup-report-t0-5.md`](archive/cleanup-report-t0-5.md).
 
 ### T1.2 + T1.4 — Auth Dynamic, gỡ Privy (PR #7)
 - `services/auth/` (`client.ts`, `AuthProvider.tsx`, `constants.ts`): **`useAuth()`** → `{ status, isReady, isAuthenticated, user, walletAddress, connection, error, login, logout, signTransaction, signAndSendTransaction, signMessage, getJwt }`. Mọi giao dịch `sponsorshipMode: 'off'`. **Chỉ `services/auth` được import `@dynamic-labs-sdk/*`.**
@@ -100,7 +100,7 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
    - Fixture devnet (script `pnpm identity:devnet -- --fresh --recipients`, tạo ví tạm trong RAM, hoàn SOL dư): `@t17_0_8wc8v6zk` có SĐT `+84995141202`, ví `8wC8V6ZKabTn4Hc8q6jWA4CELuMvyX4VxiAZMGX6VyH`; `@t17_1_4hkvkahz` không có SĐT, ví `4HkvkahZoJhYxoTVJKAiy11TiihdWWCsWGg3Cmmt8EuT`. Không ghi khóa riêng.
    - Kiểm chứng read-only đã pass: hai username, SĐT + cảnh báo, địa chỉ, batch reverse, `sns.sol` Mainnet. SNS SDK 4.0.1 có ngưỡng slot tạm dừng `.sol`; cần kiểm tra lại trước pitching.
    - **Polish sau review (nhánh `fix/t1-7-polish`, 28/09/2026)**: `.sol` chỉ lookup, khóa Continue và giải thích Mainnet/Devnet; transaction đã prepare được truyền thẳng tới bước ký/gửi (không dựng lần ba); tham số transfer dùng `amountUsdc`.
-4. **Gate D0 đã chốt (chủ dự án, 27/09)**: Tokens API dùng khoá Free public `EXPO_PUBLIC_JUPITER_API_KEY` (chấp nhận lộ/hết hạn mức); Swap `/order` keyless 0.5 RPS có hàng đợi; AI rule-based, không LLM/backend, Phase 5 stretch cắt đầu tiên; ô thứ 3 Simple = **EARN**. Xem [quyết định thiết kế](02-thiet-ke/trang-thai-thiet-ke.md#6-quyết-định-thiết-kế-đã-chốt); xác minh API qua MCP trước khi code.
+4. **Gate D0 đã chốt (chủ dự án, 27/09)**: Tokens API dùng khoá Free public `EXPO_PUBLIC_JUPITER_API_KEY` (chấp nhận lộ/hết hạn mức); Swap `/order` keyless 0.5 RPS có hàng đợi; AI rule-based, không LLM/backend, Phase 5 stretch cắt đầu tiên; ô thứ 3 Simple = **EARN**. Xem [quyết định thiết kế](archive/02-thiet-ke-v1/trang-thai-thiet-ke.md#6-quyết-định-thiết-kế-đã-chốt); xác minh API qua MCP trước khi code.
 5. **Phase 2 (P0)**: Swap Jupiter (keyless `/order`, Demo mode không broadcast, phí 0.25%).
    - **T2.2–T2.4 (28/09/2026, nhánh `feat/p2-swap`)**: thêm `services/jupiter/` với hàng đợi tối đa 0.5 request/giây, huỷ quote cũ, timeout, cache Tokens API, hook quote tự làm mới 15 giây và mapping số dư Devnet → mint Mainnet (SOL → wSOL, USDC devnet → USDC Mainnet; token khác = 0). Phí 25 bps được tính/hiển thị phía client trong Demo mode; không gọi `/execute`, không ký, không broadcast.
    - Màn `/swap` thay NeoSwapModal: amount, token picker (verified/unverified), đảo chiều, 50%/Max, Auto/0.5/1/3% slippage, review với minimum received/route/price impact, success/failed và lưu lịch sử `Demo swap` vào AsyncStorage. Home SWAP đã trỏ vào luồng này.
@@ -132,7 +132,7 @@ Cập nhật tham chiếu Expo SDK 57, thêm `.mcp.json` (MCP: dynamic, jupiter,
 - xStocks: list/investments với Teddy empty, chart xanh/đỏ + vùng tô, range dưới chart, vị thế/stats dạng lưới, Buy/Sell cố định, màn tiền lớn/keypad, review/disclosure/slide và result/receipt/View position. Tái dùng theme/fonts/assets, không thêm dependency production.
 - Kiểm tra: `tsc` 0 lỗi; 5 file test Node (ledger, xStocks, Jupiter, tokenResponse, amountInput) pass. Lint main 49 errors/94 warnings → nhánh 48 errors/71 warnings, không có lỗi mới theo file/rule; code đổi 0 errors/0 warnings. Export Web + Android pass với `--max-workers 2` (cảnh báo dependency exports cũ).
 - Đã kiểm tra ảnh Chromium 390×844 bằng fixture cho bảy màn, không tràn ngang; sửa khoảng cách dấu `$` và cố định CTA chi tiết. Chưa test ví thật hay Safari iPhone cho giao diện mới; không thực hiện giao dịch on-chain trong phiên này.
-- Báo cáo, các khác biệt có chủ ý với PDF và checklist test tay: [ui-pdf-alignment.md](02-thiet-ke/ui-pdf-alignment.md). Ưu tiên Safari: Home refresh/navigation; Swap `0,1`, keypad, slippage, Accept giá, slide; xStocks AAPLx bốn khung, mua $50, bán 50%, receipt, quay Home; Network không có `/execute`.
+- Báo cáo, các khác biệt có chủ ý với PDF và checklist test tay: [ui-pdf-alignment.md](archive/02-thiet-ke-v1/ui-pdf-alignment.md). Ưu tiên Safari: Home refresh/navigation; Swap `0,1`, keypad, slippage, Accept giá, slide; xStocks AAPLx bốn khung, mua $50, bán 50%, receipt, quay Home; Network không có `/execute`.
 
 ## Milestone Lock — progress
 

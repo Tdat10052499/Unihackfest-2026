@@ -97,7 +97,7 @@ An independent review of the 2 Oct spec found these; a second review on 3 Oct ch
 | C4 | Milestone Lock "roadmap only, do not show escrow" vs Milestone Lock as the main demo | `legal-brief.md`, `customer-demographic.md`, `competitor-comparison.md` vs `ned-research-and-compliance.md` | Old files marked superseded; the Vietnam path (VND only) is what makes the demo possible |
 | C5 | Rotating Fund demo and segment A | `evaluation-and-plan.md`, `07-strategy-v3/` | Marked superseded; D3, D10 |
 | C6 | "Vietnam version = ledger and reminder tool only" | `07-strategy-v3` §0, §10 | Superseded by the VND payout path |
-| C7 | "Swap P0, fee 0.25%" as fixed principles | `docs/README.md`, `01`, `03`, `04` | Marked superseded for product direction; Swap and xStocks hidden from the demo path |
+| C7 | "Swap P0, fee 0.25%" as fixed principles | `docs/README.md`, `01`, `03`, `04` | Marked superseded for product direction; Swap and xStocks hidden from the demo path, then removed from the code and the old documents moved to `docs/archive/` (9 Oct) |
 | C8 | Stripe reference fee "US$1.50 + 0.25% + 0.5% ≈ US$9" | 08-research | Vietnam is 1.00% cross-border + 1% FX (US senders): **≈ US$21.50 on US$1,000** \[Verified, Stripe pricing, 2 Oct 2026\] |
 | C9 | "Outreach after 10 Oct" vs emails already sent | 08-research | Sent 2 Oct (D5) |
 | C10 | Receiving USDC as wages: "grey zone" (artifact) vs "Prohibited \[Verified\]" (08-research) | Both | The text of Decree 52/2024 Art. 3(11) and 8(6) is verified; applying it to a recipient is \[Inference\]. We act as if it is prohibited |

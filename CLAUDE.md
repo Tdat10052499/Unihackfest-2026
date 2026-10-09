@@ -1,4 +1,4 @@
-# N.E.D Wallet — context for AI assistants
+# N.E.D: No Empty Deals — context for AI assistants
 
 Read in this order before analysing or changing anything:
 
@@ -8,7 +8,9 @@ Read in this order before analysing or changing anything:
 4. `docs/tong-hop-tien-do.md`: what is already built and tested (Vietnamese).
 5. `ned-wallet/AGENTS.md` and `ned-wallet/ARCHITECTURE.md` before touching app code; `ned_program/` for the Anchor program.
 
-Superseded but kept for their research: `docs/07-strategy-v3/`, `docs/06-strategy-v2/`, `docs/05-vietnam-strategy-and-revenue-model.md`, `docs/08-research/evaluation-and-plan.md`. The product direction in `docs/01-dinh-huong-du-an.md`, `docs/03-ky-thuat/dev-handoff.md` and `docs/04-ke-hoach-code.md` (Swap first) is also superseded.
+Superseded but kept for their research: `docs/07-strategy-v3/`, `docs/06-strategy-v2/`, `docs/08-research/evaluation-and-plan.md`.
+
+`docs/archive/` holds the N.E.D Wallet documents (25 Sep – 1 Oct 2026: Swap, xStocks, Earn, wallet mode, the v1 design canvas). They are history only: never follow them and never bring those features back. Their code was removed on 9 Oct 2026; see `docs/archive/README.md`.
 
 Rules:
 
@@ -18,5 +20,5 @@ Rules:
 - Follow the word table in `docs/09-milestone-lock/product-spec.md` section 6 for product copy, pitch and docs. Never call USDC a "payment".
 - `docs/09-milestone-lock/unit_economics.py` holds every revenue assumption; change numbers there, not only in prose.
 - The freelancer in Vietnam never holds or receives USDC. N.E.D holds no funds, converts nothing and charges no fee in v1.
-- Do not delete earlier documents; mark them superseded instead.
+- Do not delete earlier documents; mark them superseded instead, or move them to `docs/archive/` and fix the links.
 - Nothing here is legal advice. Legal points marked [Unverified] or [Inference] need a lawyer.

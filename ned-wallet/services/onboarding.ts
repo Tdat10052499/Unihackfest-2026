@@ -14,7 +14,7 @@ import { useAccountStore, waitForAccountHydration } from '../stores/useAccountSt
 import { accountState, hasOlderAgreement, type AccountStep } from './accountOnboarding';
 import { consentVersion } from '@ned/core/legal/agreement.ts';
 
-/** Kích thước account on-chain (ned_program + SPL Token) — xem docs/03-ky-thuat/dev-handoff.md mục 1a */
+/** Kích thước account on-chain (ned_program + SPL Token) — xem docs/archive/03-ky-thuat/dev-handoff.md mục 1a */
 export const ACCOUNT_SIZES = { name: 49, reverse: 42, phone: 49, usdcAta: 165 } as const;
 /** Phí cơ bản 1 chữ ký */
 export const FEE_PER_TX = 5_000;

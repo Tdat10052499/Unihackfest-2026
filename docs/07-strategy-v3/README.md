@@ -1,6 +1,6 @@
 # Strategy v3 — Shared Money
 
-**Superseded on 2 Oct 2026 by [`../09-milestone-lock/`](../09-milestone-lock/README.md)** (Milestone Lock for freelancers, VND payout in Vietnam). Kept for its market and legal research. Earlier status: proposed product direction (2 Oct 2026), superseding [`../06-strategy-v2/`](../06-strategy-v2/README.md) and [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md).
+**Superseded on 2 Oct 2026 by [`../09-milestone-lock/`](../09-milestone-lock/README.md)** (Milestone Lock for freelancers, VND payout in Vietnam). Kept for its market and legal research. Earlier status: proposed product direction (2 Oct 2026), superseding [`../06-strategy-v2/`](../06-strategy-v2/README.md) and [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md).
 
 | File | What it is |
 | --- | --- |

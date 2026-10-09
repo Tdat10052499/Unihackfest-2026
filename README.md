@@ -187,7 +187,7 @@ flowchart TB
 | **Program on devnet** | **v1.4** (lock at hire, D29; upgraded from v1.3 on 7 Oct): Milestone Lock (create, accept, lock, submit, approve, Release now, Refund now, request changes, return, split, close, encrypted notes), device keys, identity, and N.E.D Jobs (`post_job`, `post_job_open`, `fund_job`, `apply_job`, `select_job`, `lock_from_job`, `withdraw_job`). 29 instructions, 55 errors, 26 events, **67/67 tests**. `select_job` refuses a listing whose budget is not locked, and `lock_from_job` checks the selected applicant and the brief. Devnet upgrade done, IDL on-chain, smoke Runs 1–4 green. Not audited. |
 | **N.E.D app (phone)** | Live on GitHub Pages and at `/wallet`: sign-in and onboarding, Vietnam view, accept and lock, contract and milestone screens, records, Help and legal pages. Request changes, revised versions, splits and submitting with a list of final files are **Workspace only** for now. |
 | **Workspace and N.E.D Jobs** | Live at the Workspace URL: contracts, review with preview, final files, notifications, consent, hub v4, Legal pages. Lock at hire: **Lock now** / **Lock when I hire** on `/jobs/new`, "Budget locked" / "Locks when hired" chips, a "Funded only" filter, and "Select @x and lock X USDC". An open contract from `/new` is not built yet. |
-| **Hidden** | Swap and xStocks: code kept, routes switched off (`ned-wallet/constants/features.ts`) |
+| **Removed (9 Oct)** | Swap, xStocks, Jupiter and the Simple/Crypto wallet mode: code deleted; the old N.E.D Wallet documents are in [`docs/archive/`](docs/archive/README.md) |
 | **Tests on `main`** | Program 67 (v1.4) · `@ned/core` 185 · wallet 38 · Workspace 22 (node) + 123 (Vitest). Last full runs: `docs/tong-hop-tien-do.md` (rows V0–V7). |
 
 **Compute units:**

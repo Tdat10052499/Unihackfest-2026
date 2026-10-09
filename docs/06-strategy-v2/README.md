@@ -2,7 +2,7 @@
 
 > **Superseded on 2 Oct 2026 by [`../07-strategy-v3/`](../07-strategy-v3/README.md).**
 
-Proposed product direction after UniHackfest 2026 feedback (1 Oct 2026). Supersedes [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md).
+Proposed product direction after UniHackfest 2026 feedback (1 Oct 2026). Supersedes [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md).
 
 | File | What it is |
 | --- | --- |

@@ -1,6 +1,8 @@
 # Kế hoạch code chi tiết — N.E.D Wallet (27/09 → 10/10/2026)
 
-> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../ned-wallet/ARCHITECTURE.md).
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
+> **Cập nhật 02/10/2026:** định hướng sản phẩm trong tài liệu này (Swap là P0, phí 0,25%, xStocks, Earn, AI) đã được thay thế bởi [`09-milestone-lock/`](../09-milestone-lock/README.md) (Milestone Lock cho freelancer). Trạng thái kỹ thuật mới nhất (không backend, không tài trợ gas, người dùng tự trả phí bằng SOL devnet) nằm ở [`tong-hop-tien-do.md`](../tong-hop-tien-do.md) và [`ned-wallet/ARCHITECTURE.md`](../../ned-wallet/ARCHITECTURE.md).
 
 > Tài liệu để **dev + Claude Code** làm theo từng bước. Mỗi task có: mục tiêu, file liên quan, tiêu chí hoàn thành (DoD), ước tính giờ và **prompt dán thẳng vào Claude Code**.
 > Soạn ngày 26/09/2026 sau khi khảo sát trực tiếp code trên `main` (commit `205eae4`); **cập nhật 26/09 23:30: bỏ Supabase và `ned-hub`, hệ thống chạy hoàn toàn web3**. Ước tính giờ là **ước tính của Claude, chưa kiểm chứng** — cập nhật lại sau mỗi phase.

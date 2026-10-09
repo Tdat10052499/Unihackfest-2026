@@ -1,5 +1,7 @@
 # PoC Dynamic — T0.4 (cổng GO/NO-GO)
 
+> **Lưu trữ (09/10/2026):** tài liệu thời N.E.D Wallet, chỉ để tra lịch sử, không làm theo. Sản phẩm hiện hành: `docs/09-milestone-lock/`. Xem `archive/README.md`.
+
 Nhánh `poc/dynamic` — **không merge vào `main`**. Màn test: `ned-wallet/app/poc-dynamic.tsx` (deep link `nedwallet://poc-dynamic`).
 
 ## 1. Kết quả tra cứu (MCP dynamic, 26/09/2026)

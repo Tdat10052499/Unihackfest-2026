@@ -3,7 +3,7 @@
 > **Superseded on 2 Oct 2026** by [`../09-milestone-lock/`](../09-milestone-lock/README.md). The team chose one template (Milestone Lock) and one customer (freelancers with foreign clients); Rotating Fund and Group Goal are roadmap only; in Vietnam the freelancer receives VND through a payout partner, which replaces the "ledger and reminder tool" Vietnam version in sections 0 and 10. The word table in §11.3 is replaced by `09-milestone-lock/product-spec.md` section 6, and `unit_economics.py` here by the one in `09-milestone-lock/`. Kept for its market and legal research.
 
 > **Status:** proposal v3, 2 Oct 2026. Combines strategy v2 with the Compliance Lead's target-customer and USP proposal (2 Oct 2026). Not yet reviewed by a mentor, the Compliance Lead or a lawyer. The team decides the first customer segment on **6 Oct 2026** after the survey (section 14).
-> **Supersedes:** [`../06-strategy-v2/`](../06-strategy-v2/README.md) (v2) and [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). Both are kept for reference.
+> **Supersedes:** [`../06-strategy-v2/`](../06-strategy-v2/README.md) (v2) and [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md) (v1). Both are kept for reference.
 > **Author:** Ho Du Tuan Dat, with an AI research assistant · **Numbers model:** [`unit_economics.py`](unit_economics.py)
 
 ---
@@ -694,7 +694,7 @@ Pick the segment that passes more thresholds. If neither passes, keep Shared Mon
 - [Resolution 222/2025/QH15 (International Financial Centre)](https://thuvienphapluat.vn/van-ban/Tai-chinh-nha-nuoc/Nghi-quyet-222-2025-QH15-Trung-tam-tai-chinh-quoc-te-tai-Viet-Nam-663581.aspx)
 - [NDAChain (Tuổi Trẻ)](https://tuoitre.vn/viet-nam-co-nen-tang-blockchain-quoc-gia-xuyen-suot-tu-trung-uong-den-dia-phuong-2025101317482419.htm)
 - [Circular 121/2020/TT-BTC](https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-121-2020-TT-BTC-huong-dan-hoat-dong-cua-cong-ty-chung-khoan-453690.aspx)
-- Other documents (Decree 89/2016, Decree 135/2015, Law 91/2025, Law 116/2025, Law 23/2026 …): see [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md), section 11
+- Other documents (Decree 89/2016, Decree 135/2015, Law 91/2025, Law 116/2025, Law 23/2026 …): see [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md), section 11
 
 ---
 

@@ -3,7 +3,7 @@
 > **Superseded on 2 Oct 2026 by strategy v3 (Shared Money):** [`../07-strategy-v3/strategy-v3.en.md`](../07-strategy-v3/strategy-v3.en.md). Kept for its market and legal research.
 
 > **Status:** proposal v2. The project owner approved this direction on 1 Oct 2026. Not yet reviewed by a mentor, the Compliance Lead or a lawyer.
-> **Supersedes:** [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md) (v1). V1 is kept as a legal reference.
+> **Supersedes:** [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md) (v1). V1 is kept as a legal reference.
 > **Last updated:** 1 Oct 2026 · **Author:** Ho Du Tuan Dat, with an AI research assistant
 > **Vietnamese version:** [`strategy-v2.vi.md`](strategy-v2.vi.md) · **Numbers model:** [`unit_economics.py`](unit_economics.py)
 
@@ -34,9 +34,9 @@ If you cloned the repo and are using Claude (or another AI assistant) to analyse
 
 **Related files in the repo:**
 
-- `../01-dinh-huong-du-an.md`: original direction and mentor input (Vietnamese).
+- `../archive/01-dinh-huong-du-an.md`: original direction and mentor input (Vietnamese).
 - `../tong-hop-tien-do.md`: code progress up to 28 Sep 2026 (Vietnamese).
-- `../04-ke-hoach-code.md`: phased code plan (Vietnamese).
+- `../archive/04-ke-hoach-code.md`: phased code plan (Vietnamese).
 - `../05-legal/compliance-lead-tasks.md`: Compliance Lead tasks and decisions confirmed with the organisers.
 - `../../ned_program/programs/ned-program/src/lib.rs`: the existing Anchor program (identity).
 - `unit_economics.py`: revenue model. Change the assumptions and run `python3 unit_economics.py`.
@@ -380,7 +380,7 @@ Gross profit per user/year = 8,000 × (1.5% − 1.0%) + 1,200 × (1% − 0.1%) =
 | --- | --- | --- | --- |
 | Buy USDC with yen | Registered exchange (e.g. SBI VC Trade) | ? | Published fee schedule |
 | Bridge Ethereum → Solana (if needed) | Bridge service | ? | Measure in practice |
-| Solana network fee | Network | ~0.000005 SOL/transaction | Measured on devnet (`../poc-dynamic.md`); re-measure on mainnet |
+| Solana network fee | Network | ~0.000005 SOL/transaction | Measured on devnet (`../archive/poc-dynamic.md`); re-measure on mainnet |
 | Convert USDC → USD | Off-ramp partner | ? | Quote |
 | VND payout in Vietnam | Remittance company or bank | ? | Negotiation |
 | KYC | KYC provider | ? | Quote |
@@ -587,7 +587,7 @@ If the first two metrics are not met, go back to the v1 "send home" direction an
 - NDAChain: https://tuoitre.vn/viet-nam-co-nen-tang-blockchain-quoc-gia-xuyen-suot-tu-trung-uong-den-dia-phuong-2025101317482419.htm
 - Circular 121/2020/TT-BTC: https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-121-2020-TT-BTC-huong-dan-hoat-dong-cua-cong-ty-chung-khoan-453690.aspx
 - RongViet Invest 2026: https://vietstock.vn/2026/09/rongviet-invest-2026-lan-toa-suc-nong-den-sinh-vien-32-truong-dai-hoc-830-1494966.htm
-- Other documents (Decree 52/2024, Decree 89/2016, Decree 135/2015, Law 91/2025, Law 116/2025, Law 23/2026…): see section 11 of [`../05-vietnam-strategy-and-revenue-model.md`](../05-vietnam-strategy-and-revenue-model.md)
+- Other documents (Decree 52/2024, Decree 89/2016, Decree 135/2015, Law 91/2025, Law 116/2025, Law 23/2026…): see section 11 of [`../archive/05-vietnam-strategy-and-revenue-model.md`](../archive/05-vietnam-strategy-and-revenue-model.md)
 
 ---
 
