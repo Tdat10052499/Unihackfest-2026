@@ -4,10 +4,10 @@
 import type { Region } from './milestone/view';
 
 /**
- * V1's four routes and Add USDC (test USDC for a client to lock), plus the hidden swap and xStocks screens (crypto trading, never in the Vietnam view), and the
+ * V1's four routes and Add USDC (test USDC for a client to lock), and the
  * on-chain transfer detail (D2, CL pre-pitch-check 7 Oct: it shows token amounts)
  */
-export const VN_BLOCKED_ROUTES = ['/send', '/receive', '/add-usdc', '/history', '/scan-qr', '/swap', '/xstocks', '/notification-detail'] as const;
+export const VN_BLOCKED_ROUTES = ['/send', '/receive', '/add-usdc', '/history', '/scan-qr', '/notification-detail'] as const;
 
 /** The app path without a base URL or a trailing slash ("/wallet/send/" → "/send") */
 export function appPath(pathname: string, base = ''): string {

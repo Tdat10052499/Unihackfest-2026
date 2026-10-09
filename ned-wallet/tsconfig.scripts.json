@@ -1,5 +1,5 @@
 {
-  "//": "ts-node settings for scripts/*.ts (identity:devnet, identity:check, milestone:devnet, recycle:demo-usdc, xstocks:diagnose). The scripts run as CommonJS; moduleTypes makes ts-node compile @ned/core's TypeScript (a \"type\": \"module\" package) as CommonJS too, instead of failing with ERR_REQUIRE_ESM.",
+  "//": "ts-node settings for scripts/*.ts (identity:devnet, identity:check, milestone:devnet, recycle:demo-usdc, jobs:smoke, jobs:e2e). The scripts run as CommonJS; moduleTypes makes ts-node compile @ned/core's TypeScript (a \"type\": \"module\" package) as CommonJS too, instead of failing with ERR_REQUIRE_ESM.",
   "extends": "./tsconfig.json",
   "ts-node": {
     "transpileOnly": true,

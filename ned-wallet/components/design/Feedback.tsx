@@ -101,7 +101,7 @@ export function Toggle({
   );
 }
 
-/** Vòng dấu tick kết quả thành công (XStockSuccess): 88px, nền xanh mờ, vầng sáng 40px */
+/** Vòng dấu tick kết quả thành công: 88px, nền xanh mờ, vầng sáng 40px */
 export function SuccessMark({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[styles.success, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

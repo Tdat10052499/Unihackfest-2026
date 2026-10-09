@@ -346,29 +346,14 @@ export const blur = {
 export type Orb = { x: number; y: number; w: number; h: number; color: string; alpha: number; stop: number; mid?: [string, number, number] };
 /** @deprecated ambient glows belong to the dark theme; AmbientGlow renders nothing in v2 */
 export const orbs = {
-  /** OnbWelcome / Setup / Profile / Mode / Send: tím giữa, có dải indigo */
+  /** OnbWelcome / Setup / Profile / Send: tím giữa, có dải indigo */
   brand: [{ x: 0, y: 40, w: 400, h: 380, color: '123,47,190', alpha: 0.36, stop: 0.68, mid: ['99,102,241', 0.1, 0.45] }],
   /** Receive: tím giữa, sau thẻ QR */
   receive: [{ x: 0, y: 90, w: 400, h: 360, color: '123,47,190', alpha: 0.3, stop: 0.65 }],
   /** Settings / History: tím góc trên phải */
   settings: [{ x: 105, y: -60, w: 260, h: 260, color: '123,47,190', alpha: 0.22, stop: 0.65 }],
-  /** Swap: indigo góc trên trái */
-  swap: [{ x: -105, y: -40, w: 240, h: 240, color: '99,102,241', alpha: 0.18, stop: 0.65 }],
-  /** xStocks list: hổ phách góc phải + tím bên trái */
-  market: [
-    { x: 105, y: -60, w: 280, h: 280, color: '245,158,11', alpha: 0.16, stop: 0.65 },
-    { x: -155, y: 260, w: 260, h: 260, color: '123,47,190', alpha: 0.2, stop: 0.62 },
-  ],
   /** OnbSetup: indigo giữa */
   setup: [{ x: 0, y: 120, w: 380, h: 360, color: '99,102,241', alpha: 0.26, stop: 0.65 }],
-  /** XStockBuy: tím giữa trên */
-  buy: [{ x: 0, y: 60, w: 300, h: 240, color: '123,47,190', alpha: 0.22, stop: 0.65 }],
-  /** XStockSell: indigo giữa trên */
-  sell: [{ x: 0, y: 60, w: 300, h: 240, color: '99,102,241', alpha: 0.2, stop: 0.65 }],
-  /** XStockReview: tím sau khối số tiền */
-  review: [{ x: 0, y: 90, w: 320, h: 220, color: '123,47,190', alpha: 0.2, stop: 0.65 }],
-  /** xStock detail: xanh nhạt góc phải */
-  detail: [{ x: 135, y: 80, w: 280, h: 280, color: '34,197,94', alpha: 0.1, stop: 0.65 }],
   /** Màn kết quả thành công: xanh giữa */
   success: [{ x: 0, y: 140, w: 340, h: 300, color: '34,197,94', alpha: 0.18, stop: 0.62 }],
   /** Hero Home: elip indigo phải + tím trái */

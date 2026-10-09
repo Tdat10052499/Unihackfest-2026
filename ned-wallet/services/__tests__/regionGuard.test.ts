@@ -11,7 +11,6 @@ test('V1: every wallet route is blocked in the Vietnam view and for a wallet wit
     assert.equal(blockedForRegion(r, 'intl'), false, `${r} intl`);
   }
   assert.equal(blockedForRegion('/scan-qr/anything', 'vn'), true);
-  assert.equal(blockedForRegion('/xstocks/AAPLx', 'vn'), true);
 });
 
 test('other routes stay open', () => {

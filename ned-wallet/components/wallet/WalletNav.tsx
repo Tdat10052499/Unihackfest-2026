@@ -1,5 +1,5 @@
 // Main navigation (HomeVN / HomeIntl boards): white bottom bar, Home · Contracts · Records · Settings, icon + label;
-// the open item is accent purple. Swap and xStocks are not in the demo path (FEATURES flags; their routes redirect).
+// the open item is accent purple.
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';

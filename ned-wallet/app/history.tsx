@@ -14,12 +14,7 @@ import {
   getActivityTitle,
   formatLocalizedRelativeTime,
 } from '../services/solana';
-import {
-  getCachedActivities,
-  cacheActivities,
-  getDemoSwaps,
-} from '../services/storage';
-import { mergeActivityHistory, type HistoryEntry } from '../services/history';
+import { getCachedActivities, cacheActivities } from '../services/storage';
 import { useTranslation } from '../services/i18n';
 
 import { displayNamesFor } from '../services/identity/resolve';
@@ -73,9 +68,8 @@ export default function HistoryScreen() {
   const loadOnChainHistory = useCallback(async (force: boolean = false) => {
     if (!solanaAddress) return;
     try {
-      const [data, demos] = await Promise.all([fetchOnChainHistory(solanaAddress, force), getDemoSwaps(solanaAddress)]);
-      const merged = mergeActivityHistory(data as HistoryEntry[], demos as HistoryEntry[]) as unknown as ActivityItem[];
-      if (merged.length > 0) { setActivities(merged); await cacheActivities(merged); }
+      const data = await fetchOnChainHistory(solanaAddress, force);
+      if (data.length > 0) { setActivities(data); await cacheActivities(data); }
     } catch (err) {
       console.log('Error fetching history:', err);
     }
@@ -134,19 +128,15 @@ export default function HistoryScreen() {
   });
 
   const titleFor = (item: ActivityItem) =>
-    item.demoSwap
-      ? 'Demo swap'
-      : item.counterpartyWallet && names[item.counterpartyWallet]
-        ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}`
-        : getActivityTitle(item, t);
+    item.counterpartyWallet && names[item.counterpartyWallet]
+      ? `${item.type === 'sent' ? 'To' : 'From'} ${names[item.counterpartyWallet]}`
+      : getActivityTitle(item, t);
   const iconFor = (item: ActivityItem) =>
-    item.demoSwap
-      ? { name: 'repeat' as const, bg: glass.iconTint, fg: colors.purple[300] }
-      : item.type === 'received'
-        ? { name: 'arrow-down-left' as const, bg: glass.successFill, fg: colors.successText }
-        : item.type === 'reward'
-          ? { name: 'gift' as const, bg: glass.warningFill, fg: colors.warningText }
-          : { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text };
+    item.type === 'received'
+      ? { name: 'arrow-down-left' as const, bg: glass.successFill, fg: colors.successText }
+      : item.type === 'reward'
+        ? { name: 'gift' as const, bg: glass.warningFill, fg: colors.warningText }
+        : { name: 'arrow-up-right' as const, bg: glass.fillStrong, fg: colors.text };
 
   return (
     <View style={styles.page}>
@@ -217,7 +207,7 @@ export default function HistoryScreen() {
               <Mascot mood={searchQuery ? 'question' : 'sleepy'} size={110} floatAnimation containerStyle={{ marginBottom: space[3] }} />
               <DText variant="h3" align="center">No activity yet</DText>
               <DText variant="body" align="center">
-                {searchQuery ? 'Nothing matches your search.' : 'Money you send, receive or swap shows up here.'}
+                {searchQuery ? 'Nothing matches your search.' : 'Money you send or receive shows up here.'}
               </DText>
             </View>
           ) : (
@@ -240,13 +230,9 @@ export default function HistoryScreen() {
                       </View>
                       <View style={styles.timeAndMetaRow}>
                         <DText variant="caption" tone="secondary" style={styles.metaText} numberOfLines={1}>
-                          {item.demoSwap
-                            ? `${item.amount} → ${item.received || '—'}${item.nedFee ? ` · N.E.D fee ${item.nedFee}` : ''}`
-                            : formatLocalizedRelativeTime(item.blockTime, t)}
+                          {formatLocalizedRelativeTime(item.blockTime, t)}
                         </DText>
-                        {item.demoSwap ? (
-                          <Badge label="Demo" tone="warning" />
-                        ) : item.signature ? (
+                        {item.signature ? (
                           <View style={styles.sigActions}>
                             <Pressable
                               accessibilityRole="button"

@@ -108,9 +108,6 @@ export interface ActivityItem {
   isNetworkFee?: boolean;
   currency?: string;
   counterpartyWallet?: string;
-  demoSwap?: boolean;
-  received?: string;
-  nedFee?: string;
 }
 
 export interface TransferResult {

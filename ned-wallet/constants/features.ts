@@ -7,10 +7,6 @@ const dev = typeof __DEV__ !== 'undefined' && __DEV__;
 const devTools = dev || process.env.EXPO_PUBLIC_DEV_TOOLS === '1';
 
 export const FEATURES = {
-  swap: false,
-  xstocks: false,
-  dapps: false,
-  mwa: false,
   /** P1 group: dispute, concede, propose/accept split. Off until the screens exist. */
   dispute: false,
   records: true,
